@@ -1042,7 +1042,7 @@ proc read_reflectivity {} {
     if { $::MAGNETIC } {
 	foreach {q ra rb rc rd} [gmlayer send refl] break
     } else {
-	foreach {q r} [gmlayer send refl] break;
+	foreach {q r} [gmlayer send refl] break
 	# puts "q:$q"
 	# puts "r:$r"
     }
@@ -1235,15 +1235,13 @@ if 0 {
 ## XXX FIXME XXX is the old constraints file being destroyed if there
 ## are no new constraints?
 proc reset_constraints {} {
-ptrace
     set ::constraints_script [gmlayer send constraints]
-    text_load $::constraints $::constraints_script
-    constraints_modified 0
+    text_replace $::constraints $::constraints_script
+    constraints_modified 1
 }
 
 ## Clear the constraints box and unload the constraints module
 proc clear_constraints {} {
-ptrace
     # unload the constraints module
     # gmlayer ulc
     gmlayer send constraints {}
@@ -1473,6 +1471,7 @@ proc fit_update {} {
     read_reflectivity
     # XXX FIXME XXX should update positions, not redraw all markers
     draw_layers
+    reset_table
 
     # update the results box
     text_clear .fitresults
@@ -3393,21 +3392,14 @@ proc set_sld {} {
 }
 
 proc set_Q4 {} {
+    # XXX FIXME XXX This doesn't update the snapshots
     if { $::use_Q4 } {
         .reflectivity axis conf y -title "reflectivity * Q^4"
-        foreach v $::active_slices {
-            ::data_r$v expr ::data_r$v*::data_q^4
-            ::data_e$v expr ::data_e$v*::data_q^4
-            ::reflect_r$v expr ::reflect_r$v*::reflect_q^4
-        }
     } else {
         .reflectivity axis conf y -title "reflectivity"
-        foreach v $::active_slices {
-            ::data_r$v expr ::data_r$v/::data_q^4
-            ::data_e$v expr ::data_e$v/::data_q^4
-            ::reflect_r$v expr ::reflect_r$v/::reflect_q^4
-        }
     }
+    read_data
+    read_reflectivity
 }
 
 #=== File menu
