@@ -1,5 +1,8 @@
 namespace import blt::graph blt::vector blt::hiertable
 source [file join $::VIEWRUN_LIB generic.tcl]
+source [file join $::VIEWRUN_HOME loadicp.tcl]
+source [file join $::VIEWRUN_HOME loaduxd.tcl]
+source [file join $::VIEWRUN_HOME loadreduced.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
 #source [file join $::VIEWRUN_HOME atten.tcl]
 source [file join $::VIEWRUN_LIB tableentry.tcl]
@@ -77,15 +80,15 @@ if { $argc == 0 } {
 }
 
 # useful constants
-set ::log10 [expr {log(10.0)}]
-set ::pitimes4 [expr {16.0*atan(1.0)}]
-set ::piover360 [ expr {atan(1.0)/90.0}]
-set ::piover180 [ expr {atan(1.0)/45.0}]
+set ::log10 [expr {log(10.)}]
+set ::pitimes4 [expr {16.*atan(1.)}]
+set ::piover360 [ expr {atan(1.)/90.}]
+set ::piover180 [ expr {atan(1.)/45.}]
 proc a3toQx {a3 a4over2 lambda} {
     return "[expr [a4toQz 2*$a4over2 $lambda]] * atan( ($a3-$a4over2)*$::piover180 )"
 }
 proc a4toQx {a4 a3 lambda} {
-    return "[expr {[a3toQz $a3 $lambda]}] * atan( ($a3 - ($a4)/2)*$::piover180 )"
+    return "[expr {[a3toQz $a3 $lambda]}] * atan( ($a3 - ($a4)/2.)*$::piover180 )"
 }
 proc a3toQz {a3 lambda} {
     return "$::pitimes4*sin($a3*$::piover180) / $lambda"
@@ -97,10 +100,6 @@ proc a4toQz {a4 lambda} {
 load_resources $::VIEWRUN_HOME tkviewrun
 
 # XXX FIXME XXX turn these into resources
-set ::xraywavelength 1.5416
-set ::cg1wavelength 5.0
-set ::ng1wavelength 4.75
-set ::ng7wavelength 4.768
 set ::logaddrun 0
 set ::erraddrun y
 set ::background_default [option get . backgroundBasis BackgroundBasis]
@@ -172,7 +171,7 @@ proc init_selector { } {
 
 
     # tree to hold the list of runs
-    Tree .tree -selectcommand view_file -padx 11
+    Tree .tree -selectcommand view_file -padx 1
     .tree configure -width [option get .tree width Width]
     pack [scroll .tree] -side left -in $treepane -fill both -expand yes
 
@@ -545,9 +544,9 @@ proc write_data { fid data {log 0} } {
 		y [set ${data}_y(:)] \
 		dy [set ${data}_dy(:)] {
 #	    puts "writing $x $y $dy"
-	    if { $y <= $dy/1000 } {
+	    if { $y <= $dy/1000. } {
 		# XXX FIXME XXX can dy be <= 0?
-		if { abs($y) <= $dy/1000 } {
+		if { abs($y) <= $dy/1000. } {
 		    tk_messageBox -parent . \
 			    -message "excluding (x,y,dy)=($x,$y,$dy)" \
 			    -type ok
@@ -721,7 +720,6 @@ proc setscan { runs } {
     vector create ::${scanid}_kdy
     octave sync
 
-    savescan $scanid
     reduce_newscan $scanid
     return $scanid
 }
@@ -870,7 +868,7 @@ proc average_seq_tcl {} {
     for {set i 1; set j 0} { $i < [::x_seq length] } { incr i; incr j } {
 	if { abs($::x_seq($j) - $::x_seq($i)) < 1e-8 } {
 	    ## usual average of x1 and x2 -> x1
-	    set ::x_seq($j) [expr ($::x_seq($i)+$::x_seq($j))/2];
+	    set ::x_seq($j) [expr ($::x_seq($i)+$::x_seq($j))/2.];
 	    ## error-weighted average of y1 and y2 -> y1
 	    set si [expr 1./($::dy_seq($i)*$::dy_seq($i))]
 	    set sj [expr 1./($::dy_seq($j)*$::dy_seq($j))]
@@ -879,7 +877,7 @@ proc average_seq_tcl {} {
 	    if { $w == 0.0 } {
 		puts "dyi=$::dy_seq($i), dyj=$::dy_seq($j), w=$w"
 	    }
-	    set ::y_seq($j) [expr ($::y_seq($i)*$si + $::y_seq($j)*$sj)/$w]
+	    set ::y_seq($j) [expr double($::y_seq($i)*$si + $::y_seq($j)*$sj)/$w]
 	    set ::dy_seq($j) [expr 1./sqrt($w)];
 	    puts "avg: $inerr -> $::dy_seq($j)"
 	    ## remove y2 from set
@@ -951,9 +949,9 @@ proc join_one {id seq} {
 	::dy_seq append ::dy_$id
     } elseif { $y1 >= $y2 } {
 #	puts "scale new run against the old"
-	set rec(k) [expr $y1/$y2]
-	set p [expr $dy1/$y2]
-	set q [expr ($y1/$y2)*($dy2/$y2)]
+	set rec(k) [expr double($y1)/$y2]
+	set p [expr double($dy1)/$y2]
+	set q [expr (double($y1)/$y2)*(double($dy2)/$y2)]
 	set rec(dk) [expr sqrt($p*$p + $q*$q)]
 	::ky_$id expr "$rec(k)*::y_$id"
 	::kdy_$id expr "sqrt($rec(k)^2*::dy_$id^2 + ::y_$id^2*$rec(dk)^2)"
@@ -965,9 +963,9 @@ proc join_one {id seq} {
 #	puts "scale all old runs against the new"
 	set rec(k) 1.0
 	set rec(dk) 0.0
-	set k [expr $y2/$y1]
-	set p [expr $dy2/$y1]
-	set q [expr ($y2/$y1)*($dy1/$y1)]
+	set k [expr double($y2)/$y1]
+	set p [expr double($dy2)/$y1]
+	set q [expr (double($y2)/$y1)*(double($dy1)/$y1)]
 	set dk [expr sqrt($p*$p + $q*$q)]
 	foreach oldid $seq {
 	    #puts "updating [set ::${oldid}(run)] by $k +/- $dk"
@@ -1155,7 +1153,7 @@ proc pretty_slit { m b } {
 proc slit_ratio { id slit Q } {
     upvar #0 $id rec
     if { [info exists rec($slit)] && [info exists rec($Q)] } {
-	set slope [expr ($rec(stop,$slit) - $rec(start,$slit))/($rec(stop,$Q)-$rec(start,$Q))]
+	set slope [expr double($rec(stop,$slit) - $rec(start,$slit))/($rec(stop,$Q)-$rec(start,$Q))]
 	set intercept [expr $rec(start,$slit) - $slope*$rec(start,$Q)]
     } else {
 	set slope NaN
@@ -1424,7 +1422,11 @@ proc addrun_accept {} {
 
     # build indices as separate lines
     foreach index [lsort [array names runlist]] {
-	lappend scanlist [setscan $runlist($index)]
+	set scanid [setscan $runlist($index)]
+	lappend scanlist $scanid
+	# XXX FIXME XXX I hate the automatic saving of intermediates, and
+	# this is almost certainly the wrong place to do it.
+	savescan $scanid
     }
 
     # clear the runs
@@ -1547,7 +1549,7 @@ proc toggle_background { node } {
 		set ::${id}(start) [set ::${id}(start,4)]
 		set ::${id}(stop) [set ::${id}(stop,4)]
 		if {[vector_exists ::x_$id]} {
-		    ::xth_$id expr ::A4_$id/2
+		    ::xth_$id expr ::A4_$id/2.
 		    ::x_$id expr [ a4toQz ::A4_$id [set ::${id}(L)] ]
 		}
 	    }
@@ -1704,7 +1706,11 @@ proc view_file {widget node} {
     .filename conf -text "$rec(file) ($node)"
 
     ## display the file contents as text
-    text_load .text $rec(file)
+    if { [info exists ::rec(view)] } {
+	$::rec(view) $node .text
+    } else {
+	text_load .text $rec(file)
+    }
 }
 
 # XXX FIXME XXX chop superfluous code
@@ -1750,12 +1756,12 @@ if {0} {
 	if { $Qbase <= $min - $range } {
 	    .graph axis conf x -min [expr $min - $range]
 	} elseif { $Qbase > $min - $range  && $Qbase <= $min } {
-	    .graph axis conf x -min [expr $Qbase - $range/10]
+	    .graph axis conf x -min [expr $Qbase - $range/10.]
 	}
 	if { $Qbase >= $max + $range } {
 	    .graph axis conf x -max [expr $max + $range]
 	} elseif { $Qbase < $max + $range && $Qbase >= $max } {
-	    .graph axis conf x -max [expr $Qbase + $range/10]
+	    .graph axis conf x -max [expr $Qbase + $range/10.]
 	}
     }
     update idletasks
@@ -1764,39 +1770,57 @@ if {0} {
 ## Show what portion of the total data range is used by a particular node.
 ## This is called by my hacked version of the BWidget Tree widget, which
 ## first draws the label for $node, then gives you the canvas widget $w and
-## the bounding box [x0 y0 x1 y1] of the label on the canvas, and lets you
+## the bounding box {x0 y0 x1 y1} of the label on the canvas, and lets you
 ## add your own canvas annotations.  The tags used on the canvas items
 ## must be listed in the order given if the user is to click on your
 ## annotations to select the node.
-proc decorate_node { node w x0 y0 x1 y1 } {
+proc decorate_node { node w bbox } {
     # make sure it is a leaf node
     if { [string equal [.tree itemcget $node -data] "record"] } {
 	upvar #0 $node rec
-	# XXX FIXME XXX need a better way to indicate no bar
-	if [string equal $rec(type) other] return
+
+	# determine range for the entire group
         set gid [ .tree parent $node ]
 	group_range $gid shift end
+
+	# if no range, don't leave space for a range bar
 	if { $end == $shift } {
-	    set shift [expr $shift - 0.1]
-	    set end [expr $end + 0.1]
+	    set offset 12
+	} else {
+	    set offset 65
 	}
 
-	set scale [expr 50.0/($end - $shift)]
-	set x1 [expr $x0 + 40.0 ]
-	set y0 [expr $y0 + 1.0 ]
-	set y1 [expr $y1 - 1.0 ]
-	$w create rect $x1 $y0 [expr $x1+50.0] $y1 \
+	# draw the label
+	foreach {x0 y0 x1 y1 } $bbox break
+	$w create text [expr {$x0+$offset}] $y1 \
+		-text   $rec(run)$rec(index) \
+		-fill   [Widget::getoption .tree.$node -fill] \
+		-font   [Widget::getoption .tree.$node -font] \
+		-anchor sw \
+		-tags   "TreeItemSentinal img i:$node"
+
+	# if no bar (hence no space for bar) then we are done
+	if { $end == $shift } { return }
+
+	# Draw the bar and the active range within the bar
+	set scale [expr {50./($end - $shift)}]
+	set x1 [expr {$x0 + 12.} ]
+	set y0 [expr {$y0 + 1.} ]
+	set y1 [expr {$y1 - 1.} ]
+	$w create rect $x1 $y0 [expr {$x1+50.}] $y1 \
 		-fill $::qrange_fill \
 		-outline $::qrange_outline \
 		-width $::qrange_outlinewidth \
 		-tags "TreeItemSentinal img i:$node"
 	$w create rect \
-	        [expr ($rec(start)-$shift)*$scale + $x1] $y0 \
-	        [expr ($rec(stop)-$shift)*$scale + $x1] $y1 \
+	        [expr {($rec(start)-$shift)*$scale + $x1}] $y0 \
+	        [expr {($rec(stop)-$shift)*$scale + $x1}] $y1 \
 	        -fill $::qrange_color \
 		-outline $::qrange_outline \
 		-width $::qrange_outlinewidth \
 		-tags "TreeItemSentinal img i:$node"
+
+	# Draw Qx=0 or Qz=0 if it is visible in the group range
 	if {[info exists rec(rockbar)]} {
 	    # there is a rockbar, try to show Qx=0
 	    set bar $rec(rockbar)
@@ -1804,13 +1828,11 @@ proc decorate_node { node w x0 y0 x1 y1 } {
 	    # if no rockbar, try to show Qz=0
 	    set bar 0
 	}
-
-	# make sure the rocking curve bar is in the data range
 	if { $bar >= $shift && $bar <= $end } {
-	    set bar [expr ($bar-$shift)*$scale + $x1 - floor($::qrange_barwidth/2)]
+	    set bar [expr {($bar-$shift)*$scale + $x1 - floor($::qrange_barwidth/2.)}]
 	    $w create rect \
-		    $bar [expr $y0 + $::qrange_outlinewidth] \
-		    [expr $bar + $::qrange_barwidth] $y1 \
+		    $bar [expr {$y0 + $::qrange_outlinewidth}] \
+		    [expr {$bar + $::qrange_barwidth}] $y1 \
 		    -fill $::qrange_barcolor -width 0 \
 		    -tags "TreeItemSentinal img i:$node"
 	}
@@ -1836,47 +1858,28 @@ proc clear_set {} {
     # set ::rec_count 0
 }
 
-proc markother {file} {
-    # create a new record
-    # XXX FIXME XXX make this generic
-    set id recR[incr ::rec_count]
-    upvar #0 $id rec
-    set rec(id) $id
-    set rec(file) $file
-    
-    set rec(load) loadother
-    
-    set root [file rootname $file]
-    set run [string range $root end-2 end]
-    set dataset [string range [file tail $root] 0 end-3]
-
-    set rec(date) [file mtime $file]
-    set rec(type) [file extension $file]
-    set rec(comment) "Preprocessed file $file"
-    set rec(T) unknown
-    set rec(H) unknown
-    set rec(base) unknown
-    set rec(run) $run
-    set rec(index) {}
-    set rec(start) 0
-    set rec(stop) 0
-
-    if { [info exists ::dataset($dataset)] } {
-	set rec(dataset) $dataset
-	set rec(instrument) [lindex [split [lindex [lsort [array names ::group $dataset,*]] 0] ,] 1]
+proc note_rec { id args } {
+    if { [llength $args] } {
+	lappend ::${id}(notes) $args
     } else {
-	set rec(dataset) other
-	set rec(run) [file tail $root]
-	set rec(instrument) other
+	set ::${id}(notes) {}
     }
-    categorize
+	
+}
+
+proc new_rec { file } {
+    set id recR[incr ::rec_count]
+    set ::${id}(id) $id
+    set ::${id}(file) $file
+
+    return $id
 }
 
 proc marktype {type {start 0} {stop 0} {index ""}} {
     upvar rec rec
     set root [file rootname $rec(file)]
-    set rec(run) [string range $root end-2 end] ;# 3 digit run number
-    set rec(dataset) [string range [file tail $root] 0 end-3] ;# run name
+#    set rec(run) [string range $root end-2 end] ;# 3 digit run number
+#    set rec(dataset) [string range [file tail $root] 0 end-3] ;# run name
     set rec(type) $type
     set rec(start) $start
     set rec(stop) $stop
@@ -1910,7 +1913,7 @@ proc group_range {gid Vstart Vstop } {
     upvar $Vstart start
     upvar $Vstop stop
     if { [info exists ::grouprange($gid)] } {
-	foreach {start stop} $::grouprange($gid) {}
+	foreach {start stop} $::grouprange($gid) break
     } else {
 	set start 1.e100
 	set stop -1.e100
@@ -1921,101 +1924,6 @@ proc group_range {gid Vstart Vstop } {
 	}
 	set ::grouprange($gid) [list $start $stop]
     }
-}
-
-
-proc parse1 {line} {
-    upvar rec rec
-    foreach { a rec(internal_name) b date \
-	    c rec(scantype) d rec(base) \
-	    e f g g1 g2 g3 g4 g5 g6 } [split $line "'"] {}
-    if {[catch { clock_scan $date } rec(date)]} {
-	message "clock scan fails for $date: $rec(date)"
-	#puts $rec(date)
-	set rec(date) 0
-    }
-    # a,g are empty, b,c is space between fields, d is monitor/prefactor,
-    # f is 'RAW', g1 ... g6 are guard values in case the format changes
-    foreach { rec(mon) rec(prf) rec(pts) g1 g2 g3 g4 g5 g6 } "$d $e" {}
-}
-
-proc parse2ng1 {line} {
-    upvar rec rec
-    # XXX FIXME XXX foreach magic is dangerous if the file format changes
-    # Hconv dH ... g6 are guard values against new fields
-    foreach { a b c d e f g rec(L) rec(T) rec(dT) rec(H) rec(\#Det) Hconv dH g3 g4 g5 g6 } $line {}
-    set rec(monitor) [expr $rec(mon)*$rec(prf)]
-}
-
-proc parse2ng7 {line} {
-    upvar rec rec
-    foreach { rec(Mon1) rec(Exp) rec(Dm) rec(L) rec(T) rec(dT) rec(H) \
-	    rec(\#Det) rec(SclFac) g1 g2 g3 g4 g5 g6 } $line {}
-    set rec(monitor) 1.0
-}
-
-
-
-# MACRO loadhead
-# - defines lines as the head lines of the file
-# - calling procedure automatically returns if there is an error
-# - creates a new record
-# naughty, yes, but hopefully fast.
-proc loadhead {file} {
-    # slurp file
-    if [catch {open $file r} fid] {
-	puts "couldn't open $file";
-	return -code return
-    }
-    set text [read $fid]
-    close $fid
-
-    # if it has a motor line, then assume the format is good
-    set offset [ string first "\n Mot: " $text]
-    if { $offset < 0 } {
-	# puts "couldn't find Mot: line in $file";
-	return -code return
-    }
-    set lines [split [string range $text 0 [incr offset -1]] "\n"]
-
-    # create a new record
-    set id recR[incr ::rec_count]
-    upvar #0 $id rec
-    set rec(id) $id
-    set rec(file) $file
-
-    # parse the header1 line putting the fields into "rec"
-    parse1 [lindex $lines 0] ;# grab record variables from line 1
-
-    # parse the comment line
-    set rec(comment) [string trim [lindex $lines 2]]
-
-    # parse the motor lines
-    upvar fixed fixed
-    set fixed 1
-    foreach line [lrange $lines 5 end] {
-	foreach { name start step stop } $line {
-	    set rec(stop,$name) $stop
-	    # make sure start is before end
-	    # (you can tell if is backward from step)
-	    # XXX FIXME XXX rename start/stop to lo/hi
-	    if { $start <= $stop } {
-		set rec(start,$name) $start
-		set rec(step,$name) $step
-		set rec(stop,$name) $stop
-	    } else {
-		set rec(start,$name) $stop
-		set rec(step,$name) $step
-		set rec(stop,$name) $start
-	    }
-	    if { $start != $stop } { set fixed 0 }
-	}
-    }
-
-    # return the header2 line
-    upvar header2 header2
-    set header2 [lindex $lines 3]
-    return $id
 }
 
 proc load_run {id} {
@@ -2040,7 +1948,7 @@ proc load_run {id} {
     if {![info exists rec(loaded)]} { set rec(loaded) 0 }
     if {$rec(loaded) > 0} { incr rec(loaded); return 1 }
 
-    # kill load from a separate "thread"
+    # avoid loading from a separate "thread" while this thread is loading
     set rec(loading) 1
 
     # default values for everything
@@ -2054,14 +1962,18 @@ proc load_run {id} {
 	set rec(dk) 0.0
     # }
 
+    # XXX FIXME XXX these should be post-loding operations, but loadreduced
+    # jumps immediately to ghost mode.
+
+    # define scaled vectors (atten_set sets their values according to the
+    # scale factor and the current monitor)
+    vector create ::ky_$id ::kdy_$id
     
+    # set other fields
+    set ::${id}(legend) "[set ::${id}(run)][set ::${id}(index)]"
+
     # call the type-specific loader
     if { [$rec(load) $id] } {
-
-	# define scaled vectors (atten_set sets their values according to the
-	# scale factor and the current monitor)
-	vector create ::ky_$id ::kdy_$id
-
 	# register the successful load
 	incr rec(loaded)
     }
@@ -2079,6 +1991,8 @@ proc load_run {id} {
 # val val val \n val val val \n ...
 # into vectors Col1 Col2 Col3
 proc get_columns { id columns data } {
+    # ptrace
+
     # convert newlines to spaces so that we can change the data to a list
     set data [string map { "\n" " " } $data]
     if { [catch { eval list $data } valuelist] } {
@@ -2108,286 +2022,6 @@ proc get_columns { id columns data } {
     return 1
 }
 
-# textkey text label name
-#
-# Set name to the value associated with label in text. 
-#
-# Label can be a pattern such as temp\w*.  The match is case insensitive 
-# unless the label starts with (?c). If you want to be less accepting,
-# you can use non-capturing grouping followed by ? to optionally match the
-# suffix.  For example, the label {T(?:emp(?:erature)?)?} matches "t", 
-# "temp" and "temperature", but not "time". Alternate labels can be 
-# specified with non-grabbing branch patterns such as (?:H|field).
-#
-# The format is line oriented, with any sort of comment characters allowed
-# at the start of the line, followed by label, possibly followed by : or =
-# followed by a value which may or may not be in quotes.
-# The following are all valid label-value pairs:
-#    Title This is the title
-#    !date 2002-12-10
-#    % DATE     Dec 10, 2002
-#    # wavelength: 1.75
-#    # temperature=15
-#    field "17"
-#
-# XXX FIXME XXX how can we support units?  Perhaps we don't.  We can process
-# the returned string just like we do for date.
-proc textkey { text label name } {
-    set pattern {(?:\s*[:=]\s*|\s+)"?(.*?)"?\s*$}
-    upvar $name value
-    return [regexp -line -nocase "^\\W*$label$pattern" $text {} value]
-}
-
-proc loadother {id} {
-    upvar #0 $id rec
-
-    # suck in the data file
-    if {[ catch { open $rec(file) r } fid ] } { return 0 }
-    set data [read $fid]
-    close $fid
-
-    # XXX FIXME XXX could extract whatever info I can from
-    # the file such as comment, type, etc.
-    set rec(L) 4.75   ;# fixme don't want to default L!!
-    set rec(monitor) 1.0
-    textkey $data xlab(?:el)? rec(xlab)
-    textkey $data ylab(?:el)? rec(ylab)
-    textkey $data mon(?:itor)? rec(monitor)
-    textkey $data (?:source|inst(?:rument)?) rec(instrument)
-    textkey $data (?:wavelength|L) rec(L)
-    textkey $data (?:title|comment) rec(comment)
-    textkey $data (?:field|H) rec(H)
-    textkey $data t(?:emp(?:erature)?)? rec(T)
-    textkey $data linear islinear
-    if [textkey $data date date] {
-	catch { set rec(date) [clock_scan $date] }
-    }
-
-    # guess instrument and experiment type
-    # We might have some combination of the following:
-    #   # source <inst> <type>
-    #   # source <inst>
-    #   # inst[rument] <inst>
-    #   # type <type>
-    #   # spec <files>
-    #   # back <files>
-    #   # slit <files>
-    # XXX FIXME XXX we should take the guesswork out of this
-    unset rec(type)
-    if [textkey $data source source] {
-	set rec(instrument) [lindex $source 0]
-	set sourcelab [lrange $source 1 end]
-	# lookup label in type label table
-	foreach {type label} [array get ::typelabel] {
-	    if [string equal $sourcelab $label] {
-		set rec(type) $type
-		break;
-	    }
-	}
-    }
-    if ![info exists rec(instrument)] {
-	textkey $data inst(?:rument)? rec(instrument)
-    }
-    if ![info exists rec(type)] {
-	if ![textkey $data type rec(type)] {
-	    # XXX FIXME XXX it's bogus trying to guess when I can just
-	    # print out the type and forget about it
-	    set havespec [textkey $data spec junk]
-	    set haveback [textkey $data back junk]
-	    set haveslit [textkey $data slit junk]
-	    set havefoot [textkey $data foot\w* junk]
-	    if { $havespec && $havefoot } {
-		message "corrected reflectivity curve"
-		set rec(type) spec
-	    } elseif { $havespec && $haveback && $haveslit } {
-		message "uncorrected reflectivity curve"
-		set rec(type) spec
-	    } elseif { $havespec && $haveslit } {
-		message "uncorrected specular"
-		set rec(type) spec
-	    } elseif { $havespec && $haveback } {
-		message "background subtracted"
-		set rec(type) spec
-	    } elseif { $havespec } {
-		message "specular"
-		set rec(type) spec
-	    } elseif { $haveback && $haveslit } {
-		message "background / slitscan"
-		set rec(type) back
-	    } elseif { $haveback } {
-		message "background"
-		set rec(type) back
-	    } elseif { $haveslit } {
-		message "slit scan"
-		set rec(type) slit
-	    } else {
-		message "unknown curve type"
-		set rec(type) other
-	    }
-	}
-    }
-    
-
-    if { [string match -nocase {*[abcd]} $rec(file)] } {
-	# oops --- the usual extension .spec ends with C
-	if { ![string match -nocase {*spec} $rec(file)] } {
-	    set rec(index) [string toupper [string index $rec(file) end]]
-	}
-    }
-
-    # Strip all comments and blank lines
-    # Comments start with # / ! ; or % and go to the end of the line so
-    # no block comments allowed.  This will prepend a \n.
-    regsub -all -line {(?:[[:blank:]]*(?:[#/!%;].*$)?\n)+[[:blank:]]*} \n$data\n \n data
-
-    # Check that whether we have QR or QRdR data
-    set D {[-+0-9dDeE.]+}
-
-    if {[regexp "^\n(?:$D\\s+$D\n)+$" $data]} {
-	set rec(col) [list x y]
-	if ![get_columns $id $rec(col) $data] { return 0 }
-	vector create ::dy_$id
-	::dy_$id expr "sqrt(::y_$id)"
-    } elseif { [regexp "^\n(?:$D\\s+$D\\s+$D\n)+$" $data]} {
-	set rec(col) [list x y dy]
-	if ![get_columns $id $rec(col) $data] { return 0 }
-    } else {
-	message "$rec(file) is not a Q,R or Q,R,dR data file"
-	return 0
-    }
-
-    # if data is log, exponentiate
-    if [info exists islinear] {
-	set islinear [string is true $islinear]
-    } else {
-	set islinear 1
-        if [string match {[Ll]og *} $rec(ylab)] {
-	    set rec(ylab) [string range $rec(ylab) 4 end]
-	    set islinear 0
-        } elseif [vector expr "sum(::y_$id > 0) < length(::y_$id)/3"] {
-	    set islinear 0
-	}
-    }
-    if { !$islinear } {
-	::y_$id expr "exp(log(10) * ::y_$id)"
-	::dy_$id expr "::y_$id * ::dy_$id/log(10)"
-    }
-    
-
-    # correct for monitor
-    ::y_$id expr "::y_$id/$rec(monitor)"
-    ::dy_$id expr "::dy_$id/$rec(monitor)"
-
-    set rec(xlab) "Column 1"
-    set rec(ylab) "Column 2"
-
-    return 1
-}
-
-proc icp_load {id} {
-    upvar #0 $id rec
-
-    # suck in the data file
-    if {[ catch { open $rec(file) r } fid ] } { return 0 }
-    set data [read $fid]
-    close $fid
-
-    # chop everything until after the Mot: line
-    set offset [string last "\n Mot: " $data ]
-    if { $offset < 0 } { return 0 }
-    set offset [string first "\n" $data [incr offset]]
-    set data [string range $data [incr offset] end]
-
-    # convert the column headers into a list (with special code for #1,#2)
-    set offset [string first "\n" $data]
-    set col [string range $data 0 [incr offset -1]]
-    set col [string map { "#1 " "" "#2 " N2 } $col]
-    set col [string map { COUNTS y } $col]
-    set rec(col) [eval list $col ]
-    set data [string range $data [incr offset] end]
-
-    # load the data columns into ::<column>_<id>
-    if { [string first , $data] >= 0 } {
-	# XXX FIXME XXX this is the wrong place to clear the psd.
-	psd clear
-
-	# Data contains position sensitive detector info.
-	#   c1 c2 ... c_k\np1, p2, ..., p_i,\n..., p_n\n
-	#   ...
-	#   c1 c2 ... c_k\np1, p2, ..., p_j,\n..., p_n\n
-	# Count the number of lines as the number times we see
-	#   c_k \n p1,
-	# Note that we cannot count the number of lines without
-	# commas, since p_n might be on a line by itself.
-	set lines [regexp -all {[0-9] *\n *[0-9]+,} $data]
-
-	# Strip the commas so that sscanf can handle it
-	set data [ string map {"," " " "\n" " "} $data ]
-	octave eval "x=sscanf('$data', '%f ',Inf)"
-
-	# Reshape into a matrix of the appropriate number of lines
-	octave eval "x=reshape(x,length(x)/$lines,$lines)'"
-
-	# Return the first k columns into $rec_$col, and put the
-	# rest into psd. I'll leave it to the data interpreter to
-	# decide what to do with the psd table.
-	# XXX FIXME XXX it seems a little silly to send the string
-	# from tcl to octave, send the columns back to tcl as vectors,
-	# then send the vectors back to octave --- I'm doing this because
-	# in the non-psd case, I do not use octave to interpret the
-	# columns, but maybe I should be.
-	set i 0
-	foreach c $rec(col) { 
-	    vector create ::${c}_$id 
-	    octave recv ${c}_$id x(:,[incr i])
-	}
-	octave eval "psd = x(:,[incr i]:columns(x))"
-	octave eval { psderr = sqrt(psd) + (psd==0) }
-	octave sync
-	set rec(psd) 1
-    } else {
-	if ![get_columns $id $rec(col) $data] { return 0 }
-	set rec(psd) 0
-    }
-    
-    # Define error bars.
-    # When y == 0, dy = sqrt(y) + !y -> 1
-    # When y != 0, dy = sqrt(y) + !y -> sqrt(y)
-    vector create ::dy_$id
-    ::dy_$id expr "sqrt(::y_$id) + !::y_$id"
-    ::y_$id expr "::y_$id/$rec(monitor)"
-    ::dy_$id expr "::dy_$id/$rec(monitor)"
-
-    # average temperature
-    if { [vector_exists ::TEMP_$id] } {
-	set rec(Tavg) "[vector expr mean(::TEMP_$id)]([vector expr sdev(::TEMP_$id)])"
-    }
-
-    return 1
-}
-
-proc default_x {id} {
-    upvar #0 $id rec
-    
-    set col [lindex $rec(col) 0]
-    switch -- $col {
-	MON { 
-	    ::MON_$id dup ::x_$id
-	    cumsum ::x_$id
-	    set rec(xlab) "Monitor count" 
-	}
-	MIN { 
-	    ::MIN_$id dup ::x_$id
-	    cumsum ::x_$id
-	    set rec(xlab) "Time (min)" 
-	}
-	default { 
-	    ::${col}_$id dup ::x_$id
-	    set rec(xlab) $col 
-	}
-    }
-}
-
 proc monitor_label { base monitor } {
     
     # set ylabel according to count type
@@ -2400,491 +2034,6 @@ proc monitor_label { base monitor } {
 	return "Counts per $units"
     } else {
 	return "Counts per $monitor ${units}s"
-    }
-}
-
-# set ::idx_$id to 0 for all points in the record $id for which 2*A3 != A4
-proc exclude_specular_ridge {id} {
-    upvar #0 $id rec
-    vector create off_specular_ridge
-    off_specular_ridge expr "2*::A3_$id != ::A4_$id"
-    if {[vector expr prod(off_specular_ridge)] == 0.0} {
-	if { ![vector_exists ::idx_$id] } {
-	    off_specular_ridge dup ::idx_$id
-	} else {
-	    ::idx_$id expr "::idx_$id * off_specular_ridge"
-	}
-    }
-    vector destroy off_specular_ridge
-}
-
-# Load contents of id(file) into x_id, y_id, dy_id
-# Set id(xlab) and id(ylab) as appropriate
-proc NG1load {id} {
-    upvar #0 $id rec
-
-    if ![icp_load $id] { return 0 }
-
-    if { $rec(L) == 0.0 } { set rec(L) $::ng1wavelength }
-    # yuck! wavelength in file may be wrong, so override but warn
-    set wavelength $::ng1wavelength
-    if { $rec(instrument) == "CG1" } { set wavelength $::cg1wavelength }
-
-    if { $rec(L) != $wavelength } {
-	message "using wavelength $wavelength instead of $rec(L) in $rec(file)"
-	set rec(L) $wavelength
-    }
-
-    # If column A1 is not stored in the datafile because the slits
-    # are fixed, we need to set it to a column which is the value
-    # of motor 1.  
-    # XXX FIXME XXX Similarly for A2, but do we need A2?
-    if { ![vector_exists ::A1_$id] } {
-	lappend rec(col) A1
-	vector create ::A1_${id}([::y_$id length])
-	set ::A1_${id}(:) $rec(start,1)
-    }
-
-    # Exclude points which exceed 10000 counts/sec
-    # The time column is rounded to the nearest hundredth, so all times
-    # less than 0.005 minutes will go to 0.  The center of the time
-    # range is 0.0025, so we will use that instead.
-    # XXX FIXME XXX 1/x is not linear!  Perhaps we want the geometric
-    # mean of the range?
-    if { [vector_exists ::MIN_$id] } {
-	vector create ::idx_$id
-	::idx_$id expr "(::MIN_$id+(0.0025*(::MIN_$id==0.0)))*(600000/$rec(monitor)) > ::y_$id"
-	if { [vector expr prod(::idx_$id)] == 1.0 } {
-	    vector destroy ::idx_$id
-	} else {
-	    message "excluding points which exceed 10000 counts/second"
-	}
-    }
-
-    switch $rec(type) {
-	rock {
-	    vector create ::x_$id
-	    ::x_$id expr [ a3toQx ::A3_$id $rec(rockbar) $rec(L) ]
-	    ::A3_$id dup ::xth_$id 
-	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
-	    set rec(xlab) "Qx ($::symbol(invangstrom))"
-	}
-        rock3 {
-            vector create ::x_$id
-            ::x_$id expr [ a4toQx ::A4_$id [expr -$rec(rockbar)/2] $rec(L) ]
-            ::A4_$id dup ::xth_$id
-            set rec(Qrockbar) [expr [a4toQz -$rec(rockbar) $rec(L)]]
-            set rec(xlab) "Qx ($::symbol(invangstrom))"
-        }
-	spec {
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    vector create ::x_$id
-	    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-	    vector create ::xth_$id
-	    ::xth_$id expr ::A4_$id/2
-	    set rec(slit) A1_$id
-	}
-	slit {
-	    # XXX FIXME XXX if slit 1 is fixed, should we use slit 2?
-	    set rec(xlab) "slit 1 opening"
-	    ::A1_$id dup ::x_$id
-	}
-	back {
-	    set rec(slit) A1_$id
-	    exclude_specular_ridge $id
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    set col $::background_basis($rec(dataset),$rec(instrument))
-	    switch $col {
-		A3 { 
-		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz ::A3_$id $rec(L) ] 
-		    ::A3_$id dup ::xth_$id
-		}
-		A4 {
-		    vector create ::x_$id
-		    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-		    vector create ::xth_$id
-		    ::xth_$id expr ::A4_$id/2
-		}
-	    }
-	}
-	default { default_x $id }
-    }
-    set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
-
-    if { $rec(psd) } {
-	if { [vector_exists ::xth_$id] } {
-	    octave send ::xth_$id Qz	    
-	} else {
-	    octave send ::x_$id Qz
-	}
-	vector create ::psd_$id ::psderr_$id
-	octave recv psd_$id psd
-	octave recv psderr_$id psderr
-    }
-
-    return 1
-}
-
-# Load contents of id(file) into x_id, y_id, dy_id
-# Set id(xlab) and id(ylab) as appropriate
-proc XRAYload {id} {
-    upvar #0 $id rec
-
-    if ![icp_load $id] { return 0 }
-
-    if { $rec(L) == 0.0 } { set rec(L) $::xraywavelength }
-    # yuck! wavelength in file may be wrong, so override but warn
-    if { $rec(L) != $::xraywavelength } {
-	message "using wavelength $::xraywavelength for $rec(L) in $rec(file)"
-	set rec(L) $::xraywavelength
-    }
-
-    switch $rec(type) {
-	rock {
-	    vector create ::x_$id
-	    ::x_$id expr [ a3toQx ::A3_$id $rec(rockbar) $rec(L) ]
-	    ::A3_$id dup ::xth_$id 
-	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
-	    set rec(xlab) "Qx ($::symbol(invangstrom))"
-	}
-	spec {
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    vector create ::x_$id
-	    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-	    vector create ::xth_$id
-	    ::xth_$id expr ::A4_$id/2
-	}
-	back {
-	    exclude_specular_ridge $id
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    set col $::background_basis($rec(dataset),$rec(instrument))
-	    switch $col {
-		A3 { 
-		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz ::A3_$id $rec(L) ] 
-		    ::A3_$id dup ::xth_$id
-		}
-		A4 {
-		    vector create ::x_$id
-		    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-		    vector create ::xth_$id
-		    ::xth_$id expr ::A4_$id/2
-		}
-	    }
-	}
-	default { default_x $id }
-    }
-    set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
-
-    return 1
-}
-
-set ::NG7_monitor_calibration_loaded 0
-proc load_NG7_monitor_calibration {} {
-    if { $::NG7_monitor_calibration_loaded } { return }
-
-    # read the monitor calibration data
-    set filename NG7monitor.cal
-    if { [catch {open [file join $::VIEWRUN_HOME $filename]} fid] } {
-	message "Unable to load NG7 monitor calibration $filename"
-	# no monitor correction
-	set ::NG7_monitor_calibration { 0\t1\n1e100\t1 }
-    } else {
-	set ::NG7_monitor_calibration [read $fid]
-	close $fid
-    }
-
-    # Send it to octave.  Use constant extrapolation beyond the
-    # xrange read from the file.
-    # XXX FIXME XXX confirm what to do when counts/second exceeds 31000
-    set data [string map { "\n" " " } $::NG7_monitor_calibration]
-    octave eval "NG7monitor=sscanf('$data', '%f ', Inf)"
-    octave eval {
-	NG7monitor = reshape(NG7monitor,2,length(NG7monitor)/2)';
-	if NG7monitor(1,1) != 0
-	  NG7monitor = [0, NG7monitor(1,2); NG7monitor];
-	endif
-	n = length(NG7monitor);
-	if NG7monitor(n,1) < 1e100
-	  NG7monitor = [NG7monitor; 1e100, NG7monitor(n,2)];
-	endif
-    }
-    set ::NG7_monitor_calibration_loaded 1
-}
-
-# Load contents of id(file) into x_id, y_id, dy_id
-# Set id(xlab) and id(ylab) as appropriate
-proc NG7load {id} {
-    upvar #0 $id rec
-
-    if ![icp_load $id] { return 0 }
-
-    # If column S1 is not stored in the datafile because the slits
-    # are fixed, we need to set it to a column which is the value
-    # of motor 1.  
-    # XXX FIXME XXX Similarly for S2, S3, S4.
-    # XXX FIXME XXX Sushil says no slit scans for NG7
-    if { ![vector_exists ::S1_$id] } {
-	lappend rec(col) S1
-	vector create ::S1_${id}([::y_$id length])
-	set ::S1_${id}(:) $rec(start,S1)
-    }
-
-    # monitor calibration
-    if { [vector_exists ::MON_$id]} {
-	# XXX FIXME XXX if there are 0 monitor counts in a bin for some 
-	# reason then this section will fail.  Find some way to make it
-	# fail cleanly.
-
-	load_NG7_monitor_calibration
-	# for fixed Qz, use the Qz motor start position
-	# for moving Qz
-	if { ![vector_exists ::QZ_$id] } {
-	    octave eval Qz=$rec(start,Qz)
-	} else {
-	    ::QZ_$id expr ::QZ_$id
-	    octave send ::QZ_$id Qz
-	}
-
-	# from Qz and file header, compute monitor time
-	# XXX FIXME XXX verify that this is correct
-	octave eval "seconds = $rec(prf)*$rec(mon) + \
-		+ $rec(prf)*$rec(Mon1)*exp(log(abs(Qz))*$rec(Exp))"
-
-	# convert monitor counts and monitor time to monitor rate
-	# XXX FIXME XXX what to do with 0 monitor counts
- 	octave send ::MON_$id monitors
-	octave eval {
-	    dmonitors = sqrt(monitors);
-	    rate = monitors./seconds;
-	    correction = interp1(NG7monitor(:,1), NG7monitor(:,2), rate);
-	    monitors = monitors .* correction;
-	    dmonitors = dmonitors .* correction;
-	    monitors(monitors==0) = 1;
-	}
-
-	if { $rec(psd) } {
-	    octave eval { 
-	        monitors = monitors * ones(1,columns(psd));
-		dmonitors = dmonitors * ones(1,columns(psd));
-		psderr = sqrt ( (psderr./monitors) .^ 2 + ...
-				(psd.*dmonitors./monitors.^2) .^ 2 );
-		psd = psd ./ monitors;
-	    }
-	    vector create ::psd_$id ::psderr_$id
-	    octave recv psd_$id psd
-	    octave recv psderr_$id psderr
-	} else {
-	    vector create ::monitors_$id ::dmonitors_$id
-	    octave recv monitors_$id monitors
-	    octave recv dmonitors_$id dmonitors
-	    octave sync
-	    # XXX FIXME XXX what's the error on the monnl interpolation?
-	    ::dy_$id expr "sqrt((::dy_$id/::monitors_$id)^2 + \
-		(::y_$id*::dmonitors_$id/::monitors_$id^2)^2)"
-	    ::y_$id expr "::y_$id/::monitors_$id"
-	}
-    } else {
-	message "$rec(file) has no monitor counts"
-    }
-
-    switch $rec(type) {
-	rock {
-	    ::13_$id dup ::x_$id
-	    set rec(Qrockbar) $rec(start,Qz)
-	    set rec(xlab) "Qx (motor 13 units)"
-	}
-	spec {
-	    ::QZ_$id dup ::x_$id
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    set rec(slit) S1_$id
-	}
-	slit {
-	    ::S1_$id dup ::x_$id
-	    set rec(xlab) "slit opening (motor S1 units)"
-	}
-	height {
-	    ::12_$id dup ::x_$id
-	    set rec(xlab) "height (motor 12 units)"
-	}
-	back {
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    ::QZ_$id dup ::x_$id
-	    set rec(slit) S1_$id
-	}
-	default { default_x $id }
-    }
-    set rec(ylab) "Reflectivity"
-
-    return 1
-}
-
-
-
-proc XRAYmark {file} {
-    # loadhead is a naughty function: it defines "rec", "m*" and "header2" in
-    # our scope. If there is an error it causes us to return.
-    set id [loadhead $file]
-    upvar #0 $id rec
-    set rec(load) XRAYload
-
-    # instrument specific initialization
-    set rec(instrument) "XRAY"
-    # parse2... parses the second set of fields into "rec".
-    parse2ng1 $header2
-
-
-    # based on motor movements, guess the type of the experiment
-    if { ![info exists rec(start,3)] || ![info exists rec(start,4)] } {
-	marktype ?
-    } elseif { $fixed } {
-	marktype time 0 [expr $rec(monitor)*$rec(pts)]
-    } elseif { $rec(start,3) == 0.0 && $rec(stop,3) == 0.0 \
-	    && $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 } {
-	# XXX FIXME XXX confirm no slitscan for XRay
-	marktype ?
-    } elseif { $rec(step,4) == 0.0 } {
-	set rec(rockbar) [expr $rec(start,4)/2.0]
-	marktype rock $rec(start,3) $rec(stop,3)
-    } elseif { abs($rec(stop,4) - 2.0*$rec(stop,3)) < 1e-10 } {
-	marktype spec $rec(start,4) $rec(stop,4)
-    } elseif { abs($rec(step,4) - 2.0*$rec(step,3)) < 1e-10 } {
-	# offset background
-	set m [string index $::background_default 1]
-	if { $rec(start,4) > 2.0*$rec(start,3) } {
-	    marktype back $rec(start,4) $rec(stop,4) +
-	} else {
-	    marktype back $rec(start,4) $rec(stop,4) -
-	}
-	set ::background_basis($rec(dataset),$rec(instrument)) \
-		$::background_default
-    } else {
-	# mark anything else as some sort of background for now
-	marktype back $rec(start,4) $rec(stop,4)
-    }
-}
-
-# XXX FIXME XXX we only need the motors to determine the file type
-# and display the data range bar.  So we can delay parsing the header
-# until later.  Later in this case is when we try [addrun matches] since
-# that's when we need temperature and field.  When we actually load the
-# data for graphing is when we will need other fields like monitor and
-# comment.
-proc NG1mark {file {index ""}} {
-    # loadhead is a naughty function: it defines "rec", "m*" and "header2" in
-    # our scope. If there is an error it causes us to return.
-    set id [loadhead $file]
-    upvar #0 $id rec
-    set rec(load) NG1load
-    # fixup comment string from polarized data
-    set offset [string first "F1: O" $rec(comment)]
-    if { $offset > 0 } {
-        set rec(comment) [string trim [string range $rec(comment) 0 [incr offset -1]]]
-    }
-
-    # instrument specific initialization
-    if { ![string equal $index ""] } {
-	set rec(instrument) "NG1p"
-    } elseif { [string match -nocase "*.cg1" $file] } {
-	set rec(instrument) "CG1"
-    } else {
-	set rec(instrument) "NG1"
-    }
-    # parse2... parses the second set of fields into "rec".
-    parse2ng1 $header2
-
-    # based on motor movements, guess the type of the experiment
-    if { ![info exists rec(start,1)] || ![info exists rec(start,3)] \
-	    || ![info exists rec(start,4)] } {
-	marktype ? 0 0 $index
-    } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 } {
-	marktype slit $rec(start,1) $rec(stop,1) $index
-    } elseif { $fixed } {
-	marktype time 0 [expr $rec(monitor)*$rec(pts)] $index
-    } else {
-	# XXX FIXME XXX check if still using slit constraints in run_matches
-	if { $rec(start,3) == $rec(stop,3) } {
-	    # XXX FIXME XXX why not use slits when motor 3 is fixed?
-	    set rec(slits) {}
-	} else {
-	    set rec(slits) { 1 2 5 6 }
-	}
-
-	if { $rec(step,4) == 0.0 } {
-	    set rec(rockbar) [expr $rec(start,4)/2.0]
-	    marktype rock $rec(start,3) $rec(stop,3) $index
-        } elseif { $rec(step,3) == 0.0 } {
-            set rec(rockbar) [expr -2*$rec(start,3)]
-            marktype rock3 [expr 0-$rec(stop,4)] [expr 0-$rec(start,4)] $index
-	} elseif { abs($rec(stop,4) - 2.0*$rec(stop,3)) < 1e-10 } {
-	    marktype spec $rec(start,3) $rec(stop,3) $index
-	} else {
-	    # use default background basis
-	    set m [string index $::background_default 1]
-	    if { $rec(stop,4) > 2.0*$rec(stop,3) } {
-		marktype back $rec(start,$m) $rec(stop,$m) $index+
-	    } else {
-		marktype back $rec(start,$m) $rec(stop,$m) $index-
-	    }
-	    set ::background_basis($rec(dataset),$rec(instrument)) \
-		    $::background_default
-	}
-#	elseif { abs($rec(step,4) - 2.0*$rec(step,3)) < 1e-10 } {
-#	    # offset background
-#	    if { $rec(stop,4) > 2.0*$rec(stop,3) } {
-#		marktype back $rec(start,4) $rec(stop,4) $index+
-#	    } else {
-#		marktype back $rec(start,4) $rec(stop,4) $index-
-#	    }
-#	} else {
-#	    # mark anything else as some sort of background for now
-#	    marktype back $rec(start,4) $rec(stop,4) $index
-#	}
-    }
-
-}
-
-proc NG7mark {file} {
-    # loadhead is a naughty function: it defines "rec", "m*" and "header2" in
-    # our scope. If there is an error it causes us to return.
-    set id [loadhead $file]
-    upvar #0 $id rec
-    set rec(load) NG7load
-
-    # instrument specific initialization
-    set rec(instrument) "NG7"
-    # parse2... parses the second set of fields into "rec".
-    parse2ng7 $header2
-
-    # based on motor movements, guess the type of the experiment
-    if { ![info exists rec(start,Qz)] || ![info exists rec(start,S1)] } {
-	marktype ?
-    } elseif { $fixed } {
-	# XXX FIXME XXX confirm time range
-	marktype time 0 [expr $rec(mon)*$rec(prf)*$rec(pts)]
-    } elseif { [info exists rec(start,13)] && $rec(step,13)!=0 } {
-	if { $rec(start,Qz) == $rec(stop,Qz) } {
-	    set rec(rockbar) $rec(start,Qz)
-	    marktype rock $rec(start,13) $rec(stop,13)
-	} else {
-	    if { $rec(step,13) > 0 } {
-		marktype back $rec(start,Qz) $rec(stop,Qz) +
-	    } else {
-		marktype back $rec(start,Qz) $rec(stop,Qz) -
-	    }
-	}
-    } elseif { [info exists rec(start,12)] } {
-	marktype height $rec(start,12) $rec(stop,12)
-
-    } elseif { [info exists rec(start,S1)] } {
-	if { $rec(start,Qz) != 0.0 || $rec(stop,Qz) != 0.0 } {
-	    marktype spec $rec(start,Qz) $rec(stop,Qz)
-	} else {
-	    marktype slit $rec(start,S1) $rec(stop,S1)
-	}
-    } else {
-	marktype ?
     }
 }
 
@@ -2956,37 +2105,33 @@ proc setdirectory { pattern_set } {
 	.loading configure -maximum $n
 	set step 1
     } else {
-	set step [expr $n/100.0]
+	set step [expr $n/100.]
     }
     update idletasks
 
     # process all the files
     set count 0
     set next 0
-    if { [ catch {
-	set others {}
-	foreach f $files {
-	    if { [incr count] >= $next } {
-		incr ::loading_progress
-		update idletasks
-		set next [expr $next + $step]
-		if { $::loading_abort } { break }
-	    }
-	    if [file isdirectory $f] continue
-	    switch [string tolower [file extension $f]] {
-		.na1 { NG1mark $f A }
-		.nb1 { NG1mark $f B }
-		.nc1 { NG1mark $f C }
-		.nd1 { NG1mark $f D }
-		.ng1 { NG1mark $f }
-		.cg1 { NG1mark $f }
-		.xr0 { XRAYmark $f }
-		.ng7 { NG7mark $f }
-		default { lappend others $f }
-	    }
+    set others {}
+    foreach f $files {
+	if { [incr count] >= $next } {
+	    incr ::loading_progress
+	    update
+	    set next [expr {$next + $step}]
+	    if { $::loading_abort } { break }
 	}
-    } msg ] } {
-	tk_messageBox -message "Died with $msg\nwhile loading $f"
+	if [file isdirectory $f] continue
+	set ext [string tolower [file extension $f]]
+	if {[info exists ::extfn($ext)]} {
+#	    $::extfn($ext) mark $f
+	    if { [ catch { $::extfn($ext) mark $f } msg ] } {
+		set ans [tk_messageBox -type okcancel -icon error \
+			     -message "Error: $msg\nwhile loading $f"]
+		if { [string equal $ans cancel] } { break }
+	    }
+	} else {
+	    lappend others $f
+	}
     }
 
     # Delay marking others so that we know what datasets are available
@@ -3020,7 +2165,7 @@ proc setdirectory { pattern_set } {
 		-text "$instrument [typelabel $type]$bgbasis" -open 0
 	    foreach id $::group($gid) {
 		upvar #0 $id rec
-		.tree insert end $gid $id -text $rec(run)$rec(index) -image $::image(new) -data record
+		.tree insert end $gid $id -text {  } -image $::image(new) -data record
 	    }
 	}
     }
@@ -3056,10 +2201,11 @@ reduce_init
 #  drawn so that the user can add their own canvas decorations beside
 #  the node:
 #
-#  	proc decorate_node { node canvas x0 y0 x1 y1 }
+#  	proc decorate_node { node canvas bbox }
 #
-#  Note that bounding box is just for the node text and not any associated
-#  window or image.  The window or image, if it exists, starts at x0-padx.
+#  where bbox is {x0 y0 x1 y1}.  Note that bounding box is just for 
+#  the node text and not any associated window or image.  The window 
+#  or image, if it exists, starts at x0-padx.
 #
 #  If you want your decorations to respond to the bindImage script, then
 #  the first three tags must be TreeItemSentinal img i:$node.  E.g.,
@@ -3118,7 +2264,7 @@ proc ::Tree::_draw_node { path node x0 y0 deltax deltay padx showlines } {
         $path.c create image $x1 $y0 -image $img -anchor w \
 		-tags "TreeItemSentinal img i:$node"
     }
-    eval "decorate_node $node $path.c [$path.c bbox n:$node]"
+    decorate_node $node $path.c [$path.c bbox n:$node]
     return $y1
 }
 
@@ -3135,8 +2281,14 @@ setdirectory $pattern
 # better strategy if it is needed in a loop is to first build an index
 # mapping files to records and use that index in the loop.
 proc rec { file } {
+    foreach r [.graph elem names] {
+	if [string match $file [.graph elem cget $r -label]] {
+	    upvar #0 $r ::rec
+	    return $r
+	}
+    }
     foreach r [info var ::recR*] {
-	if [string equal [file tail [set ${r}(file)]] f524b074.na1] {
+	if [string match $file [file tail [set ${r}(file)]]] {
 	    upvar #0 $r ::rec
 	    return [string range $r 2 end]
 	}
