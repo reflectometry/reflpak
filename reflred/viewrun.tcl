@@ -2,6 +2,22 @@ namespace import blt::graph blt::vector blt::hiertable
 source [file join $::VIEWRUN_HOME generic.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
 
+# need to work out some more details before the ftp vfs is usable
+set have_archive 0
+if 0 { 
+catch {
+    package require vfs::ftp
+    vfs::ftp::Mount ftp://charlotte.ncnr.nist.gov/pub/icpdata /archive
+#    after 500000 { keep_alive_charlotte }
+#    proc keep_alive_archive {} { 
+#	glob /archive
+#	after 50000 keep_alive_archive
+#    }
+    set have_archive 1
+}
+}
+# cd /archive/ng1/200307/akron1
+    
 # XXX FIXME XXX how can I make this automatic?
 set OCTAVE_SUPPORT_FILES {
     interp1err psdslice 
