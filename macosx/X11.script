@@ -1,0 +1,80 @@
+-- Base script for running X11 applications with an icon
+-- customize by setting APPNAME and COMMAND.  Save as 
+-- application.  Use "$scriptdir" to find your application 
+-- if it is not installed in a predefined location, and 
+-- isn't part of your path.
+
+-- To set the icon, you can build a dummy app containing 
+-- the icon you want, select it in Finder, open properties 
+-- with GetInfo (apple-I) then select and cut the icon.  
+-- Next select the saved script application, and paste the
+-- icon instead of cutting.  There must be an easier way!!
+
+on startApp(pars)
+  set APPNAME to "Reflpak"
+  set COMMAND to "$scriptdir/reflpak.bin"
+
+  -- Find a DISPLAY variable to run your application.  This
+  -- may require starting "X11" if it is not already running
+  -- as user.  Since X11 creates /tmp/.X##-lock owned by
+  -- the user when it starts, we can wait for this file to
+  -- appear and set DISPLAY=:##.0.  We wait in 10 steps of
+  -- 2 seconds each.
+  run application "X11"
+  set findX to "find /tmp/.X*-lock -user `whoami` 2>/dev/null | tail -1 | sed -e 's,/tmp/.X,,;s,-lock,,'"
+  set display to do shell script "for i in 1 2 3 4 5 6 7 8 9 10; do display=$(" & findX & "); test -n $display && break; sleep 2; done; echo $display"
+  if display = ""
+    display dialog "Could not find /tmp/.X*-lock belonging to you---assuming X11 DISPLAY=:0.0 will work"
+    set displayset to "DISPLAY=:0.0 "
+  else
+    set displayset to "DISPLAY=:" & display & ".0 "
+  end if
+
+  -- Note that if .xinitrc is missing or if it contains the 
+  -- line  "xterm &" an extra terminal window whenever X11 is
+  -- started.  We could try to hack the .xinitrc so that it 
+  -- wouldn't do that, then restore the users .xinitrc when 
+  -- we are done, but this is not very polite behaviour so
+  -- we won't.
+
+  -- Locate the script directory.
+  set scriptfile to quoted form of POSIX path of (path to me)
+  set scriptdir to do shell script "f=" & quoted form of POSIX path of (path to me) & "; echo ${f%/*}"
+  set scriptset to "scriptdir=" & quoted form of scriptdir
+
+  -- Start the application
+  do shell script scriptset & "; " & displayset & COMMAND & pars & " >/dev/null 2>&1 &"
+  set cmdtext to do shell script scriptset & "; echo " & COMMAND & pars
+  set trytext to "\r\texport " & displayset & "\r\t" & cmdtext
+
+  -- Note that if you needed to, you could capture the spawned pid as follows:
+  --    set pid do shell script scriptset & "; set -m; " & displayset & COMMAND & " >/dev/null 2>&1 & jobs -p"
+
+  -- Display the slow loading dialog
+  display dialog "Loading "&APPNAME&"... this may take awhile.  If it doesn't start, try the following from a terminal: " &trytext buttons { "OK" } default button "OK" giving up after 15
+
+  -- Avoid returning to finder when script is complete  
+  tell application "X11" to activate
+end startApp
+
+on killApp()
+-- do shell script "/bin/ps -x | /usr/bin/grep gimp | /usr/bin/grep -v grep | /sw/bin/awk '{print $1}' | xargs kill"
+end killApp
+
+on run
+  startApp("")
+end run
+
+on open filelist
+  set pars to ""
+  repeat with i in filelist
+    set pars to " " & quoted form of POSIX path of i
+  end repeat
+  startApp(pars)
+end open
+
+
+on quit
+  killApp()
+  continue quit
+end quit
