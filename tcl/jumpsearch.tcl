@@ -46,7 +46,7 @@ proc jumpinit {par} {
     active_graph .js.graph
     .js.graph legend conf -hide yes
     .js.graph element create chisq -xdata ::jsx -ydata ::jsy \
-	-pixels 1 -linewidth 0
+	-pixels 4 -linewidth 0 -fill {}
     button .js.stop -text Stop -command { jumphalt "user abort" }
     label .js.message -relief ridge -anchor w -textvariable ::jsmessage
     grid .js.graph -sticky news
@@ -58,7 +58,7 @@ proc jumpinit {par} {
 
   .js.stop conf -state normal
   .js.graph conf -title "Jump search of parameter $par"
-  .js.graph axis conf y -title "Chisq"
+  .js.graph axis conf y -title "Chi^2"
   .js.graph axis conf x -title "$par"
   eval [linsert [.js.graph marker names] 0 .js.graph marker delete]
   return .js
@@ -80,6 +80,11 @@ proc jumpstep { start msg } {
   upvar chisq chisq
 
   layer $num $field $start
+  # XXX FIXME XXX shouldn't need read_reflectivity to get chisq
+  # XXX FIXME XXX may not want the extra reflectivity calc here
+  send_layout
+  read_reflectivity
+  set chisq_start [gmlayer send chisq]
   set ::jsmessage "$msg at $start"
   do_fit                              ;# find nearest local minimum
   if {$::jshalt} {                    ;# check for user abort
@@ -91,10 +96,31 @@ proc jumpstep { start msg } {
   set v [layer $num $field]           ;# remember parameter value
   ::jsx append $v
   ::jsy append $chisq
-  .js.graph marker create text -text [::jsx length] \
-	-anchor s -coords [list $v $chisq]
-  .js.graph marker create line -coords [list $start $chisq $v $chisq]
+  .js.graph marker create text -text [::jsx length] -outline red \
+	-anchor s -coords [list $v $chisq] -fill antiquewhite -under 1
+  .js.graph marker create line -coords [list $start $chisq_start $v $chisq]
 }
+
+proc stepsearch {par min max frames} {
+  parse_par $par field num
+  jumpinit $par
+  gmlayer vanone; gmlayer va$par      ;# make sure only par is varying
+
+  chisqplot $par $min $max [expr {5*$frames}]
+  catch {
+    .js.graph element create scan -xdata scan_p -ydata scan_chi \
+  	-pixels 3 -color green
+  }
+
+  set step [vector expr "($max - $min)/($frames-1)"]
+  for {set i 0} { $i < $frames } { incr i } { 
+    jumpstep $min "descent" 
+    set min [expr {$min+$step}]
+  }
+
+  jumphalt "done"
+}
+
 
 proc jumpsearch {par step scale stop} {
   if { $scale >= 1. } { error "scale must be less than 1." }
