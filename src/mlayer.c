@@ -20,7 +20,6 @@
 #include <complex.h>
 #include <string.h>
 #include <stdio.h>
-#include <signal.h>
 #include <mlayer.h>
 #include <parms.h>
 #include <gentanh.h>
