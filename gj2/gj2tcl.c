@@ -229,7 +229,7 @@ static void tclconstraints(int del, double a[], int nl)
 
 static void sendpars(Tcl_Interp *interp)
 {
-  char value[100];
+  char value[300];
   double t;
   int i;
 
@@ -338,7 +338,7 @@ static void sendfit (Tcl_Interp *interp)
 {
   int j;
   for (j=0; j < mfit; j++) {
-    char result[150], varName[10];
+    char result[50], varName[10];
     genva(listA + j, 1, varName);
     sprintf(result, "{ %7s %.15g %.15g }", varName, a[listA[j]], DA[listA[j]]);
     Tcl_AppendResult(interp, result, " ", NULL);
