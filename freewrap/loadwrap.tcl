@@ -7,8 +7,8 @@
 #          on the local file system.
 #          On failure, generates an error.
 #
-#rename load ::freewrap::builtin_load
-proc freeload {libfile args} {
+rename load ::freewrap::builtin_load
+proc load {libfile args} {
     global env
     set rtnval {}
     set fpath [::freewrap::unpack $libfile]
@@ -29,7 +29,7 @@ proc freeload {libfile args} {
 	    }
 	}
     }
-    uplevel [linsert $args 0 load $fpath]
+    uplevel [linsert $args 0 ::freewrap::builtin_load $fpath]
 
     return $fpath
 }
