@@ -49,7 +49,7 @@ proc ::Choose::Fill_contents { w path } {
 	# XXX FIXME XXX need to be able to add new types 
 	# XXX FIXME XXX should use pattern matching
 	switch [string tolower [file extension $f]] {
-	    .ng1 { set type CG-1 }
+	    .cg1 { set type CG-1 }
 	    .ng1 { set type NG-1 }
 	    .xr0 { set type XRAY }
 	    .ng7 { set type NG-7 }
