@@ -60,7 +60,7 @@ void mancon(double *q, double lambda, double lamdel, double thedel,
       lfinish = FALSE;
       hfinish = FALSE;
 
-      for (nstep = 1; !(lfinish || hfinish); nstep++) {
+      for (nstep = 1; !(lfinish && hfinish); nstep++) {
       /* Evaluate low-Q side */
 	 if (j-nstep < 0) lfinish = TRUE;
 	 if (!lfinish) 
