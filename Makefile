@@ -143,7 +143,22 @@ srcdist: ChangeLog
 	tar czf release/reflpak$(VERSION)-src.tar.gz reflpak$(VERSION)-src
 	$(RM) -rf reflpak$(VERSION)-src
 
+datadist: release/reflpak-data.zip
+
+release/reflpak-data.zip: DIR=reflpak-data
+release/reflpak-data.zip: data/README data/ss02/*.ng1 data/ss02-fit/*
+	if test -d $(DIR) ; then rm -rf $(DIR); fi
+	mkdir $(DIR)
+	cp -p README $(DIR)/README.ss02
+	mkdir $(DIR)/ss02
+	cp -p data/ss02/*.ng1 $(DIR)/ss02
+	mkdir $(DIR)/ss02-fit
+	cp -p data/ss02-fit/*.{staj,log} $(DIR)/ss02-fit
+	zip -r $@ $(DIR)
+	rm -rf $(DIR)
+
 ifeq ($(ARCH),macosx)
+
 dist: kit/reflpak $(macscripts) RELEASE-NOTES
 	if test -d diskimage ; then rm -rf diskimage ; fi
 	mkdir diskimage
@@ -156,12 +171,16 @@ dist: kit/reflpak $(macscripts) RELEASE-NOTES
 	if test ! -d release ; then mkdir release ; fi
 	mv diskimage/reflpak$(VERSION).dmg release
 	rm -rf diskimage
+
 else
 ifeq ($(ARCH),win)
+
 dist: kit/reflpak$(EXE)
 	if test ! -d release ; then mkdir release ; fi
 	cp -a kit/reflpak$(EXE) release/reflpak$(VERSION)$(EXE)
+
 else
+
 dist: DIR=reflpak$(VERSION)-$(ARCH)
 dist: kit/reflpak$(EXE) RELEASE-NOTES
 	if test -d $(DIR) ; then rm -rf $(DIR); fi
@@ -183,6 +202,7 @@ dist: kit/reflpak$(EXE) RELEASE-NOTES
 	if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi
 	gzip release/$(DIR).tar
 	rm -rf $(DIR)
+
 endif
 endif
 

@@ -48,6 +48,7 @@ echo; echo "== local build ========================"
 make dist
 echo; echo "== build html ========================="
 ssh $htmlmachine "cd $builddir && make html"
+ssh $htmlmachine "cd $builddir && make datadist"
 echo; echo "== build source ======================="
 make srcdist
 
@@ -63,6 +64,7 @@ echo; echo "== gather local build results ====================="
 cp release/reflpak$VERSION* reflpak$VERSION
 echo; echo "== gather html ======================="
 scp -r $htmlmachine:$builddir/html reflpak$VERSION
+scp $htmlmachine:$builddir/release/reflpak-data.zip reflpak$VERSION
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
     scp "$machine:$builddir/release/reflpak$VERSION*" reflpak$VERSION

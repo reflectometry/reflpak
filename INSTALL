@@ -19,10 +19,12 @@ and follow the long set of instructions in README to build and install.
 
 <p>Copy <a href="reflpak@VERSION@.exe">reflpak@VERSION@.exe</a> where you 
 want it installed on your computer (it is a single file executable, not
-an installation kit).
+an installation kit).  We provide some sample data and a short tutorial
+in <a href="reflpak-data.zip">reflpak-data.zip</a>.
 
-<p>Click on the icon.  Select <em>Install shortcuts...</em> to
-add start menu items and file associations to reflpak.
+<p>Click on the icon.  If you want to add start menu items and file
+associations to reflpak, select <em>Install shortcuts...</em>.  This
+is not necessary to run the program.
 
 <p>To reduce data in reflred, you will first need to install Octave from
 <a href="http://sourceforge.net/project/showfiles.php?group_id=2888">octave-forge</a>.  Use the latest version of octave-forge-windows (2.1.50 as of this
