@@ -1,6 +1,6 @@
 # size of main window; use ++ for maximized
-# *mainGeometry: 640x440
-*mainGeometry: ++
+*mainGeometry: 640x440
+# *mainGeometry: ++
 
 *useSLD: true
 *useQ4: false
