@@ -31,6 +31,22 @@ proc plist { list } { foreach l $list { puts $l } }
 
 # parray is part of standard tcl
 
+# HELP winpath
+# Usage: winpath
+#
+# Print the path to the next window you click on.
+bind winpath <Button-1> { 
+    puts [winfo containing %X %Y]
+    grab release .tkcon
+}
+proc winpath {} {
+    set tags [bindtags .tkcon]
+    if { [lsearch $tags winpath]<0 } {
+	bindtags .tkcon [concat winpath $tags]
+    }
+    grab set .tkcon
+}
+
 # ==================== resources ==============================
 
 # HELP developer
