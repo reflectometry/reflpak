@@ -1234,10 +1234,45 @@ proc run_matches { base_rec target_rec } {
     return {}
 }
 
-# Return true if the given run extends the given list of runs.
-# This is the case when if run starts before the leftmost run
-# in the runlist or ends after the rightmost.
+# XXX FIXME XXX building an extension could be faster if we didn't
+# start from scratch every time we added a new run to the extension.
+# For now the speed seems adequate.
+
+# Return true if the run extends the range covered by the list of runs.
+# The range is extended if there are x values in the run which are not
+# in the run list.  This will fill holes in the coverage of the run list.
 proc run_extends { runlist run } {
+    upvar #0 $run rec
+    set start $rec(start)
+    set stop $rec(stop)
+    set progress 1
+    while { $progress } {
+	set remainder {}
+	set progress 0
+	foreach id $runlist {
+	    upvar #0 $id rec
+	    if { $start >= $rec(start) && $start < $rec(stop) } {
+		set progress 1
+		set start $rec(stop)
+	    } elseif { $stop > $rec(start) && $stop <= $rec(stop) } {
+		set progress 1
+		set stop $rec(start)
+	    } elseif { $start >= $rec(start) && $stop <= $rec(stop) } {
+		lappend remainder $id
+	    } else {
+	    }
+	}
+	set runlist $remainder
+    }
+    return [expr {$start < $stop}]
+}
+
+
+# Return true if the run extends the range covered by the list of runs.
+# The range is extended if there are x values in the run which are beyond
+# the ends of the run list.  This will not fill holes in the coverage of
+# the run list.
+proc run_extends_total_range { runlist run } {
     if { [llength $runlist] == 0 } { return 1 }
     set start 1.e308
     set stop -1.e308
