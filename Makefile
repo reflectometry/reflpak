@@ -4,54 +4,29 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-bwidgetfiles=$(wildcard \
-	$(drive)$(BWIDGET)/*.tcl \
-	$(drive)$(BWIDGET)/images/* \
-	$(drive)$(BWIDGET)/lang/*)
-tkconfiles=\
-	$(drive)$(TKCON)/pkgIndex.tcl \
-	$(drive)$(TKCON)/tkcon.tcl
-tktablefiles=\
-	$(drive)$(TKTABLE)/pkgIndex.tcl \
-	$(drive)$(TKTABLE)/tkTable.tcl \
-	$(drive)$(TKTABLE)/$(TKTABLE_EXT)
-tkdndfiles=\
-	$(drive)$(TKDND)/pkgIndex.tcl \
-	$(drive)$(TKDND)/tkdnd.tcl \
-	$(drive)$(TKDND)/$(TKDND_EXT)
-octavefiles=\
-	$(drive)$(OCTAVE)/pkgIndex.tcl \
-	$(drive)$(OCTAVE)/octave.tcl \
-	$(drive)$(OCTAVE)/tclphoto.m \
-	$(drive)$(OCTAVE)/tclsend.m
-
-# IRIX's /bin/sh does not accept 'for f in ; do' so we need to give it
-# a blank line and hope that freewrap is clever enough to skip blanks
-# in the manifest
-ifndef TKTABLE
-  tktablefiles=""
-endif
-ifndef TKDND
-  tkdndfiles=""
-endif
-
-# Where to find source
-VPATH=src
+SDX ?= sdx
+NCNRKIT ?= ncnrkit
+DATE = $(shell date +%Y%m%d)
+TAR ?= tar
 
 # Path to current directory; use ?= so Makeconf can override
 topdir ?= $(shell pwd)
 bindir ?= $(topdir)/$(ARCH)
 
+octavesrc=pkgIndex.tcl octave.tcl tclphoto.m tclsend.m
+scifunsrc=pkgIndex.tcl scifun$(LDEXT)
 
+paksrc=pkgIndex.tcl reflpak.tcl wininstall.tcl
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
-	print.tcl tableentry.tcl generic.tcl
+	print.tcl tableentry.tcl generic.tcl options.tcl pkgIndex.tcl
 fithelp=reflfit.help help.help mlayer.help gj2.help
 fitfig=reflpolorient.gif
-fitsrc=mlayer.tcl defaults.tcl tkmlayerrc
+fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
+	gmlayer$(LDEXT) gj2$(LDEXT)
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
 redsrc=viewrun.tcl loadicp.tcl loaduxd.tcl loadreduced.tcl \
-	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc 
+	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc pkgIndex.tcl
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
@@ -59,143 +34,112 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
 
-libfiles=$(patsubst %,$(drive)$(topdir)/lib/%,$(libsrc))
+octavefiles=$(patsubst %,soctcl/%,$(octavesrc))
+scifunfiles=$(patsubst %,scifun/%,$(scifunsrc))
+pakfiles=$(patsubst %,reflpak/%,$(paksrc))
+libfiles=$(patsubst %,lib/%,$(libsrc))
 fitfiles=\
-	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fithelp)) \
-	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fitfig)) \
-	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fitsrc)) \
-	$(drive)$(topdir)/freewrap/loadwrap.tcl \
-	$(libfiles)
+	$(patsubst %,tcl/%,$(fithelp)) \
+	$(patsubst %,tcl/%,$(fitfig)) \
+	$(patsubst %,tcl/%,$(fitsrc))
 redfiles=\
-	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redhelp)) \
-	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redfig)) \
-	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redsrc)) \
-	$(patsubst %,$(drive)$(topdir)/reflred/octave/%,$(redoctavesrc)) \
-	$(drive)$(topdir)/freewrap/loadwrap.tcl \
-	$(libfiles)
+	$(patsubst %,reflred/%,$(redhelp)) \
+	$(patsubst %,reflred/%,$(redfig)) \
+	$(patsubst %,reflred/%,$(redsrc))
+redoctavefiles=\
+	$(patsubst %,reflred/octave/%,$(redoctavesrc))
 
-.PHONY: makegmlayer makegj2 freewrap 
+macscripts=$(patsubst %,macosx/%,reflpak ._reflpak \
+	reflred ._reflred reflfit ._reflfit reflpol ._reflpol)
 
-all: makegmlayer makegj2 $(ARCH)/reflpol$(EXE) $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
+SUBDIRS=src gj2 scifun
+
+ifeq ($(EXE),.exe)
+SUBDIRS+=winlink
+winlinksrc=pkgIndex.tcl winreg.tcl winlink$(LDEXT)
+winfiles=$(patsubst %,winlink/%,$(winlinksrc))
+addwinlink=./vfslib reflpak winlink $(winfiles)
+else
+addwinlink=:
+endif
+
+.PHONY: $(SUBDIRS)
+
+all: $(SUBDIRS) kit/reflpak$(EXE)
+
+kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
+	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
+
+kit/reflpak.res: win/reflpak.rc win/R.ico win/red.ico
+	cd win && $(RC) reflpak.rc ../kit/reflpak.res
+
+kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
+		$(scifunfiles) $(libfiles) $(ncnrkit) $(octavefiles) \
+		$(pakfiles) main.tcl Makefile
+	./vfslib reflpak
+	./vfslib reflpak ncnrlib $(libfiles)
+	./vfslib reflpak scifun $(scifunfiles)
+	./vfslib reflpak octave $(octavefiles)
+	$(addwinlink)
+	./vfslib reflpak reflfit $(fitfiles) $(gmlayer) $(gj2)
+	./vfslib reflpak reflred $(redfiles)
+	./vfslib reflpak reflred/octave $(redoctavefiles)
+	./vfslib reflpak reflpak $(pakfiles)
+	echo "set ::app_version {`date +%Y-%m-%d for $(ARCH)}" \
+		> kit/reflpak.vfs/main.tcl
+	cat main.tcl >> kit/reflpak.vfs/main.tcl
+	cd kit && $(SDX) wrap reflpak$(EXE) -runtime $(NCNRKIT)
+	touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 html: html/reflred/index.html html/reflfit/index.html
 
-html/reflred/index.html: lib/help2html $(ARCH)/reflred$(EXE) $(redhelpdeps)
+pdf: html
+
+html/reflred/index.html: lib/help2html $(redhelpdeps)
 	rm -rf html/reflred
-	lib/help2html reflred windows $(ARCH)/reflred_version.tcl $(redhelpdeps)
+	lib/help2html reflred windows $(redversion) $(redhelpdeps)
 
-html/reflfit/index.html: lib/help2html $(ARCH)/reflfit$(EXE) $(fithelpdeps)
+html/reflfit/index.html: lib/help2html $(fithelpdeps)
 	rm -rf html/reflfit
-	lib/help2html reflfit introduction $(ARCH)/reflfit_version.tcl $(fithelpdeps)
-
-$(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflfit.manifest \
-		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl $(fitfiles) \
-		$(ARCH)/gmlayer$(LDEXT)
-	cd $(ARCH) && echo "set app_version {Reflfit `date +%Y-%m-%d` for $(ARCH)}" > reflfit_version.tcl
-	cd $(ARCH) && ./freewrapBLT -e reflfit.tcl -f reflfit.manifest
-
-$(ARCH)/reflfit.tcl: reflfit.tcl.in Makefile Makeconf
-	sed -e 's,@WISH@,$(WISH),' \
-		-e 's,@OCTAVE@,$(OCTAVE),' \
-		-e 's,@TKCON@,$(TKCON),' \
-		-e 's,@TKDND@,$(TKDND),' \
-		-e 's,@TKTABLE@,$(TKTABLE),' \
-		-e 's,@BWIDGET@,$(BWIDGET),' \
-		-e 's,@TOPDIR@,$(topdir),' \
-		-e 's,@ARCH@,$(bindir),' \
-		-e 's,@GMLAYER@,$(bindir)/gmlayer$(LDEXT),' < $< > $@
-	chmod a+x $@
-
-$(ARCH)/reflfit.manifest: Makefile Makeconf
-	@echo "Building reflfit manifest"
-	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
-	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
-	@for f in $(fitfiles); do echo "$$f" >> $@ ; done
-	@echo "$(bindir)/options.tcl" >> $@
-	@echo "$(bindir)/reflfit_version.tcl" >> $@
-	@echo "$(bindir)/gmlayer$(LDEXT)" >> $@
-
-$(ARCH)/reflpol$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflpol.manifest \
-		$(ARCH)/reflpol.tcl $(ARCH)/options.tcl $(fitfiles) \
-		gj2/gj2$(LDEXT)
-	cd $(ARCH) && echo "set app_version {Reflpol `date +%Y-%m-%d` for $(ARCH)}" > reflpol_version.tcl
-	cd $(ARCH) && ./freewrapBLT -e reflpol.tcl -f reflpol.manifest
-
-$(ARCH)/reflpol.tcl: reflpol.tcl.in Makefile Makeconf
-	sed -e 's,@WISH@,$(WISH),' \
-		-e 's,@OCTAVE@,$(OCTAVE),' \
-		-e 's,@TKCON@,$(TKCON),' \
-		-e 's,@TKDND@,$(TKDND),' \
-		-e 's,@TKTABLE@,$(TKTABLE),' \
-		-e 's,@BWIDGET@,$(BWIDGET),' \
-		-e 's,@TOPDIR@,$(topdir),' \
-		-e 's,@ARCH@,$(bindir),' \
-		-e 's,@GJ2@,$(topdir)/gj2/gj2$(LDEXT),' < $< > $@
-	chmod a+x $@
-
-$(ARCH)/reflpol.manifest: Makefile Makeconf
-	@echo "Building reflpol manifest"
-	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
-	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
-	@for f in $(fitfiles); do echo "$$f" >> $@ ; done
-	@echo "$(bindir)/options.tcl" >> $@
-	@echo "$(bindir)/reflpol_version.tcl" >> $@
-	@echo "$(topdir)/gj2/gj2$(LDEXT)" >> $@
-
-
-$(ARCH)/reflred$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflred.manifest \
-		$(ARCH)/reflred.tcl $(ARCH)/options.tcl $(redfiles)
-	cd $(ARCH) && echo "set app_version {Reflred `date +%Y-%m-%d` for $(ARCH)}" > reflred_version.tcl
-	cd $(ARCH) && ./freewrapBLT -e reflred.tcl -f reflred.manifest
-
-$(ARCH)/reflred.tcl: reflred.tcl.in
-	sed -e 's,@WISH@,$(WISH),' \
-		-e 's,@OCTAVE@,$(OCTAVE),' \
-		-e 's,@TKCON@,$(TKCON),' \
-		-e 's,@TKDND@,$(TKDND),' \
-		-e 's,@TKTABLE@,$(TKTABLE),' \
-		-e 's,@BWIDGET@,$(BWIDGET),' \
-		-e 's,@TOPDIR@,$(topdir),' \
-		-e 's,@ARCH@,$(bindir),' \
-		< $< > $@
-	chmod a+x $@
-
-$(ARCH)/reflred.manifest: Makefile Makeconf
-	@echo "Building reflred manifest"
-	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
-	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
-	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
-	@for f in $(redfiles); do echo "$$f" >> $@ ; done
-	@for f in $(octavefiles); do echo "$$f" >> $@ ; done
-	@echo "$(bindir)/reflred_version.tcl" >> $@
-	@echo "$(bindir)/options.tcl" >> $@
-
-freewrap: Makeconf.tcltk
-	cd $(ARCH) && $(MAKE) -f Makefile.freewrap
-
-freewrapclean:
-	cd $(ARCH) && $(MAKE) -f Makefile.freewrap distclean
+	lib/help2html reflfit introduction $(fitversion) $(fithelpdeps)
 
 Makeconf.tcltk:
 	$(error Use ./tclConfig2Makeconf to build Makeconf.tcltk)
 
-makegmlayer:
-	cd $(ARCH) && $(MAKE) -f ../src/Makefile
+$(SUBDIRS):
+	cd $@ && $(MAKE)
 
-makegj2:
-	cd gj2 && $(MAKE)
+ChangeLog:
+	cvs2cl.pl --fsf --file ChangeLog
+
+srcdist: ChangeLog
+	cvs rtag R$(DATE) reflfit
+	cvs export -r R$(DATE) reflpak$(DATE)
+	cp ChangeLog reflpak$(DATE)
+	if test ! -d release ; then mkdir release ; fi
+	tar cjf release/reflpak$(DATE).tar.bz2 reflpak$(DATE)
+	$(RM) -rf reflpak$(DATE)
+
+ifeq ($(ARCH),macosx)
+dist: kit/reflpak$(EXE) $(macscripts) ChangeLog
+	if test -d diskimage ; then rm -rf diskimage ; fi
+	mkdir diskimage
+	mkdir diskimage/reflpak
+	cp -p kit/reflpak$(EXE) diskimage/reflpak$(DATE)
+	cp -p $(macscripts) diskimage/reflpak$(DATE)
+	cp -a data diskimage/data
+	cp macosx/README diskimage
+	cd diskimage && ../macosx/dmgpack.sh reflpak$(DATE) *
+	if test ! -d release ; then mkdir release ; fi
+	mv diskimage/reflpak$(DATE).dmg release
+else
+dist: kit/reflpak$(EXE)
+	if test ! -d release ; then mkdir release ; fi
+	cp -a kit/reflpak$(EXE) release/reflpak$(DATE)$(EXE)
+endif
 
 clean:
-	$(RM) $(ARCH)/*.o gj2/*.o core \
-		$(ARCH)/reflfit.manifest $(ARCH)/reflred.manifest
+	$(RM) */*.o *~ */*~ core
 
 distclean: clean
-	$(RM) $(ARCH)/reflfit.tcl $(ARCH)/reflfit$(EXE) \
-		$(ARCH)/reflred.tcl $(ARCH)/reflred$(EXE) \
-		$(ARCH)/gmlayer$(LDEXT) gj2/gj2$(LDEXT) \
-		$(ARCH)/refl{fit,red,pol}_version.tcl
+	$(RM) $(redbin) $(fitbin) $(polbin) $(gmlayer) $(gj2)
