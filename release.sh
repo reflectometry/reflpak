@@ -27,7 +27,7 @@ SHARE=jazz:samba
 # windows, export the problem to a machine with imagemagic
 # and tclsh.
 htmlmachine=h122045
-buildhtml="ssh $htmlmachine 'cd $builddir && make html'"
+buildhtml="ssh $htmlmachine \"cd $builddir && make html\""
 # =========== End of configuration ============
 
 echo "== local cvs update ============================"
@@ -63,7 +63,7 @@ mkdir reflpak$VERSION
 echo; echo "== gather local build results ====================="
 cp release/reflpak$VERSION* reflpak$VERSION
 echo; echo "== gather html ======================="
-scp -r htmlmachine:$builddir/html reflpak$VERSION
+scp -r $htmlmachine:$builddir/html reflpak$VERSION
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
     scp "$machine:$builddir/release/reflpak$VERSION*" reflpak$VERSION
