@@ -1,4 +1,4 @@
 gmlayer.dll 
-reflfit.manifest reflfit.tcl
-reflred.manifest reflred.tcl
-reflpol.manifest reflpol.tcl
+reflfit.manifest reflfit.tcl reflfit_version.tcl
+reflred.manifest reflred.tcl reflred_version.tcl
+reflpol.manifest reflpol.tcl reflpol_version.tcl

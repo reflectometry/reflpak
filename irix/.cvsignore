@@ -1,5 +1,5 @@
 Makeconf.tcltk freewishBLT freewrapBLT 
-reflfit.manifest reflfit reflfit.tcl
-reflred.manifest reflred reflred.tcl
-reflpol.manifest reflpol reflpol.tcl
+reflfit.manifest reflfit reflfit.tcl reflfit_version.tcl
+reflred.manifest reflred reflred.tcl reflred_version.tcl
+reflpol.manifest reflpol reflpol.tcl reflpol_version.tcl
 freewrapBLT_bare null.zip zipdir
