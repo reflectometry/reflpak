@@ -58,7 +58,9 @@
 # XXX FIXME XXX need to drop grabs when entering the help window and
 # release them on leaving.
 
-namespace eval htext {
+package provide htext 1.2
+
+namespace eval Htext {
     namespace export hpage htext
 
     variable texttagoptions
@@ -195,8 +197,8 @@ namespace eval htext {
         $w window create end -window $w.e
 #        focus $w.e
         $w.e select range 0 end
-        bind $w.e <Return> "htext::dosearch $w"
-        button $w.b -text Search! -command "htext::dosearch $w" -pady 0
+        bind $w.e <Return> [namespace code [list dosearch $w]]
+        button $w.b -text Search! -command [namespace code [list dosearch $w]] -pady 0
         $w window create end -window $w.b
     }
     proc dosearch w {
@@ -332,6 +334,7 @@ namespace eval htext {
 
 }
 
+namespace eval :: { namespace import -force ::Htext::* }
 
 # Example test code (please ignore the links below): 
 #

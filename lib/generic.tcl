@@ -1,3 +1,4 @@
+package provide ncnrlib 0.1
 
 # ===================== console functions =====================
 # HELP user
@@ -148,6 +149,7 @@ proc tildesub { path } {
 # source directory.
 proc help { dir args } {
     set ::helpdir $dir
+    namespace eval ::Htext { variable photdir; set photodir $::helpdir }
     foreach file $args { set ::helpstamp([file join $dir $file.help]) {} }
 
     # define help key
@@ -193,28 +195,21 @@ proc helpmenu { menu homepage } {
 # button to a dialog.
 proc gethelp {args} {
     # ptrace
-    rename gethelp {}
-    set htext::photodir $::helpdir
-    namespace import htext::*
-    proc gethelp { args } {
-	# ptrace
-	foreach path [array names ::helpstamp] {
-	    # auto-reload help file based on modification time
-	    set stamp [file mtime $path]
-	    if { ![string equal "$stamp" "$::helpstamp($path)"] } {
-		# puts "sourcing $path"
-		source $path
-		set ::helpstamp($path) $stamp
-	    }
+    foreach path [array names ::helpstamp] {
+	# auto-reload help file based on modification time
+	set stamp [file mtime $path]
+	if { ![string equal "$stamp" "$::helpstamp($path)"] } {
+	    # puts "sourcing $path"
+	    source $path
+	    set ::helpstamp($path) $stamp
 	}
-	eval htext .htext $args
     }
-    eval gethelp $args
+    eval htext .htext $args
 }
 
 # ========================== config info =============================
 # Platform font defaults
-switch $tcl_platform(platform) {
+switch $::tcl_platform(platform) {
     unix {
 	option add *Dialog.msg.font {Times -12} widgetDefault
 	option add *Dialog.msg.wrapLength 6i widgetDefault
@@ -770,7 +765,6 @@ proc active_legend {w {command ""}} {
 # hurt anything since the bind tag is never bound, and it has the
 # advantage over a global variable in that it will be freed with the
 # element.
-blt::vector _legend_hidden
 proc legend_toggle {w} {
     set line [$w legend get current]
     legend_set $w $line [legend_hidden $w $line]
@@ -794,6 +788,7 @@ proc legend_set {w line state} {
 	eval $w elem conf $line [option get $w legendShow LegendShow]
     } else {
 	if { $hidden } { return }
+	blt::vector create ::_legend_hidden
 	set hide 1
 	set hiddentag [list legend_hidden \
 		-xdata [$w elem cget $line -xdata] \
@@ -1010,7 +1005,7 @@ proc active_graph {w args} {
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
     $w.menu add command -underline 0 -label "Unzoom" -command "blt::ResetZoom $w"
-    $w.menu add command -underline 2 -label "Pan" -command "pan::pan start $w"
+    $w.menu add command -underline 2 -label "Pan" -command "pan start $w"
     $w.menu add command -underline 5 -label "Crosshairs" -command "$w crosshairs toggle"
     if [blt_errorbars] {
 	$w.menu add command -underline 0 -label "Error bars" \
@@ -1031,7 +1026,7 @@ proc active_graph {w args} {
     }
 
     # Add panning capability
-    ::pan::pan bind $w
+    pan bind $w
 }
 
 proc graph_toggle_error {w} {

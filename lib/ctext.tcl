@@ -6,6 +6,8 @@
 #even if you don't have BWidget or generic.tcl available, but of course
 #without the automatic scroll bar.
 
+package provide ctext 2.6
+
 namespace eval ctext {}
 
 proc ctext {win args} { 
