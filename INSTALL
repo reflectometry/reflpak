@@ -1,5 +1,12 @@
-<html><title>Reflectivity software installation</title><body>
-<h2>Windows</h2>
+<html><title>Reflectometry software installation</title><body>
+
+<h1>Reflectometry software installation</h1>
+<p>Precompiled binaries of the NCNR reflectometry are available
+for <a href="#windows>Windows</a>, <a href="#macosx">Mac OS X</a>,
+<a href="#unix">Linux</a> and <a href="#unix">IRIX</a>.
+<a href="#source">Source</a> is available as well.</p>
+
+<a name="windows"><h2>Windows</h2></a>
 
 <p>Copy <a href="reflpak@VERSION@.exe">reflpak@VERSION@.exe</a> where you 
 want it installed on your computer (it is a single file executable, not
@@ -18,7 +25,7 @@ the octave server using the command
 	listen(1515)
 </pre></code>
 
-<h2>Mac OS X</h2>
+<a name="macosx"><h2>Mac OS X</h2></a>
 
 <p>Copy <a href="reflpak@VERSION@.dmg">reflpak@VERSION@.dmg</a> to your home directory. 
 
@@ -47,15 +54,20 @@ using the command
 	listen(1515)
 </pre></code>
 
-<h2>Linux/Irix</h2>
+<a name="unix"><h2>Linux/Irix</h2></a>
 
 <p>We have prebuilt binaries for Linux
 (<a href="reflpak@VERSION@-linux.tar.gz">reflpak@VERSION@-linux.tar.gz</a>)
 and Irix
 (<a href="irix/reflpak@VERSION@-irix.tar.gz">reflpak@VERSION@-irix.tar.gz</a>).
-Untar them and copy reflpak@VERSION@/refl* somewhere in your path.  You
-could also copy them to ~ and start them with ~/reflfit, ~/reflpol or
-~/reflred.
+Untar and install reflpak@VERSION@/refl* somewhere in your path. E.g., as root:
+<code><pre>
+	install reflpak@VERSION@-arch/refl* /usr/local/bin
+</pre></code>
+or as user:
+<code><pre>
+	mv reflpak@VERSION@-arch/refl* ~/bin
+</pre></code>
 
 <p>To run reflred, you will first need to install 
 <a href="http:://www.octave.org">Octave</a> and
@@ -72,7 +84,7 @@ using the command
 	listen(1515)
 </pre></code>
 
-<h2>Build from source</h2>
+<a name="source"><h2>Build from source</h2></a>
 <p>First download and unpack the 
 <a href="reflpak@VERSION@-src.tar.gz">reflectometry source tree</a>.  
 
