@@ -3,6 +3,8 @@ if { ($argc == 1 && [lindex $argv 0] eq "-h") || ($argc > 1) } {
     exit
 }
 
+tk appname Reflfit
+
 # XXX FIXME XXX ask before closing the application without saving
 
 namespace import blt::bitmap blt::vector blt::graph
@@ -15,6 +17,8 @@ source [file join $MLAYER_HOME ctext.tcl]
 source [file join $MLAYER_HOME pan.tcl]
 source [file join $MLAYER_HOME generic.tcl]
 
+# By default, select and export tables as text with titles
+# XXX FIXME XXX how can you put \n and \t into the resource file?
 option add *SelectTitles true widgetDefault
 option add *rowSeparator \n widgetDefault
 option add *colSeparator \t widgetDefault
@@ -3482,7 +3486,6 @@ make_layerops
 
 # ========================= screen layout ===========================
 
-
 # pack the toplevel widgets
 $notebook compute_size
 $notebook raise [$notebook page 0]
@@ -3491,6 +3494,19 @@ pack $notebook -fill both -expand yes
 # status message dialog
 set ::message {}
 label .message -relief ridge -anchor w -textvariable ::message
+
+# Can't register the geometry in the resource database
+# directly so use a fake resource instead.  I'm sure
+# some will be unhappy.  Use ++ to open maximized.
+# XXX FIXME XXX maximize doesn't work on unix
+set geom [option get . mainGeometry MainGeometry]
+if { $geom eq "++" } {
+    if { [catch { wm state . zoomed }] } {
+	wm geometry . [join [wm maxsize .] x]+0+0
+    }
+} else {
+    wm geometry . $geom
+}
 
 grid $panes -sticky news
 grid .message -sticky ew
