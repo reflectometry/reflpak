@@ -81,7 +81,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
 	./vfslib reflpak reflred $(redfiles)
 	./vfslib reflpak reflred/octave $(redoctavefiles)
 	./vfslib reflpak reflpak $(pakfiles)
-	echo "set ::app_version {`date +%Y-%m-%d for $(ARCH)`}" \
+	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
 	cd kit && cp ncnrkit$(EXE) copykit$(EXE) && \
