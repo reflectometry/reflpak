@@ -15,15 +15,16 @@ set TKCON "@TCL_PREFIX@/lib/tkcon.tcl"
 
 if { [namespace exists ::freewrap] } {
     source [file join $MLAYER_HOME loadwrap.tcl]
-    # set autopath [concat [list "@TCL_PREFIX@/lib/bwidget1.6"] $auto_path]
     set dir "@TCL_PREFIX@/lib/bwidget1.6"
     source $dir/pkgIndex.tcl
-    unset dir
+    set dir "@TCL_PREFIX@/lib/tkdnd1.0"
+    source $dir/pkgIndex.tcl
+    set dir "@TCL_PREFIX@/lib/Tktable2.8"
+    source $dir/pkgIndex.tcl
 }
 
 package require BWidget
-load @TCL_PREFIX@/lib/Tktable2.8/Tktable28.dll
-source @TCL_PREFIX@/lib/Tktable2.8/tkTable.tcl
+package require tkdnd
 package require Tktable
 package require BLT
 
