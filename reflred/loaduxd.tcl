@@ -109,16 +109,32 @@ proc UXDmark {file} {
 	set rec(date) $date 
 
 	# Datasets have a couple of different formats.  One has the keyword
-	# _2THETACOUNTS followed by two columns, 2*theta and counts.  The
-	# other has the form ; Cnt#_D1 followed by a column of counts
-	set end [string first "_2THETACOUNTS" $s]
-	if { $end >= 0 } {
-	    set rec(header) $common[string range $s 0 [expr {$end+13}]]
-	    set rec(data) [string range $s [expr {$end+14}] end]
-	    # range is first value to last value of the two column data set
-	    set min [lindex $rec(data) 0]
-	    set max [lindex $rec(data) end-1]
-	} else {
+	# _2THETACOUNTS followed by two columns, 2*theta and counts.  
+	# Another has the form ; Cnt#_D1 followed by a column of counts
+	# A third has _2THETACPS followed by two columns, 2*theta and CPS.
+	set end -1
+	if { $end < 0 } {
+	    set end [string first "_2THETACOUNTS" $s]
+	    if { $end >= 0 } {
+		set rec(header) $common[string range $s 0 [expr {$end+13}]]
+		set rec(data) [string range $s [expr {$end+14}] end]
+		# range is first value to last value of the two column data set
+		set min [lindex $rec(data) 0]
+		set max [lindex $rec(data) end-1]
+	    }
+	}
+	if { $end < 0 } {
+	    set end [string first "_2THETACPS" $s]
+	    if { $end >= 0 } {
+		set rec(header) $common[string range $s 0 [expr {$end+10}]]
+		set rec(data) [string range $s [expr {$end+11}] end]
+		# range is first value to last value of the two column data set
+		set min [lindex $rec(data) 0]
+		set max [lindex $rec(data) end-1]
+		set rec(CPS) 1
+	    }
+	}
+	if { $end < 0 } {
 	    set end [string first "; Cnt2_D1" $s]
 	    if { $end < 0 } { set end [string first "; Cnt1_D1" $s] }
 	    if { $end >= 0 } {
@@ -130,9 +146,10 @@ proc UXDmark {file} {
 		set min $rec(START)
 		set max [expr {$min+$rec(STEP)*([llength $rec(data)]-1)}]
 		set rec(STOP) $max
-	    } else {
-		error "Unknown UXD format"
 	    }
+	}
+	if { $end < 0 } {
+	    error "Unknown UXD format"
 	}
 
 	# Section specific fields
@@ -159,11 +176,17 @@ proc UXDmark {file} {
 		} elseif { [string match -nocase *bgp $run] } {
 		    marktype back $min $max +
 		} elseif { [string match -nocase *bgm $run] } {
+		    marktype back $min $max -
+		} elseif { [string match -nocase *ba $run] } {
+		    marktype back $min $max +
+		} elseif { [string match -nocase *bb $run] } {
+		    marktype back $min $max -
+		} elseif { [string match -nocase *b $run] } {
 		    marktype back $min $max +
 		} elseif { [string match -nocase *bg $run] } {
 		    marktype back $min $max +
 		} elseif { [string match -nocase *bkg $run] } {
-		    marktype back $min $max -
+		    marktype back $min $max +
 		} else {
 		    marktype spec $min $max 
 		}
@@ -179,24 +202,21 @@ proc UXDview {id w} {
 proc UXDload {id} {
     upvar #0 $id rec
 
-    # Finish interpretting header.  We need to keep it around anyway
+    # Finish interpretting header.  We need to keep the header around anyway
     # so that we can display it in the text window, so we might as well
-    # do it in load to delay processing as much as possible.
+    # process it in load so that mark is as fast as possible.
     _UXDfield STEPTIME $rec(header) rec(monitor)
     if { ![info exists rec(monitor)] || $rec(monitor)==0.0 } {
 	# ignore bad or missing monitor
 	set rec(monitor) 1.0
     }
 
-    # See if the attenuator is in place.  The attenuator has a nominal
-    # value of 100.
-    # XXX FIXME XXX use this as a default attenuator value rather than
-    # scaling the raw data
-    set atten {}
+    # See if the attenuator is in place.  Set the default attenuator
+    # appropriately.
     _UXDfield DETECTORSLIT $rec(header) atten
     switch -- $atten {
-	IN - In - in { set atten 100.0 }
-	default { set atten 1.0 }
+	IN - In - in { set rec(k) 100.0 }
+	default { set rec(k) 1.0 }
     }
 
     # convert the data columns to x-y vectors
@@ -217,8 +237,12 @@ proc UXDload {id} {
 
     # normalize y to the monitor time and estimate the uncertainty
     vector create ::dy_$id
-    ::dy_$id expr "(sqrt(::y_$id) + !::y_$id)*($atten/$rec(monitor))"
-    ::y_$id expr "::y_$id*($atten/$rec(monitor))"
+    if { [info exists rec(CPS)] } {
+	::dy_$id expr "(sqrt(::y_$id) + !::y_$id)/sqrt($rec(monitor))"
+    } else {
+	::dy_$id expr "(sqrt(::y_$id) + !::y_$id)/$rec(monitor)"
+	::y_$id expr "::y_$id/$rec(monitor)"
+    }
 
     # XXX FIXME XXX convert x to Qz or whatever units are appropriate
     switch $rec(DRIVE) {
