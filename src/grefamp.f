@@ -23,7 +23,7 @@ C          write (*,*) '/** Wavelength Must Be Positive **/'
         endif
 
 	if (QI .lt. 1.e-10) then
-	  RNM1N = (1.,0.)
+	  RNM1N = (-1.,0.)
 	  go to 30
 	endif
 
