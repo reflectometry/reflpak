@@ -16,6 +16,8 @@ proc reduce_init {} {
 
     # Popup menu for performing scan operations
     menu .reduce.scanmenu -tearoff 0
+    .reduce.scanmenu add command -label Convert \
+	    -command { convertscan $::scanmenu_id }
     .reduce.scanmenu add command -label Edit \
 	    -command { editscan $::scanmenu_id }
     .reduce.scanmenu add command -label Delete \
@@ -34,7 +36,7 @@ proc reduce_init {} {
 	listbox .reduce.$type -selectmode multiple -exportselection no \
 		-listvariable ::available_$type
 	bind .reduce.$type <<ListboxSelect>> { reduce_selection }
-	bind .reduce.$type <3> { 
+	bind .reduce.$type <3> {
 	    set ::scanmenu_id [Listindex_to_scanid %W @%x,%y]
 	    tk_popup .reduce.scanmenu %X %Y 
 	}
@@ -142,6 +144,7 @@ proc reduce_init {} {
     # add a legend so that clicking on the legend entry toggles the display
     # of the corresponding line
     active_legend .reduce.graph footprint_toggle
+    active_graph .reduce.graph
 
     # show coordinates
     bind .reduce.graph <Leave> { message "" }
@@ -983,5 +986,27 @@ proc reduce_clearscan { scanid } {
 	    back { listbox_delete_by_name .reduce.$scanrec(type) $item }
 	}
     }
+    reduce_selection
+}
+
+proc convertscan { scanid } {
+    upvar \#0 $scanid scanrec
+    switch -- $scanrec(type) {
+	spec { set newtype back }
+	back { set newtype spec }
+	slit { message "Can't convert slitscans" }
+    }
+    # if changing from background, strip the +/- index
+    if {[string match {*[-+]} $scanrec(index)]} {
+	set newindex [string range $scanrec(index) 0 end-1]
+    } else {
+	set newindex $scanrec(index)
+    }
+    message "Converting $scanrec(type)$scanrec(index) to $newtype$newindex"
+    set item "$scanrec(name) $scanrec(comment)"
+    listbox_delete_by_name .reduce.$scanrec(type) $item
+    set scanrec(type) $newtype
+    set scanrec(index) $newindex
+    listbox_ordered_insert .reduce.$scanrec(type) $item
     reduce_selection
 }
