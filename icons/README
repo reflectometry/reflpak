@@ -1,0 +1,31 @@
+
+save2icons.scm:
+	gimp macro which saves the visible channels of the current
+	image as a set of png files suitable for making into icons.
+	Copy to ~/.gimp<version>/scripts, and invoke using
+		Xtns > Script-FU > User > Save as icons...
+
+	Note that this script doesn't work very well --- it doesn't
+	seem to be saving the icons as appropriate indexed images.
+	Also, sometimes it doesn't work (maybe when I have multiple
+	files open?), so I restart gimp and it works then.
+
+	Use 'png2ico basename.ico basename_*.png' to convert the
+	set of png files to an icon file.  On OS X, I use Iconverter
+	to convert the .ico file into a .icns file.
+
+	If you create new .ico/.xcf files, be sure to add them to
+	cvs as binaries using
+		cvs add -kb file...
+
+icons.tcl:
+	tcl app to view sets of icons.  This works no matter what
+	operating system you are running.
+
+		./icons.tcl *.ico
+
+yellowjelly32.xcf, [FPR]yellow.ico: subprogram icons
+yellowpack32.xcf, yellowpack.ico: program pack icon
+
+3Dred.xcf red.ico: older experiments
+
