@@ -201,7 +201,7 @@ proc init_selector { } {
 #    .graph element create data -xdata ::x_data -ydata ::y_data -pixels 3 -label ""
     .graph marker create text -name rocklab -coords { 0 -Inf }
     .graph marker create line -name rockbar -coords { 0 -Inf 0 Inf }
-    .graph marker create text -name date -coords {Inf Inf} -anchor ne
+    .graph marker create text -name date -coords {Inf Inf} -anchor ne -under 1
     .graph axis conf y -title "Counts" -logscale $::logaddrun
 
     .graph pen create excludePoint
