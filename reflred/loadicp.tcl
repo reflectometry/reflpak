@@ -846,7 +846,7 @@ proc NG1mark {file} {
 	} elseif { $rec(step,3) == 0.0 } {
 	    set rec(rockbar) $rec(start,3)
 	    marktype rock3 $rec(start,4) $rec(stop,4) $rec(polarization)
-	} elseif { abs($rec(stop,4) - 2.0*$rec(stop,3)) < 1e-10 } {
+	} elseif { abs($rec(stop,4) - 2.0*$rec(stop,3)) <= 2e-5 } {
 	    marktype spec $rec(start,3) $rec(stop,3) $rec(polarization)
 	} else {
 	    # use default background basis
