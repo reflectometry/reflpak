@@ -2309,7 +2309,7 @@ proc rec { file } {
 proc app_source { f } {
     if { [file exists $f] } {
         if { [catch { uplevel #0 [list source $f] } msg] } {
-           tk_messageBox -icon error -msg "Error sourcing $f:\n$msg" -type ok
+           tk_messageBox -icon error -message "Error sourcing $f:\n$msg" -type ok
         }
     }
 }
