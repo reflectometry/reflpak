@@ -19,7 +19,7 @@ exec wish "$0" "$@"
 #
 # Demo:
 #
-#   run "wish icons.tcl show iconfile.ico" from the command line for a
+#   run "wish icons.tcl iconfile.ico" from the command line for a
 #   demo displaying all the icons in the file.
 #
 # Usage:
