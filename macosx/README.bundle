@@ -42,8 +42,8 @@ Now do the same for the corresponding application, but
 pasting instead of copying.
 
 Finally, to files accessible from the shell, you either
-need to use the ditto command to copy them, or you need
-to use /Developer/Tools/SplitForks to create ._xxxapp.rsc
+need to use the 'ditto -rsrc' command to copy them, or you 
+need to use /Developer/Tools/SplitForks to create ._xxxapp.rsc
 corresponding to xxx.app.
 
 
@@ -51,8 +51,9 @@ Part II - building a disk image
 ==========================================================
 Most of the work in building the disk image is handled
 by dmgpack.sh.  You just need to create the directory
-	reflfit-200#.##.##
-which contains reflkit.bin, and the four apps above,
-copied by ditto.  The details for this are fortunately
-encoded in the makefile, so you just need to say
-	make dmg
+	diskimage/reflpakYYMMDD
+which contains reflpak and the four apps above,
+copied by 'ditto -rsrc'.  The details for this are 
+encoded in the Makefile, so you just need to say
+	make dist
+from the top level.
