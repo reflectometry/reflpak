@@ -52,7 +52,12 @@ See the following for details:
 */
 
 #if defined(__GCC__)
-#define _GNU_SOURCE
+# if defined(__GLIBC__)
+#  if __GLIBC_PREREQ(2,2) 
+#   define _GNU_SOURCE
+#   define HAVE_FEENABLEEXCEPT
+#  endif
+# endif
 #endif
 
 #include <fenv.h>
@@ -111,7 +116,7 @@ int fperrorF77 (void)
   return flags != 0;
 }
 
-#if defined(__GNUC__)
+#if defined(HAVE_FEENABLEEXCEPT)
 void fptrap(void)
 {
   feenableexcept(USEFUL_FLAGS);
