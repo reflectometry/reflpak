@@ -389,7 +389,7 @@ proc shell_fileType_setup {fileType title} {
 # Example: shell_fileType_open txtfile "C:\WINDOWS\NOTEPAD.EXE %1"
 # Please note the %1 for passing in file name
 proc shell_fileType_open {fileType openCommand} {
-   registry set "HKEY_CLASSES_ROOT\\$fileType\\Shell\\open\\command" "" $openCommand"
+   registry set "HKEY_CLASSES_ROOT\\$fileType\\Shell\\open\\command" "" $openCommand
 }
 
 # Creates a print command on left click.
