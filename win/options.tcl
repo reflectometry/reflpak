@@ -19,3 +19,5 @@ option add *HandleSize 0
 option add *sashWidth 4
 bind Button <Key-Return> {tk::ButtonInvoke %W}
 
+option add *Hiertable.ResizeCursor size_we 81
+

@@ -21,8 +21,9 @@ endif
 # Where to find source
 VPATH=src
 
-topdir = $(shell pwd)
-bindir = $(topdir)/$(ARCH)
+# Path to current directory; use ?= so Makeconf can override
+topdir ?= $(shell pwd)
+bindir ?= $(topdir)/$(ARCH)
 
 
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
