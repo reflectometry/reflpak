@@ -129,6 +129,9 @@ proc init_selector { } {
     .menu.options add checkbutton -label "Show Temperature" \
 	-variable ::show_temperature \
 	-command { atten_set $::addrun }
+    .menu.options add checkbutton -label "Q^4 scaling" \
+	-variable ::Q4_scaling \
+	-command { atten_set $::addrun }
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { tkcon show }
@@ -314,10 +317,17 @@ proc graph_motion { w x y } {
 	#    set elid "Run $rec(legend)
 	#}
 	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
-	set ptx "[fix $where(x)]"
-	set pty "[fix $where(y) {} {} 5]"
+	set ptx [fix $where(x)]
+	# XXX FIXME XXX eliminate temperature/Q^4 hacks
+	if { $::Q4_scaling && !$::show_temperature} {
+	    set y [expr {$where(y)/pow(10.*$where(x),4)}]
+	} else {
+	    set y $where(y)
+	}
+	set pty [fix $y {} {} 5]
 	if { [info exists ::xth_$where(name)] } {
-	    message "$ptid  ([fix [set ::xth_$where(name)($where(index))]]$::symbol(degree), $ptx A$::symbol(inverse)) $pty"
+	    set theta [fix [set ::xth_$where(name)($where(index))]]
+	    message "$ptid  ($theta $::symbol(degree), $ptx A$::symbol(inverse)) $pty"
 	} else {
 	    message "$ptid  $ptx, $pty"
 	}
@@ -1051,6 +1061,7 @@ proc atten_set { runs }  {
 
     # Ugly hack to show temperature
     if { $::show_temperature } {
+	.graph axis conf y -title "Temperature"
 	foreach id $runs {
 	    ::ky_$id delete :
 	    ::kdy_$id delete :
@@ -1090,6 +1101,20 @@ proc atten_set { runs }  {
 	::${id}_ghosty expr "$monitor/$scanrec(monitor)*::${id}_y"
 	::${id}_ghostdy expr "$monitor/$scanrec(monitor)*::${id}_dy"
     }
+
+    # scale runs by Q^4
+    if { $::Q4_scaling } {
+	.graph axis conf y -title "[.graph axis cget y -title] x (10 Q)^4"
+	foreach id $runs {
+	    ::ky_$id expr "::ky_$id*::x_$id^4*1e4"
+	    ::kdy_$id expr "::kdy_$id*::x_$id^4*1e4"
+	}
+	foreach id $scans {
+	    ::${id}_ghosty expr "::${id}_ghosty*::${id}_x^4*1e4"
+	    ::${id}_ghostdy expr "::${id}_ghostdy*::${id}_x^4*1e4"
+	}
+    }
+
 }
 
 proc atten_revert { runs } {
