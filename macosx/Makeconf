@@ -3,9 +3,9 @@ ARCH=macosx
 # Debugging statements?
 # DEBUG=-DEBUG
 
-include Makeconf.tcl
+include Makeconf.tcltk
 
-WISH=$(TCL_PREFIX)/bin/bltwish
+WISH=$(TCL_PREFIX)/bin/wish8.4
 
 # Tcl packages we need to include
 TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
