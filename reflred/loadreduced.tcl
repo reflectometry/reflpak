@@ -44,12 +44,12 @@ proc guessindex {file} {
     } else {
 	set back ""
     }
+    set pol ""
     switch -- $end {
 	a - A { set pol A }
 	b - B { if {![string match "*sub$back" $file]} {set pol B} }
 	c - C { if {![string match "*spec$back" $file]} {set pol C} }
 	d - D { if {![string match "*add$back" $file]} {set pol D} }
-	default { set pol "" }
     }
     return $pol$back
 }
