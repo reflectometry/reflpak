@@ -56,6 +56,8 @@ redfiles=\
 	$(drive)$(topdir)/freewrap/loadwrap.tcl \
 	$(libfiles)
 
+.PHONY: makegmlayer freewrap 
+
 all: makegmlayer $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
 
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflfit.manifest \
@@ -76,13 +78,14 @@ $(ARCH)/reflfit.tcl: reflfit.tcl.in Makefile Makeconf
 	chmod a+x $@
 
 $(ARCH)/reflfit.manifest: Makefile Makeconf
-	echo "$(TKCON)" > $@
-	for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
-	for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
-	for f in $(tktablefiles); do echo "$$f" >> $@ ; done
-	for f in $(fitfiles); do echo "$$f" >> $@ ; done
-	echo "$(bindir)/options.tcl" >> $@
-	echo "$(bindir)/gmlayer$(LDEXT)" >> $@
+	@echo "Building reflfit manifest"
+	@echo "$(TKCON)" > $@
+	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
+	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
+	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
+	@for f in $(fitfiles); do echo "$$f" >> $@ ; done
+	@echo "$(bindir)/options.tcl" >> $@
+	@echo "$(bindir)/gmlayer$(LDEXT)" >> $@
 
 $(ARCH)/reflred$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflred.manifest \
 		$(ARCH)/reflred.tcl $(ARCH)/options.tcl $(redfiles)
@@ -101,12 +104,13 @@ $(ARCH)/reflred.tcl: reflred.tcl.in
 	chmod a+x $@
 
 $(ARCH)/reflred.manifest: Makefile Makeconf
-	echo "$(TKCON)" > $@
-	for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
-	for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
-	for f in $(tktablefiles); do echo "$$f" >> $@ ; done
-	for f in $(redfiles); do echo "$$f" >> $@ ; done
-	echo "$(bindir)/options.tcl" >> $@
+	@echo "Building reflred manifest"
+	@echo "$(TKCON)" > $@
+	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
+	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
+	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
+	@for f in $(redfiles); do echo "$$f" >> $@ ; done
+	@echo "$(bindir)/options.tcl" >> $@
 
 freewrap: Makeconf.tcltk
 	cd $(ARCH) && $(MAKE) -f Makefile.freewrap
