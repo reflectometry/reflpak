@@ -2,24 +2,39 @@ if { ($argc == 1 && [lindex $argv 0] eq "-h") || ($argc > 1) } {
     puts "usage: $argv0 \[fitfile|datafile]"
     exit
 }
+package provide reflfit 0.1
+package provide reflpol 0.1
 
-wm protocol . WM_DELETE_WINDOW { exit }
-
-tk appname [lindex $app_name 0]
-
-# XXX FIXME XXX ask before closing the application without saving
-
+package require Tk
+package require BWidget
+catch { package require tkdnd } ;# use tkdnd if it is available
+package require Tktable
+package require BLT
 namespace import blt::bitmap blt::vector blt::graph
+package require tkcon
+package require ncnrlib
+package require scifun ;# scientific functions in expr
+
+# Let the user customize their version without changing the original
+# by loading resources from a file in their directory.
+# XXX FIXME XXX put this as late as possible in the source so that
+# the user can override more of the program.  That means putting
+# all the initialization code if functions and calling those functions
+# at the very end just after loading ./mlayer
+# XXX FIXME XXX also check version of ipc corresponds to current mlayer.tcl
+set VERSION 0.0.1
+source [file join $MLAYER_HOME defaults.tcl]
+if { [ file exists [file join [HOME] .mlayer] ] } {
+    source [file join [HOME] .mlayer]
+}
 
 load_resources $::MLAYER_HOME tkmlayer
 
-# Supporting widgets and helpers
-source [file join $MLAYER_LIB pan.tcl]
-source [file join $MLAYER_LIB tableentry.tcl]
-source [file join $MLAYER_LIB htext.tcl]
-source [file join $MLAYER_LIB balloonhelp.tcl]
-source [file join $MLAYER_LIB ctext.tcl]
-source [file join $MLAYER_LIB generic.tcl]
+
+wm protocol . WM_DELETE_WINDOW { exit }
+
+# XXX FIXME XXX ask before closing the application without saving
+
 
 # Translate field name to column title
 array set table_titles [list \
@@ -60,15 +75,6 @@ set sixteenpi [expr 64.0*atan(1)]
 set ::use_sld [string is true [option get . useSLD UseSLD]]
 set ::use_Q4 [string is true [option get . useQ4 UseQ4]]
 
-# Print dialog
-proc PrintDialog { args } {
-    rename PrintDialog {}
-    uplevel #0 [list source [file join $::MLAYER_LIB print.tcl]]
-    eval PrintDialog $args
-}
-
-
-
 # how much debugging output to spit out
 tracing 0
 
@@ -79,9 +85,6 @@ tracing 0
 # This assumes BLT, Tktable, Expect and BWidget are already loaded, and
 # that blt::* has been imported into the namespace.
 
-# Determine if we are using polarized or unpolarized version
-# based on the name of the executable.
-set ::env(MLAYER_CONSTRAINTS) [file native [file join $::MLAYER_HOME makeconstrain]]
 if {$::MAGNETIC} {
     set title Reflpol
 } else {
@@ -124,17 +127,6 @@ if { $::MAGNETIC } {
     set MAX_LAYERS 28
 }
 
-
-# Let the user customize their version without changing the original
-# by loading resources from a file in their directory.
-# XXX FIXME XXX put this as late as possible in the source so that
-# the user can override more of the program.
-# XXX FIXME XXX also check version of ipc corresponds to current mlayer.tcl
-set VERSION 0.0.1
-source [file join $MLAYER_HOME defaults.tcl]
-if { [ file exists [file join [HOME] .mlayer] ] } {
-    source [file join $MLAYER_HOME defaults.tcl]
-}
 
 
 
@@ -3679,8 +3671,8 @@ proc start_file {} {
         set arg [lindex $::argv 0]
         if { [file exists $arg] } {
             set initfile $arg
-        } elseif { [file exists $arg$fitext] } {
-            set initfile $arg$fitext
+        } elseif { [file exists $arg$::fitext] } {
+            set initfile $arg$::fitext
         } elseif { !$::MAGNETIC && [file exists $arg.refl] } {
             set initfile $arg.refl
         } elseif { $::MAGNETIC && \
@@ -3730,4 +3722,5 @@ if { $::MAGNETIC } { gmlayer ps abcd }
 reset_all
 
 drop_file [start_file]
+wm deiconify .
 focus .
