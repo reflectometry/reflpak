@@ -625,8 +625,18 @@ proc reduce {spec back slit} {
 	   if !isempty(slit)
 	      if struct_contains(spec,'m')
 	         if length(slit.x) > 1
-	            [slit.y,slit.dy]=interp1err(slit.x,slit.y,slit.dy,spec.m);
-	            slit.x = spec.x;
+                    # interpolate over slit scan region
+                    [_y,_dy]=interp1err(slit.x,slit.y,slit.dy,spec.m);
+                    # extrapolate with a constant
+                    _y(spec.m<slit.x(1)) = slit.y(1);
+                    _dy(spec.m<slit.x(1)) = slit.dy(1);
+                    _y(spec.m>slit.x(length(slit.x))) = slit.y(length(slit.x));
+                    _dy(spec.m>slit.x(length(slit.x))) = slit.dy(length(slit.x));
+                    # replace the (s,y,dy) with interpolated (q,y,dy)
+                    slit.x = spec.x;
+                    slit.y = _y;
+                    slit.dy = _dy;
+                    clear _y _dy
 	         elseif all(slit.x == spec.m)
 	            slit.y = slit.y*ones(size(spec.m));
 	            slit.dy = slit.dy*ones(size(spec.m));
