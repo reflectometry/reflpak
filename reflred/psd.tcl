@@ -41,14 +41,24 @@ proc psd {id} {
     set ::psd::id $id
     ::psd::init
     wm title .psd "PSD [set ::${id}(file)] ($id)"
+
+    # send Qz index
+    if { [vector_exists ::xth_$id] } {
+	octave send ::xth_$id Qz	    
+    } else {
+	octave send ::x_$id Qz
+    }
+
     # correct matrix if presented in reverse order
     octave eval "
  	if Qz(1) > Qz(length(Qz))
 	  Qz = flipud(Qz(:));
-	  psd = flipud(psd);
+	  psd_$id = flipud(psd_$id);
 	  send('x_$id',Qz);
 	endif
     "
+    octave eval "psd = psd_$id"
+    octave eval "psderr = psderr_$id"
     ::psd::draw_matrix
     ::psd::reset_axes
     ::psd::integrate
@@ -349,8 +359,8 @@ proc ::psd::select { x y action } {
 
 	    foreach {x1 y1 x2 y2} [.psd.matrix marker cget $drag(marker) -coords] break
 	    switch $drag(index) {
-		0  { set m [expr { ($bin - $x2)/($Qz - $y2) }] }
-		1  { set m [expr { ($bin - $x1)/($Qz - $y1) }] }
+		0  { set m [expr { double($bin - $x2)/($Qz - $y2) }] }
+		1  { set m [expr { double($bin - $x1)/($Qz - $y1) }] }
 	    }
 	    set b [expr { $bin - $Qz*$m } ]
 
@@ -488,7 +498,7 @@ proc ::psd::draw_matrix { } {
     variable logscale
 
     # Get the data range from octave
-    octave eval { minnz = min(psd(psd!=0)) }
+    octave eval { minnz = min(psd(psd>0)); if isempty(minnz), minnz=1; end }
     octave eval { 
 	if length(Qz) > 1
 	  minQz = ( 3*Qz(1) - Qz(2) ) / 2;
@@ -654,7 +664,7 @@ proc ::psd::drag_slice { action x y } {
  
     if { [string equal $action skew] } {
 	# If changing skew, calculate new skew
-	set skew [expr {($qz-$Qzcross)/($bin-$bincross)}]
+	set skew [expr {double($qz-$Qzcross)/($bin-$bincross)}]
     } else {
 	# If changing center, remember new center
 	set bincross $bin
