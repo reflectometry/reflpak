@@ -627,6 +627,7 @@ proc reduce {spec back slit} {
 	         if length(slit.x) > 1
                     # interpolate over slit scan region
                     [_y,_dy]=interp1err(slit.x,slit.y,slit.dy,spec.m);
+
                     # extrapolate with a constant
                     _y(spec.m<slit.x(1)) = slit.y(1);
                     _dy(spec.m<slit.x(1)) = slit.dy(1);
@@ -638,6 +639,7 @@ proc reduce {spec back slit} {
                     slit.dy = _dy;
                     clear _y _dy
 	         elseif all(slit.x == spec.m)
+	            # Single point slit scan
 	            slit.y = slit.y*ones(size(spec.m));
 	            slit.dy = slit.dy*ones(size(spec.m));
 	            slit.x = spec.x;
