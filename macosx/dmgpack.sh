@@ -61,5 +61,5 @@ hdiutil eject $DEVICE
 
 # compress the disk and make it read only
 rm -f "$COMPRESSED"
-hdiutil convert -format UDZO $DISK -o "$COMPRESSED"
+hdiutil convert -format UDZO $DISK -imagekey zlib-level=9 -o "$COMPRESSED"
 rm -f $DISK
