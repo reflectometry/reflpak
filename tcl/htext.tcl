@@ -54,6 +54,8 @@
 # XXX FIXME XXX consider shifting the attachments code out of hpage/htext
 # so that code is closer to the original.
 
+# XXX FIXME XXX need to drop grabs when entering the help window and
+# release them on leaving.
 
 namespace eval htext {
     namespace export hpage htext
@@ -139,10 +141,14 @@ namespace eval htext {
 	wm deiconify $w
         raise $w
 	focus $w.t
+	# XXX FIXME XXX ugly hack to allow us to get help while dialogs are displayed
+	# unfortunately, this releases the grab; I tried restore the grab when done
+	# but it got messy fast --- best solution is don't grab.
+	grab release [grab current $w]
         variable pages 
 	variable attachments
 	# load page immediately if it is recognized
-	if [info exists pages($args)] {
+	if {[info exists pages($args)] || $args eq "Search"} {
 	    show $w.t $args
 	    return
 	}
