@@ -8,13 +8,11 @@ Manifest
 
 src/
 
-  C source for mlayer, converted to be a tcl loadable
-  module.  This is just mlayer for now, but gj2 is 
-  going to have to go somewhere --- I would very much 
-  like to merge the code bases for the two, but I think I
-  will have to hold off on that for a little bit longer,
-  so don't be surprised if src is renamed src-mlayer,
-  and is accompanied by src-gj2.
+  C source for mlayer, converted to be a tcl loadable module.
+
+gj2/
+
+  C source for gj2, converted to be a tcl loadable module.  
 
 lib/
 
@@ -59,10 +57,13 @@ tclConfig2Makeconf
   Convert tclConfig.sh to Makeconf.tcltk for use in
   compiling freewrapBLT (on some architectures).
 
-release.sh
+checklist
 
-  Creates a release tarball for the source
+  Things to do for a new release
 
+ChangeLog
+
+  Detailed list of changes.
 
 Build
 =====
@@ -81,11 +82,14 @@ instructions.
 
 Type make.  The resulting files are:
 
-	arch/gmlayer.$LDEXT	the loadable module
+	arch/gmlayer.$LDEXT	the loadable module for mlayer
+	gj2/gj2.$LDEXT		the loadable module for gj2
 	reflfit.tcl		the driver program for reflfit
+	reflpol.tcl		the driver program for reflpol
 	reflred.tcl		the driver program for reflred
 	reflfit$EXE		wrapped versions of same
+	reflpol$EXE
 	reflred$EXE
 
 Paul Kienzle
-2003-08-21
+2003-11-07
