@@ -3284,7 +3284,7 @@ menu .menu.options
     -variable ::use_Q4 -value 0 -command set_Q4
 .menu.options add separator
 .menu.options add command -underline 0 -label "Tcl console" \
-    -command { start_tkcon }
+    -command { tkcon show }
 if { [package_available tablelist] } {
     .menu.options add command -underline 0 -label "Browse widgets" \
 	-command { start_widget_browser }

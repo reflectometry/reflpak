@@ -156,7 +156,7 @@ proc init_selector { } {
 	    -command { atten_set $::addrun }
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
-    .menu.options add command -label "Tcl console" -command { start_tkcon }
+    .menu.options add command -label "Tcl console" -command { tkcon show }
     helpmenu .menu windows
 
     PanedWindow .treebydata -side top

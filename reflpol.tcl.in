@@ -6,7 +6,6 @@ exec "@WISH@" "$0" "$@"
 
 set MLAYER_HOME [file join @TOPDIR@ tcl]
 set MLAYER_LIB [file join @TOPDIR@ lib]
-set TKCON "@TKCON@"
 
 ## ==============================================================
 ## Installation dependencies
@@ -25,6 +24,9 @@ if { [namespace exists ::freewrap] } {
     set dir "@TKTABLE@"
     if { $dir ne "" } { source [file join $dir pkgIndex.tcl] }
     unset dir
+    set dir "@TKCON@"
+    if { $dir ne "" } { source [file join $dir pkgIndex.tcl] }
+    unset dir
 }
 
 # external packages
@@ -32,6 +34,7 @@ package require BWidget
 if { "@TKDND@" ne "" } { package require tkdnd }
 package require Tktable
 package require BLT
+package require tkcon
 
 # platform specific options
 source [file join "@ARCH@" options.tcl]

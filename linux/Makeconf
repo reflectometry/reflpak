@@ -13,7 +13,7 @@ TCL_SHLIB_SUFFIX=.so
 WISH=$(TCL_PREFIX)/bin/bltwish
 
 # Tcl packages we need to include
-TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
+TKCON=$(TCL_PREFIX)/lib/tkcon2.4
 OCTAVE=$(TCL_PREFIX)/lib/octave0.1
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
 #TKDND=$(TCL_PREFIX)/lib/tkdnd1.0

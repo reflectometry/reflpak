@@ -8,6 +8,9 @@ bwidgetfiles=$(wildcard \
 	$(drive)$(BWIDGET)/*.tcl \
 	$(drive)$(BWIDGET)/images/* \
 	$(drive)$(BWIDGET)/lang/*)
+tkconfiles=\
+	$(drive)$(TKCON)/pkgIndex.tcl \
+	$(drive)$(TKCON)/tkcon.tcl
 tktablefiles=\
 	$(drive)$(TKTABLE)/pkgIndex.tcl \
 	$(drive)$(TKTABLE)/tkTable.tcl \
@@ -105,7 +108,7 @@ $(ARCH)/reflfit.tcl: reflfit.tcl.in Makefile Makeconf
 
 $(ARCH)/reflfit.manifest: Makefile Makeconf
 	@echo "Building reflfit manifest"
-	@echo "$(TKCON)" > $@
+	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
 	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
@@ -134,7 +137,7 @@ $(ARCH)/reflpol.tcl: reflpol.tcl.in Makefile Makeconf
 
 $(ARCH)/reflpol.manifest: Makefile Makeconf
 	@echo "Building reflpol manifest"
-	@echo "$(TKCON)" > $@
+	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
 	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
@@ -163,7 +166,7 @@ $(ARCH)/reflred.tcl: reflred.tcl.in
 
 $(ARCH)/reflred.manifest: Makefile Makeconf
 	@echo "Building reflred manifest"
-	@echo "$(TKCON)" > $@
+	@for f in $(tkconfiles); do echo "$$f" >> $@ ; done
 	@for f in $(bwidgetfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done

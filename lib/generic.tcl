@@ -224,28 +224,6 @@ switch $tcl_platform(platform) {
     }
 }
 
-# HELP internal
-# Usage: tkcon
-#
-# Attach tkcon to a button, menu or keystroke to raise the Tcl
-# console window.
-proc start_tkcon {} {
-    if [winfo exists .tkcon] {
-	wm deiconify .tkcon
-	raise .tkcon
-    } else {
-	uplevel #0 [list source $::TKCON]
-	# yuck --- for some reason source tkcon on 8.3.4 activestate
-	# does not evaluate ::tkcon::Init.  Since I want to leave the
-	# activestate installation as untouched as possible, I will
-	# just have to work around it here.
-	if {![winfo exists .tkcon]} { tkcon init }
-	tkcon attach Main
-	# click on the close window icon to hide the console
-	wm protocol .tkcon WM_DELETE_WINDOW { tkcon hide }
-    }
-}
-
 # HELP developer
 # Usage: package_available package
 #

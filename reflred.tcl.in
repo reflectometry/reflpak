@@ -4,7 +4,6 @@ exec "@WISH@" "$0" "$@"
 
 set VIEWRUN_HOME "@TOPDIR@/reflred"
 set VIEWRUN_LIB "@TOPDIR@/lib"
-set TKCON "@TKCON@"
 set OCTAVE_HOST localhost:1515
 
 ## ==============================================================
@@ -25,6 +24,8 @@ if { [namespace exists ::freewrap] } {
     if { $dir ne "" } { source $dir/pkgIndex.tcl }
     set dir "@OCTAVE@"
     if { $dir ne "" } { source $dir/pkgIndex.tcl }
+    set dir "@TKCON@"
+    if { $dir ne "" } { source $dir/pkgIndex.tcl }
     unset dir
 }
 
@@ -33,6 +34,7 @@ if { "@TKDND@" ne "" } { package require tkdnd }
 package require Tktable
 package require BLT
 package require octave
+package require tkcon
 
 source [file join "@ARCH@" options.tcl]
 source [file join "@ARCH@" reflred_version.tcl]
