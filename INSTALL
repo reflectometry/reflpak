@@ -9,6 +9,8 @@ for <a href="#windows>Windows</a>, <a href="#macosx">Mac OS X</a>,
 <a href="reflpak@VERSION@-src.tar.gz">reflectometry source tree</a>,
 and follow the long set of instructions in README to build and install.
 
+<p>Please read the <a href="RELEASE-NOTES">release notes.</a></p>
+
 <p>Online help for <a href="html/reflred/index.html">reflred</a> and
 <a href="html/reflfit/index.html">reflfit</a> are available.</p>
 
