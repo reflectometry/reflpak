@@ -13,7 +13,7 @@ set title [string totitle $package]
 
 source [file join [file dir [info script]] htext.tcl]
 
-namespace eval htext {
+namespace eval Htext {
     proc htmlmap { text } {
         # replace special html characters
 	set text [string map { < &lt; > &gt; & &amp; } $text]
@@ -159,5 +159,5 @@ foreach file $files {
 }
 
 cd html/$package
-htext::html $title
+Htext::html $title
 file copy $root.html index.html
