@@ -407,7 +407,11 @@ proc reduce_footprint_correction {} {
 		set ::message "Invalid footprint fit Q range"
 		return
 	    }
-	    octave eval "idx = refl.x >= $::fit_footprint_Qmin & refl.x <= $::fit_footprint_Qmax"
+	    octave eval [subst {
+		lo = min(\[$::fit_footprint_Qmin,$::fit_footprint_Qmax]);
+		hi = max(\[$::fit_footprint_Qmin,$::fit_footprint_Qmax]);
+	        idx = refl.x >= lo & refl.x <= hi;
+	    }]
 	    if { $::fit_footprint_style == 1 } {
 		octave eval { footprint_origin='origin' }
 	    } else {
@@ -424,7 +428,7 @@ proc reduce_footprint_correction {} {
 	    #    send(sprintf('puts {dy=%s}',mat2str(refl.dy(idx))));
 	    #}
 	    octave eval {
-		[p,dp] = wpolyfit(refl.x(idx),refl.y(idx),refl.dy(idx), ...
+		[p,dp] = wpolyfit(abs(refl.x(idx)),refl.y(idx),refl.dy(idx),...
 				  footprint_order,footprint_origin);
 		if footprint_order==0, p=[0;p]; dp=[0;dp]; end
 		send(sprintf('set ::footprint_m  %.15g', p(1)));
@@ -460,12 +464,15 @@ proc reduce_footprint_correction {} {
 		return
 	    }
 	    
-	    octave eval "Qmin = $::footprint_Qmin; Qmax = $::footprint_Qmax"
+	    octave eval [subst {
+		Qmin = min(abs(\[$::footprint_Qmin,$::footprint_Qmax]))
+		Qmax = max(abs(\[$::footprint_Qmin,$::footprint_Qmax]))
+	    }]
 
 	    octave eval {
 		# linear between Qmin and Qmax
 		foot.x = refl.x;
-		foot.y = polyval(p,refl.x);
+		foot.y = polyval(p,abs(refl.x));
 		foot.dy = sqrt(polyval(dp.^2,refl.x.^2));
 		fpQmax = polyval(p,Qmax);
 		dfpQmax = sqrt(polyval(dp.^2,Qmax.^2));
@@ -475,11 +482,11 @@ proc reduce_footprint_correction {} {
 		send(sprintf('set footprint_at_Qmax_err %.15g', dfpQmax));
 
 		# ignore values below Qmin
-		foot.y(refl.x < Qmin) = 1;
-		foot.dy(refl.x < Qmin) = 0;
+		foot.y(abs(refl.x) < Qmin) = 1;
+		foot.dy(abs(refl.x) < Qmin) = 0;
 		# stretch Qmax to the end of the range
-		foot.y(refl.x > Qmax) = fpQmax;
-		foot.dy(refl.x > Qmax) = dfpQmax;
+		foot.y(abs(refl.x) > Qmax) = fpQmax;
+		foot.dy(abs(refl.x) > Qmax) = dfpQmax;
 	    }
 	}
 	div {
@@ -908,7 +915,7 @@ proc reduce_save { args } {
     }
 
     # XXX FIXME XXX do I really need to hardcode NG1p stuff here?
-    if { [string equal $rec(instrument) "NG1p"] } {
+    if { [string equal $rec(instrument) "NG-1p"] } {
 	set ext "$ext[string toupper [string index $rec(file) end-1]]"
     }
 
