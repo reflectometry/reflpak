@@ -34,8 +34,27 @@ proc reduced_info { action {name {}} } {
     }
 }
 
+proc guessindex {file} {
+    # Check the file extension to guess index
+    set end [string index $file end]
+    if { $end == "-" || $end == "+" } {
+	set back $end
+	set end [string index $file end-1]
+    } else {
+	set back ""
+    }
+    switch -- $end {
+	a - A { set pol A }
+	b - B { if {![string match "*sub$back" $file]} {set pol B} }
+	c - C { if {![string match "*spec$back" $file]} {set pol C} }
+	d - D { if {![string match "*add$back" $file]} {set pol D} }
+	default { set pol "" }
+    }
+    return $pol$back
+}
+
 proc markreduced {file} {
-    if {[ catch { open $rec(file) r } fid ] } { return 0 }
+    if {[ catch { open $file r } fid ] } { return 0 }
     set data [read $fid]
     close $fid
 
@@ -50,10 +69,10 @@ proc markreduced {file} {
     set head [string range $data 0 [expr [lindex $idx 0] - 1]]
     set rec(data) [string range $data [lindex $idx 0] end]
 
+    set rec(index) [guessindex $file]
+
     # process the header
     reducedheader rec $head
-
-    # 
 }
 
 # reducedheader rec head
@@ -182,7 +201,7 @@ proc markother {file} {
     set rec(H) unknown
     set rec(base) unknown
     set rec(run) $run
-    set rec(index) {}
+    set rec(index) [guessindex $file]
     set rec(start) 0
     set rec(stop) 0
 

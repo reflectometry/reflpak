@@ -820,6 +820,10 @@ proc write_reduce { } {
     puts $fid "#temperature $rec(T)"
     puts $fid "#field $rec(H)"
     puts $fid "#wavelength $rec(L)"
+    if {[info exist rec(polarization)]} {
+	puts $fid "\#polarization $rec(polarization)"
+    }
+
     # XXX FIXME XXX Hmmm... type might be Specular Background Slit scan ...
     # or it may be:
     #   Subtracted specular (if it includes spec and back) 
