@@ -1,0 +1,19 @@
+This disk contains the reflpak suite of reflectometery reduction and fitting 
+programs from the NIST Center for Neutron Research.  
+
+You may run the programs directly from the disk image, or copy the 
+reflpak-xxxx directory somewhere on your harddrive.  Keep the icons
+together in the same directory as reflpak.bin or they will not work.
+
+Within the reflpak directory is reflpak.bin (the binary) and four icons 
+which you may drag to your dock.  The reflpak icon starts a menu from 
+which you can choose from the three applications: reflred for reduction, 
+reflfit for fitting and reflpol for fitting of polarized data.  Clicking 
+on the other three icons starts these applications directly.
+
+This is pre-release open source software --- standard disclaimers apply
+and will be filled in later.
+
+Paul Kienzle
+pkienzle@nist.gov
+2004-03-24
