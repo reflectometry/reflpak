@@ -4,7 +4,8 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-VERSION = $(shell date +%Y%m%d)
+VERSION = $(shell date +-%Y.%m.%d)
+VERSIONTAG = $(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
