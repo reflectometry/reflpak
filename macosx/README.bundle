@@ -1,0 +1,58 @@
+Bundling Mac OS X applications is much too much work.
+
+Part I --- building the spawning icons
+========================================================
+First the static part, which hopefully you won't need
+to redo (you can get the relevant parts off an
+existing distribution of reflpak if you need them).
+
+I have a somewhat complicated AppleScript program which
+starts the X11 server and runs my apps.  The text of this
+(for CVS purposes) is in X11.script.  You need to convert
+this to four different applications which call reflpak
+with different starting parameters: reflpak, reflfit,
+reflpol and reflred.
+
+Alas, since I don't know a way to do this from the
+command line, you need to get the script into the
+script editor and save it by hand for each one.  Since
+X11.script has unix line endings, you will need to open
+it first in textedit and cut and paste into the script
+editor.  The default is set up for reflpak.  Rename
+APPNAME and set COMMAND to "$scriptdir/reflpak.bin XXX"
+for each of fit, pol and red.
+
+Now that you have the four applications, you need to
+set the icons.  I'm using reflpack.ico and [RFP]yellow.ico
+for reduce, fit and polarized fit respectively.  
+
+You must first convert these to .icns files using the 
+open source program Iconverter (see http://www.extraneous.us).  
+This is unfortunately not a command line utility, so you need
+to select and convert your files by hand.
+
+Next you need to paste the icons onto the resource forks
+of your four applications.  Just to make things difficult,
+you must first create a dummy application out of the icon
+before you can copy it.  The script wrapicon.sh does this
+for you: ./wrapicon.sh reflpack.icns.  Now you need to
+select the wrapped icon in Finder, use Get Info (apple I)
+to show the file properties, select the icon image and copy.
+Now do the same for the corresponding application, but
+pasting instead of copying.
+
+Finally, to files accessible from the shell, you either
+need to use the ditto command to copy them, or you need
+to use /Developer/Tools/SplitForks to create ._xxxapp.rsc
+corresponding to xxx.app.
+
+
+Part II - building a disk image
+==========================================================
+Most of the work in building the disk image is handled
+by dmgpack.sh.  You just need to create the directory
+	reflfit-200#.##.##
+which contains reflkit.bin, and the four apps above,
+copied by ditto.  The details for this are fortunately
+encoded in the makefile, so you just need to say
+	make dmg
