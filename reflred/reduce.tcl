@@ -441,6 +441,8 @@ proc reduce {spec back slit} {
 	run_send_pol('spec_%s', spec);
 	run_send_pol('back_%s', back);
 	run_send_pol('slit_%s', slit);
+	# XXX FIXME XXX a better way of coordinating footprint screen?
+	send("::footprint::slits $::spec_x(:) $::spec_m(:)")
     }
 
     # Combine the parts, creating sub if there is background subtraction
