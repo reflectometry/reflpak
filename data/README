@@ -1,0 +1,188 @@
+This directory contains data from the NCNR 2002 summer school.
+
+ss02 contains the raw data directly from ICP.
+
+ss02-fit/ssgpb001.log contains the reduced data.
+ss02-fit/ssgpb001.staj is an attempt to model the data.
+
+Data Analysis
+=============
+
+This section will give a brief walk-through for fitting a model to a
+reduced reflectometry signal.  The basic model is a set of layers,
+a repeated section and another set of layers.
+
+* start
+First start reflpak and choose the Fit... program.  How you do this
+varies from system to system.  The initial screen shows a very simple
+model and no data.  Use the Layer menu to add the number of layers
+you want in your model. Use the Beam tab to set beam characteristics
+such as intensity, wavelength and divergence.
+
+* adjust profile
+You can play with the model by clicking and dragging the parameters and 
+interfaces in the profile.  The corresponding reflectivity is 
+constinuously updated as you drag.  For fine control, press Ctrl+Arrow.  
+This will move the most recently selected handle by a fifth of a pixel.  
+Alternatively, click, move and click in the profile graph to zoom in on 
+a portion. Now dragging will be easier to control. Alternatively, you 
+can enter values directly into the model from the "Layers" tab.
+
+* load model
+Select  "File Open" from the menu, and navigate to the ss02-fit
+directory.  Select ssgpb001.staj. This loads the five layer model
+associated with the sample ssgpb and overlays it on the data for
+that sample. You can change the data associated with a model using
+the File Data menu.
+
+* fitting
+In the Layers tab, adjust a parameter.  E.g., set M1 QC to 4.2e-6.
+Now go to the Fit tab, select MQC1 and click Fit.  You will see the
+reflectivity adjust to match the data.
+
+This is enough information to get you started.  For more details,
+use the help system.
+
+
+Data Reduction
+==============
+
+This section gives a brief walk-through for data reduction for a set
+of NCNR data.  If you are only interested in the analysis software,
+you may skip this section.
+
+We are assuming that you already have octave+octave-forge installed,
+and that octave is started with listen(1515)<Return> type at the
+prompt.  Octave is only needed for data reduction, not for subsequent
+analysis.
+
+* start 
+First start reflpak and choose the Reduce... program.  How you do this
+varies from system to system. If you started the program in the ss02 
+data directory, you will now see your dataset.  If not, you will see
+the Reflred Choose window.  Navigate to the ss02 directory and click Ok.
+
+* data tree
+The SS02 dataset consists of a slit scan (i5282) and the data (ssgpb).
+Initially the slit scan is showing, but you can open the whole tree
+by clicking the '+' signs at the left, or using the arrow keys (right
+arrow opens up a subtree).
+
+* rocking curve
+Let's first look at the rocking curves, NG-1 rock.  Click on each bar
+004, 007, 013, ..., or use your arrow keys and Enter to display graphs
+of the individual rocking curves.  Each curve should be centered about 
+the red bar and symmetric (it is for this dataset).  If not, then it 
+is possible that your sample shifted during the experiment.  Right
+click in the tree, or press Delete to clear all the rocking curves.
+The raw data for the curves is displayed in the text window above
+the graph.
+
+* specular
+Next lets look at our data.  Scroll to the NG-1 spec section in the
+ssgpb tree. Double-click or press Ctrl-Enter on section 001 to select 
+sections 001-006. All sections show up in the graph.  The graph starts 
+out linear, but you can change it to log scale by clicking the y-axis.  
+Click, move and click on the graph to zoom.  Right click on the graph 
+to unzoom.  Select the remaining data sets.  Click accept to sum the
+data.
+
+* background
+Now you are ready to select the background.  There are at least two
+different approaches to background estimation in use at the NCNR.
+One is based on a detector offset relative to A3 and the other has
+the detector offset from A4.  The fact that our dataset displays a
+different range for the plus and minus offset background datasets 
+(as indicated by the + and - signs in the ssgpb back section), suggests
+that we are using the wrong convention.  Either select the other
+convention for all datasets from the menu (Options Background), or
+click the "NG1 back Q(A4)" label to change the convention for that
+dataset only.  
+
+Select the plus and minus offset backgrounds.  Note that one point in
+the background overlaps the specular line still displayed on the screen.
+Thats because the Q(A3) convention has the background measurement crossing
+the specular ridge.  This point will be excluded from the dataset, as
+indicated by the red circle around the data point.  You can exclude other
+data points from the dataset by clicking them with the center mouse
+button, but only do so if you have a good reason to believe the values
+are bad (such as having a very long counting time in the raw data 
+window because the beam shutter wasn't open or the reactor had a
+power bump).  Click Accept to save the data.  Note that the excluded
+data point is indeed excluded.
+
+* Tcl console
+When select the first section of slit scan data (i5282 001), you are 
+greeted by the rather rude message:
+
+	ICP recorded a wavelength of 1.5402 in i5252001.ng1.  We 
+	will instead use 4.75.  If this is not correct, enter
+	'set wavelength(i5282,NG-1) 1.5402' in the Tcl console
+	and reload the file.
+
+The message is self-explanatory: for some reason during summer
+school of 2002, the wavelength recorded in the data file was
+incorrect.  Rather than silently correct this, Reflred lets
+you know what is going on.  Since the default behaviour is
+almost certainly correct, that is the only choice we allow.
+However, you as a user can override our choice by starting up
+the Tcl Console from the Options menu and change the internal
+variables of the program so that it does what you want.  Everything
+about the program can be controlled from the Tcl console.  A
+full description is beyond the scope of this document, but will
+(eventually) be available via the help system.
+
+* slit scan
+Let's continue selecting the slit scan.  The thing you will notice
+is that the data points do not all line up.  In particular, the
+low Q end of the slit scan (i5282 001) has many thousands of counts
+more than the rest of the scan.  This is because an attenuator was
+placed in the beam, letting less than 1% of the neutrons through.
+In this particular case, the attenuation factor is 122.1241.
+Select Attenuators... from the menu and enter this value for Run 001.
+The standard cut and paste keys (Ctrl-C and Ctrl-V) can be used to
+propogate this value to the rest of the runs (all but run 6).  Now
+the slit scan should more or less form a line.  Click Accept.
+
+* reduction
+Since we have built specular, background and slit scans, we can
+now start the data reduction process.  Select Reduce... from the
+menu.  This opens up the reduce screen.  Across the top of the
+screen are three columns (Specular, Background and Slit Scan).
+Select all these scans.  The program automatically calculates
+(specular-background)/slit.  Note that we are using both left and
+right y-axis.  We need to do this because the scale of the divided
+data is significantly lower than the scale of raw data.
+
+* footprint correction
+The last step in data reduction is footprint correction.  Because
+we are using fixed slits at low Q, the sample area illuminated by
+the beam changes as we change angle.  First zoom the data so that
+it shows all of the reflectivity line in the fixed slit region.
+Click the right y-axis to change to linear scale.  
+
+Now click the footprint correction Parameters... button at the bottom 
+of the screen.  This opens up the footprint dialog.  Select "Fit 
+footprint correction" and click "From graph...".  Choose the left 
+and right end of the linear region after the first dip.  Now click 
+correct from Qz to Qz "From graph..." and choose the bottom of the
+dip and the last point in the fixed slit region.  Click Apply.
+Look at the value of Qz where the correction is 1.0.  If this is
+less than the Qz at the end of the fixed slit region, use that
+value instead as the end of the 'to' range.
+
+For more details, press F1 on the footprint dialog to view the help.
+
+* save your results
+
+You are now done the data reduction.  Save the results using the Save
+or Save as... button on the Reduce screen.  The name of the saved
+file shows up in the message bar, but it is immediately overwritten
+when you move the mouse.  If you have subtracted but not divided data,
+it will be the name of the first specular file with the extension replaced
+by .sub.  If you have divided but not footprint corrected, the extension
+will be .div.  If you have footprint corrected, the extension will be .refl.
+
+
+Paul Kienzle
+2004-03-29
