@@ -50,15 +50,18 @@ Grab the dqkit sources (~16Mb) from
 
 	http://sourceforge.net/project/showfiles.php?group_id=99106
 
+Note there is mkstemp bug on IRIX systems which you may need to patch.  
+Search "workaround for buggy(??) mkstemp() on IRIX systems" in google.
+
 Assuming you are building from source, you will need to
 do the following in the source tree:
 
-	gen/buildkit -tk -tcl -blt
+	gen/buildkit build -tk -tcl -blt
 	 
 This will generate a file in bin/@HOSTNAME@/dqkit...
 You may need the option --compression=none, but I don't know
 if it works --- I hacked buildkit directly so that upx wasn't
-called. 
+called.  
 
 Copy the dqkit binary to dqkit in the current directory so it 
 is easier to work with:
@@ -96,7 +99,7 @@ I did the following from the dqkit root:
 	make ; make install
 	cd ../../..
 	tar xzf bwidget1.6.tar.gz -C install/$host/lib
-	cp tkcon.tcl install/$host/lib
+	cp -p tkcon.tcl install/$host/lib
 
 Presumably tkdnd is similar, but I didn't build it myself, and
 it only seems to work on windows.
