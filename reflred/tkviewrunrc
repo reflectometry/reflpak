@@ -1,0 +1,213 @@
+
+# graph line colors
+*lineColors: green darkgreen blue magenta cyan orange hotpink IndianRed3 darkgoldenrod lightseagreen cornflowerblue dimgray
+
+# check buttons
+*Checkbutton.IndicatorOn: 1
+*Checkbutton.SelectColor: red
+
+# active element (alse used for select point)
+*Graph.activeLine.Outline: red
+*Graph.activeLine.Symbol: splus
+
+# select point marker
+*Graph.selectPointText.Coords: -Inf -Inf
+*Graph.selectPointText.Anchor: sw
+*Graph.selectPointText.Justify: left
+*Graph.selectPointText.Under: 1
+*Graph.selectPointText.Outline: red
+
+# exclude point symbol pen
+*Graph.excludePoint.Symbol: circle
+*Graph.excludePoint.Color: red
+*Graph.excludePoint.Pixels: 4
+*Graph.excludePoint.Fill:
+
+# rockbar details
+*Graph.rocklab.Foreground: red
+*Graph.rocklab.Background: white
+*Graph.rocklab.Anchor: sw
+*Graph.rockbar.Outline: red
+*Graph.rockbar.Dashes: 3 1
+*Graph.rockbar.LineWidth: 2
+    
+# as of blt2.4z, remove error bar caps
+*Graph.ErrorBarCap: 1
+*Graph.y.LogScale: 0
+
+# sash drag colour and dimensions
+*sash1.but.background: darkgray
+*sash1.but.size: 16 8
+
+# printer spec
+*Printer: |lpr -Plp6
+*Graph.Postscript.Landscape:   true
+*Graph.Postscript.Colormode:   color
+*Graph.Postscript.Width:  850
+*Graph.Postscript.Height: 650
+
+# screen layout
+*text.Width: 60
+*text.height: 4
+*text.background: white
+*tree.width: 22
+*graph.leftMargin: 75
+#*graph.width: 400
+#*graph.height: 300
+*Graph.Crosshairs: off
+*Graph.Crosshairs.Dashes: 1 1
+*Graph.Element.Outline: darkblue
+*Graph.Element.Pixels: 1
+*Graph.Grid.Hide: 0
+tkviewrun.geometry: 700x500
+testviewrun.geometry: 700x500
+*reduce.geometry:600x400
+
+# Are backgrounds offset from A3 or A4 by default?
+*BackgroundBasis: A4
+
+# ================= Reduce screen ================
+*reduce.Graph.y.LogScale: 1
+*reduce.Graph.y2.LogScale: 1
+*reduce.Graph.footp.Dashes: 7 3
+*reduce.Graph.footm.Dashes: 7 3
+*reduce.Graph.footp.Color: darkred
+*reduce.Graph.footm.Color: darkred
+*reduce.Graph.foot.Color: darkred
+# Fix the borderwidth so that toggling log vs. linear scaling doesn't
+# change the graph size
+*reduce.Graph.y.BorderWidth: 50
+*reduce.Graph.y2.BorderWidth: 50
+*reduce.graph.refl.symbol:
+*reduce.graph.negrefl.symbol:
+*reduce.graph.foot.symbol:
+*reduce.graph.footp.symbol:
+*reduce.graph.footm.symbol:
+*reduce.graph.div.symbol: cross
+*reduce.graph.negdiv.symbol: cross
+*reduce.graph.slit.symbol: diamond
+*reduce.graph.spec.symbol: plus
+*reduce.graph.back.symbol: circle
+*reduce.graph.negback.symbol: circle
+
+
+
+# ================= File selector ================
+*tree.QFill: AntiqueWhite
+*tree.QColor: blue
+*tree.QBarColor: red
+*tree.QBarWidth: 2
+*tree.QOutline: black
+*tree.QOutlineWidth: 1
+
+
+# ================= Help options =================
+# You can configure the help text formatting.
+# The text widget is .htext.t, and the tags are
+# hdr for header, link and seen for links and
+# fix for fixed format indented text.
+#
+# Use *htext.t.Property: Value for the main text
+# and *htext.t.tag-Property: Value for the tags.
+*htext.t.font: Helvetica 12
+*htext.t.hdr-font: Helvetica 16
+*htext.t.fix-font: Helvetica 12
+
+# ================= PSD options ==================
+
+# Colormap for PSD array. You can change colormaps on the fly using 
+# the tcl console command ::psd::colormap { blah }
+
+## Standard octave-forge colormap.  Includes hot, cool, spring, winter,
+## summer, autumn, bone, ocean, copper, prism, flag, hsv, gray, pink, blue
+## I've added three of my own: random, graded hsv and bright as defined below.
+*colormapList: bone bright copper gray hot hsv {graded hsv} random
+
+## Like prism, but with each prism color broken in to sections of decreasing
+## value.  This is useful because every color cell is distinct.
+*colormapGradedhsv: hsv2rgb([kron([1,2,2.9,3.3,5,0.3]'/6,ones(10,1)),ones(60,1),kron(ones(6,1),linspace(0.4,1,10)')])
+
+## Arbitrary gradient.  See help colorgradient in octave.
+## E.g., white->red->yellow->khaki
+*colormapBright: colorgradient([0.8,0.8,0.6; 1,1,0; 1,0,0; 1,1,1])
+
+## Random colormaps can be useful sometimes.  
+*colormapRandom: rand(rows(colormap),3)
+
+*psd.matrix.colormap: bright
+
+## Like prism, but with each prism color broken in to sections of decreasing
+## value.  This is useful because every color cell is distinct.
+## *psd.matrix.colormap: hsv2rgb([kron([1,2,2.9,3.3,5,0.3]'/6,ones(10,1)),ones(60,1),kron(ones(6,1),linspace(0.4,1,10)')])
+
+## *psd.matrix.colormap: hot
+
+## Arbitrary gradient.  See help colorgradient in octave.
+## E.g., white->red->yellow->khaki
+## *psd.matrix.colormap: colorgradient([0.8,0.8,0.6; 1,1,0; 1,0,0; 1,1,1])
+
+## Random colormaps can be useful sometimes.  
+## *psd.matrix.colormap: rand(64,3)
+
+# Crosshairs for PSD array.  You need to choose these to complement the
+# colormap that you are using.
+*psd.matrix.binslice.outline: white
+*psd.matrix.binslice.xor: no
+*psd.matrix.qzslice.outline: white
+*psd.matrix.qzslice.xor: no
+
+# Use logscale for the PSD array
+*psd.matrix.Logscale: yes
+
+# Bin/Qz value of the current slice
+*psd*Legend.Background: antiquewhite
+
+# data lines for qz/bin slices
+*slice.LineWidth: 0
+*slice.ErrorBarColor: green
+*slice.fill:
+*slice.pixels: 2
+
+# specular integration region
+*psd.matrix.select1.lineWidth: 2
+*psd.matrix.select2.lineWidth: 2
+*psd.binslice.select1.symbol:
+*psd.binslice.select1.showErrorBars: y
+*psd.binslice.select1.lineWidth: 1
+*psd.binslice.select1.label:
+*psd.binslice.select1.ErrorBarColor: green
+*psd.binslice.select2.symbol:
+*psd.binslice.select2.showErrorBars: y
+*psd.binslice.select2.lineWidth: 1
+*psd.binslice.select2.label:
+*psd.binslice.select2.ErrorBarColor: green
+
+# Try using dashes to draw left/right select lines
+ *psd.matrix.select1.outline: white
+ *psd.matrix.select1.fill: black
+ *psd.matrix.select1.dashes: 6
+ *psd.binslice.select1.dashes: 6
+ *psd.matrix.select2.outline: white
+ *psd.matrix.select2.fill: black
+ *psd.matrix.select2.dashes: 2
+ *psd.binslice.select2.dashes: 2
+
+## Use solid colors for left/right select lines
+# *psd.matrix.select1.outline: orange
+# *psd.matrix.select2.outline: blue
+# *psd.binslice.select1.color: orange
+# *psd.binslice.select2.color: blue
+
+# lines for reduction
+*psd.reduction.*fill:
+*psd.reduction.*pixels: 4
+*psd.reduction.*errorBarColor: green
+*psd.reduction.spec.color: blue
+*psd.reduction.spec.outline: blue
+*psd.reduction.back.color: magenta
+*psd.reduction.back.outline: magenta
+*psd.reduction.reduce.color: cyan
+*psd.reduction.reduce.outline: cyan
+*psd.reduction.spec.symbol: circle
+*psd.reduction.back.symbol: square
+*psd.reduction.reduce.symbol: triangle

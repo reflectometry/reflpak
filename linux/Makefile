@@ -45,6 +45,10 @@ FLIBS=-lg2c -lm
 # TCL_LD_SEARCH_FLAGS
 # TCL_COMPAT_OBS        posix functions missing from the platform
 
+OCTAVE=$(TCL_PREFIX)/lib/octave0.1
+BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
+
 include Makeconf.tcltk
 CC=$(TCL_CC)
 CFLAGS=$(TCL_CFLAGS_OPTIMIZE) $(TCL_CFLAGS_DEBUG) $(TCL_SHLIB_CFLAGS) $(TCL_CFLAGS_WARNING) $(TCL_INCLUDE_SPEC) -I../src
@@ -60,31 +64,50 @@ VPATH=../src
 REFLFIT_ARCH = macosx
 
 bindir = $(shell pwd)
-tcldir = $(shell cd .. && pwd)/tcl
+reflfitdir = $(shell cd .. && pwd)/tcl
+reflreddir = $(shell cd .. && pwd)/reflred
 
-all: reflfit
+all: reflfit reflred
 
-reflfit: freewrapBLT gmlayer$(LDEXT) manifest reflfit.tcl
-	./freewrapBLT -e reflfit.tcl -f manifest
+reflfit: freewrapBLT gmlayer$(LDEXT) reflfit.manifest reflfit.tcl
+	./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 reflfit.tcl: reflfit.tcl.in
 	sed -e 's,@WISH@,$(TCL_EXEC_PREFIX)/bin/bltwish,' \
 		-e 's,@TCL_PREFIX@,$(TCL_PREFIX),' \
-		-e 's,@MLAYER_HOME@,$(tcldir),' \
+		-e 's,@MLAYER_HOME@,$(reflfitdir),' \
 		-e 's,@MLAYER_EXT@,$(bindir)/gmlayer$(LDEXT),' < reflfit.tcl.in > reflfit.tcl
 	chmod a+x reflfit.tcl
 
-BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
-TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
-manifest: 
-	$(RM) manifest
-	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest ; done
-	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest
-	#echo "$(TKDND)/pkgIndex.tcl" >> manifest
-	#echo "$(TKDND)/tkdnd.tcl" >> manifest
-	#echo "$(TKDND)/libtkdnd1.0.so" >> manifest
-	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest
-	for f in $(tcldir)/* ; do echo "$$f" >> manifest ; done
+reflfit.manifest: 
+	$(RM) $@
+	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> $@ ; done
+	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> $@
+	#echo "$(TKDND)/pkgIndex.tcl" >> $@
+	#echo "$(TKDND)/tkdnd.tcl" >> $@
+	#echo "$(TKDND)/libtkdnd1.0.so" >> $@
+	echo "$(bindir)/gmlayer$(LDEXT)" >> $@
+	for f in $(reflfitdir)/* ; do echo "$$f" >> $@ ; done
+
+reflred: freewrapBLT gmlayer$(LDEXT) reflred.manifest reflred.tcl
+	./freewrapBLT -e reflred.tcl -f reflred.manifest
+
+reflred.tcl: reflred.tcl.in
+	sed -e 's,@WISH@,$(TCL_EXEC_PREFIX)/bin/bltwish,' \
+		-e 's,@TCL_PREFIX@,$(TCL_PREFIX),' \
+		-e 's,@VIEWRUN_HOME@,$(reflreddir),' \
+		< reflred.tcl.in > reflred.tcl
+	chmod a+x reflred.tcl
+
+reflred.manifest: 
+	$(RM) $@
+	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> $@ ; done
+	for f in $(OCTAVE)/*.tcl $(OCTAVE)/*.m ; do echo "$$f" >> $@ ; done
+	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> $@
+	#echo "$(TKDND)/pkgIndex.tcl" >> $@
+	#echo "$(TKDND)/tkdnd.tcl" >> $@
+	#echo "$(TKDND)/libtkdnd1.0.so" >> $@
+	for f in $(reflreddir)/*.tcl $(reflreddir)/*.help $(reflreddir)/tkviewrunrc $(reflreddir)/octave/*.m ; do echo "$$f" >> $@ ; done
 
 include ../src/Makefile
 

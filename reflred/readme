@@ -1,0 +1,287 @@
+General notes for using mlayer/gj2
+
+These programs allow constraints to be changed interactively.  To do so
+this directory must be on your path.
+
+Enhancements over the standard programs:
+(Be sure to read the general caveats which follow this section!)
+
+o The Help command ? or HE summarizes all commands.  A crude screen
+  pager is built in.  This pager reads the environment variable LINES
+  to determine how many lines are on the terminal.  Key usage is
+  summarized at the bottom of the screen when help is invoked.  If the
+  environment variable PAGER is set appropriately, the help command
+  will use it instead of the built-in pager.
+
+o Parameter files may be named arbitrarily.  Use the PF command to
+  change the filename.  You may specify a parameter file on the command
+  line following the name of the program.  The command SP saves
+  parameters and the current constraints (see below).  LPC loads the
+  parameters and the constraints, while LP loads only the parameters,
+  leaving the current constraints unchanged.
+
+o The QUIT command (or QU) will exit the program without saving the
+  parameters.  The use of ^C is currently retained for compatibility,
+  but is expected to be removed.
+
+o Lines in the data file will be ignored if the first character on the
+  line is # .  Use this feature to limit the q-range to be fit without
+  destroying data.
+
+o All temporary files used to create plots are retained.  Files are
+  named mltmp.ext where ext is an intuitive extension.  In reflectivity
+  plots MLAYER uses the actual data file for data points while GJ2 uses
+  mltmp.daa, mltmp.dab, mltmp.dac, and mltmp.dad.
+
+o GJ2 has a number of enhancements pertaining to polarization
+  selection.  The PRF and PLP commands can accept multiple A, B, C, and
+  D modifiers to specify a subset of the PS cross-sections to be
+  plotted simultaneously.  PLPS plots the profiles for the current PS
+  specification.  For reflectivity plots, the simulation for each
+  cross-section is computed and displayed for all Q values in all the
+  cross-sections specified in PS.  For example, if PS is set to ABCD,
+  the command PRFB will compute the reflectivity at all the points
+  where there are data, even if there are far fewer data points in the
+  B and C data files than in the A and D datafiles.  If PS is set to C,
+  PRFB will produce no output because B is not listed in the PS
+  cross-sections.  Specifying extraneous cross-sections in PS does slow
+  the computation of the reflectivity, because it is computed for every
+  cross-section specified there.
+
+o Copying data from one layer to another is implemented.
+
+  Parameters may be specified symbolically at any prompt which requests
+  the value for one of the numbered parameters.  For example, when
+  prompted to give the value for QC4, the response QC2 will copy the
+  current value of QC2 into QC4.  This feature is in effect during
+  movies.  This feature is not available for the vacuum parameters.
+
+  Whole layers may be copied with the CL command.  In addition to
+  adding layers at the end of regions with the NL-type commands, the AL
+  command will insert a blank layer in the middle of the structure, if
+  there is room.  The RL command will delete a layer from the middle of
+  the structure.  GJ2 supports the SL command to produce superlattices
+  by duplicating a collection of layers.
+
+o All varied parameters may be turned off at once with the command
+  VANONE.
+
+o Fits may be interrupted by pressing ^C.  Fitting will stop at the
+  beginning of the next iteration.  Do NOT press ^C more than once.
+  The second press will terminate the program without saving any
+  parameters.
+
+o One level of undo is supported for fits.  After the FR command has
+  either finished or been interrupted, the UF command may be given to
+  restore the parameters to their values before FR was issued.
+
+o Uncertainties of the fit are preserved during the session.  After any
+  fit, you may view the uncertainties with the VEU command.  Parameters
+  which can be varied display their most recent uncertainty.  Non-variable
+  parameters (such as wavelength) continue to be displayed.
+
+o Uncertainties are reset to zero whenever you input a new value for a
+  parameter, or if you load the parameters from a parameter file.
+
+o Uncertainties are never saved.  If you wish to preserve them after
+  the program ends, you must write them down somewhere.  Be advised
+  that the uncertainties quoted at the end of the fits are displayed
+  with greater precision than those with VEU.  You may wish to save
+  those values instead.
+
+o A number of unix-like commands are implemented.  The command CD
+  changes the directory.  The path you specify will obey ~ expansion as
+  is done in /bin/csh.  The command PWD shows your current directory.
+  The ! command will prompt you for one command to be passed to the
+  shell for execution.  The !! command will drop you into a subshell
+  where you can run multiple commands.  Return to the program with the
+  usual method (probably using the exit command).
+
+o Movies are possible.  Movie files are played using MVX followed by
+  program-specific options for what should be displayed in the movie.
+  Consult the help for specific options.  The file name is arbitrary.
+  Movies may be interrupted while playing by pressing ^C.  A few more
+  frames may play before the movie is stopped.  If ^C is pressed again
+  (or at the prompt at the end of the movie), the program will
+  terminate without saving any parameters or constraints.
+
+  Movie files have the following format:
+
+     Header lines
+     Frame data
+
+  Header lines are either blank or begin with # .  The last line
+  beginning with # defines which parameters will be changed during the
+  movie.
+
+  Frame data are non-blank lines with exactly as many numeric fields as
+  parameters specified, one frame per line.  Too many or too few fields
+  will cause the line to be ignored.  At the end of the movie the
+  parameters are restored to the values before the movie began.
+
+  One-parameter movies are trivial to set up.  The command is MV
+  followed by the program-specific options.  The resulting movie file
+  is name mltmp.mov.  Prompts are given for the parameter, its starting
+  value, ending value, and number of steps.  Inputting a blank line at
+  these prompts uses the current value of the parameter.  The actual
+  number of frames displayed will be one more than the one entered as
+  the number of steps.
+
+  The FRM command plots the reflectivity at each fitting iteration,
+  except for the first one.  GJ2 accepts ABCD modifiers to plot only a
+  subset of the fitted polarizations.  The B and C cross-sections share
+  a common window, and A and D each get a separate window.  At the top
+  of each window the total squared-chi (not the partial squared-chi) is
+  displayed.  These movies cannot be rerun.
+
+  The MVF command takes the prefit parameters as the starting point and
+  the postfit parameters as the ending point, interpolates linearly
+  between the two, and displays the results as a movie.  The path taken
+  in the movie is probably not the path taken by the fitting routine
+  during the fit.
+
+o Constraints may be changed on the fly.  Previous versions required
+  compiling a special version of the program to implement constraints.
+  Now constraints can be changed without having to exit and recompile
+  the program.  To change the constraints, an auxiliary program
+  MAKECONSTRAIN (found in this directory) must be available on the
+  PATH.
+
+  The constraints are modified with the EC command.  If the environment
+  variable EDITOR is set, that program will be used to edit the
+  constraints.  If the variable does not exist, the program consults
+  the environment variable DISPLAY to determine if X-Windows is
+  running.  If so, the wysiwyg editor NEDIT is called.  If not, the
+  screen editor VI is called.  If the script file has not changed
+  during an EC session, the program will not recompile the
+  constraints.
+
+  The syntax for the constraints is based on the C programming
+  language, with a few modifications.  Names of model parameters are
+  case insensitive.
+
+  Statements need not be terminated with ; .  The program will try to
+  make intelligent guesses as to when a ; should be appended to the end
+  of the line.  Savvy C programmers may consult MAKECONSTRAIN source
+  code for the precise conditions.  Note that lines beginning for- or
+  while-loops should end either with { or \ to prevent the addition of
+  the ; .  Otherwise, your loop statements will not be part of the
+  loop.
+
+  Constraints are updated automatically during fits and during movies.
+  Otherwise, the command UC should be given to make sure the
+  constraints are updated.  In particular, you should use UC before
+  saving parameter files.
+
+  Constraints may be suspended with the command ULC.  They are restored
+  with the command LC.  Although the script may be modified (with EC)
+  while constraints are suspended, the changes will NOT be incorporated
+  and LC will restore the constraints at the time of the ULC.
+  Modifications made during suspension will be incorporated only after
+  the LC command is given AND THE SCRIPT FILE HAS BEEN RESAVED (which
+  causes the constraints to be recompiled).
+
+  Any of the parameters are available for use in constraints, and may
+  even be fit with the fitting commands.  An exception exists for
+  MLAYER.  The layer after the last layer in the top and middle regions
+  is not available.  These layers store copies of the parameters for
+  the first layer in the middle and bottom regions, respectively.  In
+  addition, the NL variable of GJ2 and the NTL, NML, and NBL variables
+  of MLAYER are available for use in constraints.
+
+  Local variables may be declared before any statements have been
+  executed, and declarations follow the C conventions.  Variables
+  beginning with _ are reserved.
+
+  Two temporary files are created every time the program starts.  The
+  first one, named /tmp/aaaaXXXXX (XXXXX is randomly generated) stores
+  the current script.  the other, named /tmp/baaaXXXXX (same XXXXX)
+  stores the compiled constraints.  When the program is terminated
+  normally, or with ^C at any prompt, these files will be deleted.  If
+  there is a serious problem and the program terminates with the
+  message "(core dumped)", these files will not be deleted.  Be a
+  responsible user and DELETE THESE FILES IF THE PROGRAM DUMPS CORE.
+
+
+General Caveats
+
+Keep the following points in mind while using the programs.  They are
+not idiot proof.
+
+o Although many commands load and count the data before computing their
+  action, the commands GR and GA do not.  Before you use these
+  commands, you MUST issue the GD command to load and count the data.
+  Don't be mislead by the output of VE showing the proper ranges and
+  number of data points.  Also, in GJ2 repeat the GD command if you
+  change PS before issuing GR or GA.
+
+o The bottom layer is assumed to be infinite.  However, make sure the
+  thickness is larger than the roughness specified in the second-last
+  layer, to avoid a pathological structure.
+
+o The roughening algorithm is fraught with problems.  Consult the
+  supplement for the nitty-gritty details.  Quick summary: make sure
+  D's are twice as big as R's.  Also, avoid the tanh model: for small
+  roughness, RO is the half-width at one-third maximum; for large
+  roughness, RO is the full-width at one-third maximum.
+
+o The resolution convolution is performed using only the q points found
+  in the data files.  Extremely thick layers will produce rapidly
+  oscillating reflectivity which will not be convolved correctly.  The
+  actual limit is specific to the geometry of the experiment and
+  sample.  Rough guidelines for maximum film thickness are 500 nm for
+  x-rays and 200 nm for neutrons.
+
+MLAYER Caveats
+
+o The layer after the last layer in the top and middle regions is
+  a copy of the parameters in the first layer of the middle and bottom
+  regions, respectively.  Do not store parameters for your constraints
+  in these layers.
+
+o SV will save the reflectivity produced by GR or SA into a file.  It
+  will also save some intermediate results of movies which plot
+  differences in log(reflectivity).
+
+o GR, SA, RD, RSD, SRF and SRSF calculate the results with q's spaced
+  evenly between minimum and maximum.  Other than this, there is no
+  material difference in the output files of PRF and SRF.
+
+
+GJ2 Caveats
+
+o To save the unconvolved reflectivity or wave-function amplitude in
+  GJ2, issue GR or GA (see General Caveat above), and then issue SV or
+  SVA as appropriate.
+
+o RM1 must equal RO1 or the magnetic structure will not start at
+  the same point in space that the chemical structure starts.
+
+o Unless you are being very clever, DMj should equal Dj for all layers
+  j.  In any event, your are advised to at least keep the total
+  magnetic thickness equal to the total chemical thickness.
+
+o The TH angle is important for non-magnetic layers adjacent to
+  magnetic layers.  If you do not match the two, there will be a twist
+  in the moment at the interface.  You probably don't want this.  Be
+  particularly cautious for the substrate and capping layers, which
+  typically are non-magnetic.
+
+o The program cannot work with magnetic substrates.  Just before
+  calculating the reflectivity, it will set the substrate magnetism to
+  zero.  If you set QM(NL) non-zero, then the roughed interface will
+  have magnetism.  This will produce incorrect reflectivity.  Don't set
+  QM(NL) non-zero.
+
+o SV will save the reflectivity produced by CSR, FR, any reflectivity
+  plot (including movies), RD, SRF, and GR.  Of these, only GR has
+  unconvolved reflectivity.
+
+o GR, GA, RD, and SRF calculate the results with q's spaced evenly
+  between minimum and maximum.  For GR and GA, the ranges are
+  determined from the first polarization loaded.  For RD and SRF, all
+  loaded polarizations determine the limits.
+
+o RD will never calculate derivatives, although the help says it
+  will.  It always calculates reflectivity.
+
