@@ -7,6 +7,7 @@ source [file join $::VIEWRUN_LIB pan.tcl]
 source [file join $::VIEWRUN_LIB htext.tcl]
 
 help $::VIEWRUN_HOME reflred help
+wm protocol . WM_DELETE_WINDOW { exit }
 
 set ::title Reflred
 

@@ -3,6 +3,8 @@ if { ($argc == 1 && [lindex $argv 0] eq "-h") || ($argc > 1) } {
     exit
 }
 
+wm protocol . WM_DELETE_WINDOW { exit }
+
 tk appname Reflfit
 
 # XXX FIXME XXX ask before closing the application without saving
@@ -21,22 +23,34 @@ source [file join $MLAYER_LIB ctext.tcl]
 # in viewrun.
 source [file join $MLAYER_LIB generic.tcl]
 
+# Translate field name to column title
+array set table_titles [list \
+	name "Layer \#\n" \
+	qcsq "Number density\nQC" depth "Thickness $::symbol(angstrom)\nD" \
+	ro "Roughness $::symbol(angstrom)\nRO" mu "Absorption $::symbol(invangstrom)\nMU" \
+        mqcsq "Mag. density\nQM" mdepth "Mag. thick. $::symbol(angstrom)\nDM" \
+        mro "Mag. rough $::symbol(angstrom)\nRM" theta "Mag. theta$::symbol(degree)\nTH" \
+]
+
 # popup help for the individual fields
 array set field_help {
-    qcsq "Scattering length density.  Use Options menu to change between number density units and Qc^2 units."
-    depth "Layer depth in angstroms"
-    ro "Layer roughness in angstroms."
-    mu "Absorption."
-    mqcsq "Magnetic scattering length density."
-    mdepth "Depth of magnetic layer"
+    qcsq "Scattering length density, Nb, where N is the number density and b is the scattering length.  Units are A^-2. Use Options menu to change between number density, Nb, and Qc^2 = 16 pi Nb."
+    depth "Layer thickness in Angstroms.  The last layer is assumed to be semi-infinite."
+    ro "Roughness in Angstroms for the interface between this and the preceding layer.  Roughness value is not physical if it exceeds the thickness D of this layer or of the preceding layer.  Roughness is defined as full-width of the derivative of the function that describes the interface."
+    mu "Linear absorption coefficient in A^-1."
+    mqcsq "Magnetic scattering density, P Mu where P is a constant and Mu is the magnetic moment in Bohr magnetons.  The units for QM are A^-2.  Use Options menu to change between scattering density (P Mu) and Qm^2 = 16 pi P Mu. QM in the bottommost layer must be zero.\n\n    Qm\t= 1.36e-3 gJ Z / Vcell \n\t= 0.82e-3 gJ rho / A\n\t= 1.16e-8 B rho \t(B in emu/g)\n\t= 1.16e-8 B \t(B in Gauss)\n\t= 1.46e-7 M rho \t(M in emu/g)\nwhere:\n    gJ is in Bohr magnetons/atom\n    Z is in atoms/cell\n    Vcell is in A^3/cell\n    rho is density in g/cm^3\n    A is Molecular weight in g/mol"
+
+    mdepth "Thickness of magnetic layer in Angstroms.  The magnetic thickness of Layer 1 must match structural thickness (DM1 = D1).  The sum of the thicknesses of all magnetic layers should equal the sum of the structural thicknesses, though it need not since the bottom most layer is considered semi-infinite."
     mro "Roughness for magnetic layer"
-    theta "Theta relative to -k in the H-k plane"
+    theta "Angle of the magnetic moment in degrees. Theta relative to -k in the H-k plane"
+    vacuum "Vacuum or incident medium.  The thickness is assumed to be semi-infinite."
     bi 	"Intensity of incoming beam.  If the reflectivity signal is properly normalized, then this will be 1.0.  If however there is a scaling factor such as an attenuator that is not accounted for by the data reduction process, then some other value should be used.  An initial guess can be further refined by fitting the variable BI."
     bk "Background signal.  This is the level of background noise expected in the signal.  Any data below this level will be ignored by the fit.  An initial guess can be further refined by fitting the variable BK."
     wl "Incident wavelength."
     dl "wavelength divergence"
     dt "angular divergence"
 }
+
 
 # By default, select and export tables as text with titles
 # XXX FIXME XXX how can you put \n and \t into the resource file?
@@ -1347,9 +1361,7 @@ grid columnconfig $::constraintbox 0 -weight 1
 ## to display the window or show_program 0 to hide it.
 toplevel .compiler
 wm withdraw .compiler
-wm protocol .compiler WM_DELETE_WINDOW {
-    showprogram 0
-}
+wm protocol .compiler WM_DELETE_WINDOW { showprogram 0 }
 text .compiler.out -wrap no -height 6 -state disabled
 text .compiler.code -wrap no -height 18 -state disabled
 PanedWindow .compiler.panes -side right
@@ -1498,146 +1510,33 @@ proc do_fit {} {
 
     # start the fit
     set output [gmlayer fit fit_update]
-    set result_idx 1
+
+    # tabulate the results
+    set idx 1
     foreach var $output {
 	foreach {name value err} $var break
-	set ::results($result_idx,0) $name
-	set ::results($result_idx,1) $value
-	set ::results($result_idx,2) $err
-	incr result_idx
+	# do we need scaling?
+	if { $::use_sld  && [string match -nocase *Q* $name] } {
+	    set scale $::sixteenpi
+	} else {
+	    set scale 1.0
+	}
+	set ::results($idx,0) $name
+	set ::results($idx,1) [expr $value/$scale]
+	set ::results($idx,2) [expr $err/$scale]
+	incr idx
     }
 
-
-    #! # update the results table size (since hidden parameters will
-    #! # be displayed in the final results, but not during the
-    #! # intermediate fit).
-    #! .fitresults conf -rows $result_idx
+    # Display the results
     text_clear .fitresults
     text_append .fitresults "\t$::results(0,1)\t$::results(0,2)\n"
-    for { set i 1 } { $i < $result_idx } { incr i } {
+    for { set i 1 } { $i < $idx } { incr i } {
 	set min [expr {$::results($i,1)-$::results($i,2)}]
 	set max [expr {$::results($i,1)+$::results($i,2)}]
 	set val [fix $::results($i,1) $min $max]
 	set err [fix $::results($i,2) {} {} 2]
 	text_append .fitresults "$::results($i,0)\t$val\t$err\n"
     }
-
-    return
-
-    # wait for fit results
-    set result_idx 1
-    set singular 0
-    set timed_out 0
-    expect {
-	timeout {
-	    # XXX FIXME XXX don't need to print this
-	    set ::message "[lindex [info level 0] 0] timeout --- trying again"
-	    set timed_out 1
-	    exp_continue
-	}
-	"/** Singular matrix **/" {
-	    if { $timed_out } {
-		set timed_out 0
-		puts "continuing with singular matrix"
-	    }
-	    # fit matrix is singular so label it as such
-	    set ::message "Fit matrix is singular!!"
-	    # since we don't get a message if the matrix is
-	    # not singular, we have to automatically clear the
-	    # message each fit cycle unless we receive notice
-	    # that the fit matrix is singular.
-	    set singular 1
-
-	    exp_continue
-	}
-	-re "chisq=*(\[^ \n]*) *\n" {
-	    if { $timed_out } {
-		set timed_out 0
-		puts "continuing with Chi-squared"
-	    }
-	    ## XXX FIXME XXX chisq=... calculated in ipc.c is
-	    ## is different from Chi-squared:... calculated in mqrmin.
-
-	    # update the reflectivity graph
-	    set_chisq $expect_out(1,string)
-	    # tk_messageBox -type ok -message "about to read mltmp.q"
-	    read_vec mltmp.q reflect_q
-	    foreach v $::active_slices { read_vec mltmp.r$v reflect_r$v }
-	    # read the try values
-	    read_vec mltmp.pars pars
-	    set_vars_from_pars
-	    # update the layer profile
-	    draw_layers
-	    # tk_messageBox -type ok -message "about to read mltmp.d"
-	    read_vec mltmp.d prof_depth
-	    read_vec mltmp.mu prof_mu
-	    read_vec mltmp.qcsq prof_qcsq
-	    if { $::MAGNETIC} {
-		read_vec mltmp.mqcsq prof_mqcsq
-		read_vec mltmp.theta prof_theta
-	    }
-	    # update the layer table
-	    reset_table
-	    # update the results box
-	    text_clear .fitresults
-	    text_append .fitresults "\t$::results(0,1)\n"
-	    for { set i 1 } { $i < $::results(length) } { incr i } {
-	    	set val [ layer $::results($i,number) $::results($i,field) ]
-		set ::results($i,1) [ fix $val 0 [expr abs($val)] $::digits ]
-		text_append .fitresults "$::results($i,0)\t$::results($i,1)\n"
-	    }
-	    #! .fitresults clear cache
-
-	    # clear the singular message unless the current fit
-	    # cycle yields a singular matrix
-	    if { $singular } {
-		set singular 0
-	    } else {
-		set ::message {}
-	    }
-	    update
-
-	    exp_continue
-	}
-	-re " (\[A-Z0-9]+): *(\[^ ]*) \[+]/- *(\[^ ]*) *\n" {
-	    if { $timed_out } {
-		set timed_out 0
-		puts "continuing with final output"
-	    }
-	    # XXX FIXME XXX this may reorder the parameters --- is there
-	    # a better way to get the error values from the fit?
-	    set ::fitting 0
-	    set ::results($result_idx,0) $expect_out(1,string)
-	    set val $expect_out(2,string)
-	    set ::results($result_idx,1) [ fix $val 0 [expr abs($val)] $::digits ]
-	    set val $expect_out(3,string)
-	    set ::results($result_idx,2) [ fix $val 0 [expr abs($val)] $::digits ]
-	    incr result_idx
-
-	    exp_continue
-	}
-	"magblocks4%" { }
-	"mlayer%" { }
-    }
-    if { $timed_out } {
-	set timed_out 0
-	puts "returning to prompt"
-    }
-
-    # spit out a new prompt since you've eaten the current one
-    exp_send \r
-
-    #! # update the results table size (since hidden parameters will
-    #! # be displayed in the final results, but not during the
-    #! # intermediate fit).
-    #! .fitresults conf -rows $result_idx
-    text_clear .fitresults
-    text_append .fitresults "\t$::results(0,1)\t$::results(0,2)\n"
-    for { set i 1 } { $i < $result_idx } { incr i } {
-	text_append .fitresults "$::results($i,0)\t$::results($i,1)\t$::results($i,2)\n"
-    }
-
-    clean_temps
 }
 
 # restore parameters to how they were before the fit
@@ -2776,15 +2675,6 @@ proc snapclear {w} {
 
 # ===================== Layer table ===================================
 
-# Translate field name to column title
-array set table_titles [list \
-	name "Layer" \
-	qcsq "QC" depth "D $::symbol(angstrom)" \
-	ro "RO $::symbol(angstrom)" mu "MU $::symbol(invangstrom)" \
-        mqcsq "QM" mdepth "DM $::symbol(angstrom)" \
-	mro "RM $::symbol(angstrom)" theta "TH degrees" \
-]
-
 ## Which order do you want the fields in the table?
 array set field_from_col {
     0 name
@@ -2801,7 +2691,7 @@ foreach { col field } [array get field_from_col] {
 ## Construct a table frame complete with scroll bars
 option add *layertable.title.relief raised widgetDefault
 set ::layertable $::tablebox.layertable
-table $::layertable -titlerows 1 -titlecols 1 -rows 1 \
+table $::layertable -titlerows 1 -titlecols 1 -rows 2 \
 	-selectmode extended -selecttype row \
 	-command { show_entry %r %c %i %s } -usecommand yes \
 	-resizeborders col -roworigin -1 -colwidth 15 -colstretch unset
@@ -2815,6 +2705,7 @@ if {$::MAGNETIC} {
     set helpfields { qcsq depth ro mu }
 }
 $::layertable width 0 6
+$::layertable height -1 2
 pack [scroll $::layertable] -in $::tablebox -fill both -expand yes
 # proc focustable {args} { focus $::layertable }
 
@@ -2837,6 +2728,15 @@ if {$::MAGNETIC} {
     balloonhelp $::layertable.theta -compound bottom \
 	-image orient $::field_help(theta)
 }
+
+## Help for the vacuum layer label
+label $::layertable.vacuum -text V \
+    -fg [$::layertable tag cget title -fg] \
+    -bg [$::layertable tag cget title -bg] \
+    -font [$::layertable cget -font]
+balloonhelp $::layertable.vacuum $::field_help(vacuum)
+$::layertable window configure 0,0 \
+  -window $::layertable.vacuum -sticky news
 
 ## Set the colours for columns to the colours used on the graph
 foreach field $::active_fields {
