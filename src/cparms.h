@@ -5,8 +5,8 @@
 
 #define COMMANDLEN 6
 #define PROFTYPLEN 3
-#define INFILELEN 30
-#define OUTFILELEN 30
+#define INFILELEN 64
+#define OUTFILELEN 64
 #define FBUFFLEN 256
 #define PARFILELEN 64
 
