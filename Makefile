@@ -4,7 +4,7 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-DATE = $(shell date +%Y%m%d)
+VERSION = $(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
 
@@ -110,29 +110,42 @@ ChangeLog:
 	cvs2cl.pl --fsf --file ChangeLog
 
 srcdist: ChangeLog
-	cvs rtag R$(DATE) reflfit
-	cvs export -r R$(DATE) reflpak$(DATE)
-	cp ChangeLog reflpak$(DATE)
+	cvs rtag R$(VERSION) reflfit
+	cvs export -r R$(VERSION) reflpak$(VERSION)-src
+	cp ChangeLog reflpak$(VERSION)-src
 	if test ! -d release ; then mkdir release ; fi
-	tar cjf release/reflpak$(DATE).tar.bz2 reflpak$(DATE)
-	$(RM) -rf reflpak$(DATE)
+	tar cjf release/reflpak$(VERSION)-src.tar.bz2 reflpak$(VERSION)-src
+	$(RM) -rf reflpak$(VERSION)-src
 
 ifeq ($(ARCH),macosx)
-dist: kit/reflpak $(macscripts) ChangeLog
+dist: kit/reflpak $(macscripts) RELEASE-NOTES
 	if test -d diskimage ; then rm -rf diskimage ; fi
 	mkdir diskimage
-	mkdir diskimage/reflpak$(DATE)
-	cp -p kit/reflpak diskimage/reflpak$(DATE)/reflpak
-	ditto -rsrc $(macscripts) diskimage/reflpak$(DATE)
+	mkdir diskimage/reflpak$(VERSION)
+	cp -p kit/reflpak RELEASE-NOTES diskimage/reflpak$(VERSION)
+	ditto -rsrc $(macscripts) diskimage/reflpak$(VERSION)
 	ditto -rsrc data diskimage/data
 	ditto -rsrc macosx/README diskimage
-	cd diskimage && ../macosx/dmgpack.sh reflpak$(DATE) README reflpak$(DATE) data
+	cd diskimage && ../macosx/dmgpack.sh reflpak$(VERSION) README reflpak$(VERSION) data
 	if test ! -d release ; then mkdir release ; fi
-	mv diskimage/reflpak$(DATE).dmg release
+	mv diskimage/reflpak$(VERSION).dmg release
 else
+ifeq ($(ARCH),win)
 dist: kit/reflpak$(EXE)
 	if test ! -d release ; then mkdir release ; fi
-	cp -p kit/reflpak$(EXE) release/reflpak$(DATE)$(EXE)
+	cp -a kit/reflpak$(EXE) release/reflpak$(VERSION)$(EXE)
+else
+dist: kit/reflpak$(EXE) RELEASE-NOTES
+	if test -d reflpak$(VERSION) ; then rm -rf reflpak$(VERSION); fi
+	mkdir reflpak$(VERSION)
+	cp -p RELEASE-NOTES reflpak$(VERSION)
+	cp -p kit/reflpak reflpak$(VERSION)/reflpak$(VERSION)
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" < linux/reflpak.in > reflpak$(VERSION)/reflpak
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" < linux/reflpak.in > reflpak$(VERSION)/reflred
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" < linux/reflpak.in > reflpak$(VERSION)/reflfit
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" < linux/reflpak.in > reflpak$(VERSION)/reflpol
+	chmod a+rx
+endif
 endif
 
 clean:
