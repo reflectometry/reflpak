@@ -5,11 +5,13 @@ if { ($argc == 1 && [lindex $argv 0] eq "-h") || ($argc > 1) } {
 
 wm protocol . WM_DELETE_WINDOW { exit }
 
-tk appname Reflfit
+tk appname [lindex $app_name 0]
 
 # XXX FIXME XXX ask before closing the application without saving
 
 namespace import blt::bitmap blt::vector blt::graph
+
+load_resources $::MLAYER_HOME tkmlayer
 
 # Supporting widgets and helpers
 source [file join $MLAYER_LIB pan.tcl]
@@ -17,10 +19,6 @@ source [file join $MLAYER_LIB tableentry.tcl]
 source [file join $MLAYER_LIB htext.tcl]
 source [file join $MLAYER_LIB balloonhelp.tcl]
 source [file join $MLAYER_LIB ctext.tcl]
-
-# generic is not really mlayer specific, but I haven't yet
-# resolved the differences between it and the generic.tcl
-# in viewrun.
 source [file join $MLAYER_LIB generic.tcl]
 
 # Translate field name to column title
@@ -57,7 +55,6 @@ array set field_help {
 option add *SelectTitles true widgetDefault
 option add *rowSeparator \n widgetDefault
 option add *colSeparator \t widgetDefault
-load_resources $::MLAYER_HOME tkmlayer
 
 set sixteenpi [expr 64.0*atan(1)]
 set ::use_sld [string is true [option get . useSLD UseSLD]]
