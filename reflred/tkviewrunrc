@@ -109,9 +109,13 @@ testviewrun.geometry: 700x500
 #
 # Use *htext.t.Property: Value for the main text
 # and *htext.t.tag-Property: Value for the tags.
-*htext.t.font: Helvetica 12
-*htext.t.hdr-font: Helvetica 16
-*htext.t.fix-font: Helvetica 12
+*htext.t.font: Helvetica -12
+*htext.t.hdr-font: Helvetica -16
+*htext.t.fix-font: Helvetica -12
+
+# ================= Fonts ====================
+*choose.contents.font: Courier -12
+*Dialog.msg.font: Times -18
 
 # ================= PSD options ==================
 
