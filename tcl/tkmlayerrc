@@ -70,11 +70,11 @@
 *reflectivity.datac.label: data c
 *reflectivity.datad.label: data d
 
-*reflectivity.reflect.label: theory
-*reflectivity.reflecta.label: theory a
-*reflectivity.reflectb.label: theory b
-*reflectivity.reflectc.label: theory c
-*reflectivity.reflectd.label: theory d
+*reflectivity.reflect.label: fit
+*reflectivity.reflecta.label: fit a
+*reflectivity.reflectb.label: fit b
+*reflectivity.reflectc.label: fit c
+*reflectivity.reflectd.label: fit d
 
 *layers.depth.color: black
 *layers.qcsq.color: brown
