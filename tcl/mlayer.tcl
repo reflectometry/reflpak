@@ -872,8 +872,9 @@ proc send_layer {number code position} {
 ## Usage: send_fresnel
 ## Sets the model to a sharp substrate layer.
 proc send_fresnel {} {
+    if { $::use_sld } { set ::sld_scale $::sixteenpi } { set ::sld_scale 1.0 }
     if { $::MAGNETIC } {
-        gmlayer vqm [makereal [layer 0 mqcsq]]
+	gmlayer vqm [makereal [expr {$::sld_scale*[layer 0 mqcsq]}]]
         gmlayer nl 1
     } else {
         gmlayer ntl 1
@@ -886,12 +887,11 @@ proc send_fresnel {} {
     gmlayer dt [makereal $::dt]
     gmlayer dl [makereal $::dl]
     gmlayer wl [makereal $::wl]
-    gmlayer vqc [makereal [layer 0 qcsq]]
+    gmlayer vqc [makereal [expr {$::sld_scale*[layer 0 qcsq]}]]
     gmlayer vmu [makereal [layer 0 mu]]
     gmlayer nr $::nrough
     gmlayer pr e
 
-    if { $::use_sld } { set ::sld_scale $::sixteenpi } { set ::sld_scale 1.0 }
     set n [expr {$::num_layers-1}]
     if { $::MAGNETIC } {
         gmlayer ro1 0.
@@ -921,8 +921,9 @@ proc send_fresnel {} {
 ## Usage: send_layout
 ## Send details for all layers to the gmlayer process.
 proc send_layout {} {
+    if { $::use_sld } { set ::sld_scale $::sixteenpi } { set ::sld_scale 1.0 }
     if { $::MAGNETIC } {
-	gmlayer vqm [makereal [layer 0 mqcsq]]
+	gmlayer vqm [makereal [expr {$::sld_scale*[layer 0 mqcsq]}]]
 	gmlayer nl [expr $::num_layers - 1] ;# num_layers includes vacuum layer
     } else {
 	gmlayer ntl $::ntl
@@ -935,13 +936,12 @@ proc send_layout {} {
     gmlayer dt  [makereal $::dt]
     gmlayer dl  [makereal $::dl]
     gmlayer wl  [makereal $::wl]
-    gmlayer vqc [makereal [layer 0 qcsq]]
+    gmlayer vqc [makereal [expr {$::sld_scale*[layer 0 qcsq]}]]
     gmlayer vmu [makereal [layer 0 mu]]
     # XXX FIXME XXX do we really want to force erf() profile?
     gmlayer nr  $::nrough
     gmlayer pr  e
 
-    if { $::use_sld } { set ::sld_scale $::sixteenpi } { set ::sld_scale 1.0 }
     if { $::MAGNETIC } {
 	for { set i 1 } { $i < $::num_layers } { incr i } {
 	    send_layer $i {} $i
@@ -3517,6 +3517,42 @@ proc movie {field min max frames} {
 	set min [expr $min + $step]
     }
 }
+
+
+# e.g. 
+#  chisqplot d2 100 150 20
+# 
+proc chisqplot {field min max frames} {
+    vector create ::scan_p
+    vector create ::scan_chi
+    ::scan_p delete :
+    ::scan_chi delete :
+    if { [winfo exists .scan] } {
+	raise .scan
+    } else {
+	toplevel .scan
+	pack [graph .scan.graph] -fill both -expand yes
+	active_graph .scan.graph
+	.scan.graph elem create scan -xdata ::scan_p -ydata ::scan_chi
+	.scan.graph legend conf -hide 1
+	blt::ClosestPoint .scan.graph
+    }
+    .scan.graph conf -title "Scan of parameter $field"
+    .scan.graph axis conf y -title "Chi^2"
+    .scan.graph axis conf x -title $field
+
+    set step [vector expr "($max - $min)/($frames-1)"]
+    for {set i 0} { $i < $frames } { incr i } {
+	gmlayer $field $min
+	read_reflectivity
+	::scan_p append $min
+	::scan_chi append $::chisq
+	set min [expr $min + $step]
+	# puts "p=$min, chi=$::chisq"
+    }
+    
+}
+
 
 # ========================= startup/refresh ===========================
 
