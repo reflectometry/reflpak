@@ -120,7 +120,8 @@ testviewrun.geometry: 700x500
 
 # ================= Fonts ====================
 *choose.contents.font: Courier -12
-*Dialog.msg.font: Times -18
+*Dialog.msg.font: Times -14
+*Dialog.msg.wrapLength: 6i
 
 # ================= PSD options ==================
 
