@@ -91,7 +91,7 @@ static double signgamma(double x)
 
 void C99_expr(Tcl_Interp *interp)
 {
-#if 0
+#ifdef NEED_C99_MATH_PROTOTYPES 
   /* These are defined by default in C99 math.h */
   extern double exp2(double);
   extern double fdim(double,double);
