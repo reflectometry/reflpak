@@ -955,7 +955,6 @@ proc send_fresnel {} {
     gmlayer vqc [makereal [expr {$::sld_scale*[layer 0 qcsq]}]]
     gmlayer vmu [makereal [layer 0 mu]]
     gmlayer nr $::nrough
-    gmlayer pr e
 
     set n [expr {$::num_layers-1}]
     if { $::MAGNETIC } {
@@ -1005,7 +1004,6 @@ proc send_layout {} {
     gmlayer vmu [makereal [layer 0 mu]]
     # XXX FIXME XXX do we really want to force erf() profile?
     gmlayer nr  $::nrough
-    gmlayer pr  e
 
     if { $::MAGNETIC } {
 	for { set i 1 } { $i < $::num_layers } { incr i } {
@@ -3229,6 +3227,7 @@ proc new_parfile {filename} {
     
     gmlayer pf $::parfile
     gmlayer of ""
+    gmlayer pr e
 
     default_pars
     guess_beam_characteristics $filename
@@ -3830,6 +3829,7 @@ proc start_file {} {
 default_pars
 gmlayer ql "0 0.5"
 gmlayer np 100
+gmlayer pr e
 if { $::MAGNETIC } { gmlayer ps abcd }
 reset_all
 
