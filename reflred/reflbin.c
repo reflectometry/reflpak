@@ -5,11 +5,11 @@ jazz:
   cc -O2 reflbin.c -o ~/bin/reflbin -lgen -lm $(LIBZ)
 
 linux, macosx:
-  gcc -O2 reflbin.c -o ~/bin/reflbin -lm -lz
+  gcc -Wall -O2 reflbin.c -o ~/bin/reflbin -lm -lz
 
 MinGW:
   LIBZ="-L/usr/local/lib -lz"
-  gcc -O2 -I/usr/local/include reflbin.c -o reflbin -lm $(LIBZ)
+  gcc -Wall -O2 -I/usr/local/include reflbin.c -o reflbin -lm $(LIBZ)
 
 */
 #define COUNT_NNZ
@@ -454,9 +454,8 @@ void process_file(char *file)
   fclose(outfile);  
 }
 
-void range(const char *v, const int *start, int *stop)
+void range(const char *v, int *start, int *stop)
 {
-  int dash;
   if (strchr(v,'-')) sscanf(v,"%d-%d",start,stop);
   else *start = atoi(v);
   printf("for v=%s, start=%d, stop=%d\n",v,*start,*stop);  
