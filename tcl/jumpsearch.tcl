@@ -27,6 +27,15 @@
 # The user interface records the set of values searched and the
 # resulting chi-squared.
 #
+# To test the descent function, I've also included
+# stepsearch.  This is parameterized like chisqplot,
+# but performs a search at each step.  The searches
+# overlay a densely sampled chisq plot.
+#
+# E.g.,
+#
+#    stepsearch td2 700 1000 20
+#
 # Paul Kienzle
 # 2004-01-28
 
@@ -102,16 +111,16 @@ proc jumpstep { start msg } {
 }
 
 proc stepsearch {par min max frames} {
-  parse_par $par field num
-  jumpinit $par
-  gmlayer vanone; gmlayer va$par      ;# make sure only par is varying
-
   chisqplot $par $min $max [expr {5*$frames}]
+
+  jumpinit $par
   catch {
     .js.graph element create scan -xdata scan_p -ydata scan_chi \
   	-pixels 3 -color green
   }
 
+  parse_par $par field num
+  gmlayer vanone; gmlayer va$par      ;# make sure only par is varying
   set step [vector expr "($max - $min)/($frames-1)"]
   for {set i 0} { $i < $frames } { incr i } { 
     jumpstep $min "descent" 
