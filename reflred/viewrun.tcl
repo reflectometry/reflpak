@@ -7,10 +7,8 @@ package require tkcon
 package require ncnrlib
 package require octave
 
-if { [info exists ::app_version] } {
-    set version $::app_version
-} else {
-    set version "[clock format [clock seconds] -format %Y%m%d]-CVS"
+if { ![info exists ::app_version] } {
+    set ::app_version "[clock format [clock seconds] -format %Y%m%d]-CVS"
 }
 
 register_icp
@@ -615,7 +613,7 @@ proc setscan { runs } {
     set runs [lsort -dictionary $runs]
 
     upvar #0 [lindex $runs 0] rec
-    set name "$rec(instrument):$rec(dataset)-$rec(run)$rec(index)"
+    set name "$rec(dataset)-$rec(run)$rec(index)"
     if [info exists ::scanindex($name)] {
 	set scanid $::scanindex($name)
 	# XXX FIXME XXX scan names are not unique!!  If the type or

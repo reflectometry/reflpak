@@ -241,7 +241,6 @@ proc reduce_listinfo { w x y } {
 
 proc footprint_toggle { w elem hide } {
     if { [string match foot* $elem] } {
-	$w elem conf foot -hide $hide
 	$w elem conf footp -hide $hide
 	$w elem conf footm -hide $hide
     }
@@ -374,7 +373,7 @@ proc reduce_footprint_parms {} {
 
 proc reduce_footprint_line { name } {
     # prep the scan associated with the footprint line name
-    set name [lindex [split $name] 0]
+    set name [lindex [split $name :] 0]
     if { [info exists ::scanindex($name)] } {
 	set id $::scanindex($name)
 	::${id}_y dup ${id}_ky
@@ -752,7 +751,7 @@ proc reduce {spec back slit} {
 # convert selections into scanids, setting the variables
 # spec, back and slit in the parent
 proc Listindex_to_scanid {w idx} {
-    set scanname [lindex [split [$w get $idx]] 0]
+    set scanname [lindex [split [$w get $idx] :] 0]
     if { [llength $scanname] > 0 } {
 	return $::scanindex($scanname)
     } else {
@@ -967,7 +966,7 @@ proc reduce_newscan { scanid } {
     upvar #0 $scanid scanrec
     if { ![info exists scanrec(exists)] } {
 	#puts "creating new scan entry"
-	set item "$scanrec(name) $scanrec(comment)"
+	set item "$scanrec(name): $scanrec(comment)"
 	# XXX FIXME XXX if scan is not a known type then we
 	# need a way to kill it
 	switch -- $scanrec(type) {
@@ -990,7 +989,7 @@ proc reduce_clearscan { scanid } {
     } else {
 	upvar #0 $scanid scanrec
     
-	set item "$scanrec(name) $scanrec(comment)"
+	set item "$scanrec(name): $scanrec(comment)"
 	switch -- $scanrec(type) {
 	    spec -
 	    slit -
@@ -1014,7 +1013,7 @@ proc convertscan { scanid } {
 	set newindex $scanrec(index)
     }
     message "Converting $scanrec(type)$scanrec(index) to $newtype$newindex"
-    set item "$scanrec(name) $scanrec(comment)"
+    set item "$scanrec(name): $scanrec(comment)"
     listbox_delete_by_name .reduce.$scanrec(type) $item
     set scanrec(type) $newtype
     set scanrec(index) $newindex
