@@ -47,7 +47,7 @@ REDBIN=$(ARCH)/reflred$(EXE)
 FITSCRIPT=$(ARCH)/reflfit.tcl
 REDSCRIPT=$(ARCH)/reflred.tcl
 
-all: $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
+all: makegmlayer $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
 
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(GMLAYER) $(ARCH)/reflfit.manifest \
 		$(ARCH)/reflfit.tcl $(fitpaths) $(ARCH)/options.tcl \
@@ -110,7 +110,7 @@ freewrap: Makeconf.tcltk
 Makeconf.tcltk:
 	$(error Use ./tclConfig2Makeconf to build Makeconf.tcltk)
 
-$(GMLAYER):
+makegmlayer:
 	cd $(ARCH) && $(MAKE) -f $(topdir)/src/Makefile
 
 clean:
