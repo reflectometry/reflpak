@@ -359,7 +359,7 @@ proc ptrace { {msg {}} } {
 	set msg "called with [lrange $call 1 end]"
     }
     # display message
-    puts "${fn}([expr {[info level]-1}]) $msg"
+    puts "[expr {[info level]-1}] $fn $msg"
 }
 
 # =========================== greek character codes ==================
