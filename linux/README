@@ -1,0 +1,10 @@
+NCNR Reflectometry software
+
+Install as root:
+
+  $ install refl* /usr/local/bin
+
+Install as user:
+
+  $ mv refl* ~/bin
+
