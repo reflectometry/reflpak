@@ -1044,9 +1044,12 @@ proc read_data { } {
 	::data_q$v set $q
 	::data_r$v set $r
 	::data_e$v set $dr
-        if { $::use_Q4 } {
+        if { $::use_Q4 == "q4" } {
             ::data_r$v expr ::data_r$v*data_q^4
             ::data_e$v expr ::data_e$v*data_q^4
+        } elseif { $::use_Q4 == "q2" } {
+            ::data_r$v expr ::data_r$v*data_q^2
+            ::data_e$v expr ::data_e$v*data_q^2
         }
     }
     clean_temps
@@ -1088,8 +1091,10 @@ proc read_reflectivity {} {
     ::reflect_q set $q
     foreach v $::active_slices {
 	::reflect_r$v set [set r$v]
-        if { $::use_Q4 } {
+        if { $::use_Q4 == "q4" } {
             ::reflect_r$v expr ::reflect_r$v*reflect_q^4
+        } elseif { $::use_Q4 == "q2" } {
+            ::reflect_r$v expr ::reflect_r$v*reflect_q^2
         }
     }
     set_chisq [gmlayer send chisq]
@@ -3374,7 +3379,9 @@ menu .menu.options
     -variable ::use_sld -value 0 -command set_sld
 .menu.options add separator
 .menu.options add radiobutton -underline 2 -label "R*Q^4" \
-    -variable ::use_Q4 -value 1 -command set_Q4
+    -variable ::use_Q4 -value q4 -command set_Q4
+.menu.options add radiobutton -underline 2 -label "R*Q^2" \
+    -variable ::use_Q4 -value q2 -command set_Q4
 .menu.options add radiobutton -underline 0 -label "R" \
     -variable ::use_Q4 -value 0 -command set_Q4
 .menu.options add separator
@@ -3416,8 +3423,10 @@ proc set_sld {} {
 
 proc set_Q4 {} {
     # XXX FIXME XXX This doesn't update the snapshots
-    if { $::use_Q4 } {
+    if { $::use_Q4 == "q4" } {
         .reflectivity axis conf y -title "reflectivity * Q^4"
+    } elseif { $::use_Q4 == "q2" } {
+        .reflectivity axis conf y -title "reflectivity * Q^2"
     } else {
         .reflectivity axis conf y -title "reflectivity"
     }

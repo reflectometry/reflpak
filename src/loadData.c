@@ -42,7 +42,6 @@ void isrealR(int n, double *y)
 
   for (i=0; i < n; i++) neg += y[i] < 0;
   realR = neg>n/10;
-  printf("neg is %d in isrealR, n=%d, realR=%d\n",neg,n,realR);
 }
 
 int loadData(char *infile)
@@ -73,7 +72,7 @@ int loadData(char *infile)
 			ydat + n, srvar + n) == columns) { 
 	       /* For two column data, set weight tiny so the graph
 		  looks pretty. */
-	       if (columns == 2) srvar[n]=1e-8;
+	       if (columns == 2) srvar[n]=1;
 	       n++;
 	     } else {
 	       retval = 0;
