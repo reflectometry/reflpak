@@ -47,8 +47,7 @@ redfiles=\
 redoctavefiles=\
 	$(patsubst %,reflred/octave/%,$(redoctavesrc))
 
-macscripts=$(patsubst %,macosx/%,reflpak ._reflpak \
-	reflred ._reflred reflfit ._reflfit reflpol ._reflpol)
+macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
 SUBDIRS=src gj2 scifun
 
@@ -61,9 +60,9 @@ else
 addwinlink=:
 endif
 
-.PHONY: $(SUBDIRS)
+.PHONY: $(SUBDIRS) 
 
-all: $(SUBDIRS) kit/reflpak$(EXE)
+all: $(SUBDIRS) kit/reflpak$(EXE) dist html
 
 kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
@@ -119,15 +118,15 @@ srcdist: ChangeLog
 	$(RM) -rf reflpak$(DATE)
 
 ifeq ($(ARCH),macosx)
-dist: kit/reflpak$(EXE) $(macscripts) ChangeLog
+dist: kit/reflpak $(macscripts) ChangeLog
 	if test -d diskimage ; then rm -rf diskimage ; fi
 	mkdir diskimage
-	mkdir diskimage/reflpak
-	cp -p kit/reflpak$(EXE) diskimage/reflpak$(DATE)
-	cp -p $(macscripts) diskimage/reflpak$(DATE)
-	cp -a data diskimage/data
-	cp macosx/README diskimage
-	cd diskimage && ../macosx/dmgpack.sh reflpak$(DATE) *
+	mkdir diskimage/reflpak$(DATE)
+	cp -p kit/reflpak diskimage/reflpak$(DATE)/reflpak
+	ditto -rsrc $(macscripts) diskimage/reflpak$(DATE)
+	ditto -rsrc data diskimage/data
+	ditto -rsrc macosx/README diskimage
+	cd diskimage && ../macosx/dmgpack.sh reflpak$(DATE) README reflpak$(DATE) data
 	if test ! -d release ; then mkdir release ; fi
 	mv diskimage/reflpak$(DATE).dmg release
 else
