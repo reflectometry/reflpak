@@ -327,13 +327,9 @@ freelib.o : $(srcdir)/freelib.c
 	$(CC) $(CFLAGS) $(OPT) -o $@ -c $<
 
 clean:
-	$(RM) core
-	$(RM) *.o
-	$(RM) $(WRAP)_bare$(EXE)
-	$(RM) *.zip
+	$(RM) core $(OBJ) $(WRAP)_bare$(EXE) null.zip $(WRAP).zip
 	$(DELTREE) zipdir
 
 distclean: clean
-	$(RM) $(WRAP)$(EXE)
-	$(RM) $(WISH)$(EXE)
+	$(RM) $(WRAP)$(EXE) $(WISH)$(EXE)
 

@@ -149,6 +149,9 @@ $(ARCH)/reflred.manifest: Makefile Makeconf
 freewrap: Makeconf.tcltk
 	cd $(ARCH) && $(MAKE) -f Makefile.freewrap
 
+freewrapclean:
+	cd $(ARCH) && $(MAKE) -f Makefile.freewrap distclean
+
 Makeconf.tcltk:
 	$(error Use ./tclConfig2Makeconf to build Makeconf.tcltk)
 
