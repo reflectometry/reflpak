@@ -35,7 +35,7 @@ proc ::Choose::Fill_contents { w path } {
     # Scan the current directory, recording all data sets
     set other 0
     set all 0
-    foreach f [glob -nocomplain [file join $::Choose::Path $path *]] {
+    foreach f [glob -nocomplain [file normalize [file join $::Choose::Path $path *]]] {
 	if { [file isdirectory $f] } {
 	    if { $path ne "." && $path ne ".." } {
 		lappend dirs [incr n] \
@@ -142,7 +142,7 @@ proc ::Choose::Fill_path { path } {
 
     # find all subdirectories
     set dirs [list . ..]
-    foreach item [lsort -dictionary [ glob -nocomplain [file join $path *] ]] {
+    foreach item [lsort -dictionary [ glob -nocomplain [file normalize [file join $path *]] ]] {
 	if { [file isdirectory $item] } {
 	    lappend dirs [file tail $item]
 	}
@@ -249,11 +249,6 @@ proc  choose_dataset { callback } {
 
     listbox .choose.children -selectmode browse -exportselection no
     pack [scroll .choose.children] -in $pathbox -fill both -expand yes
-
-    if { $::have_archive } {
-	button $pathbox.archive -text Archive -command { ::Choose::Fill_path /archive }
-	grid $pathbox.archive -
-    }
 
     ::Choose::Fill_path .
 
