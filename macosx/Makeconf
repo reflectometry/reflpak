@@ -3,7 +3,7 @@ ARCH=macosx
 # Debugging statements?
 # DEBUG=-DEBUG
 
-include ~/cvs/reflfit/macosx/Makeconf.tcltk
+include ~/cvs/reflfit/Makeconf.tcltk
 
 WISH=$(TCL_PREFIX)/bin/wish8.4
 
