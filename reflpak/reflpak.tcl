@@ -54,7 +54,7 @@ namespace eval reflpak {
         -h { puts "usage: reflkit [fit|pol|red]"; exit }
         -v { puts "Reflpak $::app_version"; exit }
         fit { set app Reflfit; shift_arg }
-        pol { set app Relfpol; shift_arg }
+        pol { set app Reflpol; shift_arg }
         red { set app Reflred; shift_arg }
         wish { set app wish; shift_arg }
         *.staj { set app Reflfit }
