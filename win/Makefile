@@ -53,7 +53,7 @@ FLIBS=-lg2c -lm
 # TCL_LD_SEARCH_FLAGS
 # TCL_COMPAT_OBS        posix functions missing from the platform
 
-include Makeconf.tcltk
+#include Makeconf.tcltk
 
 ## Unless I'm compiling Tcl/Tk myself, tclConfig.sh is useless.
 #CC=$(TCL_CC)
@@ -65,6 +65,8 @@ include Makeconf.tcltk
 
 TCL_PREFIX=/c/Tcl
 TCL_PREFIX_WIN=/Tcl
+TCL_MAJOR_VERSION=8
+TCL_MINOR_VERSION=4
 CC=gcc
 CFLAGS=-O3 -Wall -I$(TCL_PREFIX)/include
 LIBS=-L$(TCL_PREFIX)/lib -ltclstub$(TCL_MAJOR_VERSION)$(TCL_MINOR_VERSION)
