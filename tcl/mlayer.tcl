@@ -1874,7 +1874,7 @@ proc focus_beambox {} {
 proc toggle_field { w field hide } {
     set ::hidden($field) $hide
 
-    $w axis conf $field -hide $hide
+    catch { $w axis conf $field -hide $hide }
 
     # XXX FIXME XXX we shouldn't have to suppress the bindtags since the
     # markers are hidden when the associated element is hidden.  This
