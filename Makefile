@@ -80,6 +80,10 @@ kit/reflpak.res: win/reflpak.rc $(icons)
 kit/copykit$(EXE): $(NCNRKIT)
 	cp $(NCNRKIT) kit/copykit$(EXE)
 
+ncnrpack$(EXE): kit/copykit$(EXE) ncnrpack.vfs/main.tcl
+	kit/copykit $(SDXKIT) wrap ncnrpack$(EXE) -runtime $(NCNRKIT)
+	touch ncnrpack ;# needed to trigger resource binding on ncnrpack.exe
+
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
 		kit/copykit$(EXE) main.tcl Makefile vfslib
