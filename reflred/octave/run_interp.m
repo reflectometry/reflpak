@@ -7,8 +7,16 @@
 ## interpolation is supported, although at some point some sort of weighted
 ## spline with variable tension may be used.
 
-function run = run_interp(run,x,method)
+function run = run_interp(run,run2,method)
 
+  if isfield(run,'A')
+    run.A = run_interp(run.A,run2.A);
+    run.B = run_interp(run.B,run2.B);
+    run.C = run_interp(run.C,run2.C);
+    run.D = run_interp(run.D,run2.D);
+    return
+  end
+    
   if length(run.x) < 2
     error("run_interp requires at least two points to interpolate");
   endif
@@ -30,9 +38,9 @@ function run = run_interp(run,x,method)
     run.dy = [run.dy(1), run.dy, run.dy(length(run.dy))];
   endif
 
-
   ## linear interpolation from run values to new x values
   ## note: extrapolation is limited to runtolerance so it is safe
+  x = run2.x;
   y = interp1 (run.x, run.y, x, 'linear', 'extrap');
 
   ## estimate error on interpolated values

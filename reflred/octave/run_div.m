@@ -4,14 +4,21 @@
 ## domain of r1 matches the domain of r2.  If not, call run_interp and
 ## or run_trunc beforehand.
 
-function run1 = run_div(run1,run2)
-
-  assert(run1.x,run2.x);
+function run = run_div(run1,run2)
 
   ## do the division
-  run1.dy = sqrt ( (run1.dy./run2.y) .^2 + (run1.y.*run2.dy./run2.y.^2) .^ 2 );
-  run1.y = run1.y ./ run2.y;
-
-  ## run1 = runlog(run1, "dividing", run2);
+  if isempty(run1)
+    run = [];
+  elseif struct_contains(run1,'A')
+    run.A = run_div(run1.A,run2.A);
+    run.B = run_div(run1.B,run2.B);
+    run.C = run_div(run1.C,run2.C);
+    run.D = run_div(run1.D,run2.D);
+  else
+    assert(run1.x,run2.x);
+    run.x = run1.x;
+    run.dy = sqrt ( (run1.dy./run2.y) .^2 + (run1.y.*run2.dy./run2.y.^2) .^ 2 );
+    run.y = run1.y ./ run2.y;
+  end
 
 endfunction

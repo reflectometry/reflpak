@@ -1,5 +1,4 @@
-# Send an x,y,dy structure to tcl
-function run_send(name, val)
+function run_send(name,val)
   if isempty(val)
     send(sprintf(name,'x'),[]);
     send(sprintf(name,'y'),[]);
@@ -14,4 +13,4 @@ function run_send(name, val)
     endif
     send(['run_send set ',sprintf(name,'')]);
   endif
-endfunction
+end
