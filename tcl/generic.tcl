@@ -21,9 +21,15 @@ proc plist { list } { foreach l $list { puts $l } }
 # ==================== resources ==============================
 
 # HELP developer
-# Usage: HOME
+# Usage: HOME ?newhome
 #
-# Return the home directory
+# Sets or returns the home directory.  HOME is taken from
+# the environment variable of the same name if it exists,
+# or from the current directory if it doesn't.
+#
+# TODO: On windows, this should look for the appropriate
+# TODO: registry keys for application settings if HOME
+# TODO: does not exist.
 proc HOME { args } {
     if { [llength $args] == 1 } {
 	set ::HOME [lindex $args 0]
@@ -400,8 +406,8 @@ proc fix { value {min {}} {max {}} {accuracy 3}} {
 # specified precision.
 proc makereal {a} {
     if { [string match $a {}] } { set a 0 }
-    return [ expr {double($a)} ]
-#    return [ format %.15e $a ]
+    #return [ expr {double($a)} ]
+    return [ format %.15e $a ]
 }
 
 # HELP developer
@@ -614,7 +620,7 @@ proc listbox_delete_by_name { w item } {
 
 # =================== scrolled window helper functions =================
 # HELP developer
-# Usage: scroll .path_to_widget
+# Usage: scroll .path_to_widget ?-scrollbar [vertical|horizontal]?
 #        vscroll .path_to_widget
 #        hscroll .path_to_widget
 # Returns a scrolled frame containing the widget which can be used
