@@ -1,0 +1,65 @@
+Windows
+=======
+
+Copy reflfit.exe/reflpol.exe/reflred.exe to your desktop.
+
+To run reflfit/reflpol/reflred, simply click on the icon.
+
+To reduce data in reflred, you will first need to install Octave from:
+
+        http://sourceforge.net/project/showfiles.php?group_id=2888
+
+Use the latest version of octave-forge-windows (2.1.50 as of this
+writing).
+
+Once octave is installed, click the octave icon to run, and start
+the octave server using the command
+
+	listen(1515)
+
+Mac OS X
+========
+
+Copy reflfit/reflpol/reflred somewhere in your path.
+
+You will need to start an X11 server (the BLT graphing package does
+not support Aqua).
+
+To run reflfit/reflpol/reflred, simply click on the icon.
+
+To reduce data in reflred, you will first need to install Octave and 
+octave-forge. Fink has pre-built binaries.  See http://fink.sf.net 
+for instructions.
+
+Once octave is installed, start octave then start the octave server
+using the command
+
+	listen(1515)
+
+Unix
+====
+
+We have prebuilt binaries for Irix and Linux.  If you are using another
+variety of unix, you will need to build and install yourself.  Download
+and unpack the source tarball, and follow the instructions in 
+README.freewrap and README.
+
+Copy reflfit/reflpol/reflred somewhere in your path.
+
+To run reflfit/reflpol/reflred, change to your data directory and type
+the name of the program.
+
+To run reflred, you will first need to install Octave and octave-forge.
+Many linux systems have pre-built binaries.  For IRIX, you will have
+to build from source.
+
+Once octave is installed, start octave then start the octave server
+using the command
+
+	listen(1515)
+
+Detailed instructions for building Octave (http:://www.octave.org) and
+octave-forge (http://octave.sf.net) are available in the source packages.
+
+Paul Kienzle
+2003-10-07

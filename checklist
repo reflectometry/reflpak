@@ -35,6 +35,7 @@
 	mv ~/cvs/reflfit/html $REFLVER
 	mv ~/cvs/reflfit/$REFLVER.tar.gz $REFLVER
 	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLVER/irix
+	cp ~/cvs/reflfit/INSTALL $REFLVER
 
 # On macosx and linux
 	# copy REFLVER=... line from jazz terminal
