@@ -43,7 +43,7 @@ bindir ?= $(topdir)/$(ARCH)
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
 	print.tcl tableentry.tcl help2html
 fitsrc=mlayer.tcl defaults.tcl generic.tcl tkmlayerrc help.help \
-	mlayer.help reflfit.help reflpolorient.gif
+	mlayer.help gj2.help reflfit.help reflpolorient.gif
 redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl generic.tcl \
 	NG7monitor.cal viewrun.help help.help tkviewrunrc
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
