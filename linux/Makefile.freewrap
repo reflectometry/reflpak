@@ -56,7 +56,7 @@ CFLAGS= -DSTATIC_BUILD $(TCL_CFLAGS_WARNING) $(TCL_CFLAGS_OPTIMIZE) $(TCL_INCLUD
 ###### Add these options to CFLAGS when linking object files into
 #      an executable.
 #
-LFLAGS = -static -Xlinker -S
+LFLAGS=
 
 ###### Name of the ZIP archiver program
 #
@@ -107,7 +107,8 @@ HDR_TK =
 
 ###### The linker option used to link against the TCL library
 #
-LIB_TK = $(TCL_EXEC_PREFIX)/lib/$(TK_LIB_FILE) /usr/X11R6/lib/libX11.a
+#LIB_TK = $(TCL_EXEC_PREFIX)/lib/$(TK_LIB_FILE) /usr/X11R6/lib/libX11.a
+LIB_TK = $(TCL_EXEC_PREFIX)/lib/$(TK_LIB_FILE) -L/usr/X11R6/lib -lX11
 
 
 ###### The name of the top-level directory of the TK script library
@@ -118,8 +119,9 @@ SCRIPT_TK = $(TCL_PREFIX)/lib/tk$(TK_VERSION)/tclIndex
 #      This library is required by both the Img extension and the
 #      virtual file system.
 #
-LIB_Z = /usr/lib/libz.a
+# LIB_Z = /usr/lib/libz.a
 # LIB_Z = $(HOME)/packages/zlib-1.1.4/libz.a
+LIB_Z = -lz
 
 ###### Select which Tcl extensions to include.
 #
@@ -175,15 +177,13 @@ OPT_TLINK = -DWITHOUT_TLINK=1
 OPT_WINICO = -DWITHOUT_WINICO=1
 
 #### Standard libraries
-#    Whatever you need for static linking on your machine.
+#    Whatever you need for linking on your machine.
 #    Note that Mac OS/X doesn't support static linking without
 #    more effort than I want to exert at this point.
-LIB_C = \
-  /usr/lib/libieee.a \
-  /usr/lib/libm.a \
-  /usr/lib/libc.a \
-  /usr/lib/libdl.a
-# LIB_C = -lm
+#    I'm hoping that dynamic linking with weak dependencies is
+#    good enough for Linux as well since true static linking
+#    is also proving difficult.
+LIB_C = -lm -ldl
 
 ###############################################################################
 # You should not have to change anything below this line
