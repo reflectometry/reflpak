@@ -22,6 +22,11 @@ C          write (*,*) '/** Wavelength Must Be Positive **/'
           return
         endif
 
+	if (QI .lt. 1.e-10) then
+	  RNM1N = (1.,0.)
+	  go to 30
+	endif
+
 C       Loop through to calculate recursion formula described in Parratt
 C       with Gaussian roughness added
 C       Starting point--no reflected beam in bottom-most (bulk) layer
@@ -45,7 +50,7 @@ C         Carry over to next iteration
           RNNP1=RNM1N
 20      continue
 
-        GAMPREAL=dreal(RNM1N)
+30      GAMPREAL=dreal(RNM1N)
         GAMPIMAG=dimag(RNM1N)
 c       GREFAMP=RNM1N
 

@@ -170,9 +170,8 @@ STATIC void calcReflec(double *qtemp, double *y, int npnts)
 #endif
    
    for (j = 0; j < npnts; j++) {
-      qeff = (*qtemp < 1.e-10) ? 1.e-10 : *qtemp;
-      *(y++) = grefint(&qeff, &lambda, gqcsq, gmu, gd, &nglay);
-      qtemp++;
+      *y = grefint(qtemp, &lambda, gqcsq, gmu, gd, &nglay);
+      y++, qtemp++;
    }
 
 #if DOTIME
