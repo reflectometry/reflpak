@@ -60,10 +60,11 @@ if { $argc == 0 } {
 # useful constants
 set ::log10 [expr {log(10.)}]
 set ::pitimes4 [expr {16.*atan(1.)}]
+set ::pitimes2 [expr {8.*atan(1.)}]
 set ::piover360 [ expr {atan(1.)/90.}]
 set ::piover180 [ expr {atan(1.)/45.}]
 proc a3toQx {a3 a4over2 lambda} {
-    return "[expr [a4toQz 2*$a4over2 $lambda]] * atan( ($a3-$a4over2)*$::piover180 )"
+    return "[expr {[a4toQz 2*$a4over2 $lambda]}] * atan( ($a3-$a4over2)*$::piover180 )"
 }
 proc a4toQx {a4 a3 lambda} {
     return "[expr {[a3toQz $a3 $lambda]}] * atan( ($a3 - ($a4)/2.)*$::piover180 )"
@@ -1626,9 +1627,10 @@ proc toggle_background { node } {
 	    foreach id [.tree nodes $node] {
 		set ::${id}(start) [set ::${id}(start,3)]
 		set ::${id}(stop) [set ::${id}(stop,3)]
+		set A3 [set ::${id}(A3)]
 		if {[vector_exists ::x_$id]} {
-		    ::A3_$id dup ::xth_$id
-		    ::x_$id expr [ a3toQz ::A3_$id [set ::${id}(L)] ]
+		    $A3 dup ::xth_$id
+		    ::x_$id expr [ a3toQz $A3 [set ::${id}(L)] ]
 		}
 	    }
 	}
@@ -1636,9 +1638,10 @@ proc toggle_background { node } {
 	    foreach id [.tree nodes $node] {
 		set ::${id}(start) [set ::${id}(start,4)]
 		set ::${id}(stop) [set ::${id}(stop,4)]
+		set A4 [set ::${id}(A4)]
 		if {[vector_exists ::x_$id]} {
-		    ::xth_$id expr ::A4_$id/2.
-		    ::x_$id expr [ a4toQz ::A4_$id [set ::${id}(L)] ]
+		    ::xth_$id expr $A4/2.
+		    ::x_$id expr [ a4toQz $A4 [set ::${id}(L)] ]
 		}
 	    }
 	}
@@ -2226,7 +2229,8 @@ proc setdirectory { pattern_set } {
     # Delay marking others so that we know what datasets are available
     # We want to try to match the 'other' to the dataset it may have
     # come from, but we can't do that without knowing the datasets
-    foreach f $others { 
+    foreach f $others {
+	#markother $f
 	if { [catch { markother $f } msg] } {
 	    message $msg
 	}
@@ -2262,12 +2266,12 @@ proc setdirectory { pattern_set } {
     # all done --- remove the progress dialog
     destroy .loading
 
-    set first [lindex [.tree nodes root] 0]
-    if { [string equal $first ""] } {
+    if { [llength [.tree nodes root]] == 0 } {
 	choose_dataset setdirectory
     } else {
 	# unhide the main window
 	focus .tree
+	set first [lindex [.tree nodes root] 0]
 	.tree itemconfigure $first -open 1
 	.tree selection set [lindex [.tree nodes $first] 0]
 	set sets [.tree nodes $first]
