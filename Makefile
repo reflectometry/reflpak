@@ -62,7 +62,7 @@ endif
 
 .PHONY: $(SUBDIRS) 
 
-all: $(SUBDIRS) kit/reflpak$(EXE) dist html
+all: $(SUBDIRS) kit/reflpak$(EXE)
 
 kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
