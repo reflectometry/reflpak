@@ -251,8 +251,10 @@ proc init_selector { } {
     bind .graph <2> { graph_exclude %W %x %y }
 
     frame .b
-    button .b.scale -text "Align" -command { addrun align }
-    pack .b.scale -side left -anchor w
+    if 0 { # suppress Align until it is robust
+	button .b.scale -text "Align" -command { addrun align }
+	pack .b.scale -side left -anchor w
+    }
 
     # button to accept the current scan
     button .b.accept -text Accept -command { addrun accept }
@@ -806,6 +808,15 @@ proc atten_table {} {
 	    -titlerows 1 -titlecols 1 -roworigin -1 -variable ::atten_table
     .attenuator.t width 0 4
     pack [vscroll .attenuator.t] -fill both -expand yes
+
+    if 0 { # suppress Align until it is robust
+	frame .attenuator.b
+	button .attenuator.b.align -text "Align" -command { addrun align }
+	button .attenuator.b.unalign -text "Revert" -command { addrun unalign }
+	pack .attenuator.b.align .attenuator.b.unalign -side left -anchor w
+	grid .attenuator.b
+    }
+
     # XXX FIXME XXX want a combo box here
     tableentry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
     atten_table_reset
