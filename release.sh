@@ -94,3 +94,11 @@ echo; echo "Please check that $STORE and $SHARE contain what you want"
 echo; echo -n "Tag the release? [y for yes]: "
 read ans
 test "$ans" = "y" && make tagdist
+
+echo Update instrument computers, user room software and web.
+echo On a linux box:
+echo    scp ~/cvs/reflfit/kit/reflpak cg1@andr:bin/reflpak$VERSION
+echo    scp ~/cvs/reflfit/kit/reflpak ng1@ng1refl:bin/reflpak$VERSION
+echo    scp ~/cvs/reflfit/kit/reflpak ng7@ng7refl:bin/reflpak$VERSION
+echo Also need to point to the latest via symlink.
+echo Let users know a new version is available.
