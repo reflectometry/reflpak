@@ -105,8 +105,7 @@ if { [ file exists [file join $::HOME .mlayer] ] } {
 if { $argc == 1 } {
     set argv [lindex $argv 0]
     if { [ string match $argv "-h" ] } {
-	puts "usage: $argv0 \[fitfile|datafile]"
-	exit
+	app_fail "usage: $argv0 \[fitfile|datafile]"
     } elseif { [file exists $argv] } {
 	set initfile $argv
     } elseif { [file exists $argv$fitext] } {
@@ -117,8 +116,7 @@ if { $argc == 1 } {
 	    [llength [set f [glob -nocomplain "$argv\[abcdABCD]"]]] > 0 } {
 	set initfile [lindex [lsort $f] end]
     } else {
-	tk_messageBox -type ok -title $argv0 -message "file <$argv> does not exist"
-	exit
+	app_fail "file $argv does not exist"
     }
 
 } elseif { $argc == 0 } {
@@ -147,8 +145,7 @@ if 0 {
     ## if no input file, might just want to play with lineshapes
     # if { $initfile == "" } { exit }
 } else {
-    puts "usage: $argv0 \[parfile]"
-    exit
+    app_fail "usage: $argv0 \[parfile]"
 }
 
 # ==================== main frames =================================
@@ -3182,7 +3179,7 @@ proc new_parfile {filename} {
     # XXX FIXME XXX what if the old parameters have changed?  Should
     # we keep a change flag and warn the user?  Such a flag would allow
     # us to make sure the parameters are saved before exit.
-    if { ![set_datafile $filename] } { return }
+    if { ![set_datafile $filename] } { return 0 }
     set parfile [file rootname [file tail $filename]]$::fitext
     if { [ file exists $parfile ] } {
 	tk_messageBox -type ok -icon warning -message \
@@ -3196,6 +3193,7 @@ proc new_parfile {filename} {
     clear_constraints
     clean_temps
     reset_all
+    return 1
 }
 
 # save the current parameters to the current parameter file
@@ -3253,8 +3251,12 @@ proc set_datafile {filename} {
 	gmlayer ps $ps
     }
 
+    set oldfile [gmlayer send datafile]
     gmlayer if $base
     if { [catch { gmlayer gd } msg] } {
+	# restore old file
+	gmlayer if $oldfile
+	if { $oldfile ne "" } { gmlayer gd }
 	tk_messageBox -type ok -icon error -message $msg
 	return 0
     }
@@ -3613,7 +3615,10 @@ proc guess_init { initfile } {
 	}
 	blt::vector destroy dummy
     }
-    new_parfile $initfile
+    if { ! [new_parfile $initfile] } { 
+	# couldn't open the file, so start as if there were no file
+	guess_init "" 
+    }
 }
 
 # XXX FIXME XXX context sensitive help may not

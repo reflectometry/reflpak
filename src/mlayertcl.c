@@ -1,11 +1,20 @@
+/* recompile with -DEBUG to display debugging messages */
 #ifdef EBUG
 #define DEBUG 1
 #else
 #define DEBUG 0
 #endif
 
+
 #include <tcl.h>
 #include <string.h>
+
+#if DEBUG
+#define debug_message printf
+#else
+#define debug_message ignore
+void ignore TCL_VARARGS_DEF(CONST char *,arg1) {}
+#endif
 
 #include "genmulti.h"
 #include "cleanUp.h"
@@ -32,57 +41,42 @@
 #include "genderiv.h"
 #include "mlayer.h"
 
+/* ============================================================ */
+/* hacks to make mlayer think it is running as it was before */
 
+/* mlayer was not designed as a Tcl extension so things like callbacks
+ * and error messages are not propogated up and down the stack. Instead 
+ * of rewriting it, I have replaced some of the internal routines with
+ * Tcl-aware alternatives and pass info using global variables. Ugly
+ * yes, but the quickest available hack without committing to a whole-
+ * hearted tcl conversion.
+ */
+
+/* I don't know if we need to use Tcl's allocators within
+ * tcl extensions, but this provides them.  In the makefile
+ * I use -DMALLOC=gmlayer_alloc, and in the rest of the program I use 
+ *    #ifndef MALLOC
+ *    #define MALLOC malloc 
+ *    #endif
+ * When (if?) we fully commit to being a tcl extension, these
+ * can go away.  Use ckalloc/ckfree instead of MALLOC/FREE.
+ */
 void *gmlayer_alloc(int n) { return Tcl_Alloc(n); }
 void gmlayer_free(void *p) { Tcl_Free(p); }
 
 /* Module data */
+/* We don't need this anymore since we aren't using dynamic loading. */
+/* However, the dynamic loading code is still around, so we need to */
+/* define this (normally it resides in main, but we have no main. */
 char *mlayer_SCCS_VerInfo = "@(#)mlayer	v1.46 05/24/2001";
 
-static Tcl_Interp *fit_interp = NULL;
-static CONST char *fit_callback = NULL;
-static char *fit_constraints = NULL;
+/* mlayer got all its input from the user.  Now it gets it from 
+ * the gmlayer command arguments.  Rather than rewriting the whole
+ * gmlayer read-eval-print loop, I queue the command arguments and
+ * replace the queryString function with one that gets the next
+ * string from the queue rather than querying the user. */
 static CONST char **queue = NULL;
-static int queued = 0;
-static char *error_message;
-
-#if DEBUG
-#define debug_message printf
-#else
-#define debug_message ignore
-void ignore(char *x,...) {}
-#endif
-
-
-void ERROR(char *msg, ...)
-{
-  error_message = msg;
-}
-
-int flushqueue(void)
-{
-  while (Tcl_DoOneEvent(TCL_DONT_WAIT)) ;
-  return TCL_OK;
-}
-
-int ipc_fitupdate(void)
-{
-  debug_message("ipc_fitupdate with %s\n", fit_callback);
-  Tcl_Eval(fit_interp, fit_callback);
-  flushqueue();
-  return TCL_OK;
-}
-
-static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
-{
-  debug_message("tclconstraints with %s\n", fit_constraints);
-  if (*fit_constraints)
-    Tcl_Eval(fit_interp, fit_constraints);
-  debug_message("done constraints\n");
-  flushqueue();
-}
-
-
+static int queued = 0; /* length of the queue */
 char *queryString(char *prompt, char *string, int length)
 {
    if (string == NULL || length == 0) {
@@ -102,7 +96,78 @@ char *queryString(char *prompt, char *string, int length)
    return (*string == 0) ? NULL : string;
 }
 
-/* XXX FIXME XXX Consider using blt vectors directly if it is too slow */
+
+/* mlayer uses printf to report errors directly to stdout.  We
+ * need to return them from gmlayer.  So replace printf with
+ * ERROR, which converts it to sprintf and indicates that the
+ # command failed. */
+static char error_message[1000];
+static int failure;
+void ERROR TCL_VARARGS_DEF(CONST char *,arg1)
+{
+  va_list argList;
+  CONST char *format;
+
+  format = TCL_VARARGS_START(CONST char *, arg1, argList);
+  *error_message = '\0';
+  vsnprintf (error_message, sizeof(error_message), format, argList);
+  va_end(argList);
+  failure = 1;
+}
+
+
+/* Process all outstanding Tcl events. */
+int flushqueue(void)
+{
+  while (Tcl_DoOneEvent(TCL_DONT_WAIT)) ;
+  return TCL_OK;
+}
+
+/* Fitting: we need a fit cycle routine to check if the fit has
+ * been aborted (fit_callback), and an interpreter to evaluate it in
+ * (fit_interp).  Similarly, we need a routine to apply constraints
+ * (fit_constraints).
+ *
+ * We modified dofit.c so that each fit cycle ipc_fitupdate is called.
+ *
+ * Rather than no_constraints, we use tclconstraints which calls back
+ * to the tcl interpreter with a constraints script.
+ */
+static Tcl_Interp *fit_interp = NULL;
+static CONST char *fit_callback = NULL;
+static char *fit_constraints = NULL;
+int ipc_fitupdate(void)
+{
+  debug_message("ipc_fitupdate with %s\n", fit_callback);
+  Tcl_Eval(fit_interp, fit_callback);
+  /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
+   * this every time --- leave it to the fit_callback code to decide?
+   */
+  flushqueue();
+  return TCL_OK;
+}
+static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
+{
+  debug_message("tclconstraints with %s\n", fit_constraints);
+  if (*fit_constraints)
+    Tcl_Eval(fit_interp, fit_constraints);
+  debug_message("done constraints\n");
+  /* XXX FIXME XXX why did I want to run the event loop during constraints? */
+  /* flushqueue(); */
+}
+
+
+/* ===================================================================== */
+/* communicate parameters to/from gmlayer */
+
+/* I am currently passing strings to and from gmlayer containing lists
+ * of parameters, etc.  I need to communicate using objects.  In 
+ * particular, I may want to populate blt vectors directly, or better yet, 
+ * use blt vectors internally so that no copying is required.  This will 
+ * require a big reworking of the code.  Eventually the fitting code will
+ * be split off from the modelling code.  When that happens we can change
+ * the interface.
+ */
 
 static void sendpars(Tcl_Interp *interp)
 {
@@ -215,6 +280,8 @@ static void sendfit (Tcl_Interp *interp)
 }
 
 
+/* ==================================================================== */
+/* define the gmlayer command */
 static int
 gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 	   int argc, CONST char *argv[])
@@ -361,9 +428,9 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
   } else {
     queue = argv+1;
     queued = argc-1;
-    error_message = NULL;
+    failure = 0;
     mlayer();
-    if (error_message) {
+    if (failure) {
       interp->result = error_message;
       return TCL_ERROR;
     }
@@ -427,6 +494,6 @@ int Gmlayer_SafeInit(Tcl_Interp* interp)
   interp->result = "gmlayer is not a safe command";
   return TCL_ERROR;
 
-  // Until we remove OS commands, we are not safe...
+  // Until we remove commands to read/write files, we are not safe...
   // return gmlayer_Init(interp);
 }

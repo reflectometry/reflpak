@@ -15,6 +15,20 @@ proc plist { list } { foreach l $list { puts $l } }
 
 # parray is part of standard tcl
 
+# =============================================================
+
+# HELP developer
+# Usage: app_fail msg
+#
+# Display a message and exit.  We need this because sometimes
+# we are not running on the console, so we can't rely on the
+# user seeing stdout/stderr.
+
+proc app_fail { msg } {
+    tk_messageBox -title $::argv0 -type ok -message $msg
+    exit 1
+}
+
 # ==================== resources ==============================
 
 # HELP internal
@@ -38,8 +52,7 @@ proc load_resources { base app } {
     set file [file join $base "${app}rc"]
     if [file exists $file] {
 	if [catch { option readfile $file userDefault } err] {
-	    puts stderr "error in $file\n$err"
-	    exit 1
+	    app_fail "error in $file\n$err"
 	}
     }
 
@@ -47,8 +60,7 @@ proc load_resources { base app } {
     set file [file join $::HOME ".${app}rc"]
     if [file exists $file] {
 	if [catch { option readfile $file userDefault } err] {
-	    puts stderr "error in $file\n$err"
-	    exit 1
+	    app_fail "error in $file\n$err"
 	}
     }
 
