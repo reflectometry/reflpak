@@ -47,7 +47,8 @@ fitfig=reflpolorient.gif
 fitsrc=mlayer.tcl defaults.tcl tkmlayerrc
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
-redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc 
+redsrc=viewrun.tcl loadicp.tcl loaduxd.tcl loadreduced.tcl \
+	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc 
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
