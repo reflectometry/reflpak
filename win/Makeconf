@@ -8,20 +8,20 @@ drive=C:
 
 # Things from tclConfig.sh
 TCL_PREFIX=/Tcl
-TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
-TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub84
+TCL_INCLUDE_SPEC=-I$(drive)$(TCL_PREFIX)/include
+TCL_STUB_LIB_SPEC=-L$(drive)$(TCL_PREFIX)/lib -ltclstub84
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.dll
-WISH=$(TCL_PREFIX)/bin/bltwish.exe
+WISH=/c/$(TCL_PREFIX)/bin/bltwish.exe
 
 # Tcl packages we need to include
 TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
 OCTAVE=$(TCL_PREFIX)/lib/octave0.1
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
 TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
-TKDND_EXT=$(TKDND)/libtkdnd10.dll
+TKDND_EXT=libtkdnd10.dll
 TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
-TKTABLE_EXT=$(TKTABLE)/Tktable28.dll
+TKTABLE_EXT=Tktable28.dll
 
 # Fortran compiler
 F77=g77
