@@ -119,6 +119,7 @@ if { $argc == 1 } {
 	puts "$argv0: file $argv does not exist"
 	exit
     }
+
 } elseif { $argc == 0 } {
     if { [file exists [set initfile $::defaultfile]] } {
 	# mlayer.staj exists"
@@ -3082,12 +3083,11 @@ proc open_parfile {filename} {
     global parfile datafile directory
     set newdir [ file dirname $filename ]
     set newpar [ file tail $filename ]
-    gmlayer cd $newdir
+    cd $newdir
     gmlayer pf $newpar
     if { [catch { gmlayer lpc } msg] } {
 	tk_messageBox -type ok -icon error -message $msg
     }
-puts "done lpc"
 
     set parfile $newpar
     set datafile ""
@@ -3227,7 +3227,7 @@ proc rename_parfile {filename} {
 # set filename as the new datafile
 proc set_datafile {filename} {
     set newdir [ file dirname $filename ]
-    gmlayer cd $newdir
+    cd $newdir
     set base [ file tail $filename ]
     if { $::MAGNETIC } {
 	set tail [string index $base end]
