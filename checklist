@@ -1,0 +1,30 @@
+# Make sure the system builds cleanly on windows, macosx, linux
+	cd ~/cvs/reflfit
+	cvs -q update -dP
+	make
+	# testing steps --- at least make sure it runs?
+
+# On irix, build the html help as well
+	gmake html	
+
+# On jazz, create the distribution
+	cd ~/samba
+	REFLDIR=refl-`date +%Y-%m-%d`
+	mkdir $REFLDIR
+	mkdir $REFLDIR/irix
+	mkdir $REFLDIR/macosx
+	mkdir $REFLDIR/win
+	mkdir $REFLDIR/linux
+	echo $REFLDIR
+
+# Move the html help to the distribution directory
+	mv ~/cvs/reflfit/html $REFLDIR
+	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLDIR
+
+# On macosx and linux
+	scp $OS/refl{fit,pol,red} jazz:samba/$REFLDIR/$OS
+
+# On windows
+	scp win/refl{fit,pol,red}.exe jazz:samba/$REFLDIR/win
+
+# Let Christina know a new release is ready
