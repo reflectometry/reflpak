@@ -16,6 +16,11 @@ tkdndfiles=\
 	$(drive)$(TKDND)/pkgIndex.tcl \
 	$(drive)$(TKDND)/tkdnd.tcl \
 	$(drive)$(TKDND)/$(TKDND_EXT)
+octavefiles=\
+	$(drive)$(OCTAVE)/pkgIndex.tcl \
+	$(drive)$(OCTAVE)/octave.tcl \
+	$(drive)$(OCTAVE)/tclphoto.m \
+	$(drive)$(OCTAVE)/tclsend.m
 
 # IRIX's /bin/sh does not accept 'for f in ; do' so we need to give it
 # a blank line and hope that freewrap is clever enough to skip blanks
@@ -40,7 +45,7 @@ libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
 fitsrc=mlayer.tcl defaults.tcl generic.tcl tkmlayerrc help.help \
 	mlayer.help reflfit.help reflpolorient.gif
 redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl generic.tcl \
-	NG7monitor.cal viewrun.help
+	NG7monitor.cal viewrun.help tkviewrunrc
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
@@ -110,6 +115,7 @@ $(ARCH)/reflred.manifest: Makefile Makeconf
 	@for f in $(tkdndfiles); do echo "$$f" >> $@ ; done
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
 	@for f in $(redfiles); do echo "$$f" >> $@ ; done
+	@for f in $(octavefiles); do echo "$$f" >> $@ ; done
 	@echo "$(bindir)/options.tcl" >> $@
 
 freewrap: Makeconf.tcltk
