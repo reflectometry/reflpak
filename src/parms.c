@@ -77,9 +77,7 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
       }
    } else {
       line = 0;
-      printf("opening %s\n",parfile);
       unit1 = fopen(parfile, "r");
-      printf("okay\n");
       if (unit1 == NULL) {
          puts("/** Unable to open parameter file **/");
          infile[0] = 0;

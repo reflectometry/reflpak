@@ -32,7 +32,6 @@ int loadParms(char *command, int *npnts, char *parfile, char *scriptfile,
          infile, outfile,
          &bmintns, &bki, listA, &mfit, NA, &nrough, proftyp,
          DA, scriptfile, parfile, FALSE);
-   puts("Done LP/C");
    return failed;
 
    if (scriptfile != devnull) {
