@@ -340,6 +340,7 @@ proc ptrace {} {
     set call [info level -1]
     set fn [uplevel [list namespace which -command [lindex $call 0]]]
     set args [lrange $call 1 end]
+    catch { console show }
     puts "[expr {[info level]-1}] $fn $args"
 }
 
@@ -931,11 +932,17 @@ proc graph_select_motion {w x y} {
     $w element closest $x $y where -halo 1i ;#\
 	    -along [option get $w interpolate Interpolate]
     if { [info exists where(x)] } {
+        # XXX FIXME XXX the use of int(idx) is completely bogus
+        # but for some reason on Windows the element at index 10
+        # sometimes fails in Tcl_ExprLong(), even when used in
+        # a context such as 0+10+0.  I cannot reproduce this
+        # behaviour outside of reflred, but within reflred it is
+        # consistent across graphs.  Go figure!
 	#puts "activating $where(name) $where(index)"
 	if [info exists ::graph_select(active$where(name),$w)] {
-	    eval $w element activate $where(name) $::graph_select(active$where(name),$w) $where(index)
+	    eval $w element activate $where(name) $::graph_select(active$where(name),$w) int($where(index))
         } else {
-	    $w elem activate $where(name) $where(index)
+	    $w elem activate $where(name) int($where(index))
         }
     }
 }
@@ -950,7 +957,7 @@ proc graph_select_press {w x y} {
 	if {![string equal $x {}]} { uplevel #0 [list set $x $where(x)] }
 	if {![string equal $y {}]} { uplevel #0 [list set $y $where(y)] }
 	if {![string equal $el {}]} { uplevel #0 [list set $el $where(name)] }
-	lappend ::graph_select(active$where(name),$w) $where(index)
+	lappend ::graph_select(active$where(name),$w) [expr $where(index)]
     }
 }
 

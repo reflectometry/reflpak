@@ -1,7 +1,12 @@
 namespace import blt::graph blt::vector blt::hiertable
 source [file join $::VIEWRUN_HOME generic.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
+#source [file join $::VIEWRUN_HOME atten.tcl]
 source [file join $::VIEWRUN_LIB tableentry.tcl]
+source [file join $::VIEWRUN_LIB pan.tcl]
+source [file join $::VIEWRUN_LIB htext.tcl]
+
+help $::VIEWRUN_HOME viewrun help
 
 set ::title Reflred
 
@@ -22,7 +27,7 @@ catch {
 # cd /archive/ng1/200307/akron1
     
 # XXX FIXME XXX how can I make this automatic?
-set OCTAVE_SUPPORT_FILES {
+set OCTAVE_SUPPORT_FILES { 
     interp1err psdslice 
     run_div run_include run_interp run_poisson_avg 
     run_scale run_sub run_tol run_trunc
@@ -48,23 +53,6 @@ proc psd {args} {
     uplevel #0 [list source [file join $::VIEWRUN_HOME psd.tcl]]
     eval psd $args
 }
-proc help {args} {
-    rename help {}
-    uplevel #0 [list source [file join $::VIEWRUN_LIB htext.tcl]]
-    namespace import htext::*
-    set ::helpfile [file join $::VIEWRUN_HOME viewrun.help]
-    set ::helpstamp {}
-    proc help { args } {
-	# auto-reload help file based on modification time
-	set stamp [file mtime $::helpfile]
-	if { "$stamp" != "$::helpstamp" } {
-	    uplevel #0 [list source $::helpfile]
-	    set ::helpstamp $stamp
-	}
-	eval htext .htext $args
-    }
-    eval help $args
-}
 
 # Delay starting octave as long as possible
 rename octave octave_orig
@@ -75,11 +63,6 @@ proc octave {args} {
     restart_octave
     eval octave $args
 }
-
-# define help key
-# XXX FIXME XXX should this be a resource?
-bind all <F1> { help %W }
-bind all <Shift-F1> { help %W controls }
 
 # process command line args, if any
 if { [ string match $argv "-h" ] } {
@@ -93,10 +76,10 @@ if { $argc == 0 } {
 }
 
 # useful constants
-set ::log10 [expr log(10.0)]
-set ::pitimes4 [expr 16.0*atan(1.0)]
-set ::piover360 [ expr atan(1.0)/90.0]
-set ::piover180 [ expr atan(1.0)/45.0]
+set ::log10 [expr {log(10.0)}]
+set ::pitimes4 [expr {16.0*atan(1.0)}]
+set ::piover360 [ expr {atan(1.0)/90.0}]
+set ::piover180 [ expr {atan(1.0)/45.0}]
 proc a3toQx {a3 a4over2 lambda} {
     return "[expr [a4toQz 2*$a4over2 $lambda]] * atan( ($a3-$a4over2)*$::piover180 )"
 }
@@ -193,7 +176,7 @@ proc init_selector { } {
     # tree to hold the list of runs
     Tree .tree -selectcommand view_file -padx 11
     .tree configure -width [option get .tree width Width]
-    scroll .tree -side left -in $treepane
+    pack [scroll .tree] -side left -in $treepane -fill both -expand yes
 
     # Yuck!  It would be nicer to put the resources nearer to where they
     # are being used.  Unfortunately, I can't initialize them until after
@@ -239,7 +222,7 @@ proc init_selector { } {
     pack .filename -side top -in $filepane
 
     text .text -state disabled -wrap none
-    scroll .text -side top -in $filepane
+    pack [scroll .text] -side top -in $filepane -fill both -expand yes
 
     graph .graph
 #    vector create ::x_data ::y_data
@@ -259,6 +242,7 @@ proc init_selector { } {
 	.graph crosshairs on
     }
 
+if 0 {
     # add a legend so that clicking on the legend entry toggles the display
     # of the corresponding line and moving over the lines highlights the
     # corresponding legend entry
@@ -271,19 +255,21 @@ proc init_selector { } {
     .graph element bind all <Leave> {
 	%W legend deactivate [%W element get current]
     }
+}
 
     set ::colorlist [option get .graph lineColors LineColors]
-
-    # click axis to change log/linear scale
-    active_axis .graph y
 
     # put graph coordinates into message box
     bind .graph <Leave> { message "" }
     bind .graph <Motion> { graph_motion %W %x %y }
 
+    # add graph controls
+    active_graph .graph
+    active_axis .graph y
+    active_legend .graph
+
     # click with middle button to exclude a value
     bind .graph <2> { graph_exclude %W %x %y }
-
 
     frame .b
     checkbutton .b.scale -text "Align" -indicatoron 1 \
@@ -817,7 +803,6 @@ proc editscan { scanid } {
     raise .
 }
 
-
 # ======================================================
 
 ## XXX FIXME XXX need to be able to choose ratio from a list
@@ -849,21 +834,25 @@ proc atten_table {} {
     table .attenuator.t -cols 3 -resizeborders col -colstr unset \
 	    -titlerows 1 -titlecols 1 -roworigin -1 -variable ::atten_table
     .attenuator.t width 0 4
-    vscroll .attenuator.t
-    atten_table_reset
+    pack [vscroll .attenuator.t] -fill both -expand yes
     # XXX FIXME XXX want a combo box here
     tableentry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
+    atten_table_reset
 }
 
 proc atten_update { row col val } {
-#    puts "[info level 0] [.attenuator.t index active]"
-    if {![string is double $val]} {
-	error "number expected"
+#    ptrace
+    if {![string is double $val] || $val < 0} {
+        message "expected non-negative scale factor"
+        return 0
     } elseif {$val < 0} {
-	error "must be non-negative"
+	message "must be non-negative"
+        return 0
     }
 
     # the new value is good so save it in the appropriate record
+    set ::atten_table($row,$col) $val
+    # attenuator.t clear cache
     upvar #0 [lindex $::addrun $row] rec
     if { $col == 1 } {
 	set rec(k) $val
@@ -876,9 +865,8 @@ proc atten_update { row col val } {
     atten_set $::addrun
 
     # return the value to display in the table
-    return $val
+    return 1
 }
-
 
 # =====================================================
 
@@ -3182,4 +3170,4 @@ proc app_source { f } {
         }
     }
 }
-app_source [file join $::HOME .reflred.tcl]
+app_source [file join [HOME] .reflred.tcl]

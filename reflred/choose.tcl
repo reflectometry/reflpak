@@ -252,8 +252,8 @@ proc  choose_dataset { callback } {
     }
     .choose.contents column conf #Runs -justify right
 
-    # pack the contents in a scrollable window
-    scroll .choose.contents -in $contentbox -fill both -expand yes
+    # pack the contents in a able window
+    pack [scroll .choose.contents] -in $contentbox -fill both -expand yes
 
     if { 0 } {
 	# fixed list choice menu for ancestors of current directory
@@ -271,7 +271,7 @@ proc  choose_dataset { callback } {
     listbox .choose.children -selectmode browse -exportselection no
 
 
-    scroll .choose.children -in $pathbox
+    pack [scroll .choose.children] -in $pathbox -fill both -expand yes
 
     if { $::have_archive } {
 	button $pathbox.archive -text Archive -command { ::Choose::Fill_path /archive }

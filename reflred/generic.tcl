@@ -1,34 +1,88 @@
-proc ptrace {} {
-    set call [info level -1]
-    set fn [uplevel [list namespace which -command [lindex $call 0]]]
-    set args [lrange $call 1 end]
-    puts "[expr {[info level]-1}] $fn $args"
-}
+
+# ===================== console functions =====================
+# HELP user
+# Usage: plist list
+#
+# Display a list, one entry per line.
+# E.g., plist [.graph conf]
+#
+# There is also a tkcon function dump widget which displays
+# only the non-default widget options.
+proc plist { list } { foreach l $list { puts $l } }
+
+# HELP user
+# Usage: parray array
+#
+# Display an array, one entery per line.
+# E.g., parray ::symbols
+
+# parray is part of standard tcl
 
 # ==================== resources ==============================
-if { [info exists ::env(HOME)] } {
-    set HOME $::env(HOME)
-} else {
-    set HOME [ pwd ]
+
+# HELP developer
+# Usage: HOME ?newhome
+#
+# Sets or returns the home directory.  HOME is taken from
+# the environment variable of the same name if it exists,
+# or from the current directory if it doesn't.
+#
+# TODO: On windows, this should look for the appropriate
+# TODO: registry keys for application settings if HOME
+# TODO: does not exist.
+proc HOME { args } {
+    if { [llength $args] == 1 } {
+	set ::HOME [lindex $args 0]
+    } elseif { [llength $args] > 1 } {
+	error "usage: HOME ?newhome"
+    }
+
+    if { ![info exists ::HOME] } {
+	# Get the home directory from the environment, returning
+	# the value from pwd.  We do it this way because we want
+	# tilde substitution to work even when $HOME contains
+	# a path with a symbolic link.  The pwd command returns the
+	# actual path rather than linked path.
+	if { [info exists ::env(HOME)] } {
+	    set dir [pwd]
+	    catch { cd $::env(HOME) }
+	    set ::HOME [ pwd ]
+	    cd $dir
+	} else {
+	    set ::HOME [ pwd ]
+	}
+    }
+
+    return $::HOME
 }
-proc load_resources { base app } {
+
+# HELP developer
+# Usage: load_resources dir app
+#
+# Load the application specific resource defaults from $dir/${app}rc
+# and the user customizations from $HOME/.${app}rc.
+#
+# XXX FIXME XXX we need something more clever under windows
+# since generally there is no home directory.  Where can
+# we put .${app}rc?
+proc load_resources { dir app } {
+
     # application defaults
-    set file [file join $base "${app}rc"]
+    set file [file join $dir "${app}rc"]
     if [file exists $file] {
-	if [catch { option readfile $file userDefault } err] {
-	    puts stderr "error in $file\n$err"
-	    exit 1
+	if [catch { option readfile $file startupFile } err] {
+	    app_fail "error in $file\n$err"
 	}
     }
 
     # user defaults
-    set file [file join $::HOME ".${app}rc"]
+    set file [file join [HOME] ".${app}rc"]
     if [file exists $file] {
 	if [catch { option readfile $file userDefault } err] {
-	    puts stderr "error in $file\n$err"
-	    exit 1
+	    app_fail "error in $file\n$err"
 	}
     }
+
 }
 
 # HELP developer
@@ -38,32 +92,141 @@ proc load_resources { base app } {
 # home directory with ~.  To get the name of the directory containing
 # a particular file, use:
 #    tildesub [file normalize [file dirname $file]]
-# This requires the ::HOME variable which is set by load_resources
 proc tildesub { path } {
-    if { [string match $::HOME* $path] } {
-        return ~[string range $path [string length $::HOME] end]
+    if { [string match [HOME]* $path] } {
+	return ~[string range $path [string length [HOME]] end]
     } else {
-        return $path
+	return $path
     }
 }
 
-# ==================== config info =============================
-# Usage: blt_errorbars
-# Returns true if you can use -yerror as an option to the blt graphs
-proc blt_errorbars {} {
-    # Determine if this version of BLT handles error bars
-    graph .blt_errorbars
-    set status [expr ![ catch { .blt_errorbars elem create hello -yerror 1 } ]]
-    destroy .blt_errorbars
+# ========================== help system ==========================
 
-    # Cache the result of the test for future queries
-    proc blt_errorbars {} "return $status"
+# HELP developer
+# Usage: hpage page_name widgetlist text
+#
+# Defines a help page.
+#
+# To add help to your application you need to create help files which
+# define the help pages.
+#
+# The markup format for hpage is described in htext.tcl.
+#
+# The help is context sensitive: when the user presses the help key (F1)
+# on a specific widget a description of that widget or one of its
+# enclosing widgets (e.g., the toplevel widget) is loaded.  That means
+# you do not need help for every widget, but you should have help for
+# every toplevel widget.
+#
+# When the user presses a different help key (Shift-F1), help on the
+# corresponding keys and mouse clicks for the widget should be displayed.
+# These pages are defined by
+#    hpage {page_name controls} {} {text}
+#
+# Internal links are by page name, so you can refer to pages which are not
+# associated with any widget.
 
-    # Return the result
-    return $status
+# HELP developer
+# Usage: help2html package ?extrafiles...
+#
+# System command to convert the help files to HTML.  Use this to
+# test for dangling references in you help text.
+
+# HELP developer
+# Usage: help dir name ?name...
+#
+# Defines the files containing a help system. All files should be
+# stored in the $dir/name.help.  The help files will be reloaded
+# whenever they are changed which makes it easy to modify and test
+# your help system.  Help is not loaded until the user requests it.
+#
+# Currently all help files must reside in the directory containing
+# htext.tcl.  This directory must be specified for each set of help
+# files that you add.  This is probably going to be your application
+# source directory.
+proc help { dir args } {
+    set ::helpdir $dir
+    foreach file $args { set ::helpstamp([file join $dir $file.help]) {} }
+
+    # define help key
+    # XXX FIXME XXX this should be a resource
+    bind all <F1> { gethelp %W }
+    bind all <Shift-F1> { gethelp %W controls }
+
+    # XXX FIXME XXX currently all help files need to be in the same
+    # directory.  It is conceivable that a plugin might want to keep
+    # its files in a separate directory.  Note that images also use
+    # the same directory.
 }
 
+# HELP developer
+# Usage: helpmenu menu homepage
+#
+# Adds a help entry to the given menu.  The menu path is the top
+# level menu for your window.  It should not have a help menu
+# already.  The homepage is the base for browsing off that menu.
+#
+# To add help files to an already existing help system, set
+#    set ::helpstamp(complete_path_to_file) {}
+# This will cause your help file to be loaded the next time
+# you request help, or reloaded if it has changed.
+#
+# There is no support for the img:: tag in user help files at this
+# time.
+proc helpmenu { menu homepage } {
+    menu  $menu.help
+    .menu add cascade -label Help -menu $menu.help
+    $menu.help add command -underline 0 -label "Browse" -command [list gethelp $homepage]
+    $menu.help add command -underline 0 -label "Index" -command { gethelp Index }
+    $menu.help add command -underline 0 -label "Search" -command { gethelp Search }
+    $menu.help add separator
+    $menu.help add command -underline 0 -label "About" -command { gethelp About }
+}
 
+# HELP developer
+# Usage: gethelp page
+# 
+# Used by the menu system and by the context sensitive help system to
+# load a help page.  You could also use this if you want to add a help
+# button to a dialog.
+proc gethelp {args} {
+    # ptrace
+    rename gethelp {}
+    set htext::photodir $::helpdir
+    namespace import htext::*
+    proc gethelp { args } {
+	# ptrace
+	foreach path [array names ::helpstamp] {
+	    # auto-reload help file based on modification time
+	    set stamp [file mtime $path]
+	    if { ![string equal "$stamp" "$::helpstamp($path)"] } {
+		# puts "sourcing $path"
+		source $path
+		set ::helpstamp($path) $stamp
+	    }
+	}
+	eval htext .htext $args
+    }
+    eval gethelp $args
+}
+
+# ========================== config info =============================
+# Platform font defaults
+switch $tcl_platform(platform) {
+    unix {
+	option add *Dialog.msg.font {Times -12} widgetDefault
+	option add *Dialog.msg.wrapLength 6i widgetDefault
+    }
+    windows {
+	option add *Graph.Legend.Font {Arial 7} widgetDefault
+    }
+}
+
+# HELP internal
+# Usage: tkcon
+#
+# Attach tkcon to a button, menu or keystroke to raise the Tcl
+# console window.
 proc start_tkcon {} {
     if [winfo exists .tkcon] {
 	wm deiconify .tkcon
@@ -81,46 +244,56 @@ proc start_tkcon {} {
     }
 }
 
-
-# ==================== common dialogs ==========================
-#proc notify { mesg {ok "OK"} } {
-#}
+# HELP developer
+# Usage: package_available package
 #
-#option add *Confirm*icon.bitmap questhead widgetDefault
-#option add *Confirm*mesg.wrapLength 6i widgetDefault
-#proc confirm { mesg {ok "OK"} {cancel "Cancel"} } {
-#}
+# Test whether a package is available, but do not load it.
 
-# ==================== bug reporting ============================
-# from:
-#  Harrison, M & McLennan, M (1998). Effective Tcl/Tk Programming.
-#  Addison-Wesley.
-proc email_send {to from cc subject text} {
-    set fid [open "| /usr/lib/sendmail -oi -t" "w"]
-    puts $fid "To: $to"
-    if {[string length $from] > 0} { puts $fid "From: $from" }
-    if {[string length $cc] > 0} { puts $fid "Cc: $cc" }
-    puts $fid "Subject: $subject"
-    puts $fid "Date: [clock format [clock seconds]]"
-    puts $fid "" ;# sendmail terminates header with blank line
-    puts $fid $text
-    close $fid
+proc package_available { package } {
+    return [expr { [lsearch [package names] $package] >= 0 } ]
 }
 
-proc email_bug_report { bugAddress err } {
-    global errorInfo env argv argv0
+# HELP developer
+# Usage: start_widget_browser root
+# 
+# Start the generic widget browser at the given root, or . if no
+# root is specified.
 
-    set bugReport $errorInfo
-
-    set question "Unexpected error:\n$err\n\n"
-    append question "Select \"E-mail Bug Report\" to send a report "
-    append question "of this incident to $bugAddress."
-
-    if { [confirm $question "E-mail Bug Report" "Ignore"] } {
-
-    }
-
+proc start_widget_browser { { root . } } {
+    if { [catch {
+	if { ![info exists ::tablelist::library] } {
+	    package require tablelist 
+	    source [file join $::tablelist::library demos browse.tcl]
+	}
+	::demo::displayChildren $root
+    } msg] } { app_error $msg }
 }
+
+# HELP developer
+# Usage: app_error msg
+#
+# Display an error message. The error message may go to the console
+# or to a message box depending on how the system is configured.
+
+proc app_error { msg } {
+    tk_messageBox -icon error -message $msg -type ok
+}
+
+# HELP developer
+# Usage: app_fail msg
+#
+# Display a message and exit.  We need this because sometimes
+# we are not running on the console, so we can't rely on the
+# user seeing stdout/stderr.
+
+proc app_fail { msg } {
+    tk_messageBox -title $::argv0 -type ok -message $msg
+    exit 1
+}
+
+
+# ==================== debugging =========================
+# XXX FIXME XXX send automatic bug reports
 
 # ==================== Debugging ================================
 namespace eval ::tracing:: {
@@ -148,12 +321,41 @@ namespace eval ::tracing:: {
     }
 }
 
+# HELP internal
+# Usage: tracing level
+#
+# Turn on a tcl function trace, saying which functions are entered
+# and what values they return, up to a certain function call depth.
 proc tracing { level } { ::tracing::init $level }
 
+# HELP developer
+# Usage: ptrace
+#
+# Display the fully qualified function name and argument
+# values of the function that is executing.  By adding this
+# to the top of a function you are debugging, you immediately
+# give a context to the puts debugging statements you add to
+# the function.
+proc ptrace {} {
+    set call [info level -1]
+    set fn [uplevel [list namespace which -command [lindex $call 0]]]
+    set args [lrange $call 1 end]
+    catch { console show }
+    puts "[expr {[info level]-1}] $fn $args"
+}
 
 # =========================== greek character codes ==================
-# use $::symbol(Alpha) for uppercase alpha, $::symbol(alpha) for
-# lowercase alpha, and so on for the rest of the greek alphabet
+# HELP user
+# Usage: symbol
+#
+# Array of strings representing Greek and math characters.
+#
+# Use $::symbol(Alpha) for uppercase alpha, $::symbol(alpha) for
+# lowercase alpha, and so on for the rest of the greek alphabet.
+#
+# For a complete list of characters, type the command:
+#
+#   parray ::symbol
 array set symbol {
     angstrom      \xc5
     squared       \xb2
@@ -179,38 +381,51 @@ array set symbol {
 
 # ========================== numeric ================================
 
-# given the data limits [min,max], round value to the nearest three
-# digits of accuracy.  For example, for limits of [ 0.175, 0.197 ]
-# the data range is 0.022, and 1 digit of accuracy would be rounding
-# to the nearest 0.01, 2 digits would be rounding to the nearest
-# 0.001 and three digits would be rounding to the nearest 0.0001.
-# XXX FIXME XXX - do we really want to limit ourselves to 3 digits?
+# HELP developer
+# Usage: fix value ?min ?max ?digits
+#
+# Round a data value to the specified number of digits (default 3).
+# For example, for limits of [ 0.175, 0.197 ] the data range
+# is 0.022, so 1 digit of accuracy would be rounding to the
+# nearest 0.01, 2 digits would be rounding to the nearest 0.001
+# and three digits would be rounding to the nearest 0.0001.
+# If min or max are not specified, reasonable values are chosen.
 proc fix { value {min {}} {max {}} {accuracy 3}} {
-    if { $max == "" } { set max $value }
-    if { $min == "" } { set min $value }
-    if { $max == $min } { set min 0.0 ; set max [expr abs($max)] }
+    if { [string equal {} $max] } { set max $value }
+    if { [string equal {} $min] } { set min $value }
+    if { $max == $min } { set min 0.0 ; set max [expr {abs($max)}] }
     if { $max == $min } { set max 1.0 }
-    set scale [expr pow(10,ceil(log10($max-$min))-$accuracy)]
-    return [expr round($value/$scale)*$scale]
+    set scale [expr {pow(10,ceil(log10($max-$min))-$accuracy)}]
+    return [expr {round($value/$scale)*$scale}]
 }
 
-## Usage: makereal a
-## Force the number $a to include a decimal point.  We need this because
-## without a decimal point fortran formatted input assumes one at the user
-## specified precision.
+# HELP developer
+# Usage: makereal a
+#
+# Force the number a to include a decimal point.  We need this because
+# without a decimal point fortran formatted input assumes one at the user
+# specified precision.
 proc makereal {a} {
     if { [string match $a {}] } { set a 0 }
+    #return [ expr {double($a)} ]
     return [ format %.15e $a ]
 }
 
-## Usage: makeint a
-## Round the value $a and return the nearest integer.
+# HELP developer
+# Usage: makeint a
+#
+# Round the value a and return the nearest integer.
 proc makeint {a} {
     if { [string match $a {}] } { set a 0 }
-    return [ format %.0f $a ]
+    return [ expr {round($a)} ]
 }
 
-## Since when is {} a double value?  Grrr...
+# HELP developer
+# Usage: string_is_double a
+#
+# Returns true if the string could be a double value.  Note that
+# unlike [string is double $a], string_is_double does not consider
+# the empty string to be a double value.  Grrr...
 proc string_is_double { a } {
     if [string equal $a {}] { return 0 }
     return [string is double $a]
@@ -218,24 +433,36 @@ proc string_is_double { a } {
 
 
 
-# ======================= blt additions ==============================
+# ======================= vector ops ==============================
 
+# HELP user
+# Usage: cumsum x
+#
+# Apply the cumulative sum operator to a vector.
 proc cumsum { x } {
     set n [ $x length ]
     set sum 0.0
     for { set i 0 } { $i < $n } { incr i } {
-	set ${x}($i) [set sum [expr $sum + [set ${x}($i)]]]
+	set ${x}($i) [set sum [expr {$sum + [set ${x}($i)]}]]
     }
 }
 
+# HELP developer
+# Usage: vector_exists
+#
+# Returns true if the named vector exists
 proc vector_exists { x } {
-    return [expr ![string equal {} [vector names $x]]]
+    return [expr {![string equal {} [vector names $x]]}]
 }
 
 # ====================== date conversion =============================
 
-# Grrr... [clock scan "Jul  8 1996"] fails
-# Grrr... [clock scan ""] doesn't fail
+# HELP developer
+# Usage: clock_scan date
+#
+# Like [clock scan $date] except that
+#     clock_scan "Jul  8 1996" is a valid date
+#     clock_scan "" is not a valid date
 proc clock_scan { date } {
     if { [string equal {} $date] } {
 	error "unable to convert date-time string \"\""
@@ -251,6 +478,20 @@ proc clock_scan { date } {
 
 # ====================== octave colormaps ===========================
 
+# HELP internal
+# Usage: load_colormaps
+#
+# Load the list of available colormaps from the resource file using
+# option colormapList ColormapList.  The names in this list can
+# refer to other resource file options colormap$name Colormap$name.
+# These names can expand to any octave expression which returns a valid
+# colormap, such as gray(64).  Otherwise, the name itself is used.
+# Builtin colormaps include: hot cool gray ...
+# See the code for the rest.
+#
+# The resulting names are loaded into ::colormap_list, and values
+# are loaded into ::colormap_defs($name).
+
 # XXX FIXME XXX perhaps these should be in octave.tcl?
 proc load_colormaps {} {
     if { ![info exists ::colormap_list] } {
@@ -258,9 +499,9 @@ proc load_colormaps {} {
 	# Load predefined colormap table
 	set ::colormap_list [option get . colormapList ColormapList]
 	if { [llength $::colormap_list] == 0 } {
-	    set ::colormap_list { 
-		hot cool spring winter summer autumn bone ocean 
-		copper prism flag hsv gray pink blue 
+	    set ::colormap_list {
+		hot cool spring winter summer autumn bone ocean
+		copper prism flag hsv gray pink blue
 	    }
 	}
 	foreach map $::colormap_list {
@@ -275,6 +516,14 @@ proc load_colormaps {} {
     return $::colormap_list
 }
 
+# HELP developer
+# Usage: set_colormap name
+#
+# Sets the octave colormap to name.  If ::colormap_defs($name), the
+# expression therein is used, otherwise colormap(name) is used
+# directly.
+#
+# See psd.tcl(::psd::init) for an example.
 proc set_colormap {name} {
     if { [info exists ::colormap_defs($name)] } {
 	set name $::colormap_defs($name)
@@ -285,7 +534,11 @@ proc set_colormap {name} {
 
 
 # ====================== array functions =============================
-# return index of an occurrence of $value in the named array
+# HELP developer
+# Usage: asearch arrayname value
+#
+# Reverse lookup into an associative array.
+#
 # XXX FIXME XXX This should accept -exact/-glob/-regexp like lsearch
 # XXX FIXME XXX Both asearch and lsearch should be returning lists!
 # XXX FIXME XXX Returns an incorrect result if value matches an index name
@@ -294,50 +547,24 @@ proc asearch { array value } {
     upvar $array a
     set list [array get a]
     set idx [lsearch -exact $list $value]
-    return [lindex $list [expr $idx - 1]]
-}
-
-# =================== resources for text tags ==========================
-# Labouriously check the resource file for the following tag options:
-set ::texttagoptions {
-    background Background
-    bgstipple Bgstipple
-    borderWidth BorderWidth
-    elide Elide
-    fgstipple Fgstipple
-    font Font
-    foreground Foreground
-    justify Justify
-    lMargin1 Margin
-    lMargin2 Margin
-    offset Offset
-    overstrike Overstrike
-    relief Relief
-    rMargin Margin
-    spacing1 Spacing
-    spacing2 Spacing
-    spacing3 Spacing
-    tabs Tabs
-    underline Underline
-    wrap Wrap
-}
-proc texttagoption { w tag } {
-    foreach { name class } $::texttagoptions {
-	set opt [option get $w $tag-$name $tag-$class]
-	if { [llength $opt] == 0 } { 
-	    set opt [option get $w Tag-$name Tag-$class ] 
-	}
-	if { [llength $opt] > 0 } {
-	    $w tag configure $tag -[string tolower $name] $opt
-	}
-    }
+    return [lindex $list [expr {$idx - 1}]]
 }
 
 # =================== PanedWindow resource handling ====================
-# process resource file entries for PanedWindow, since BWidget doesn't
-# do it
+# HELP developer
+# Usage: sashconf w
+# 
+# BWidget does not use the option database for its widgets.  This 
+# procedure replaces the configuration options used by BWidget for
+# setting the sash properties of a PanedWindow with resources from
+# the database.  Use the following database resources:
+#
 #   *sash1.but.size: long wide
 #   *sash1.but.background: color
+#
+# XXX FIXME XXX we should probably use $w.sashsize and $w sashbackground
+# rather than exporting details of the PanedWindow hierarchy to the
+# resource file, but that's a project for another day.
 proc sashconf { w } {
     set size [option get $w.sash1.but size Size]
     if { [llength $size] == 1 } {
@@ -366,7 +593,10 @@ proc sashconf { w } {
 }
 
 # =================== listbox operations ======================
-## Usage: listbox_ordered_insert .path_to_listbox item
+# HELP developer
+# Usage: listbox_ordered_insert .path_to_listbox item
+# 
+# Put the item into the listbox in alphabetical order
 proc listbox_ordered_insert { w item } {
     set len [ $w size ]
     for { set idx 0 } { $idx < $len } { incr idx } {
@@ -376,10 +606,13 @@ proc listbox_ordered_insert { w item } {
     return $idx
 }
 
-## Usage: listbox_delete_pattern .path_to_listbox name
+# HELP developer
+# Usage: listbox_delete_by_name .path_to_listbox name
+# 
+# Remove an item from a listbox according to the item name.
 proc listbox_delete_by_name { w item } {
     set len [ $w size ]
-    for { set idx [expr $len - 1] } { $idx >= 0 } { incr idx -1 } {
+    for { set idx [expr {$len - 1}] } { $idx >= 0 } { incr idx -1 } {
 	if { [string equal $item [ $w get $idx ]] } {
 	    $w delete $idx
 	}
@@ -387,108 +620,85 @@ proc listbox_delete_by_name { w item } {
 }
 
 # =================== scrolled window helper functions =================
-## Usage: scroll .path_to_widget ...
-##        vscroll .path_to_widget ...
-##        hscroll .path_to_widget ...
-## Create a new frame for the widget and scroll bars and pack it.
-## The widget and frame are packed using "-fill both -expand yes".
-## Additional arguments to the command are used to pack the frame.
-## Scroll bars are automatically displayed or hidden depending on
-## the space available to the frame and the size of the widget.
+# HELP developer
+# Usage: scroll .path_to_widget ?-scrollbar [vertical|horizontal]?
+#        vscroll .path_to_widget
+#        hscroll .path_to_widget
+# Returns a scrolled frame containing the widget which can be used
+# directly to place the widget in grid or pack.  This widget will 
+# be named .path_to_widget#box.
+#
+# E.g.,
+#    toplevel .test
+#    grid [label .test.textlabel -text "Text box"] -sticky ew
+#    grid [scroll [text .test.text -wrap none]] -sticky news
+#    grid columnconf .test 0 -weight 1
+#    grid rowconf .test 1 -weight 1
+#    .test.text insert end "Here you will see
+# a bunch of text
+# that I insert into my
+# window to test that the
+# scrollbars are working
+# as expected.
+#
+# Resize the box to see
+# them in action."
+
+
 proc scroll { w args } {
-    ScrolledWindow ${w}#box
-    ${w}#box setwidget $w
+    eval [linsert $args 0 ScrolledWindow ${w}#box]
+    $w#box configure -borderwidth [$w cget -borderwidth] -relief [$w cget -relief]
+    $w configure -borderwidth 0
+    $w#box setwidget $w
     raise $w
-    eval pack ${w}#box -fill both -expand yes $args
+    return $w#box
 }
-proc vscroll { w args } {
-    ScrolledWindow ${w}#box -scrollbar vertical
-    ${w}#box setwidget $w
-    raise $w
-    eval pack ${w}#box -fill both -expand yes $args
-}
-proc hscroll { w args } {
-    ScrolledWindow ${w}#box -scrollbar horizontal
-    ${w}#box setwidget $w
-    raise $w
-    eval pack ${w}#box -fill both -expand yes $args
-}
-## Usage: scrollwin .path_to_widget
-##        vscrollwin .path_to_widget
-##        hscrollwin .path_to_widget
-## Returns a scrolled frame containing the widget which can be used
-## directly to place the widget in a grid.  This widget will be named
-## .path_to_widget#box.
-##
-## E.g.,
-if { 0 } {
-    toplevel .test
-    grid [label .test.textlabel -text "Text box"] -sticky ew
-    grid [scrollwin [text .test.text -wrap none]] -sticky news
-    grid columnconf .test 0 -weight 1
-    grid rowconf .test 1 -weight 1
-    .test.text insert end "Here you will see
-a bunch of text
-that I insert into my
-window to test that the
-scrollbars are working
-as expected.
-
-Resize the box to see
-them in action."
-
-}
-proc scrollwin { w } {
-    ScrolledWindow ${w}#box
-    ${w}#box setwidget $w
-    raise $w
-    return ${w}#box
-}
-proc vscrollwin { w } {
-    ScrolledWindow ${w}#box -scrollbar vertical
-    ${w}#box setwidget $w
-    raise $w
-    return ${w}#box
-}
-proc hscrollwin { w } {
-    ScrolledWindow ${w}#box -scrollbar horizontal
-    ${w}#box setwidget $w
-    raise $w
-    return ${w}#box
-}
+proc vscroll { w } { return [scroll $w -scrollbar vertical] }
+proc hscroll { w } { return [scroll $w -scrollbar horizontal] }
 
 # ==================== text widget helper functions ====================
 
-## Usage: text_replace .path_to_text_widget "new text value"
-## replace the text in the widget with the new text value
+# HELP developer
+# Usage: text_replace .path_to_text_widget "new text value"
+#
+# replace the text in the widget with the new text value
 proc text_replace {w str} {
     set state [ $w cget -state ]
     $w conf -state normal
     $w delete 0.0 end
     $w insert 0.0 $str
     $w conf -state $state
+    catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_append .path_to_text_widget "new text"
-## append new text on the end of the text in the widget
+# HELP developer
+#
+# Usage: text_append .path_to_text_widget "new text"
+# append new text on the end of the text in the widget
 proc text_append {w str} {
     set state [ $w cget -state ]
     $w conf -state normal
     $w insert end $str
     $w conf -state $state
+    catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_clear .path_to_text_widget
-## clear the text out of the widget
+# HELP developer
+# Usage: text_clear .path_to_text_widget
+#
+# clear the text out of the widget
 proc text_clear {w} {
     set state [ $w cget -state ]
     $w conf -state normal
     $w delete 0.0 end
     $w conf -state $state
+    catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_load .path_to_text_widget "filename"
-## replace the text in the widget with the contents of the file
+# HELP developer
+# Usage: text_load .path_to_text_widget "filename"
+#
+# replace the text in the widget with the contents of the file
 proc text_load {w file} {
     if [ catch { open $file r } fid ] {
 	text_replace $w {}
@@ -496,9 +706,14 @@ proc text_load {w file} {
 	text_replace $w [ read $fid ]
 	close $fid
     }
+    catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
 # ========================= List functions ========================
+# HELP developer
+# Usage: ldelete list value
+#
+# Delete a particular value from a list
 proc ldelete { list value } {
     set index [ lsearch -exact $list $value ]
     if { $index >= 0 } {
@@ -510,75 +725,117 @@ proc ldelete { list value } {
 
 
 #========================= BLT graph functions =====================
+# HELP developer
+# Usage: zoom w on|off
+#
 # To suppress the zoom action on the graph when you are twiddling the
-# marker and legend, set zoom off on the Button-1 event and zoom on
-# on the ButtonRelease-1 event for the marker/legend.
+# marker and legend, be sure to call zoom off on the the Button-1 
+# event and zoom on on the ButtonRelease-1 event for the marker/legend.
 # XXX FIXME XXX there must be a better way to do this
 proc zoom { w state } {
-    if { ! [info exists ::zoomsave($w)] } {
-	set ::zoomsave($w) [ bind zoom-$w <Button-1> ]
-    }
     switch $state {
-	"off" { bind zoom-$w <Button-1> {} }
-	"on" { bind zoom-$w <Button-1> $::zoomsave($w) }
+	"off" { blt::RemoveBindTag $w zoom-$w }
+	"on" { blt::AddBindTag $w zoom-$w }
 	default { error "{on|off}" }
     }
 }
 
-# active_legend graph ?callback
+
+# HELP developer
+# Usage: active_legend graph ?callback
 #
-# Highlights the legend entry when the user moves over the line in the 
-# graph, and toggles the line when the user clicks on the legend entry.
+# Highlights the legend entry when the user mouses over the line in the
+# graph.  Toggles the line when the user clicks on the legend entry.
 #
 # If a callback is provided it will be called after showing/hiding with
 #    eval callback graph elem ishidden
 # where ishidden is the new state of the element.
 #
-# XXX FIXME XXX consider highlighting the current line when the user
-# mouses over its legend entry
-proc active_legend {w {command ""} } {
+# To highlight the current line when the user mouses over its
+# legend entry, add the following:
+option add *Graph.LegendHide {-labelrelief flat} widgetDefault
+option add *Graph.LegendShow {-labelrelief raised} widgetDefault
+option add *Graph.Legend.activeRelief raised widgetDefault
+option add *Graph.Element.labelRelief raised widgetDefault
+
+proc active_legend {w {command ""}} {
+    set ::legend_command($w) $command
     $w legend conf -hide 0
-    $w legend bind all <Button-1> "zoom %W off ; legend_toggle %W {$command}"
+    $w legend bind all <Button-1> { zoom %W off ; legend_toggle %W }
     $w legend bind all <ButtonRelease-1> { zoom %W on }
-    $w element bind all <Enter> {
-	%W legend activate [%W element get current]
-    }
-    $w element bind all <Leave> {
-	%W legend deactivate [%W element get current]
-    }
+    $w elem bind all <Enter> { %W legend activate [%W elem get current] }
+    $w elem bind all <Leave> { %W legend deactivate [%W elem get current] }
+    $w legend bind all <Enter> { %W elem activate [%W legend get current] }
+    $w legend bind all <Leave> { %W elem deactivate [%W legend get current] }
 }
-proc legend_toggle {w {command ""}} {
+
+# elem conf -hide now hides the legend entry.  Instead of hiding
+# the line, we will replace its x-vector with _legend_hidden, and set
+# the element bindtag to {legend_hidden xdata-value}.  AFAICT, it won't
+# hurt anything since the bind tag is never bound, and it has the
+# advantage over a global variable in that it will be freed with the
+# element.
+blt::vector _legend_hidden
+proc legend_toggle {w} {
     set line [$w legend get current]
-    set state [expr 1 - ![string is true [$w elem cget $line -hide]]]
-    legend_set $w $line $state $command
+    legend_set $w $line [legend_hidden $w $line]
 }
 
-proc legend_set {w line state {command ""}} {
-    if { [string is true $state] } { 
+proc legend_hidden {w line} {
+    return [expr {[string equal ::_legend_hidden [$w elem cget $line -xdata]]}]
+}
+
+proc legend_set {w line state} {
+    set tags [$w elem cget $line -bindtags]
+    set idx [lsearch $tags legend_hidden*]
+    set hidden [legend_hidden $w $line]
+    if { [string is true $state] } {
+	if { !$hidden } { return }
 	set hide 0
-	set relief raised
+	# assert { $idx >= 0 }
+	if { $idx >= 0 } {
+	    eval $w elem conf $line [lrange [lindex $tags $idx] 1 end]
+	}
+	eval $w elem conf $line [option get $w legendShow LegendShow]
     } else {
+	if { $hidden } { return }
 	set hide 1
-	set relief flat
+	set hiddentag [list legend_hidden \
+		-xdata [$w elem cget $line -xdata] \
+		-color [$w elem cget $line -color] \
+		-outline [$w elem cget $line -outline] \
+		-fill [$w elem cget $line -fill] ]
+	$w elem conf $line -xdata ::_legend_hidden
+	$w elem conf $line -color [$w cget -background]
+	$w elem conf $line -outline [$w cget -background]
+	$w elem conf $line -fill [$w legend cget -background]
+	if { $idx >= 0 } {
+	    set tags [lreplace $tags $idx $idx $hiddentag]
+	} else {
+	    set tags [linsert $tags 0 $hiddentag]
+	}
+	$w elem conf $line -bindtags $tags
+	eval $w elem conf $line [option get $w legendHide LegendHide]
     }
-    # puts "legend_toggle $w $line -> $hide"
-    $w elem conf $line -labelrelief $relief -hide $hide
-    if ![string equal {} $command] {
-	eval $command $w $line $hide
+    if ![string equal {} $::legend_command($w)] {
+	eval $::legend_command($w) $w $line [expr {!$hidden}]
     }
 }
 
-# active_axis graph axis ?callback
+# HELP developer
+# Usage: active_axis graph axis ?callback
 #
 # Makes the specified axis for the graph "active" so that left click
 # toggles log/linear scaling and right click hides/shows all the lines
 # associated with that axis.
 #
+# For right-click to work, you must be using active_legend.
+#
 # If a callback is provided it will be called after hiding/showing with
 #    eval callback graph axis ishidden
 # where ishidden is the new state of the axis.  There is no
 # callback when logscale is changed.
-proc active_axis {w axis {command ""} } {
+proc active_axis {w axis} {
     $w axis bind $axis <Enter> {
 	set axis [%W axis get current]
 	%W axis configure $axis -background lightblue2
@@ -596,9 +853,10 @@ proc active_axis {w axis {command ""} } {
 	}
 	%W axis configure $axis -logscale $logscale
     }
+
     $w axis bind $axis <3> { axis_toggle %W }
 }
-proc axis_toggle {w {command ""}} {
+proc axis_toggle {w} {
     set axis [$w axis get current]
     # find all elements which use the current axis
     set map {}
@@ -613,26 +871,11 @@ proc axis_toggle {w {command ""}} {
 	}
     }
     # find if any of these elements are hidden
-    set hide 1
-    foreach elem $map {
-	if {[$w elem cget $elem -hide]} { set hide 0; break }
-    }
+    set state 0
+    foreach elem $map {	if {[legend_hidden $w $elem]} { set state 1; break } }
+
     # hide/show all elements associated with the axis
-    # XXX FIXME XXX Grrr... cross talk between active_axis and active_legend
-    # Is there some sort of element "hide" event that the active legend can
-    # bind to?
-    if { $hide } {
-	set relief flat
-    } else {
-	set relief raised
-    }
-    foreach elem $map {
-	$w elem conf $elem -hide $hide -labelrelief $relief
-    }
-    # callback to let the application know which axis was toggled
-    if ![string equal {} $command] {
-	eval $command $w $axis $hide
-    }
+    foreach elem $map { legend_set $w $elem $state }
 }
 
 # graph_select .graph.widget {x1 y1 name1} {x2 y2 name2} ...
@@ -659,8 +902,11 @@ bind graph_select <B1-ButtonRelease> {graph_select_release %W %x %y; break}
 bind graph_select <B3-ButtonRelease> {graph_select_cancel %W; break}
 option add *Graph.selectPointText.Coords {-Inf -Inf} widgetDefault
 option add *Graph.selectPointText.Anchor sw widgetDefault
-option add *Graph.selectPointText.Justify left widgetDefault
 option add *Graph.selectPointText.Under 1 widgetDefault
+# option add *Graph.Interpolate no widgetDefault
+option add *Graph.showErrorbars both widgetDefault
+option add *Graph.Crosshairs off widgetDefault
+option add *Graph.Axis.ScrollIncrement 1 widgetDefault
 
 proc graph_select { w args } {
     set ::graph_select(focus,$w) [focus]
@@ -677,37 +923,48 @@ proc graph_select { w args } {
 proc graph_select_motion {w x y} {
     # puts "graph_select_motion"
     eval $w element deactivate [$w elem names]
-    foreach line [array names ::graph_select "active*,$w"] { 
-	eval $w element activate [string map [list active {} ",$w" {}] $line] $::graph_select($line) 
+    foreach line [array names ::graph_select "active*,$w"] {
+	eval $w element activate [string map [list active {} ",$w" {}] $line] $::graph_select($line)
     }
-    $w element closest $x $y where -halo 1i
+    # XXX FIXME XXX -along doesn't seem to work in blt 2.4z. When it is fixed,
+    # uncomment it where it occurs in this file and in viewrun.tcl.  May need
+    # the interpolate keyword as well.
+    $w element closest $x $y where -halo 1i ;#\
+	    -along [option get $w interpolate Interpolate]
     if { [info exists where(x)] } {
+        # XXX FIXME XXX the use of int(idx) is completely bogus
+        # but for some reason on Windows the element at index 10
+        # sometimes fails in Tcl_ExprLong(), even when used in
+        # a context such as 0+10+0.  I cannot reproduce this
+        # behaviour outside of reflred, but within reflred it is
+        # consistent across graphs.  Go figure!
 	#puts "activating $where(name) $where(index)"
 	if [info exists ::graph_select(active$where(name),$w)] {
-	    eval $w element activate $where(name) $::graph_select(active$where(name),$w) $where(index)
-        } else {	
-	    $w elem activate $where(name) $where(index)
+	    eval $w element activate $where(name) $::graph_select(active$where(name),$w) int($where(index))
+        } else {
+	    $w elem activate $where(name) int($where(index))
         }
     }
 }
 
 proc graph_select_press {w x y} {
-    $w element closest $x $y where -halo 1i
+    $w element closest $x $y where -halo 1i ;#\
+	    -interpolate [option get $w.Interpolate]
     if { [info exists where(x)] } {
 	#puts "graph_select_press setting [lindex $::graph_select(points,$w) 0] $where(x)"
-	foreach {x y el} [lindex $::graph_select(points,$w) 0] {}
+	foreach {x y el} [lindex $::graph_select(points,$w) 0] break
 	set ::graph_select(points,$w) [lrange $::graph_select(points,$w) 1 end]
-	if {![string equal $x {}]} { uplevel #0 set $x $where(x) }
-	if {![string equal $y {}]} { uplevel #0 set $y $where(y) }
-	if {![string equal $el {}]} { uplevel #0 set $el $where(name) }
-	lappend ::graph_select(active$where(name),$w) $where(index)
+	if {![string equal $x {}]} { uplevel #0 [list set $x $where(x)] }
+	if {![string equal $y {}]} { uplevel #0 [list set $y $where(y)] }
+	if {![string equal $el {}]} { uplevel #0 [list set $el $where(name)] }
+	lappend ::graph_select(active$where(name),$w) [expr $where(index)]
     }
 }
 
 proc graph_select_release {w x y} {
      #puts "graph_select_release with $::graph_select(points,$w)"
-    if {[llength $::graph_select(points,$w)] == 0} { 
-	graph_select_cancel $w 
+    if {[llength $::graph_select(points,$w)] == 0} {
+	graph_select_cancel $w
     } else {
 	$w marker conf selectPointText \
 		-text "Click to select [lindex $::graph_select(points,$w) 0]\nRight-Click to cancel"
@@ -721,24 +978,116 @@ proc graph_select_cancel {w} {
     eval $w element deactivate [$w elem names]
     bindtags $w [ldelete [bindtags $w] graph_select]
     grab release $w
-    catch { 
+    catch {
 	raise [winfo toplevel $::graph_select(focus,$w)]
-	focus $::graph_select(focus,$w) 
+	focus $::graph_select(focus,$w)
     }
     array unset ::graph_select *,$w
 }
 
+proc active_graph {w args} {
+
+    switch -- $args {
+        marker { return [set ::marker-$w] }
+        element { return [set ::element-$w] }
+    }
+    set ::element-$w {}
+    set ::marker-$w {}
+
+    # Define the standard menu
+    menu $w.menu -tearoff 1 -title "$w controls"
+    $w.menu add command -underline 0 -label "Unzoom" -command "blt::ResetZoom $w"
+    $w.menu add command -underline 2 -label "Pan" -command "pan::pan start $w"
+    $w.menu add command -underline 5 -label "Crosshairs" -command "$w crosshairs toggle"
+    if [blt_errorbars] {
+	set ::errbar-$w [option get $w showErrorBars ShowErrorBars]
+	$w.menu add command -underline 0 -label "Error bars" \
+		-command "graph_toggle_error $w"
+    }
+    $w.menu add command -underline 0 -label "Grid" -command "$w grid toggle"
+    if { [string equal windows $::tcl_platform(platform)] } {
+        $w.menu add command -underline 3 -label "Copy" -command "$w snap -format emf CLIPBOARD"
+    }
+    $w.menu add command -underline 0 -label "Print" -command "PrintDialog$w"
+
+    # Add zoom capability to graph, but use the menu to unzoom
+    Blt_ZoomStack $w
+    # bind zoom-$w <ButtonPress-2> [bind zoom-$w <ButtonPress-3>]
+    bind zoom-$w <ButtonPress-3> {}
+    bind $w <ButtonPress-3> {
+	if {[%W inside %x %y]} {
+            set ::marker-%W [%W marker get current]
+            set ::element-%W [%W element get current]
+            tk_popup %W.menu %X %Y 1
+        }
+    }
+
+    # Add panning capability
+    ::pan::pan bind $w
+}
+
+proc graph_toggle_error {w} {
+    if { [blt_errorbars] } {
+	# XXX FIXME XXX this toggles between both/none.  There are also
+	# options for x-only or y-only, but we will ignore these.  If your
+	# data only has x or y errors, then both/none will work fine.
+	if {[string equal [set ::errbar-$w] none]} {
+	    set ::errbar-$w both
+	} else {
+	    set ::errbar-$w none
+	}
+	foreach el [$w element names] {
+	    $w elem conf $el -showerrorbars [set ::errbar-$w]
+	}
+    }
+}
+
+# HELP developer
+# Usage: blt_errorbars
+#
+# Returns true if you can use -yerror as an option to the blt graphs
+proc blt_errorbars {} {
+    # Determine if this version of BLT handles error bars
+    graph .blt_errorbars
+    set status [expr {![ catch {.blt_errorbars elem create hello -yerror 1 }]}]
+    destroy .blt_errorbars
+
+    # Cache the result of the test for future queries
+
+    proc blt_errorbars {} "return $status"
+
+    # Return the result
+    return $status
+}
+
+# HELP developer
+# Usage graph_error .graph elem ?-xerror value ?-yerror value
+#
+# Associates error bars with the line.  Whether the error bars are
+# shown depends on whether your version of BLT supports error bars
+# and whether the
+proc graph_error {w el args} {
+    if { [blt_errorbars] } {
+	eval $w elem conf $el $args -showerrorbars [set ::errbar-$w]
+    }
+}
 
 # ========================= Forms interface =======================
 
-# addfields .pathtoframe { field field ... }
-# where field is
-#      { real variable label units }
-#      { string variable label comments }
-#      { bool variable label }
+# HELP developer
+# Usage: addfields .pathtoframe { field field ... }
+#
+#     where field is
+#      { real variable label units help }
+#      { string variable label comments help }
+#      { bool variable label help }
+#
 # Primitive form layout manager
 # Variable is placed in widget named .pathtoframe.variable
 # Uses grid packing manager (3 columns)
+
+# We can do a lot better here.  E.g., mini.net/tcl/layout
+# but I'm sure we can do better than that.
 
 proc addfields { frame fields } {
     foreach f $fields {
@@ -746,24 +1095,31 @@ proc addfields { frame fields } {
 	    string -
 	    real { # variable label units
 		set vname [lindex $f 1]
+		set label [lindex $f 2]
+		set units [lindex $f 3]
+		set help [lindex $f 4]
 		set lidx $frame.$vname-label
-		label $lidx -text [lindex $f 2]
+		label $lidx -text $label
 		set eidx $frame.$vname
-		entry $eidx -textvariable [lindex $f 1]
-		if { [ lindex $f 3 ] != "" } {
+		entry $eidx -textvariable $vname
+		if { $units != "" } {
 		    set uidx $frame.$vname-units
-		    label $uidx -text [lindex $f 3]
+		    label $uidx -text $units
 		} else {
 		    set uidx -
 		}
+		if { $help != "" } { balloonhelp $frame.$vname-label $help }
 		grid $lidx $eidx $uidx -sticky w
 	    }
 
 	    bool { # variable label
 		set vname [lindex $f 1]
+		set label [lindex $f 2]
+		set help [lindex $f 3]
 		set idx $frame.$vname
-		checkbutton $idx -text [lindex $f 2] -variable $vname
+		checkbutton $idx -text $label -variable $vname
 		grid $idx - - -sticky w
+		if { $help != "" } { balloonhelp $frame.$vname $help }
 	    }
 	    default {
 		# set { set of check buttons }
@@ -775,323 +1131,16 @@ proc addfields { frame fields } {
     }
 }
 
-# ===================== TkTable Entry ======================
 
-## Use the entry widget for TkTable entries rather than letting
-## TkTable fake its own. Use
-##
-##      table_entry path set
-##
-## where path is a tktable table widget and set is an optional
-## command to get/set entries.
-##
-## The following substitutions are done on the set command:
-##     %r   row containing entry
-##     %c   column containing entry
-##     %C   %r,%c
-##     %W   path to the table
-##     %i   0 if get, 1 if set
-##     %s   old value (if get, this is the value displayed in the table)
-##     %S   new value (if get, this is "")
-##
-## On get, the get/set command should return the value to edit.
-## On set, it should return the value to display.  These need
-## not be the same.  For example, the display value may be chopped
-## to 4 significant figures, but all the digits are retained and
-## available for editting.  Or the display value is the number,
-## but the stored entry is a command such as =A6 which gets
-## displayed as the contents of row 1, column 6 of the table.
-##
-## If set raises an error we catch the error, ring the bell, and
-## continue editting.  That way set can be used to validate the
-## entries.  We could also catch and display the message instead
-## of ringing the bell to give the user more feedback, but this
-## should be a user preference.
-##
-## The set command will only be called for edittable cells, not
-## for title or disabled cells.  For example, to disable cell 3,3
-## use $w tag cell disabled 3,3.
-
-## TODO: allow different widget types for each row/column/cell.
-
-proc table_entry { w { getset "" } } {
-
-    ## need a widget to edit with
-    entry $w.entry
-
-    ## Because all widget bindings are processed before any
-    ## class bindings, the generic KeyPress event for the
-    ## widget gets processed before the specific Up, Down,
-    ## Right, Left, etc. for the class.  To get around this,
-    ## we make all the class bindings into widget specific
-    ## bindings which immediately fall through to the class
-    ## bindings so that the generic action for the widget
-    ## doesn't get invoked if a more specific action for the
-    ## class is defined.  This will ONLY handle specific Key
-    ## bindings for Table at the time that this is called.
-    foreach seq [bind Table] { 	bind $w $seq { continue }  }
-
-    # Note: use [string map {% %%} $getset] so that the bind command doesn't
-    # expand the getset command options for us
-    set ::getset-$w $getset
-    set save "table_entry::_save $w"
-
-    # XXX FIXME XXX need to grab in cell/focus change requests from $w
-    # while editting is in progress and either beep if the current cell
-    # value is invalid, or move the edit widget if the value is good
-    bind $w <Return> "table_entry::_edit %W; break"
-    bind $w <Shift-Tab> { puts "backtab in \$w" }
-    bind $w <KeyPress> "table_entry::_new %W %A ; break"
-    bind . <Shift-Tab> { puts "backtab in ." }
-    bind $w <ButtonRelease-1> "%W activate @%x,%y; table_entry::_edit %W"
-    bind $w.entry <Escape> "table_entry::_abort $w"
-    bind $w.entry <Return> "$save"
-#    bind $w.entry <Shift-Return> "$save up"
-    bind $w.entry <Tab> "$save right ; break"
-    bind $w.entry <Shift-Tab> "puts backtab; $save left ; break"
-    bind $w.entry <Up> "$save up"
-    bind $w.entry <Down> "$save down"
-
-    set ::window-$w {}
-}
-
-namespace eval table_entry {}
-
-# called when user starts typing a new value
-proc table_entry::_new { w char } {
-#   puts "[info level 0] [.layertable index active]"
-    # ignore titles and disabled fields
-    if { ![_can_edit $w active] } { return }
-
-    # put the user into an edit widget with the cursor at the end
-    $w.entry delete 0 end
-    $w.entry insert end $char
-    $w window conf active -window $w.entry -sticky news
-    focus $w.entry
-}
-
-# called when user wants to edit an existing value
-proc table_entry::_edit { w } {
-#   puts "[info level 0] [$w index active]"
-
-    # trying to edit a new cell before exitting the old cell
-    if { [llength [set ::window-$w]] > 0 } {
-	if { ![_can_edit $w active] } {
-	    $w activate [set ::window-$w]
-	    focus $w.entry
-	    return
-	} else {
-	    # XXX FIXME XXX yuck! _edit calls _save which calls _edit
-	    # need to do some refactoring here
-	    _save $w [$w index active]
-	    return
-	}
-    }
-
-    # don't edit title fields or disabled fields
-    if { ![_can_edit $w active] } { return }
-
-    # the value being editted may not correspond to the value
-    # being displayed (e.g., =A1 is the stored value but 3.14
-    # is the displayed value) so ask the caller for a new value
-    $w.entry delete 0 end
-    if { ![string equal {} [set ::getset-$w]] } {
-	set row [$w index active row]
-	set col [$w index active col]
-	set map [list %c "$col" %r "$row" %C "$row,$col" %W "$w" %i 0 \
-		%s "[$w curval]" %S "{}"]
-	$w.entry insert end [eval [string map $map [set ::getset-$w]]]
-    } else {
-	$w.entry insert end [$w curval]
-    }
-    $w.entry selection range 0 end
-
-    # put the user in an edit widget with the cursor at the end
-    $w window conf active -window $w.entry -sticky news
-    set ::window-$w [$w index active]
-    focus $w.entry
-}
-
-# called when the user wants to revert to the original value
-proc table_entry::_abort { w } {
-#   puts "[info level 0] [$w index active]"
-    # XXX FIXME XXX ick! Can't we just reload the value?
-    $w activate [set ::window-$w]
-    set ::window-$w {}
-    $w window conf active -window {}
-    _edit $w
-    # focus $w
-}
-
-# called when the user is done editting and wants to save changes
-# make sure that valid values are being entered into the table, and
-# update the graph when the value changes
-proc table_entry::_save { w {move ""}} {
-#   puts "[info level 0] [$w index active]"
-
-    set val    [$w.entry get]
-
-    #XXX FIXME XXX should move the entry rather than using -window {}
-    #otherwise window names continues to grow
-    #puts "window names: [$w window names]"
-    set row    [$w index [set ::window-$w] row]
-    set col    [$w index [set ::window-$w] col]
-    set top    [$w index origin row]
-    set bottom [$w index end row]
-    set left   [$w index origin col]
-    set right  [$w index end col]
-    if { ![string equal {} [set ::getset-$w]] } {
-	set map [list %c "$col" %r "$row" %C "$row,$col" %W "$w" %i 1 \
-		%s "[$w get [set ::window-$w]]" %S "$val"]
-	set fail [catch [string map $map [set ::getset-$w]] val]
-    } else {
-	set fail 0
-    }
-
-    if { $fail } {
-	# the new value is bad so don't save it, and leave the user in the
-	# edit widget (they can trigger abort if they want to revert)
-	# XXX FIXME XXX can we do something with the error message in $val?
-	set ::message $val
-	# XXX FIXME XXX Why aren't we activating [set ::window-$w]?
-	$w activate [set ::window-$w]
-	focus $w.entry
-	bell
-    } else {
-	set ::message {}
-	# the new value is good so save it and remove the edit widget
-	$w set [set ::window-$w] $val
-	$w icursor end
-	$w window conf [set ::window-$w] -window {}
-	set ::window-$w {}
-	# focus $w
-
-	# move to the next cell according to move
-	switch -- $move {
-	    up { _move_up; set idx $row,$col }
-	    down { _move_down; set idx $row,$col }
-	    right { _move_right; set idx $row,$col }
-	    left { _move_left; set idx $row,$col }
-	    "" { set idx $row,$col }
-	    default { set idx $move }
-	}
-	$w activate $idx
-	_edit $w
-    }
-}
-
-proc table_entry::_can_edit { w cell } {
-    # puts "_can_edit $cell"
-    if { [string match $cell active] } {
-	if { ![$w tag exists active] } { return 0 }
-    }
-    if { [$w tag includes title $cell] } { return 0 }
-    if { [$w tag includes disabled $cell] } { return 0 }
-    return 1
-}
-
-proc table_entry::_move_up {} {
-    upvar left left
-    upvar right right
-    upvar top top
-    upvar bottom bottom
-    upvar row row
-    upvar col col
-    upvar w w
-
-    incr row -1
-    while {1} {
-	if { $row < $top } {
-	    set row $bottom
-	    if { [incr col -1] < $left } { break }
-	}
-	if { [ _can_edit $w $row,$col] } { return }
-	incr row -1
-    }
-    set row [expr $top - 1]
-    set col $left
-    _move_down
-}
-
-proc table_entry::_move_down {} {
-    upvar left left
-    upvar right right
-    upvar top top
-    upvar bottom bottom
-    upvar row row
-    upvar col col
-    upvar w w
-
-    incr row
-    while {1} {
-	if { $row > $bottom } {
-	    set row $top
-	    if { [incr col] > $right } { break }
-	}
-	if { [ _can_edit $w $row,$col] } { return }
-	incr row 1
-    }
-    set row [expr $bottom + 1]
-    set col $right
-    _move_up
-}
-
-proc table_entry::_move_left {} {
-    upvar left left
-    upvar right right
-    upvar top top
-    upvar bottom bottom
-    upvar row row
-    upvar col col
-    upvar w w
-
-    incr col -1
-    while {1} {
-	if { $col < $left } {
-	    set col $right
-	    if { [incr row -1] < $top } { break }
-	}
-	if { [ _can_edit $w $row,$col] } { return }
-	incr col -1
-    }
-    set row $top
-    set col [expr $left - 1]
-    _move_right
-}
-
-proc table_entry::_move_right {} {
-    upvar left left
-    upvar right right
-    upvar top top
-    upvar bottom bottom
-    upvar row row
-    upvar col col
-    upvar w w
-
-    incr col
-    while {1} {
-	if { $col > $right } {
-	    set col $left
-	    if { [incr row] > $bottom } { break }
-	}
-	if { [ _can_edit $w $row,$col] } { return }
-	incr col 1
-    }
-    set row $bottom
-    set col [expr $right + 1]
-    _move_left
-}
-
+# ======================= default key bindings ========================
+# Paste into an entry should clear the current selection, especially
+# on windows.
 # XXX FIXME XXX do we want to override the default bindings?
 bind Entry <<Paste>> {
     global tcl_platform
     catch {
-#        if {[string compare $tcl_platform(platform) "unix"]} {
-            catch {
-                %W delete sel.first sel.last
-            }
-#        }
-        %W insert insert [selection get -displayof %W -selection CLIPBOARD]
-        tkEntrySeeInsert %W
+	catch { %W delete sel.first sel.last }
+	%W insert insert [selection get -displayof %W -selection CLIPBOARD]
+	tkEntrySeeInsert %W
     }
 }

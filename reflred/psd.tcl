@@ -612,6 +612,9 @@ proc ::psd::bind_slice { } {
     bind .psd.matrix <B2-Motion> { ::psd::drag_slice drag %x %y }
     bind .psd.matrix <ButtonPress-2> { ::psd::drag_slice center %x %y }
     bind .psd.matrix <Shift-ButtonPress-2> { ::psd::drag_slice skew %x %y }
+    bind .psd.matrix <Alt-B3-Motion> { ::psd::drag_slice drag %x %y }
+    bind .psd.matrix <Alt-ButtonPress-3> { ::psd::drag_slice center %x %y }
+    bind .psd.matrix <Alt-Shift-ButtonPress-3> { ::psd::drag_slice skew %x %y }
 }
 
 proc ::psd::drag_slice { action x y } {
