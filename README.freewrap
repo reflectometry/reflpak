@@ -1,0 +1,104 @@
+The directory freewrap contains a slightly modified version of
+freewrap-5.5/build/generic.  You will need to tweak your 
+arch/Makefile.freewrap file to build your own copy.  In particular,
+bersion numbers and build paths for various packages are built
+into the makefile.  Tcl/Tk version info is extracted from 
+<arch>/Makeconf.tcltk, change <arch>/configure to set your own
+particular version of Tcl.
+
+I'm using the following packages:
+
+tcl8.4.2.tar.gz
+tk8.4.2.tar.gz
+Tktable2.8.tar.gz
+BLT2.4z.tar.gz
+freewrap-5.5.tar.gz
+zlib-1.1.4.tar.gz
+zip23.tar.gz
+upx-1.24-linux.tar.gz
+bwidget1.6.tar.gz
+tkcon.tcl
+
+For Mac OS/X it may have been more efficient to do this with fink packages, 
+but I compiled everything from scratch.
+  
+# For Mac OS/X, download the following blt patch:
+#
+#  http://www.swarm.org/pipermail/support/2002-December/012741.html
+#  
+# This is html, so you will need to change &gt; to > and &lt; to <.
+# There may be other changes required.
+
+cd blt2.4z
+patch -P0 < ../blt2.4z-patch
+
+# In the 'darwin' section of configure.in, I needed
+# to add the line:
+#    EXTRA_LIB_SPEC="-framework CoreFoundation"
+# Instead, I hacked the make files directly to do it.  YMMV.
+#
+# I also needed to add the following lines after bltMath.h 
+# in src/bltVecMath.c:
+#   double drand48(void) { return (double)rand() / (double)RAND_MAX; }
+#   void srand48(long) { srand(seed); } 
+# This is not the nicest thing to do.  Ideally, configure.in should
+# detect that drand48 is missing and this code would be conditional
+# upon the result of that test.  These functions are currently
+# defined in bltWinUtil.c for similar reasons, so it could be removed
+# from there.  I don't know where the best place to put it is.
+#
+# Finally, I couldn't figure out how to make a loadable blt package,
+# so my MacOS/X apps are going to have to use bltwish instead.  I needed
+# to hack src/Makefile and put # in front of every line which says
+#     (cd shared; ...)
+autoconf
+cd ..
+
+# For each of tcl/tk/Tktable, do the following in the unix subdirectory.
+# BLT automatically builds the static version, so skip --disable-shared.
+
+./configure --prefix=$HOME/tcl-$ver --disable-shared
+make
+make install
+make distclean
+./configure --prefix=$HOME/tcl-$ver
+make
+make install
+
+# untar bwidget into $HOME/tcl-$ver/lib
+# copy tkcon to $HOME/tcl-$ver/bin/tkcon.tcl
+
+# test
+echo 'puts "$tcl_patchLevel"' | $HOME/tcl-$ver/bin/tclsh8.4
+
+$HOME/tcl-$ver/bin/wish8.4
+% pack [button .b -text hello]
+% exit
+
+$HOME/tcl-$ver/bin/wish8.4
+% package require Tktable
+% pack [table .t]
+% exit
+
+$HOME/tcl-$ver/bin/bltwish
+% package require BLT
+% pack [blt::graph .g]
+% package require Tktable
+% pack [table .t]
+% exit
+
+# build zlib
+cd zlib-1.1.4
+prefix=$HOME ./configure
+make
+cd ..
+
+# build info-zip
+cd zip-2.3
+make -f unix/Makefile generic
+# If the compile flags are wrong, fix them in the
+# file 'flags' and try again.  I had to modify
+# L1FLAGS to remove the -s on MacOS/X and add
+# -static on Linux.
+cd ..
+

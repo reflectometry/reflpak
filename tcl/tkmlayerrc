@@ -1,0 +1,87 @@
+*useSLD: true
+*useQ4: false
+
+# graph line colors
+*lineColors: green darkgreen blue magenta cyan orange hotpink IndianRed3 darkgoldenrod lightseagreen cornflowerblue dimgray
+# active element (alse used for select point)
+*Graph.activeLine.Outline: red
+*Graph.activeLine.Symbol: splus
+*Graph.activeLine.Pixels: 2
+
+*constraints.t.Wrap: none
+*constraints.t.height: 8
+*constraints.t.Undo: true
+*constraints.l.Relief: flat
+*Dialog.msg.font: Times -18
+    
+# as of blt2.4z, remove error bar caps
+*Graph.ErrorBarCap: 1
+
+# sash drag colour and dimensions
+*sash1.but.background: darkgray
+*sash1.but.size: 16 8
+
+# printer
+*Printer: |lpr -Plp6
+*Graph.Postscript.Landscape:   true
+*Graph.Postscript.Colormode:   color
+*Graph.Postscript.Width:  850
+*Graph.Postscript.Height: 650
+
+*Graph.Crosshairs.Dashes: 1 1
+*Graph.Crosshairs.Hide: 1
+
+*Graph.Legend.Background: antiquewhite
+*Graph.Legend.Anchor: ne
+*Graph.Legend.Position: right
+*Graph.Legend.Hide: 0
+
+*Graph.Element.Pixels: 2
+
+*reflectivity.Element.symbol:
+*reflectivity.data.symbol: circle
+*reflectivity.dataa.symbol: circle
+*reflectivity.datab.symbol: square
+*reflectivity.datac.symbol: triangle
+*reflectivity.datad.symbol: diamond
+*reflectivity.data.lineWidth: 0
+*reflectivity.dataa.lineWidth: 0
+*reflectivity.datab.lineWidth: 0
+*reflectivity.datac.lineWidth: 0
+*reflectivity.datad.lineWidth: 0
+*reflectivity.datab.pixels: 4
+*reflectivity.datac.pixels: 4
+
+*reflectivity.data.color: magenta
+*reflectivity.dataa.color: red
+*reflectivity.datab.color: magenta
+*reflectivity.datac.color: green
+*reflectivity.datad.color: orange
+
+*reflectivity.reflect.color: darkmagenta
+*reflectivity.reflecta.color: darkred
+*reflectivity.reflectb.color: darkmagenta
+*reflectivity.reflectc.color: darkgreen
+*reflectivity.reflectd.color: darkorange
+
+*reflectivity.data.label: data
+*reflectivity.dataa.label: data a
+*reflectivity.datab.label: data b
+*reflectivity.datac.label: data c
+*reflectivity.datad.label: data d
+
+*reflectivity.reflect.label: theory
+*reflectivity.reflecta.label: theory a
+*reflectivity.reflectb.label: theory b
+*reflectivity.reflectc.label: theory c
+*reflectivity.reflectd.label: theory d
+
+*layers.depth.color: black
+*layers.qcsq.color: brown
+*layers.mu.color: blue
+*layers.mdepth.color: purple
+*layers.mqcsq.color: orange
+*layers.theta: darkgreen
+
+*layers.theta.title: Theta
+*layers.mu.title: Mu

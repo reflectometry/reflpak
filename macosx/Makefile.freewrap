@@ -1,0 +1,331 @@
+# UNIX makefile for freeWrap
+#
+# Developed by Dennis R. LaBelle
+#
+# Edit the parameters to suit your configuration, then type "make".
+
+include Makeconf.tcltk
+
+# Name of the application program
+#
+## Name of the current extension to include
+## FW_EXT=TCLSH  for TCL only program
+## FW_EXT=       for TCL/TK only
+## FW_EXT=BLT    for TCL/TK plus BLT
+#FW_EXT=TCLSH
+#FW_EXT=
+FW_EXT=BLT
+
+# Current application program revision number
+WRAPREV = 5.5
+
+##### Executable packer.
+#  Use ':' if you don't want to pack the executable
+# UPX = upx
+UPX = :
+# UPX = $(HOME)/freewrap/upx-1.24-linux/upx
+
+# Location of previously compiled TCLSH program
+TCLSH = $(TCL_PREFIX)/bin/tclsh$(TCL_VERSION)
+
+# Locations of various directories
+TCLLIB = $(TCL_PREFIX)/lib
+
+
+###### Some operating system specific commands
+# RM = rm -f
+CAT = cat
+CP = cp
+MKDIR = mkdir
+RENAME = mv
+DELTREE = rm -rf
+
+###### Select a C compiler
+#
+CC = $(TCL_CC)
+LD = $(TCL_CC) $(TCL_LD_FLAGS)
+
+###### Select standard command-line options for the C compiler.
+#
+# CFLAGS= -pipe -O -fPIC -DSTATIC_BUILD -I/usr/X11R6/include
+CFLAGS= -DSTATIC_BUILD $(TCL_CFLAGS_WARNING) $(TCL_CFLAGS_OPTIMIZE) $(TCL_INCLUDE_SPEC) $(TK_XINCLUDES)
+
+###### Add these options to CFLAGS when linking object files into
+#      an executable.
+#
+#LFLAGS = -static -Xlinker -S
+LFLAGS = $(TCL_LD_FLAGS) $(TCL_LDFLAGS_OPTIMIZE)
+
+###### Name of the ZIP archiver program
+#
+# You need the complete path to the zip archiver program.  This
+# program will be bundled with the freewrap executable, so make
+# sure it doesn't depend on exotic shared libraries.  Ideally,
+# any program capable of producing zip archives could be used,
+# but in practice we are limited to those which accept the same
+# command line arguments as info zip since args are hard coded
+# throughout the makefile, and more importantly, throughout the
+# code.
+# ZIP = /usr/bin/zip
+ZIP = $(HOME)/packages/zip-2.3/zip
+
+###### Extention for executable files on the target machine.
+#
+EXE =
+
+###### A list of directory(s containing TCL header files "tcl.h" etc.
+#
+# HDR_TCL = -I$(TCLDIR)/generic
+HDR_TCL = -I$(TCL_PREFIX)/include
+
+###### The linker option used to link against the TCL library
+#
+LIB_TCL = $(TCL_EXEC_PREFIX)/lib/$(TCL_LIB_FILE)
+
+###### The name of the top-level directory of the TCL script library
+#
+SCRIPT_TCL = $(TCL_PREFIX)/lib/tcl$(TCL_VERSION)/tclIndex
+
+###### A list of directory(s) containing TK header files "tk.h" etc.
+#      Leave undefined if not needed.
+#
+# HDR_TK = -I$(TKDIR)/generic -I$(TKDIR)/xlib -I$(TKDIR)/unix
+HDR_TK = 
+
+###### The directory containing the zlib header files "zlib.h".
+#
+# HDR_ZLIB = -I/home/dennis/Pdrive/tcl_src/zlib
+HDR_ZLIB = -I$(HOME)/packages/zlib-1.1.4
+
+###### The linker option used to link against the TCL library
+#
+LIB_TK = $(TCL_EXEC_PREFIX)/lib/$(TK_LIB_FILE) $(TK_LIBS)
+
+
+###### The name of the top-level directory of the TK script library
+#
+SCRIPT_TK = $(TCL_PREFIX)/lib/tk$(TK_VERSION)/tclIndex
+
+###### The linker option needed to include the Z compression library.
+#      This library is required by both the Img extension and the
+#      virtual file system.
+#
+# LIB_Z = /usr/lib/libz.a
+LIB_Z = $(HOME)/packages/zlib-1.1.4/libz.a
+
+###### Select which Tcl extensions to include.
+#
+#      To include a Tcl extenions x, define LIB_x to be the linker options
+#      needed to link against that extension.  To omit a Tcl extension,
+#      leave LIB_x undefined and supply a definition for OPT_x that defines
+#      the C preprocessor macro WITHOUT_x.
+#
+#### BLT
+#
+ifeq ($(FW_EXT), BLT)
+LIB_BLT = $(TCLLIB)/libBLT24.a
+SCRIPT_BLT= $(TCLLIB)/blt2.4/tclIndex
+else
+OPT_BLT = -DWITHOUT_BLT=1
+SCRIPT_BLT=
+endif
+
+#### Img
+#
+#LIB_IMG = /home/drh/tcltk/8.3.1win/libimg.a \
+#          /home/drh/tcltk/8.3.1win/libpng.a \
+#          /home/drh/tcltk/8.3.1win/libtiff.a \
+#          /home/drh/tcltk/8.3.1win/libjpeg.a
+OPT_IMG = -DWITHOUT_IMG
+
+#### Sqlite
+#
+#LIB_SQLITE = /home/drh/sqlite/win/libsqlite.a /home/drh/sqlite/win/libgdbm.a
+OPT_SQLITE = -DWITHOUT_SQLITE
+
+#### TkHtml
+#
+#LIB_TKHTML = /home/drh/tcltk/8.3.1win/libtkhtml.a
+OPT_TKHTML = -DWITHOUT_TKHTML
+
+#### TkTable
+#
+#LIB_TKTABLE = /home/drh/tcltk/8.3.1win/libtktable.a
+#OPT_TKTABLE = -DWITHOUT_TKTABLE=1
+LIB_TKTABLE = $(TCLLIB)/Tktable2.8/libTktable2.8.a
+OPT_TKTABLE = -DWITH_TKTABLE
+
+#### Tlink
+#    This extension must be disabled for unix.  It only works for windows.
+#
+# LIB_TLINK = -lole32 -luuid
+OPT_TLINK = -DWITHOUT_TLINK=1
+
+#### Winico
+#    This extension is omitted for unix builds.
+#
+OPT_WINICO = -DWITHOUT_WINICO=1
+
+#### Standard libraries
+#    Whatever you need for static linking on your machine.
+#    Note that Mac OS/X doesn't support static linking without
+#    more effort than I want to exert at this point.
+LIB_C = \
+  /usr/lib/libieee.a \
+  /usr/lib/libm.a \
+  /usr/lib/libc.a \
+  /usr/lib/libdl.a
+LIB_C = -lm
+
+###############################################################################
+# You should not have to change anything below this line
+###############################################################################
+
+srcdir = ../freewrap
+
+# Full name of the resulting application
+WRAP = freewrap$(FW_EXT)
+ifeq ($(FW_EXT),TCLSH)
+  WISH = freetclsh
+else
+  WISH = freewish$(FW_EXT)
+endif
+
+# Don't include any of the Tk dependent stuff for TCLSH
+ifeq ($(FW_EXT),TCLSH)
+  HDR_TK =
+  SCRIPT_TK =
+  OPT_TK = -DWITHOUT_TK=1
+  LIB_TK =
+  OPT_TKHTML = -DWITHOUT_TKHTML
+  LIB_TKHTML = 
+  OPT_TKTABLE = -DWITHOUT_TKTABLE
+  LIB_TKTABLE = 
+  OPT_IMG = -DWITHOUT_IMG
+  LIB_IMG = 
+  OPT_BLT = -DWITHOUT_BLT
+  LIB_BLT =
+endif
+
+# All Include files directives.
+#
+OPT = \
+   $(HDR_TCL) \
+   $(HDR_TK) \
+   $(HDR_ZLIB) \
+   $(OPT_TK) \
+   $(OPT_BLT) \
+   $(OPT_IMG) \
+   $(OPT_SQLITE) \
+   $(OPT_TKHTML) \
+   $(OPT_TKTABLE) \
+   $(OPT_TLINK) \
+   $(OPT_WINICO)
+
+# All library options to the linker
+LIBS = \
+  $(WINLIBS) \
+  $(LIB_SQLITE) \
+  $(LIB_IMG) \
+  $(LIB_TKHTML) \
+  $(LIB_TKTABLE) \
+  $(LIB_TLINK) \
+  $(LIB_BLT) \
+  $(LIB_Z) \
+  $(LIB_TK) \
+  $(LIB_TCL) \
+  $(LIB_C)
+
+# All object code modules
+#
+OBJ = freelib.o freewrap$(FW_EXT).o zvfs.o
+
+# All script directories
+#
+
+ZIPBLT = zipdir/blt/tclIndex
+ZIPTCL = zipdir/tcl/tclIndex
+ZIPTK = zipdir/tk/tclIndex
+ZIPTREE = zipdir zipdir/zip zipdir/freewrap.tcl zipdir/freewrapCmds.tcl $(ZIPTCL)
+
+ifneq ($(FW_EXT),TCLSH)
+	ZIPTREE += $(ZIPTK)
+endif
+
+ifeq ($(FW_EXT),BLT)
+	ZIPTREE += $(ZIPBLT)
+endif
+
+all: $(WRAP)$(EXE)
+
+zipdir:
+	if test -d zipdir; then echo Found zipdir; else $(MKDIR) zipdir; fi
+
+zipdir/zip: $(ZIP) zipdir
+	$(CP) $(ZIP) zipdir/zip
+
+zipdir/freewrap.tcl: $(srcdir)/freewrap.tcl zipdir
+	$(CP) $(srcdir)/freewrap.tcl zipdir
+
+zipdir/freewrapCmds.tcl: $(srcdir)/freewrapCmds.tcl zipdir
+	$(CP) $(srcdir)/freewrapCmds.tcl zipdir
+
+$(WRAP)$(EXE): null.zip $(WRAP)_bare$(EXE) $(ZIPTREE)
+	$(RM) $(WRAP)$(EXE)
+	if test x$(FW_EXT) != xBLT ; then $(DELTREE) zipdir/blt ; fi
+	if test x$(FW_EXT) == xTCLSH ; then $(DELTREE) zipdir/tk ; fi
+	echo freewrap.tcl >zipdir/_freewrap_init.txt
+	echo $(WRAP) $(WRAPREV) >>zipdir/_freewrap_init.txt
+	$(CP) $(WRAP)_bare$(EXE) $(WRAP).zip
+	$(CAT) null.zip >>$(WRAP).zip
+	cd zipdir; pwd; $(ZIP) -rA9 ../$(WRAP).zip *; cd ..
+	$(RENAME) $(WRAP).zip $(WRAP)$(EXE)
+	$(RM) $(WISH)$(EXE)
+	$(CP) $(WRAP)$(EXE) $(WISH)$(EXE)
+	./$(WISH)$(EXE) $(srcdir)/setinfo.tcl $(WRAP)$(EXE)
+	$(CP) $(WRAP)$(EXE) $(WISH)$(EXE)
+
+null.zip:
+	echo . | $(ZIP) null.zip -
+	$(ZIP) null.zip -d -
+
+$(ZIPTCL): $(SCRIPT_TCL)
+	$(DELTREE) zipdir/tcl
+	$(MKDIR) zipdir/tcl
+	$(TCLSH) $(srcdir)/shrink.tcl tcl $(SCRIPT_TCL) $(ZIPTCL)
+
+$(ZIPTK): $(SCRIPT_TK)
+	$(DELTREE)  zipdir/tk
+	$(MKDIR) zipdir/tk
+	$(TCLSH) $(srcdir)/shrink.tcl tk $(SCRIPT_TK) $(ZIPTK)
+
+$(ZIPBLT): $(SCRIPT_BLT)
+	$(DELTREE) zipdir/blt
+	$(MKDIR) zipdir/blt
+	$(MKDIR) zipdir/blt/dd_protocols
+	$(TCLSH) $(srcdir)/shrink.tcl blt $(SCRIPT_BLT) $(ZIPBLT)
+
+$(WRAP)_bare$(EXE): $(OBJ)
+	$(LD) $(LFLAGS) -o $(WRAP)_bare$(EXE) $(OBJ) $(LIBS)
+	$(UPX) -9 $(WRAP)_bare$(EXE)
+
+freewrap$(FW_EXT).o: $(srcdir)/main.c
+	$(CC) $(CFLAGS) $(OPT) -o $@ -c $<
+
+zvfs.o: $(srcdir)/zvfs.c
+	$(CC) $(CFLAGS) $(OPT) -o $@ -c $<
+
+freelib.o : $(srcdir)/freelib.c
+	$(CC) $(CFLAGS) $(OPT) -o $@ -c $<
+
+clean:
+	$(RM) core
+	$(RM) *.o
+	$(RM) $(WRAP)_bare$(EXE)
+	$(RM) *.zip
+	$(DELTREE) zipdir
+
+distclean: clean
+	$(RM) $(WRAP)$(EXE)
+	$(RM) $(WISH)$(EXE)
+
