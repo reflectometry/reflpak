@@ -10,9 +10,9 @@
 ## required for future versions of mlayer, then RESOURCE_VERSION will
 ## be changed but your copy in ~/.mlayer will still contain the old
 ## VERSION and you will be warned.
-set VERSION 0.0.1
+set RESOURCE_VERSION 0.0.1
 if { "$RESOURCE_VERSION" != "$VERSION" } {
-    tk_messageBox -message "~/.mlayer (v$VERSION) does not match mlayer.tcl (v$RESOURCE_VERSION) and so it will be ignored" -type ok
+    tk_messageBox -message "~/.mlayer (v$RESOURCE_VERSION) does not match mlayer.tcl (v$VERSION) and so it will be ignored" -type ok
     return 0
 }
 

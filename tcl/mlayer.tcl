@@ -99,7 +99,7 @@ if { $::MAGNETIC } {
 # XXX FIXME XXX put this as late as possible in the source so that
 # the user can override more of the program.
 # XXX FIXME XXX also check version of ipc corresponds to current mlayer.tcl
-set RESOURCE_VERSION 0.0.1
+set VERSION 0.0.1
 source [file join $MLAYER_HOME defaults.tcl]
 if { [ file exists [file join $::HOME .mlayer] ] } {
     source [file join $MLAYER_HOME defaults.tcl]
