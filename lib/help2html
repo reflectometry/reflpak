@@ -2,19 +2,19 @@
 # required line \
 exec tclsh "$0" "$@"
 
-if { $argc == 0 || [string equal [lindex $argv 0] "-h"] } {
-    puts "usage: $argv0 package [extrafiles...]"
+set package [lindex $argv 0]
+set root [lindex $argv 1]
+set files [lrange $argv 2 end]
+if { $argc < 2 || "$package" == "-h" } {
+    puts "usage: $argv0 package root [help files, tcl files, image files...]"
     exit
 }
-set package [lindex $argv 0]
-regsub {.help$} $package {} package
 set title [string totitle $package] 
 
-source htext.tcl
+source [file join [file dir $argv0] htext.tcl]
 namespace import htext::*
 
 namespace eval htext {
-    variable convert convert
     proc htmlmap { text } {
         # replace special html characters
 	set text [string map { < &lt; > &gt; & &amp; } $text]
@@ -24,17 +24,12 @@ namespace eval htext {
     }
     proc htmlhead { text } { return "\n<h2>$text</h2>\n" }
     proc htmlfile { title } { return [string map { " " "_" } $title].html }
-    proc htmllink { title } {
-	return "<a href=\"[htmlfile $title]\">[htmlmap $title]</a>"
+    proc htmllink { link {title {}} } {
+	if { "$title" == "" } { set title $link }
+	return "<a href=\"[htmlfile $link]\">[htmlmap $title]</a>"
     }
     proc htmlimg { name } {
-        variable convert
 	set target [file rootname $name].png
-	if { [catch { exec $convert ../../$name $target } result] } {
-	    puts "Could not convert image $name"
-	    puts $result
-	    return ""
-	}
 	return "<img src=\"$target\" alt=\"[file root $target]\">"
     }
     proc htmltag { file tag } {
@@ -58,7 +53,7 @@ namespace eval htext {
 
 	# fail gracelessly if files can't be opened; this is never invoked
 	# from a GUI.
-	set index [open index.html w]
+	set index [open page_index.html w]
 	puts $index "<html><head><title>$project index</title></head>"
 	puts $index "<body>[htmlhead "$project index"]"
 	puts $index "<ul>"
@@ -108,17 +103,24 @@ namespace eval htext {
 		    puts -nonewline $file [htmlmap [unmap_escaped_brackets $before]]
 		    if { [string match img::* $link] } {
 			puts -nonewline $file [htmlimg [string range $link 5 end]]
-		    } elseif { ![info exists pages($link)] } {
-			puts stderr "Broken link ($title): $link"
-			puts -nonewline $file [htmlmap [unmap_escaped_brackets $link]]
-		    } else {
+		    } elseif { [info exists pages($link)] } {
 			puts -nonewline $file [htmllink [unmap_escaped_brackets $link]]
+		    } elseif { "$link" == "Index" } {
+		        puts -nonewline $file [htmllink page_index Index]
+		    } else {
+			if { "$link" != "Search" } {
+			    puts stderr "Broken link ($title): $link"
+			}
+			puts -nonewline $file [htmlmap [unmap_escaped_brackets $link]]
 		    }
 		    set i $after
 		}
 		puts $file [htmlmap [unmap_escaped_brackets $i]]
 	    }
 	    htmltagend $file $state
+	    puts $file "<hr>"
+	    puts $file [htmllink $::root Browse]
+	    puts $file [htmllink page_index Index] 
 	    puts $file "</body></html>"
 	    close $file
 	}
@@ -127,18 +129,36 @@ namespace eval htext {
     }
 }
 
-foreach file $argv {
-    if { [string equal {} [file ext $file]] } { set file $file.help }
-    if { ![file exists $file] } {
-	puts "$file does not exist --- skipping"
-    } else {
-	source $file
+proc convert {source target} {
+    if { [catch { exec convert $source $target } result] } {
+	puts "Could not convert image $source"
+	puts $result
+	return ""
     }
 }
 
 # puts "deleting html/$package --- hope that was okay"
 # file delete -force html/$package
-
 file mkdir html/$package
+
+foreach file $files {
+    
+    if { ![file exists $file] } {
+	puts "$file does not exist --- skipping"
+    } else {
+	switch -- [file ext $file] {
+	    .help - .tcl { source $file  }
+	    .gif { 
+		convert $file "html/$package/[file tail [file rootname $file]].png" 
+	    }
+	    default { 
+		puts "Don't know what to do with $file"
+		# file copy -force $file html/$package 
+	    }
+	}
+    }
+}
+
 cd html/$package
 htext::html $title
+file copy $root.html index.html
