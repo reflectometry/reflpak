@@ -1,4 +1,11 @@
 #By George Peter Staplin (v2.6.8, BSD-style license)
+#Modified by Paul Kienzle to use an automatic vertical scrollbar, but
+#these modifications depend on the BWidgets function ScrolledWindow 
+#and the helper function vscroll defined in generic.tcl which calls it.
+#The relevant call is isolated in a catch statement, so it should work
+#even if you don't have BWidget or generic.tcl available, but of course
+#without the automatic scroll bar.
+
 namespace eval ctext {}
 
 proc ctext {win args} { 
@@ -54,7 +61,10 @@ proc ctext {win args} {
 	append args " "
 	append args [list -yscrollcommand [list ctext::event:yscroll $win $cmdArgs(-yscrollcommand)]]
 
-	pack [eval text $win.t $args] -side right -fill both -expand 1
+        # PAK: Hack to get the automatic scroll bar working.
+        set textwidget [eval text $win.t $args]
+        catch { set textwidget [vscroll $textwidget] } 
+        pack $textwidget -side right -fill both -expand 1
 
 	bind $win.t <Configure> [list ctext::linemapUpdate $win]
 	bind $win.l <ButtonPress-1> [list ctext::linemapToggleMark $win %y]
