@@ -1,11 +1,12 @@
 # Make sure the system builds cleanly on windows, macosx, linux, irix
 	cd ~/cvs/reflfit
 	cvs -q update -dP
-	make
+	# make sure the DEBUG flags are off in Makeconf
+	make clean; make
 	# testing steps --- at least make sure it runs?
 
 # On irix, build the html help as well
-	gmake html	
+	gmake clean ; gmake ; gmake html	
 
 # This is the new version number
 	REFLVER=refl-`date +%Y-%m-%d`
