@@ -27,7 +27,7 @@ set ::title Reflred
 set OCTAVE_SUPPORT_FILES { 
     interp1err psdslice 
     run_div run_include run_interp run_poisson_avg 
-    run_scale run_sub run_tol run_trunc
+    run_scale run_sub run_tol run_trunc run_send
     plotrunop runlog
 }
 
@@ -110,8 +110,8 @@ proc init_selector { } {
     . config -menu .menu
     menu .menu.file
     .menu add cascade -underline 0 -label File -menu .menu.file
+    .menu.file add command -label "Data..." -command { choose_dataset setdirectory }
     .menu.file add command -underline 0 -label "Quit" -command { exit }
-    .menu add command -label "Data..." -command { choose_dataset setdirectory }
     .menu add command -label "Reduce..." -command { reduce_show }
     .menu add command -label "Attenuators..." -command { atten_table }
     # XXX FIXME XXX want menu options for setting Xray/Neutron wavelength
@@ -489,24 +489,6 @@ proc restart_octave {} {
 	}
     }
     set ::NG7_monitor_calibration_loaded 0
-
-    # Use the following function to send an x,y,dy structure to tcl
-    octave eval {
-	function send_run(name, val)
-	   if isempty(val)
-	      send(sprintf(name,'x'),[]);
-	      send(sprintf(name,'y'),[]);
-	      send(sprintf(name,'dy'),[]);
-	   else
-	      send(sprintf(name,'x'),val.x);
-	      send(sprintf(name,'y'),val.y);
-	      send(sprintf(name,'dy'),val.dy);
-	      if struct_contains(val,'m')
-	         send(sprintf(name,'m'),val.m); 
-              endif
-	   endif
-	endfunction
-    }
 }
 proc disp x { 
     octave eval { retval='\n' }
@@ -516,13 +498,13 @@ proc disp x {
     return [string range $::ans 0 end-1]
 }
 
-proc write_data { fid data {log 0} } {
+proc write_data { fid data {pol {}} {log 0} } {
 
     if { $log } {
 	puts $fid "# columns x logy dlogy"
-	foreach x [set ${data}_x(:)] \
-		y [set ${data}_y(:)] \
-		dy [set ${data}_dy(:)] {
+	foreach x [set ${data}_x${pol}(:)] \
+		y [set ${data}_y${pol}(:)] \
+		dy [set ${data}_dy${pol}(:)] {
 #	    puts "writing $x $y $dy"
 	    if { $y <= $dy/1000. } {
 		# XXX FIXME XXX can dy be <= 0?
@@ -544,9 +526,9 @@ proc write_data { fid data {log 0} } {
 	}
     } else {
 	puts $fid "# columns x y dy"
-	foreach x [set ${data}_x(:)] \
-		y [set ${data}_y(:)] \
-		dy [set ${data}_dy(:)] {
+	foreach x [set ${data}_x${pol}(:)] \
+		y [set ${data}_y${pol}(:)] \
+		dy [set ${data}_dy${pol}(:)] {
 	    puts $fid "$x $y $dy"
 	}
     }

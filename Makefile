@@ -37,7 +37,7 @@ redsrc=viewrun.tcl loadicp.tcl loaduxd.tcl loadreduced.tcl \
 	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc pkgIndex.tcl
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
-	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
+	plotrunop.m run_div.m run_poisson_avg.m run_tol.m run_send.m
 
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))

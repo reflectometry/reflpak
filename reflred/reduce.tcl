@@ -513,7 +513,7 @@ proc reduce_footprint_correction {} {
 
     # send results
     octave eval { 
-	send_run('foot_%s', foot); 
+	run_send('foot_%s', foot); 
     }
 	
     octave recv footp_y { foot.y + foot.dy }
@@ -598,8 +598,8 @@ proc reduce_normalize {} {
 	send (sprintf('set ::transmission_coeff %g',peak));
 	send (sprintf('set ::dtransmission_coeff %g',dpeak));
 	div = refl = run_scale(refl, 1/peak, dpeak / peak^2);
-	send_run("div_%s", div);
-	send_run("refl_%s", refl);
+	run_send("div_%s", div);
+	run_send("refl_%s", refl);
     }
 }
 
@@ -727,14 +727,13 @@ proc reduce {spec back slit} {
     reduce_footprint_correction
 
     # send back the results
-    # Note: send_run is defined above in proc reduce_init
     octave eval {
-	send_run('spec_%s', spec);
-	send_run('back_%s', back);
-	send_run('slit_%s', slit);
-	send_run('refl_%s', refl);
-	send_run('sub_%s', sub);
-	send_run('div_%s', div);
+	run_send('spec_%s', spec);
+	run_send('back_%s', back);
+	run_send('slit_%s', slit);
+	run_send('refl_%s', refl);
+	run_send('sub_%s', sub);
+	run_send('div_%s', div);
     }
 
     foreach line { spec back slit refl sub div foot } {
