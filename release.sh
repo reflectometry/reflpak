@@ -25,7 +25,7 @@ SHARE=jazz:samba
 
 # The following directory will contain reflpak$VERSION and 
 # reflpak-latest symlinked to relfpak$VERSION.
-SHAREBIN=jazz:~/bin
+SHAREBIN=jazz:bin
 
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagic
@@ -87,7 +87,7 @@ tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
 scp reflpak$VERSION.tar.bz2 "$STORE"
 scp -r reflpak$VERSION "$SHARE"
 ssh ${SHARE%:*} "cd ${SHARE#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
-ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $BUILD/kit/reflpak reflpak$VERSION && rm reflpak-latest && ln -s reflpak$VERSION reflpak-latest"
+ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $builddir/kit/reflpak reflpak$VERSION && rm reflpak-latest && ln -s reflpak$VERSION reflpak-latest"
 rm -rf reflpak$VERSION
 echo; echo "Please check that $STORE and $SHARE contain what you want"
 
