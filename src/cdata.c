@@ -35,15 +35,14 @@ int allocCdata(int new_npnts)
 
    /* XXX FIXME XXX - relies on pointers initialized to NULL by compiler. */
    if (allocated > 0) freeCdata();
-   /* printf("allocating %d points\n",npnts+1); */
+   /* printf("allocating %d points\n",npnts); */
    loaded = FALSE;
-   /* XXX FIXME XXX - npts+1 because extres.c:extres uses them */
-   xdat = MALLOC(sizeof(double) * (npnts+1));
-   ydat = MALLOC(sizeof(double) * (npnts+1));
-   srvar = MALLOC(sizeof(double) * (npnts+1));
-   yfit = MALLOC(sizeof(double) * (npnts+1));
-   xtemp = MALLOC(sizeof(double) * (npnts+1));
-   ytemp = MALLOC(sizeof(double) * (npnts+1));
+   xdat = MALLOC(sizeof(double) * npnts);
+   ydat = MALLOC(sizeof(double) * npnts);
+   srvar = MALLOC(sizeof(double) * npnts);
+   yfit = MALLOC(sizeof(double) * npnts);
+   xtemp = MALLOC(sizeof(double) * npnts);
+   ytemp = MALLOC(sizeof(double) * npnts);
    /* printf("xdat:%8p xtemp:%8p\n",xdat,xtemp); */
     
    if (

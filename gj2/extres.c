@@ -39,8 +39,7 @@ void extres(double q[], double lambda, double lamdel, double thedel,
       nlow = doExtend(q[0], q[1] - q[0], lambda, lamdel, thedel);
 
       /* Determine high-Q extension */
-      nhigh = doExtend(q[npnts], q[npnts] - q[npnts - 1], lambda, lamdel, thedel);
-
+      nhigh = doExtend(q[npnts-1], q[npnts-1]-q[npnts-2], lambda, lamdel, thedel);
    }
 }
 
@@ -87,9 +86,10 @@ double *extend(double q[], int ndata, double lambda, double lamdel,
          *(newq++) = q[0] - (double) (nlow - j) * qstep;
       for (j = 0; j < ndata; j++)
          *(newq++) = q[j];
-      qstep = q[ndata - 1] - q[ndata - 2];
+
+      qstep = q[ndata-1] - q[ndata-2];
       for (j = 1; j <= nhigh; j++)
-         *(newq++) = q[ndata - 1] + (double) j * qstep;
+         *(newq++) = q[ndata-1] + (double) j * qstep;
    }
    return qtemp;
 }

@@ -31,7 +31,7 @@ void extres(double q[], double lambda, double lamdel, double thedel,
 {
    /* Check for LAMBDA=0 */
    if (lambda < 1.e-10) {
-      puts("/** Wavelength Must Be Greater Than Zero **/");
+      puts("/** Wavelength must be greater than zero **/");
    } else {
       npnts--; /*ARRAY*/
 
@@ -39,9 +39,7 @@ void extres(double q[], double lambda, double lamdel, double thedel,
       nlow = doExtend(q[0], q[1] - q[0], lambda, lamdel, thedel);
 
       /* Determine high-Q extension */
-  /* XXX FIXME XXX - do we really want to go beyond the data? */
-      nhigh = doExtend(q[npnts-1], q[npnts-1] - q[npnts - 2], lambda, lamdel, thedel);
-
+      nhigh = doExtend(q[npnts-1], q[npnts-1]-q[npnts-2], lambda, lamdel, thedel);
    }
 }
 
@@ -49,22 +47,19 @@ void extres(double q[], double lambda, double lamdel, double thedel,
 STATIC int doExtend(double q, double qstep, double lambda, double lamdel,
    double thedel)
 {
-   double theta, twsgsq, qdel;
+   double twsgsq, qdel;
    register double qr;
    register int extension;
 
-      /* Determine extension */
-      theta = lambda * q/(4. * M_PI);
-      if (theta < 1.e-10) theta = 1.e-10;
-      qdel = q * (lamdel / lambda + thedel / theta);
-      twsgsq = 2.0 * qdel * qdel / (8. * M_LN2);
-      extension = 0;
+   /* Calculate resolution width */
+   /* Note:  |q| (dL/L + dtheta/theta) == (|q| dL + 4 pi dtheta)/L  */
+   qdel = (fabs(q) * lamdel + 4. * M_PI * thedel) / lambda;
+   twsgsq = 2. * qdel * qdel / (8. * M_LN2);
 
-      /* Check if resolution function exponential becomes less than .001
-         (argument of exponent less than -6.908) */
-      if (twsgsq >= 1.e-10)
-         for (qr = qstep; qr * qr / twsgsq <= 3. * M_LN10; qr += qstep)
-            extension++;
+   /* Loop until exponential becomes less than .001 */
+   extension = 0;
+   for (qr = qstep; qr * qr <= twsgsq * 3. * M_LN10; qr += qstep)
+      extension++;
 
    return extension;
 }
@@ -92,9 +87,9 @@ double *extend(double q[], int ndata, double lambda, double lamdel,
       for (j = 0; j < ndata; j++)
          *(newq++) = q[j];
 
-      qstep = q[ndata - 1] - q[ndata - 2];
+      qstep = q[ndata-1] - q[ndata-2];
       for (j = 1; j <= nhigh; j++)
-         *(newq++) = q[ndata - 1] + (double) j * qstep;
+         *(newq++) = q[ndata-1] + (double) j * qstep;
    }
    return qtemp;
 }

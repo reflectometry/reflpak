@@ -1,6 +1,6 @@
-/* Subroutine performs convolution of data in array YFIT with Gaussian resolution */
-/* function in Q, calculated from LAMBDA, LAMDEL, and THEDEL */
-/* John Ankner 14 September 1992 */
+/* Subroutine performs convolution of data in array YFIT with Gaussian 
+   resolution function in Q, calculated from LAMBDA, LAMDEL, and THEDEL
+   John Ankner 14 September 1992 */
 
 #include <math.h>
 #ifdef SGI
@@ -24,21 +24,20 @@
 /* Local function prototypes */
 #include <static.h>
 
-STATIC int convolve(double qres, double yjprime,
+STATIC int convolve(double deltaq, double yjprime,
    double *yfit, double *rnorm, double twsgsq, int deldelq);
 
 
 void mancon4(double *q, double lambda, double lamdel, double thedel,
    double *y, double *yfit, int ndata, int nlow, int nhigh, int ncross,
     int deldelq)
-/* double q[MAXPTS], yfit[4 * MAXPTS]; */
 {
-   const int npnts = nlow + nhigh + ndata;
-   int j, k, n;
+   const int n = nlow + nhigh + ndata;
+   int j, k, c;
 
    /* Perform convolution over NDATA between NLOW and NHIGH extensions */
    /* for the needed cross sections */
-   for (j = nlow; j < nlow+ndata; j++) {
+   for (j = nlow; j < nlow + ndata; j++) {
       double qdel, twsgsq, rnorm;
 
       /* Calculate resolution width */
@@ -46,11 +45,11 @@ void mancon4(double *q, double lambda, double lamdel, double thedel,
       qdel = (fabs(q[j]) * lamdel + 4. * M_PI * thedel) / lambda;
       twsgsq = 2. * qdel * qdel / (8. * M_LN2);
 
-      for (n = 0; n < ncross; n++) {
+      for (c = 0; c < ncross; c++) {
 	 int yxsec, fitxsec;
 
-         yxsec = n * npnts;
-         fitxsec = n * ndata;
+         yxsec = c * n;
+         fitxsec = c * ndata;
 
 	 /* Loop until exponential becomes smaller than .001 */
          rnorm = 1.;
@@ -63,13 +62,13 @@ void mancon4(double *q, double lambda, double lamdel, double thedel,
 	 }
 	 
 	 /* Evaluate high-Q side */
-	 for (k=1; j+k < npnts; k++) {
+	 for (k=1; j+k < n; k++) {
 	   if (!convolve(q[j]-q[j+k], y[yxsec+j+k], yfit+fitxsec, &rnorm, twsgsq, deldelq))
 	     break;
 	 }
 	 
-         /* Normalize convoluted value to integrated intensity of resolution */
-         /* function */
+         /* Normalize convoluted value to integrated intensity of
+            resolution function */
          *(yfit+fitxsec) /= rnorm;
       }
       yfit++;
