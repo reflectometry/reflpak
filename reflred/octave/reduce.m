@@ -24,7 +24,9 @@ function [sub,div,cor] = reduce(spec,back,slit,FRratio)
     sub = run_sub(spec,run_interp(back,spec));
   endif
   
-  if !isempty(slit)
+  if isempty(slit)
+    div = sub;
+  else
     if isfield(slit,'A')
       fit = fitslits(slit);
       if isempty(fit)
