@@ -70,7 +70,7 @@ for machine in $BUILD; do
 done
 
 echo; echo "== updating $STORE and $SHARE ======================"
-sed -e"s,@VERSION@,$VERSION," < INSTALL >reflpak$VERSION/index.html
+sed -e"s,@VERSION@,$VERSION,g" < INSTALL >reflpak$VERSION/index.html
 cp RELEASE-NOTES reflpak$VERSION
 tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
 scp reflpak$VERSION.tar.bz2 "$STORE"
