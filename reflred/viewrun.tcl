@@ -119,8 +119,10 @@ proc init_tree_select_images {} {
 	{ 100000001}
 	{ 111111111}
     }
+    set ::image(new) [image create photo]
+    $::image(new) put [string map { 0 "white " 1 "black " } $box9]
     set ::image(clear) [image create photo]
-    $::image(clear) put [string map { 0 "white " 1 "black " } $box9]
+    $::image(clear) put [string map { 0 "gray " 1 "black " } $box9]
     set ::image(select) [image create photo]
     $::image(select) put [string map { 0 "red " 1 "black " } $box9]
 }
@@ -3038,7 +3040,7 @@ proc setdirectory { pattern_set } {
 		-text "$instrument [typelabel $type]$bgbasis" -open 0
 	    foreach id $::group($gid) {
 		upvar #0 $id rec
-		.tree insert end $gid $id -text $rec(run)$rec(index) -image $::image(clear) -data record
+		.tree insert end $gid $id -text $rec(run)$rec(index) -image $::image(new) -data record
 	    }
 	}
     }
