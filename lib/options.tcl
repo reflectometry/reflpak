@@ -21,7 +21,7 @@ switch $::tcl_platform(platform) {
 	option add *sashWidth 4 widgetDefault
 	bind Button <Key-Return> {tk::ButtonInvoke %W}
 	
-	option add *Hiertable.ResizeCursor size_we 81 widgetDefault
+	option add *Hiertable.ResizeCursor size_we widgetDefault
 	
 	option add *Graph.Legend.Font {Arial -8} widgetDefault
     }

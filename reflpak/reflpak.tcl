@@ -14,6 +14,8 @@ namespace eval reflpak {
         set root .app
         toplevel $root -padx 7 -pady 6
         wm protocol $root WM_DELETE_WINDOW exit
+        variable directory
+        wm iconbitmap $root [file join $directory pak.ico]
         wm title $root Reflpak
         option add *app.Button.padX 10 widgetDefault
         option add *app.Button.padY 2 widgetDefault
@@ -30,7 +32,7 @@ namespace eval reflpak {
 	switch $::tcl_platform(platform) {
 	    windows {
 		button $root.install -text "Install shortcuts..." \
-		    -command [namespace code wininstall]
+		    -command [namespace code reflpak::wininstall]
 		pack $root.install -fill x -side top
 	    }
 	}

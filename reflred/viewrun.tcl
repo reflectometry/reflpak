@@ -13,6 +13,7 @@ register_reduced
 
 help $::VIEWRUN_HOME reflred help
 wm protocol . WM_DELETE_WINDOW { exit }
+wm iconbitmap . -default [file join $::VIEWRUN_HOME red.ico]
 
 set ::title Reflred
     

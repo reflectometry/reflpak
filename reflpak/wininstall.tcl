@@ -66,15 +66,15 @@ namespace eval reflpak {
 	set docpath [link path documents]
         log "Adding link to \"$exepath\" red \"%1\" in $linkpath\\reflred.lnk"
 	link set [file join $linkpath reflred.lnk] \
-	    -path $exepath -args red -icon $exepath -index 1 \
+	    -path $exepath -args red -icon $exepath -index 3 \
 	    -cwd $docpath -desc "Reduction"
         log "Adding link to \"$exepath\" fit \"%1\" in $linkpath\\reflfit.lnk"
 	link set [file join $linkpath reflfit.lnk] \
-	    -path $exepath -args fit -icon $exepath -index 0 \
+	    -path $exepath -args fit -icon $exepath -index 1 \
 	    -cwd $docpath -desc "Fit"
         log "Adding link to \"$exepath\" pol \"%1\" in $linkpath\\reflpol.lnk"
 	link set [file join $linkpath reflpol.lnk] \
-	    -path $exepath -args pol -icon $exepath -index 0 \
+	    -path $exepath -args pol -icon $exepath -index 2 \
 	    -cwd $docpath -desc "Polarized Fit"
     }
     proc form_startmenu_links {} {
@@ -154,7 +154,7 @@ namespace eval reflpak {
         grid columnconf $root 0 -weight 1
     }
 
-    proc install {} {
+    proc wininstall {} {
 	set root .install
 	if { [winfo exists $root] } {
 	    wm deiconify $root

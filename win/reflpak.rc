@@ -19,6 +19,8 @@ FILETYPE 1 {
     }
 }
 
-TK ICON "R.ico"
-TKRED ICON "red.ico"
+TK ICON "../reflpak/pak.ico"
+TKFIT ICON "../tcl/fit.ico"
+TKPOL ICON "../tcl/pol.ico"
+TKRED ICON "../reflred/red.ico"
 

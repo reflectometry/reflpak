@@ -8,6 +8,11 @@ VERSION = $(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
 
+pakicon=icons/yellowpack.ico
+redicon=icons/Ryellow.ico
+fiticon=icons/Fyellow.ico
+policon=icons/Pyellow.ico
+
 # Path to current directory; use ?= so Makeconf can override
 topdir ?= $(shell pwd)
 bindir ?= $(topdir)/$(ARCH)
@@ -15,7 +20,7 @@ bindir ?= $(topdir)/$(ARCH)
 scifunsrc=pkgIndex.tcl scifun$(LDEXT)
 
 paksrc=pkgIndex.tcl reflpak.tcl wininstall.tcl
-libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
+libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl sizer.tcl \
 	print.tcl tableentry.tcl generic.tcl options.tcl pkgIndex.tcl \
 	octave.tcl tclphoto.m tclsend.m
 fithelp=reflfit.help help.help mlayer.help gj2.help
@@ -34,18 +39,11 @@ fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
 
 scifunfiles=$(patsubst %,scifun/%,$(scifunsrc))
-pakfiles=$(patsubst %,reflpak/%,$(paksrc))
+pakfiles=$(patsubst %,reflpak/%,$(paksrc) pak.ico)
 libfiles=$(patsubst %,lib/%,$(libsrc))
-fitfiles=\
-	$(patsubst %,tcl/%,$(fithelp)) \
-	$(patsubst %,tcl/%,$(fitfig)) \
-	$(patsubst %,tcl/%,$(fitsrc))
-redfiles=\
-	$(patsubst %,reflred/%,$(redhelp)) \
-	$(patsubst %,reflred/%,$(redfig)) \
-	$(patsubst %,reflred/%,$(redsrc))
-redoctavefiles=\
-	$(patsubst %,reflred/octave/%,$(redoctavesrc))
+fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc) fit.ico pol.ico)
+redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc) red.ico)
+redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc))
 
 macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
@@ -60,6 +58,8 @@ else
 addwinlink=:
 endif
 
+icons = reflred/red.ico tcl/fit.ico tcl/pol.ico reflpak/pak.ico
+
 .PHONY: $(SUBDIRS) 
 
 all: $(SUBDIRS) kit/reflpak$(EXE)
@@ -67,7 +67,7 @@ all: $(SUBDIRS) kit/reflpak$(EXE)
 kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
 
-kit/reflpak.res: win/reflpak.rc win/R.ico win/red.ico
+kit/reflpak.res: win/reflpak.rc $(icons)
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
@@ -87,6 +87,18 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
 	cd kit && cp ncnrkit$(EXE) copykit$(EXE) && \
 		./copykit sdx.kit wrap reflpak$(EXE) -runtime ncnrkit$(EXE)
 	touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
+
+reflred/red.ico: $(redicon)
+	cp $(redicon) $@
+
+tcl/fit.ico: $(fiticon)
+	cp $(fiticon) $@
+
+tcl/pol.ico: $(policon)
+	cp $(policon) $@
+
+reflpak/pak.ico: $(pakicon)
+	cp $(pakicon) $@
 
 html: html/reflred/index.html html/reflfit/index.html
 
