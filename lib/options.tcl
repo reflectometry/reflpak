@@ -1,3 +1,9 @@
+# Make standard Windows-style and Mac-style bindings work
+event add <<Paste>> <Shift-Insert>
+event add <<Cut>> <Shift-Delete>
+event add <<Copy>> <Control-Insert>
+bind Text <Control-Key-v> {}
+
 switch $::tcl_platform(platform) {
     windows {
 	option add *ResizeCursor size_we 100
