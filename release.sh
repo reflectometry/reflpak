@@ -11,7 +11,7 @@ VERSION="`date +-%Y.%m.%d`"
 # isn't set up for ssh operations.
 
 # Here are my architecture specific build machines:
-BUILD="jazz bt7motor h122045"
+BUILD="jazz macng7 h122045"
 # Grrr... irix machines need gmake rather than make...
 makejazz="gmake"
 # Each machine has already been set up with a build directory 
