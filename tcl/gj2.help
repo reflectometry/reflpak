@@ -1,0 +1,232 @@
+# ===============================================================
+if {![info exists ::commandbox]} { set ::commandbox {} }
+hpage {mlayer} $::commandbox {reflfit
+is implemented as a GUI layer on top of the underlying mlayer
+program.  For the most part you will never need to access mlayer directly,
+but there are some features which are not yet implemented in the GUI.
+
+In particular you may need:
+
+   ulc	- unload constraints
+   lc	- load constraints
+
+You must be sure to use the correct number of parameters for the
+command, or you will need to exit and restart the program.  In practice
+this means you will need to try them directly in the underlying program
+before you can use them from the GUI.
+
+The attached pages list all the mlayer commands for completeness, but you
+will not need most of them, and some of them will cause the link between
+the GUI and mlayer to fail, so save your state before continuing!
+
+   [mlayer parameters]
+   [mlayer layers]
+   [mlayer fit]
+   [mlayer io]
+   [mlayer display]
+   [mlayer plot]
+
+Don't try running the movie commands directly, because the command window
+will timeout before the movie is complete.  The [Tcl console] allows you
+to program your own movies.
+}
+
+# ===============================================================
+hpage {mlayer parameters} {} {
+ NcL    Enter number of layers for region c (between 1 and 9).
+        Set c to T for top, M for middle and B for bottom.
+
+ AcL    Add a layer between existing layers in a region.
+        Set c to T for top, M for middle and B for bottom.
+
+ RcL    Remove a layer between existing layers.
+        Set c to T for top, M for middle and B for bottom.
+
+ CL     Copy parameters from one layer in any region to another layer in
+        any region.
+
+ NMR    Enter the number of repeats of the middle region to make a
+        superlattice.  Note: the bottom of the top region and the top of
+        the bottom region must each be set to one repeat if NMR is
+        greater than 1 for the profile to be constructed correctly.
+
+ NP     Enter number of data points (automatically done by GD).
+
+ NR     Enter number of layers used to simulate rough interface (greater
+        than 2).
+
+ PR     Enter profile shape for simulated roughness.
+
+ QL     Enter Q limits of data set (automatically done by GD).
+
+ BI     Enter intensity of incident beam (multiplies calculated
+        reflectivity to give count rate).
+
+ BK     Enter constant background intensity added to calculated
+        intensity.
+
+ DL     Enter the wavelength divergence of the incident beam (in
+        Angstroms) to be used in the resolution convolution.
+
+ DT     Enter the angular divergence of the incident beam (in radians)
+        to be used in the resolution convolution.
+
+ VMU
+ MUV    Enter the length absorption coefficient of the vacuum.
+
+ VQC
+ QCV    Enter critical Q squared of the vacuum.
+
+ VQM
+ QMV    Enter magnetic critical Q squared of the vacuum.
+
+ WL     Enter wavelength of incident radiation.
+}
+
+# ===============================================================
+hpage {mlayer layers} {} {
+ rDn    Enter thickness of nth chemical layer in region r.
+
+ rMUn   Enter the length absorption coefficient for nth chemical layer in
+        region r.
+
+ rQCn   Enter x-ray (or nuclear) critical Q squared of nth chemical layer
+        in region r.
+
+ rROn   Enter interfacial roughness at top of nth chemical layer in region
+        r.
+}
+
+# ===============================================================
+hpage {mlayer fit} {} {
+ CSR    Calculate chi-squared for logarithm of reflectivity.  Append S to
+        calculate chi-squared for the spin asymmetry.
+
+ FR     Fit logarithm of reflectivity to data stored in IF.  Append S to
+        fit the spin asymmetry.  Append M to plot a movie of the fit as
+        it progresses.
+
+ UF     Restore parameters and uncertainties to values just before the last
+        fit.
+
+ EC     Edit constraints found in the file entered using PF command.
+        A new constrain module is created and loaded (automatically done
+        when the program runs).
+
+ LC     Reload the constrain module.  The module is not rebuilt, only
+        reloaded.
+
+ UC     Update constraints (automatically done whenever necessary).
+
+ ULC    Unload the constrain module and revert to no constraints.
+
+ VAnm   Toggle status of nmth fit parameter.  Toggles between varied and
+        fixed in the fit.  Specify nm as you would for entering its value.
+
+ VANONE Turn off all varied parameters
+}
+
+# ===============================================================
+hpage {mlayer io} {} {
+ EX     Exit the program and save parameters and constraints to file entered
+        using PF command.
+
+ QU     Exit without saving changes to parameter file entered with PF.
+
+ !      Spawn a command.  Enter the command at the prompt.
+
+ !!     Spawn a subshell.
+
+ CD     Change current directory.  Tilde (~) expansion is performed.
+
+ PWD    Print current directory.
+
+ IF     Enter name of input file.
+
+ OF     Enter output file name.
+
+ PF     Enter parameter file name.  Default is taken from commandline
+        argument.  Default is mlayer.staj if none given.
+
+ LP     Load parameters from file entered using PF command without the
+        constraints from that file.  This command resets the uncertainties.
+
+ LPC    Load parameters from file entered using PF command and use the
+        constraints from that file (automaticallly done when program runs).
+        This command resets the uncertainties.
+
+ SP     Save parameters to parameter file entered with PF.
+
+ GD     Get data from filename entered using IF command.  The data is
+        assumed to be in three-column format with the first column being
+        the momentum transfer (Q=4 PI sin THETA/LAMBDA), the second
+        column either the logarithm of the counts or the spin asymmetry,
+        and the third column the uncertainty (error bar).  If the first
+        character in the line is #, the line is not read.
+
+ SA     Generate and print unconvolved complex amplitude of reflectivity.
+        The data are saved into file entered by OF.
+
+ SLP
+ SSP    Generate and print layer profile.  The data are saved into file
+        entered by OF (or IF if not yet given) with extension .pro
+        SLP saves the critical angle in histogram form.  SSP saves scaled
+        critical angle and absorption in table form.
+
+ SRF    Save fit to reflectivity in file name entered in OF with
+        extensinon .fit.  Written in two-column format:  first column is
+        Q=4 PI sin THETA/LAMBDA, second is fit.
+
+ SRSF   Save fit to spin asymmetry in file name entered in OF with
+        extension .fit.  Written in two-column format:  first column is
+        Q=4 PI sin THETA/LAMBDA, second is fit.
+
+ SV     Save values in XTEMP and YTEMP to file entered with OF.
+}
+
+# ===============================================================
+hpage {mlayer display} {} {
+ HE     Prints this help.
+
+ VE     Print out current values of all fit parameters on screen.  Append
+        U to print uncertainties of the fit parameters.
+
+ VcE    Print out current values of only the fit parameters of layers
+        specified by c on screen.  Set c to T for top, M for middle and
+        B for bottom.  Append U to print uncertainties of the fit
+        parameters.
+
+ LID    List the data entered by GD and the fit generated by any of the
+        fit commands.
+
+ GR     Generate unconvoluted logarithm of reflectivity.
+
+ GLP    Generate and display layer profile.
+
+ RD     Calculate reflectivity or derivative with respect to a
+        specified parameter. 
+
+ RSD    Calculate spin asymmetry or derivative with respect to a
+        specified parameter. 
+}
+
+# ===============================================================
+hpage {mlayer plot} {} {
+ PLP    Plot profile on screen.  Data are saved in file mltmp.pro
+
+ PRF    Plot reflectivity on screen.  Data are saved in file mltmp.fit
+
+ MVc    Enter a parameter name and watch as the reflectivity varies with
+        that parameter.  Choose c to be one of R, D, I or P.  R plots the
+        reflectivity, D plots the ratio of successive frames of reflectivity
+        to the first frame, I plots the ratio of successive frames, P plots
+        the profile, and is the default.
+
+ MVFc   Plots a movie of the last fit progression.  Choose c as in MV.
+
+ MVXc   Plots a movie of parameters tabulated in a file.  Choose c as in
+        MV.  The file is formatted with a line that begins with # followed
+        by a list of parameters to vary, separated with spaces.  The
+        following lines (1 per frame) list the values to use for each
+        respective parameter, again separated with spaces.
+}
