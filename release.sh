@@ -39,6 +39,8 @@ done
 echo; echo "Are all files committed that need to be?"
 echo "Are any files not added that should be added?"
 echo "Are the RELEASE-NOTES up to date, and tagged with today's date?"
+ls -l RELEASE-NOTES
+head -10 RELEASE-NOTES
 echo -n "Press y to continue: "
 read ans
 test "$ans" != "y" && exit
@@ -69,6 +71,10 @@ for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
     scp "$machine:$builddir/release/reflpak$VERSION*" reflpak$VERSION
 done
+
+echo; echo -n "Update server? [y for yes]: "
+read ans
+test "$ans" != "y" && exit
 
 echo; echo "== updating $STORE and $SHARE ======================"
 sed -e"s,@VERSION@,$VERSION,g" < INSTALL >reflpak$VERSION/index.html
