@@ -3,8 +3,10 @@
 # Customize the following for your installation:
 DQKIT=./dqkit
 SDX="$DQKIT sdx.kit"
+VERSION=1.0
 
 ARCH=`uname`
+host=`hostname`; host=${host%%.*}
 if test x$ARCH = xwindows; then
     # windows things
     TCLLIB=/c/Tcl/lib
@@ -12,7 +14,6 @@ if test x$ARCH = xwindows; then
     BINDRES=./bindres.sh
     RC=windres
 else
-    host=`hostname`; host=${host%%.*}
     TCLLIB=install/$host/lib
 fi
 
@@ -41,41 +42,17 @@ ncnrkit is a starkit containing the following:
 
 	Tcl/Tk BLT Tktable BWidget Tkcon Tkdnd
 
-Constructing it takes some effort.  Once it
-is constructed, then it can be used for a
-variety of NCNR programs, though those too
-may need to be built from source.
+Constructing it takes some effort.  Once it is constructed, 
+then it can be used for a variety of NCNR programs, though 
+those too may need to be built from source.
 
-Grab the dqkit sources (~16Mb) from 
+You will need the following sources:
 
+dqkit0.2 (~16Mb, not the core-sources file)
 	http://sourceforge.net/project/showfiles.php?group_id=99106
 
-Note there is mkstemp bug on IRIX systems which you may need to patch.  
-Search "workaround for buggy(??) mkstemp() on IRIX systems" in google.
-
-Assuming you are building from source, you will need to
-do the following in the source tree:
-
-	gen/buildkit build -tk -tcl -blt
-	 
-This will generate a file in bin/@HOSTNAME@/dqkit...
-You may need the option --compression=none, but I don't know
-if it works --- I hacked buildkit directly so that upx wasn't
-called.  
-
-Copy the dqkit binary to dqkit in the current directory so it 
-is easier to work with:
-
-	cp bin/@HOSTNAME@/dqkit* dqkit.exe
-
-Grab sdx.kit from http://www.equi4.com/pub/sk/sdx.kit.  This
-will run under the new dqkit.exe that you have created.  Place
-it in the same directory as dqkit.
-
-We need to extend this package so that it also contains bwidget,
-TkTable, tkcon and optionally tkdnd. You may need to build 
-these packages for yourself, which you can do directly from
-the dqkit tree.  Grab the packages.
+sdx.kit:
+        http://www.equi4.com/pub/sk/sdx.kit
 
 Tktable2.8:
 	http://sourceforge.net/project/showfiles.php?group_id=11464
@@ -89,31 +66,63 @@ tkdnd1.0:
 tkcon.tcl (latest):
   http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD
 
+
+To rebuild dqkit, do the following from the root of the dqkit source
+tree:
+
+	gen/buildkit build -tk -tcl -blt
+	cp bin/$host/dqkit* dqkit$EXE
+
+where '$host' is the name of your host.
+	 
+You may need the option --compression=none, but I don't know
+if it works --- I hacked buildkit directly so that upx wasn't
+called.  
+
+Note there is mkstemp bug on IRIX systems which you may need 
+to patch to src/tclxxx tree of dqkit. Search google for:
+
+	"workaround for buggy(??) mkstemp() on IRIX systems" 
+
+Next we need to extend the dqkit package so that it also 
+contains bwidget, TkTable, tkcon and optionally tkdnd.
+
 I did the following from the dqkit root:
 
-	host=$(host); host=${host%%.*}
-	tcllib="../../../install/$host/lib"
+	tcllib='../../../install/$host/lib'
+        opts="--with-tcl='\$tcllib' --with-tk='\$tcllib' --prefix='\$tcllib'"
 	tar xzf Tktable2.8.tar.gz -C src
 	mkdir build/$host/tktable; cd build/$host/tktable
-	../../../src/Tktable2.8/configure --with-tcl=$tcllib --with-tk=$tcllib --prefix=$tcllib
+	../../../src/Tktable2.8/configure \$opts
 	make ; make install
 	cd ../../..
 	tar xzf bwidget1.6.tar.gz -C install/$host/lib
 	cp -p tkcon.tcl install/$host/lib
 
-Presumably tkdnd is similar, but I didn't build it myself, and
-it only seems to work on windows.
+Presumably tkdnd is similar. I didn't build it myself for windows,
+it doesn't work for me under linux.
 
 Customize this file (mkncnrlib) to point to your tcl tree and 
 the correct versions of the various packages.
 
 On windows, copy win/bindres.sh, win/ncnrkit.ico and win/ncnrkit.rc
-into the dqkit root directory.  You should find them somewhere near 
-mkncnrlib, such as the win subdirectory.
+into the dqkit root directory. 
 
-Once everything is ready, build the kit 
+Move sdx.kit into the dqkit root.  Once everything is ready, 
+build the kit:
 
 	mkncnrkit doit
+
+The resulting ncnrkit can now be used to wrap your own applications,
+but you will have to make a copy before doing so.
+E.g.,
+
+   mkdir myapp.vfs
+   echo "package require starkit;starkit::startup;puts hi" > myapp.vfs/main.tcl
+   cp ncnrkit$VERSION$EXE ncnrkit$EXE
+   ncnrkit sdx.kit wrap myapp$EXE -runtime ncnrkit$VERSION$EXE
+   ./myapp
+
 
 EOF
     exit
@@ -165,20 +174,16 @@ EOF
 ## Now we need to recombine our kit into ncnrkit
 
     # duplicate the kit so that you can use it to split itself
-    cp dqkit$EXE ncnrkit$EXE
+    cp dqkit$EXE ncnrkit$VERSION$EXE
     # split of the dqkit runtime
-    $SDX mksplit ncnrkit$EXE
+    $SDX mksplit ncnrkit$VERSION$EXE
     # recombine with the extended ncnrkit
-    $SDX wrap ncnrkit$exe -runtime ncnrkit.head
+    $SDX wrap ncnrkit$VERSION$exe -runtime ncnrkit$VERSION.head
 
 ## On windows we will want to rebrand this.
     if test x$ARCH = xwindows ; then
 	$RC ncnrkit.rc ncnrkit.res
-	$BINDRES ncnrkit.exe ncnrkit.res
+	$BINDRES ncnrkit$VERSION.exe ncnrkit.res
     fi
 fi
 
-## The resulting ncnrkit can now be used to wrap your own applications.
-## E.g.,
-##
-##    ncnrkit sdx.kit wrap reflpak$exe -runtime ncnrkit$exe
