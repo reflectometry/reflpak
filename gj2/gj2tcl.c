@@ -230,7 +230,7 @@ static void sendpars(Tcl_Interp *interp)
   double t;
   int i;
 
-  sprintf(value, "%d", nlayer);
+  sprintf(value, "%d", nlayer+1);
   Tcl_AppendResult(interp, value, NULL);
 
   sprintf(value, " %15g %15g %15g %15g %15g",
@@ -278,6 +278,8 @@ static void sendreflect(Tcl_Interp* interp, const double *x, const double *y,
       Tcl_AppendResult(interp, " ", NULL);
       sendvector(interp,y,n,0);
       y+=n;
+    } else {
+      Tcl_AppendResult(interp, " {}", NULL);
     }
   }
 }
