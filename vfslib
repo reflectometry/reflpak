@@ -18,5 +18,5 @@ else
     PACKAGE=$1 ; shift
 
     install -d $ROOT/lib/$PACKAGE
-    install $* $ROOT/lib/$PACKAGE
+    cp $* $ROOT/lib/$PACKAGE
 fi
