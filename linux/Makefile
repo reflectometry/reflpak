@@ -116,9 +116,9 @@ freewrapBLT:
 
 clean:
 	$(MAKE) -f Makefile.freewrap clean
-	$(RM) *.o core manifest
+	$(RM) *.o core *.manifest
 
 distclean: 
 	$(MAKE) -f Makefile.freewrap distclean
-	$(RM) *.o core manifest Makeconf.tcltk
+	$(RM) *.o core *.manifest Makeconf.tcltk
 	$(RM) reflfit.tcl reflfit gmlayer$(LDEXT)
