@@ -21,6 +21,9 @@ if { [info exists ::app_version] } {
     set version "[clock format [clock seconds] -format %Y%m%d]-CVS"
 }
 
+# Set up constraints processing
+
+
 # Let the user customize their version without changing the original
 # by loading resources from a file in their directory.
 # XXX FIXME XXX put this as late as possible in the source so that
@@ -194,7 +197,7 @@ proc set_vars_from_pars {} {
 	set ::ntl        [makeint $::pars([incr ::layer_offset])]
 	set ::nml        [makeint $::pars([incr ::layer_offset])]
 	set ::nbl        [makeint $::pars([incr ::layer_offset])]
-	set ::nrepeat    [makeint $::pars([incr ::layer_offset])]
+	set ::nmr        [makeint $::pars([incr ::layer_offset])]
     }
 
     # beam characteristics
@@ -240,7 +243,7 @@ proc set_pars_from_vars { pars_name } {
         set pars([incr ::layer_offset]) $::ntl
         set pars([incr ::layer_offset]) $::nml
         set pars([incr ::layer_offset]) $::nbl
-        set pars([incr ::layer_offset]) $::nrepeat
+        set pars([incr ::layer_offset]) $::nmr
     }
 
     # beam characteristics
@@ -991,7 +994,7 @@ proc send_layout {} {
 	gmlayer ntl $::ntl
 	gmlayer nml $::nml
 	gmlayer nbl $::nbl
-	gmlayer nmr $::nrepeat
+	gmlayer nmr $::nmr
     }
     gmlayer bi  [makereal $::bi]
     gmlayer bk  [makereal $::bk]
@@ -1292,20 +1295,91 @@ proc clear_constraints {} {
 ## the constraints file has been updated.  Update the program
 ## window with the newly generated C code and any compiler output.
 proc update_constraints {} {
-    # XXX FIXME XXX why was this commented out?
-    if { [constraints_modified] } {
-        set text [ $::constraints get 0.0 end ]
-        if { [string length [string trim [string map { \n " " } $text]]] == 0 } {
-            set text {}
-            gmlayer constraints {}
-        } else {
-            proc fit_constraints {} $text
-            gmlayer constraints fit_constraints
-        }
-        gmlayer send constraints $text
+    # Check if we've already processed the constraints
+    if { ![constraints_modified] } { return 1 }
+    
+    # Check if the constraints are empty
+    set text [ $::constraints get 0.0 end ]
+    if { [string length [string trim $text]] == 0 } {
+	set text {}
+	gmlayer constraints {}
+	gmlayer send constraints {}
+	return 1
     }
+
+    # Interpret the constraints string
+    if { [string first gmlayer $text] >= 0 } {
+        # Check if it is a tcl-style constraint
+	set body $text
+    } else {
+        # Assume it is a C-like constraint
+        set body [makeconstrain::prepareScript [linsert $::makeConstrainArgs \
+						    0 +f -t +T -- $text mltmp]]
+    }
+    if {[catch {proc fit_constraints {} $body }]} {
+	# Parse error in constraints body.
+	gmlayer constraints {}
+	gmlayer send constraints {}
+	tk_messageBox -type ok -icon error -parent . \
+	    -title "Error in constraints" \
+	    -message "The constraints did not parse correctly.  Check for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
+	return 0
+    }
+
+    gmlayer constraints fit_constraints
+    gmlayer send constraints $text
     return 1
 }
+
+proc init_constraints {} {
+   if { $::MAGNETIC} {
+      set ::makeConstrainArgs [list \
+         0x00020004               \
+        "int nl"                  \
+         qc 0                     \
+         d  (3*124)               \
+         ro (5*124)               \
+         mu (2*124)               \
+         qm 124                   \
+         dm (4*124)               \
+         rm (6*124)               \
+         th (7*124)               \
+         -                        \
+         bk (((8)*(124)+2)-2)     \
+         bi (((8)*(124)+2)-1)     \
+         -                        \
+         nl                       \
+      ]
+   } else {
+      set ::makeConstrainArgs [list \
+         tqc 0                    \
+         tqm 10                   \
+         tmu (2*10)               \
+         td  (3*10)               \
+         tro (4*10)               \
+         mqc (10*5+0)             \
+         mqm (10*5+10)            \
+         mmu (10*5+(2*10))        \
+         md  (10*5+(3*10))        \
+         mro (10*5+(4*10))        \
+         bqc (2*10*5+0)           \
+         bqm (2*10*5+10)          \
+         bmu (2*10*5+(2*10))      \
+         bd  (2*10*5+(3*10))      \
+         bro (2*10*5+(4*10))      \
+         -                        \
+         bk (((3)*(5)*(10)+2)-2)  \
+         bi (((3)*(5)*(10)+2)-1)  \
+         -                        \
+         ntl                      \
+         nml                      \
+         nmr                      \
+         nbl                      \
+      ]
+   }
+   source [file join $::MLAYER_HOME makeconstrain.tcl]
+}
+init_constraints
 
 ## Update the constraints and apply them to the current layout.
 ## Update all widgets with the new constraints.
@@ -2263,11 +2337,11 @@ proc reset_offsets {} {
 	for {set i [expr $::ntl + 1]} { $i < $repeat_at } { incr i } {
 	    set repeat_depth [ expr $repeat_depth + [ layer $i depth ] ]
 	}
-	set repeat_skip [expr $repeat_depth * ($::nrepeat - 1)]
+	set repeat_skip [expr $repeat_depth * ($::nmr - 1)]
 
 	## XXX FIXME XXX if you want the middle layers grayed when
 	## they are not repeating then comment out the following line:
-	if { $::nrepeat == 1 } { set repeat_at -1 }
+	if { $::nmr == 1 } { set repeat_at -1 }
     }
     set offset 0
     for {set i 0} { $i < $::num_layers } { incr i} {
@@ -2292,7 +2366,7 @@ proc reset_offsets {} {
 	.layers marker conf repeat -hide 0 \
 		-coords [list $left -Inf $left Inf $right Inf $right -Inf ]
         .layers marker conf repeatcount -hide 0 -coords [list $right Inf] \
-                -text "x$::nrepeat" -anchor ne
+                -text "x$::nmr" -anchor ne
 
     }
 }
@@ -3266,7 +3340,7 @@ if { $::MAGNETIC } {
 	-command { raise .lattice; .lattice draw }
 } else {
     .menu.layer add command -underline 0 -label "Repeat..." \
-	-command {set ::layerop_repeat $::nrepeat; raise .repeat; .repeat draw}
+	-command {set ::layerop_repeat $::nmr; raise .repeat; .repeat draw}
 }
 .menu.layer add separator
 .menu.layer add command -underline 3 -label "Roughness..." \
@@ -3407,7 +3481,7 @@ proc layer_roughness { v } {
 # process the Repeat... menu dialog
 proc layer_repeat { v } {
     if { [ string is integer $v ] } {
-	if { $v > 0 } { set ::nrepeat $v; return 1 }
+	if { $v > 0 } { set ::nmr $v; return 1 }
     }
     tk_messageBox -message "Repeats must be a positive integer" -type ok
     return 0

@@ -126,6 +126,7 @@ static int parsevar(const char name[], int **pi, double **pd)
     if (strcmp(name,"ntl") == 0) *pi = &ntlayer;
     else if (strcmp(name,"nbl") == 0) *pi = &nblayer;
     else if (strcmp(name,"nml") == 0) *pi = &nmlayer;
+    else if (strcmp(name,"nmr") == 0) *pi = &nrepeat;
     else return 0;
   } else if (name[0] == 'b') {
     if (strcmp(name,"bk") == 0) *pd = &bki;
