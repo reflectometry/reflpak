@@ -28,5 +28,6 @@ package require tkdnd
 package require Tktable
 package require BLT
 
-load "@MLAYER_EXT@"
+load "@BINDIR@/gmlayer@LDEXT@"
+source "@BINDIR@/winoptions.tcl"
 source [file join $MLAYER_HOME mlayer.tcl]

@@ -1,5 +1,6 @@
 # size of main window; use ++ for maximized
 *mainGeometry: 640x440
+# *Graph.Height: 55
 # *mainGeometry: ++
 
 *useSLD: true

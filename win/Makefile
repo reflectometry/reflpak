@@ -95,20 +95,24 @@ REFLFIT_ARCH = ok
 bindir = $(shell pwd | sed -e "s,^/c/,/,")
 reflfitdir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/tcl
 reflreddir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/reflred
+reflfitfiles = $(wildcard /c$(reflfitdir)/*)
 
 all: reflfit$(EXE) reflred$(EXE)
 
-reflfit$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) reflfit.manifest reflfit.tcl
+reflfit$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) \
+	reflfit.manifest $(reflfitfiles) winoptions.tcl reflfit.tcl
 	./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 reflfit.tcl: reflfit.tcl.in
 	sed -e 's,@WISH@,$(TCL_PREFIX)/bin/bltwish,' \
 		-e 's,@TCL_PREFIX@,$(TCL_PREFIX_WIN),' \
 		-e 's,@MLAYER_HOME@,$(reflfitdir),' \
-		-e 's,@MLAYER_EXT@,$(bindir)/gmlayer$(LDEXT),' < reflfit.tcl.in > reflfit.tcl
+		-e 's,@BINDIR@,$(bindir),' \
+		-e 's,@LDEXT@,$(LDEXT),' \
+		< reflfit.tcl.in > reflfit.tcl
 	chmod a+x reflfit.tcl
 
-reflfit.manifest: 
+reflfit.manifest:
 	$(RM) manifest.in
 	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest.in ; done
 	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest.in
@@ -119,7 +123,8 @@ reflfit.manifest:
 	echo "$(TKDND)/tkdnd.tcl" >> manifest.in
 	echo "$(TKDND)/libtkdnd10.dll" >> manifest.in
 	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest.in
-	for f in /c$(reflfitdir)/* ; do echo "$$f" >> manifest.in ; done
+	echo "$(bindir)/winoptions.tcl" >> manifest.in
+	for f in $(reflfitfiles); do echo "$$f" >> manifest.in ; done
 	sed -e 's,^/c/,/,' <manifest.in > $@
 	$(RM) manifest.in
 
@@ -130,6 +135,7 @@ reflred.tcl: reflred.tcl.in
 	sed -e 's,@WISH@,$(TCL_EXEC_PREFIX)/bin/bltwish,' \
 		-e 's,@TCL_PREFIX@,$(TCL_PREFIX_WIN),' \
 		-e 's,@VIEWRUN_HOME@,$(reflreddir),' \
+		-e 's,@BINDIR@,$(bindir),' \
 		< reflred.tcl.in > reflred.tcl
 	chmod a+x reflred.tcl
 

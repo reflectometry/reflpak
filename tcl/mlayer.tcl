@@ -134,9 +134,9 @@ if { [ file exists [file join $::HOME .mlayer] ] } {
 # These are the main windows which are used throughout.
 # XXX FIXME XXX only create the contents of the window when the user
 # clicks on the notebook tab so that startup is faster
-set panes [ PanedWindow .panes -side right ]
-set reflectivitybox [ $panes add -weight 1 ]
-set notebookbox [ $panes add -weight 1 ]
+set panes [ PanedWindow .panes -side right -weights available ]
+set reflectivitybox [ $panes add -weight 45 ]
+set notebookbox [ $panes add -weight 55 ]
 sashconf .panes
 
 set notebook [ NoteBook $notebookbox.notebook -internalborderwidth 3]
@@ -1082,9 +1082,9 @@ proc working_files {} {
     set datafile [gmlayer send datafile]
     set parfile [gmlayer send parfile]
 
-    if { ![string equal $datafile {}] } { set datafile " ($datafile)" }
-    if { ![string equal $parfile {}] } { set parfile " $parfile" }
-    if { ![string equal $parfile$datafile {}] } {
+    if { $datafile ne "" } { set datafile " ([file tail [file normalize $datafile]])" }
+    if { $parfile ne "" } { set parfile " [file tail [file normalize $parfile]]" }
+    if { "$parfile$datafile" ne "" } {
 	wm title . "$::title -$parfile$datafile"
     } else {
 	wm title . "$::title"
@@ -3056,7 +3056,7 @@ if { 0 } {
 # ===================== data export ======================
 
 proc export_profile {file} {
-    if { [catch {open $file "w"} fid] } {
+    if { [catch [list open $file w] fid] } {
 	tk_messageBox -type ok -icon error -message $fid
     } else {
 	puts "# Depth"
@@ -3131,7 +3131,7 @@ proc scanparstr { text label name } {
 
 proc guess_beam_characteristics { filename } {
     # Load beam characteristics from the datafile if we can
-    if { ![catch { open $filename r } fid] } {
+    if { ![catch [list open $filename r] fid] } {
 	# suck in data
 	set data [read $fid]
 	close $fid
@@ -3678,11 +3678,11 @@ proc drop_file { file } {
 
     ## Trim uri indicator if any
     ## XXX FIXME XXX maybe allow drag/drop links from browser?
-    regsub {^file:} $file {} file
+    regsub {^file:} [lindex $file 0] {} file
 
     ## Try to guess if it is a staj file.  To be a staj file, it must
     ## exist and it must contain something other than numbers and comments.
-    if { [catch { open $file r } fid] } { 
+    if { [catch [list open $file r] fid] } { 
 	tk_messageBox -type ok -icon error -message $fid
 	return
     }
@@ -3745,7 +3745,7 @@ proc start_file {} {
             # app_fail "file $argv does not exist"
         }
     } elseif { $::argc == 0 } {
-	return "" ;# For now, lets try starting empty
+	return {} ;# For now, lets try starting empty
         if { [file exists [set initfile $::defaultfile]] } {
             # mlayer.staj exists"
             set filetypes [list $::fitfiles $::datafiles $::allfiles]
@@ -3769,9 +3769,10 @@ proc start_file {} {
         ## if no input file, might just want to play with lineshapes
         # if { $initfile == "" } { exit }
     } else {
-        set initfile ""
+	# XXX FIXME XXX what shall we do with too many start args?
+        return {}
     }
-    return $initfile
+    return [list $initfile]
 }
 
 # generate a default layout
