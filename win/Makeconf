@@ -27,10 +27,12 @@ TKTABLE_EXT=Tktable28.dll
 F77=g77
 FFLAGS=-O3
 FLIBS=-lg2c -lm
+FPP=-x f77-cpp-input
+FPERROR=fperror-387.o
 
 # C compiler
 CC=gcc
-CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC) -I../src
+CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC)
 LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=gcc -pipe -shared
 LDFLAGS=
