@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <errno.h>
-#include <pwd.h>
+/* #include <pwd.h> */
 #include <string.h>
 #include <unix.h>
 #include <queryString.h>
@@ -36,7 +36,7 @@ int bang(char *command) {
 
 int cd (char *command) {
    int retValue = 0;
-
+#if 0
    if (
       queryString("New directory: ", currentDir, PATH_MAX) != NULL &&
       #ifdef ALWAYSEXPAND
@@ -52,13 +52,15 @@ int cd (char *command) {
          retValue = -1;
    }
    getwd(currentDir);
-
+#endif
    return retValue;
 }
 
 
 STATIC char *tildeExpand(char *dir)
 {
+   char *retValue = "";
+#if 0
    struct passwd *thisEntry;
    char *logonEnd, *retValue;
    STATIC char expanded[PATH_MAX + 1];
@@ -91,6 +93,7 @@ STATIC char *tildeExpand(char *dir)
          }
       }
    }
+#endif
    return retValue;
 }
 

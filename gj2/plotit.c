@@ -47,6 +47,9 @@
 #include "error.h"
 
 #define LINEAR_DATA 1
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 STATIC char *dumpReflecData(char xsec, int npnts, int noff);
 STATIC char *dumpReflecFit(char xsec, int noffx);

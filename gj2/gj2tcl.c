@@ -143,7 +143,7 @@ static int parsevar(const char name[], int **pi, double **pd)
      * the name prefix has two characters. */
     nl = atoi(name+(*pd!=d?2:1));
     
-    if (nl > 0 && nl <= MAXLAY) *pd += nl-1;
+    if (nl > 0 && nl <= MAXLAY) *pd += nl;
     else return 0;
   }
   return 1;

@@ -41,6 +41,10 @@ extern void *MALLOC(int);
 /* Local function prototypes */
 #include <static.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 STATIC void printLimit(char *xsec, double qmin, double qmax, int npnts);
 STATIC int selectFilename(char *filnam, char *outfile, char *infile,
    char *extension);
