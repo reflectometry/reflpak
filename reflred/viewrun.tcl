@@ -224,6 +224,10 @@ proc init_selector { } {
     .graph.menu add command -label Exclude \
         -command { exclude_point [active_graph .graph element] [active_graph .graph index] }
 
+    # buttons to toggle polarization states
+    # XXX FIXME XXX these should only appear for polarized data
+    pol_toggle_init .graph
+
     # click with middle button to exclude a value
     bind .graph <2> { graph_exclude %W %x %y }
 
@@ -297,6 +301,62 @@ proc set_monitor {} {
     grid $top.label $top.value
     grid $top.b - -sticky e
     bind $top.value <Return> { set ::monitor_inuse 1; atten_set $::addrun }
+}
+
+# Polarization cross-section toggling
+
+bind pol_toggle <<Elements>> { pol_toggle_enable %W }
+
+proc pol_toggle_init {w} {
+    frame $w.toggle
+    foreach {n t} {a A b B c C d D} {
+	button $w.toggle.$n -text $t -padx 2p -pady 1p \
+	    -command [list pol_toggle $w $n]
+	pack $w.toggle.$n -side left
+    }
+    bindtags $w [linsert [bindtags $w] 0 pol_toggle]
+}
+
+proc pol_toggle_enable {w} {
+    set show 0
+    foreach el [$w elem names *] {
+	if { [string match {*[ABCD]} [$w elem cget $el -label]] } {
+	    set show 1
+	    break
+	}
+    }
+    if { $show} {
+	place $w.toggle -relx 1.0 -rely 1.0 -anchor se
+    } else {
+	place forget $w.toggle
+    }
+}
+
+proc pol_toggle {w n} { 
+    switch -- $n {
+	a { set pattern *A }
+	b { set pattern *B }
+	c { set pattern *C }
+	d { set pattern *D }
+    }
+    set state 0
+    foreach el [$w elem names *] { 
+	if {[string match $pattern [$w elem cget $el -label]] \
+		&& [legend_hidden $w $el]} { 
+	    set state 1; 
+	    break 
+	}
+    }
+    foreach el [$w elem names *] {
+	if {[string match $pattern [$w elem cget $el -label]]} { 
+	    legend_set $w $el $state 
+	}
+    }
+    if {$state} {
+	$w.toggle.$n conf -relief raised
+    } else {
+	$w.toggle.$n conf -relief ridge
+    }
 }
 
 # XXX FIXME XXX do we really want the message to show up in all the windows?
@@ -718,6 +778,9 @@ proc clearscan { scanid } {
 	set var [vector names ::${scanid}_*]
 	if [llength $var] { eval vector destroy $var }
     }
+
+    # notify application that graph elements have changed
+    event generate .graph <<Elements>>
 }
 
 proc editscan { scanid } {
@@ -741,7 +804,7 @@ proc editscan { scanid } {
 	    yes { addrun clear }
 	}
     }
-    foreach id $runs { addrun add $id }
+    addrun add $runs
     atten_set $::addrun
     raise .
 }
@@ -1455,9 +1518,7 @@ proc addrun_accept {} {
     addrun clear
 
     # add the scans
-    foreach scan $scanlist {
-	addrun_addscan $scan
-    }
+    foreach scan $scanlist { addrun_addscan $scan }
 
     # set the scale on the ghost scans
     atten_set {}
@@ -1497,6 +1558,8 @@ proc addrun { command args } {
 	load {}
 	accept {
 	    addrun_accept
+	    event generate .graph <<Elements>>
+	    event generate .reduce.graph <<Elements>>
 	    atten_table_reset
 	}
 	save {
@@ -1509,6 +1572,7 @@ proc addrun { command args } {
 		foreach id $::addrun { addrun_remove $id }
 		atten_table_reset
 	    }
+	    event generate .graph <<Elements>>
 	}
 	clearscan {
 	    addrun_clearscan $args
@@ -1521,12 +1585,14 @@ proc addrun { command args } {
 	    return [expr [lsearch $::addrun $args] >= 0 ]
 	}
 	add {
-	    addrun_add $args
+	    foreach id [lindex $args 0] { addrun_add $id }
 	    atten_table_reset
+	    event generate .graph <<Elements>>
 	}
 	remove {
-	    addrun_remove $args
+	    foreach id [lindex $args 0] { addrun_remove $id }
 	    atten_table_reset
+	    event generate .graph <<Elements>>
 	}
 	matches {
 	    return [addrun_matches $args]
@@ -1658,7 +1724,7 @@ proc toggle_section { args } {
 		message $message
 	    }
 	}
-	foreach node $nodes { addrun add $node }
+	addrun add $nodes
     }
     atten_set $::addrun
 }
