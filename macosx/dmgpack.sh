@@ -21,24 +21,28 @@
 test $# -lt 2 && echo "usage: $0 diskname [file|dir]+" && exit 1
 set -x
 NAME=${1%.dmg} ; shift
-DISK=tmp.dmg
+DISK=/tmp/dmgpack$$.dmg
 COMPRESSED=$NAME.dmg
 VOLUME=$NAME
 # compute needed image size; scale it by 10%
 SIZE=$(du -ck $* | tail -1 | sed -e 's/ *total//')
-SIZE=$(echo $SIZE*11/10 | bc)k
+SIZE=$(echo $SIZE*11/10 | bc)
+test $SIZE -lt 4200 && SIZE=4200
 # create the disk
 rm -f $DISK
-hdiutil create -size $SIZE $DISK -layout NONE
+hdiutil create -size ${SIZE}k $DISK -layout NONE
 # create a file system on the disk
 DEVICE=$(hdid -nomount $DISK)
 newfs_hfs -v $VOLUME $DEVICE
 hdiutil eject $DEVICE
 # copy stuff to the disk and fixup resource forks
-DEVICE=$(hdid $DISK)
-for f in $*; do ditto -rsrc $f /Volumes/$VOLUME/$f; done
-/System/Library/CoreServices/FixupResourceForks /Volumes/$VOLUME
+hdid $DISK
+for f in $*; do 
+	ditto -rsrc $f /Volumes/$VOLUME/$f; 
+	test -d $f && /System/Library/CoreServices/FixupResourceForks /Volumes/$VOLUME/$f
+done
 hdiutil eject $DEVICE
 # compress the disk and make it read only
 rm -f $COMPRESSED
 hdiutil convert -format UDZO $DISK -o $COMPRESSED
+rm -f $DISK
