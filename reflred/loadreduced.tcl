@@ -191,28 +191,28 @@ proc markother {file} {
     
     set rec(load) loadother
     
-    set root [file rootname $file]
-    set run [string range $root end-2 end]
-    set dataset [string range [file tail $root] 0 end-3]
-
     set rec(date) [file mtime $file]
-    set rec(type) [file extension $file]
     set rec(comment) "Unknown file $file"
     set rec(T) unknown
     set rec(H) unknown
     set rec(base) unknown
-    set rec(run) $run
     set rec(index) [guessindex $file]
     set rec(start) 0
     set rec(stop) 0
 
+    set trim [string range [file tail $file] 0 end-[string length $rec(index)]]
+    set root [file rootname $trim]
+    set dataset [string range $root 0 end-3]
     if { [info exists ::dataset($dataset)] } {
+	set rec(type) processed
 	set rec(dataset) $dataset
+	set rec(run) "[string range $root end-2 end][file extension $trim]"
 	set rec(instrument) [lindex [split [lindex [lsort [array names ::group $dataset,*]] 0] ,] 1]
     } else {
-	set rec(dataset) other
-	set rec(run) [file tail $root]
-	set rec(instrument) other
+	set rec(type) none
+	set rec(dataset) unknown
+	set rec(run) $trim
+	set rec(instrument) none
     }
     categorize
 }
