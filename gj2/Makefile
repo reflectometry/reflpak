@@ -16,14 +16,15 @@
 # LIBS			usual link libraries
 #
 # DEBUG=-DEBUG		Build a debug version
-#
-# FPERROR		Object file which defines fperror and clear_fp_error
 
 
 sinclude ../Makeconf
 ifndef LDEXT
   $(error Link ../xxx/Makeconf to ../Makeconf and try again.)
 endif
+
+FPERROR ?= fperror.o
+C99 ?= $(CC)
 
 DEFS=-DUSE_TCL_STUBS=1 -DREALLOC=gmlayer_realloc -DMALLOC=gmlayer_alloc -DFREE=gmlayer_free $(DEBUG)
 
@@ -83,6 +84,9 @@ $(OMQ): Makefile
 # with a -DAMPLITUDE and a few #ifdef's inside.
 r4xa.o: r4x.f
 	$(F77) -DAMPLITUDE $(MINUSQ) $(FFLAGS) -c $(FPP) $< -o $@
+
+fperror.o: fperror.c
+	$(C99) $(CFLAGS) -I../gj2 -c fperror.c -o fperror.o
 
 lint: $(FUZZIES)
 	$(LINT) $(INCLUDES) $(LINTS) $(TFLAGS) $(LIBS) > $@
