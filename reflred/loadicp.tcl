@@ -601,7 +601,7 @@ proc NG7load {id} {
 	}
 	default { default_x $id }
     }
-    set rec(ylab) "Reflectivity"
+    set rec(ylab) "Unnormalized Reflectivity"
 
     return 1
 }
