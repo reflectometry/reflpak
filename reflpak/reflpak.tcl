@@ -70,7 +70,7 @@ switch -- $reflpak::app {
     Reflfit { package require reflfit }
     Reflpol { package require reflpol }
     Reflred { package require reflred }
-    tkcon { 
+    wish { 
 	package require tkcon
 	set ::tkcon::PRIV(protocol) exit
 	tkcon show 
