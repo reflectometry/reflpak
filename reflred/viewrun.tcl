@@ -119,6 +119,11 @@ proc init_selector { } {
     .menu add command -label "Attenuators..." -command { atten_table }
     # XXX FIXME XXX want menu options for setting Xray/Neutron wavelength
     # XXX FIXME XXX some users want separate scan directory and fit directory
+
+    menu .menu.transform
+    .menu add cascade -label Transform -menu .menu.transform
+    .menu.transform add command -label "Q -> |Q|" -command { set_absolute_all }
+
     menu .menu.options
     .menu add cascade -label Options -menu .menu.options
     .menu.options add radiobutton -label "Background Q(A3)" \
@@ -1608,6 +1613,16 @@ proc addrun { command args } {
 	}
     }
 }
+
+proc set_absolute {id} {
+    if {[info exists ::x_$id]} { ::x_$id expr abs(::x_$id) }
+    if {[info exists ::xth_$id]} { ::xth_$id expr abs(::xth_$id) }
+}
+
+proc set_absolute_all { } {
+    foreach id $::addrun { set_absolute $id }
+}
+
 
 proc toggle_background { node } {
     # update indicator in tree
