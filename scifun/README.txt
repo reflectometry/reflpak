@@ -62,7 +62,13 @@ Installation is a bit tricky since it requires compiling an app using
 a C99 compliant compiler.  For now, I'm leveraging off the hand-tooled
 build rules for another project.  You will need to role your own.
 
+If your library does not supply all the C99 functions, check
+out fdlibm from netlib.  Sun Microsystems has kindly provided
+everything we need, and I've included a few pieces here for
+compiling with MinGW.
+
 This code is in the public domain.
 
 Paul Kienzle
 pkienzle@users.sf.net
+2004-03-17
