@@ -4,8 +4,6 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-SDX ?= sdx
-NCNRKIT ?= ncnrkit
 DATE = $(shell date +%Y%m%d)
 TAR ?= tar
 
@@ -73,8 +71,8 @@ kit/reflpak.res: win/reflpak.rc win/R.ico win/red.ico
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
-		$(scifunfiles) $(libfiles) $(ncnrkit) \
-		$(pakfiles) main.tcl Makefile
+		$(scifunfiles) $(libfiles) $(pakfiles) \
+		kit/ncnrkit$(EXE) main.tcl Makefile vfslib
 	./vfslib reflpak
 	./vfslib reflpak ncnrlib $(libfiles)
 	./vfslib reflpak scifun $(scifunfiles)
@@ -86,7 +84,8 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
 	echo "set ::app_version {`date +%Y-%m-%d for $(ARCH)`}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
-	cd kit && $(SDX) wrap reflpak$(EXE) -runtime $(NCNRKIT)
+	cd kit && cp ncnrkit$(EXE) copykit$(EXE) && \
+		./copykit sdx.kit wrap reflpak$(EXE) -runtime ncnrkit$(EXE)
 	touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 html: html/reflred/index.html html/reflfit/index.html
