@@ -1,43 +1,65 @@
-VERSION=0.2.0
-DATE=`date +%Y-%m-%d`
+#! /bin/bash
 
-# base name of the project
-PROJECT=reflfit
+# Build an official release of reflpak.  Currently version is
+# tied to date
 
-# use Ryyyy-mm-dd as the tag for revision yyyy.mm.dd
-TAG=R$DATE
-ROOT=$PROJECT-`date +%Y.%m.%d`
+VERSION=`date +%Y%m%d`
 
-# Update the version number and version date in the appropriate spots
-mv tcl/reflfit.help .
-sed -e"s,Reflfit v[.].*$,Reflfit v. $VERSION $DATE," <reflfit.help >tcl/reflfit.help
-rm reflfit.help 
+# I'm assuming this script is being run from one of the build
+# machines.  In my case, this is windows since my windows box
+# isn't set up for ssh operations.
 
-# Update the repository with the changed files
-cvs commit -m "$TAG release" tcl/reflfit.help 
+# Here are my architecture specific build machines.  Each has
+# already been set up with a build directory and the appropriate
+# Makeconf.  I'm building in ~/cvs/reflfit:
+BUILD="jazz bt7motor h122145"
+builddir=~/cvs/reflfit
+gatherdir=~/release/reflpak$VERSION
 
-# tag the CVS tree with the revision number
-cvs rtag $TAG $PROJECT
+# The results are stored and shared in the following directories.
+# These may be local or remote since scp doesn't care:
+STORE=jazz:release
+SHARE=jazz:samba
 
-# extract the tree into a tagged directory
-cvs export -r $TAG -d $ROOT $PROJECT
+dir=`pwd`
 
-# generate the ChangeLog for the release tarball ; don't bother
-# storing the ChangeLog on CVS.  Otherwise, move this line up
-# before commit command, and generate ChangeLog rather than $ROOT/ChangeLog
-cvs2cl.pl --fsf --file ChangeLog.tmp
-echo "# Automatically generated file --- DO NOT EDIT" | cat - ChangeLog.tmp > $ROOT/ChangeLog
-rm -f ChangeLog.tmp
+echo local cvs update 
+cd $builddir; cvs -q update -dP; cd $dir
+for machine in $BUILD; do
+    echo cvs update on $machine:
+    ssh $machine "cd $builddir && cvs -q update -dP"
+done
 
-# build the tar ball
-tar czf $ROOT.tar.gz $ROOT
+echo "Does everything look okay? [y to continue]"
+read ans
+test "$ans" != "y" && exit
 
-# remove the tagged directory
-rm -rf $ROOT
 
-# build the documentation
-rm -rf html/reflfit
-tcl/help2html tcl/*.help
+cd $builddir
+echo local build
+make dist
+echo build html
+make html
+echo build source
+make srcdist
+cd $dir
 
-# build the source+binary+doc distribution
-tar czf $ROOT-dist.tar.gz $ROOT.tar.gz html bin
+for machine in $BUILD; do
+    echo build on $machine
+    ssh $machine "cd $builddir && make dist"
+done
+
+mkdir $gatherdir
+echo gather local build results
+cp $builddir/release/reflpak$VERSION* $gatherdir
+cp -a $builddir/html $gatherdir
+for machine in $BUILD; do
+    echo gather results from $machine
+    scp $machine:$builddir/release/reflpak$VERSION* $DIR
+done
+
+cd $gatherdir/..
+tar cjf release-reflpak$VERSION.tar.gz reflpak$VERSION
+scp release-reflpak$VERSION.tar.gz $STORE
+scp -r $gatherdir $SHARE
+cd ~dir
