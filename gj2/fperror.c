@@ -29,11 +29,8 @@ FORTRAN usage:
 /* Define C and fortran variants. */
 
 #ifndef F77_FUNC
-#ifdef sgi
+/* IRIX and linux use a lowercase name followed by an _ */
 #define F77_FUNC(lower,upper) lower ## _
-#else
-#define F77_FUNC(lower,upper) lower ## __
-#endif
 #endif
 
 #define fperrorF77 F77_FUNC(fperror,FPERROR)
@@ -50,15 +47,16 @@ void fpresetF77 (void)
   feholdexcept(&env); 
 }
 
+#define USEFUL_FLAGS FE_DIVBYZERO|FE_UNDERFLOW|FE_OVERFLOW|FE_INVALID
 int fperror (void) 
 {
-  int flags = fetestexcept(FE_ALL_EXCEPT);
-  feclearexcept(FE_ALL_EXCEPT);
+  int flags = fetestexcept(USEFUL_FLAGS);
+  feclearexcept(USEFUL_FLAGS);
   return flags != 0;
 }
 int fperrorF77 (void) 
 {
-  int flags = fetestexcept(FE_ALL_EXCEPT);
-  feclearexcept(FE_ALL_EXCEPT);
+  int flags = fetestexcept(USEFUL_FLAGS);
+  feclearexcept(USEFUL_FLAGS);
   return flags != 0;
 }
