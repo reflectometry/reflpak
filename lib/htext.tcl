@@ -22,6 +22,7 @@
 #      blank lines break paragraphs 
 #      all lines without leading blanks are displayed as a paragraph
 #      if the first character of the paragraph is >, quote the paragraph
+#      if the first character of the paragraph is #, it is a comment
 #      a link is the title of another page in brackets (see examples at end). 
 #
 # Links are displayed underlined and blue (or purple if they have been 
@@ -267,15 +268,20 @@ namespace eval htext {
 		    continue
 		}
 		if { !$var } {
-		    if {[string match >* $i] } {
+		    set var 1
+		    if {[string match \#* $i]} {
+			set tag comment
+			set i [string range $i 1 end]
+		    } elseif {[string match >* $i] } {
 			set tag quote
 			set i [string range $i 1 end]
 		    } else {
 			set tag {}
 		    }
 		}
-		set var 1
 	    }
+
+	    if { "$tag" == "comment" } continue
 	    
 	    # expand links
 	    set i [map_escaped_brackets $i]
