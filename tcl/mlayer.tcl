@@ -103,6 +103,7 @@ if { [ file exists [file join $::HOME .mlayer] ] } {
 # incorrect at this point: let the expect program deal with
 # that when it starts up mlayer.
 if { $argc == 1 } {
+    set argv [lindex $argv 0]
     if { [ string match $argv "-h" ] } {
 	puts "usage: $argv0 \[fitfile|datafile]"
 	exit
@@ -116,7 +117,7 @@ if { $argc == 1 } {
 	    [llength [set f [glob -nocomplain "$argv\[abcdABCD]"]]] > 0 } {
 	set initfile [lindex [lsort $f] end]
     } else {
-	puts "$argv0: file $argv does not exist"
+	tk_messageBox -type ok -title $argv0 -message "file <$argv> does not exist"
 	exit
     }
 
