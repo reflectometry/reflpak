@@ -72,10 +72,10 @@ done
 echo; echo "== updating $STORE and $SHARE ======================"
 sed -e"s,@VERSION@,$VERSION," < INSTALL >reflpak$VERSION/index.html
 cp RELEASE-NOTES reflpak$VERSION
-tar cjf reflpak$VERSION.tar.gz reflpak$VERSION
-scp reflpak$VERSION.tar.gz "$STORE"
+tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
+scp reflpak$VERSION.tar.bz2 "$STORE"
 scp -r reflpak$VERSION "$SHARE"
-ssh ${SHARE%:*} "cd ${SHARE#*:} && ln -sf reflpak$VERSION reflpak"
+ssh ${SHARE%:*} "cd ${SHARE#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
 rm -rf reflpak$VERSION
 echo; echo "Please check that $STORE and $SHARE contain what you want"
 
