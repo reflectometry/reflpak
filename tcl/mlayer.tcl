@@ -3099,16 +3099,20 @@ proc open_parfile {filename} {
     global parfile datafile directory
     set newdir [ file dirname $filename ]
     set newpar [ file tail $filename ]
-    cd $newdir
     if { [catch {
+	cd $newdir
 	gmlayer pf $newpar
 	gmlayer lp 
     } msg] } {
+	cd $directory
+	gmlayer pf $parfile
+	catch { gmlayer lp }
 	tk_messageBox -type ok -icon error -message $msg
 	return 0
     }
 
     set parfile $newpar
+    set directory $newdir
     set datafile ""
     read_pars
     clean_temps
@@ -3202,12 +3206,10 @@ proc new_parfile {filename} {
     # we keep a change flag and warn the user?  Such a flag would allow
     # us to make sure the parameters are saved before exit.
     if { ![set_datafile $filename] } { return 0 }
-    set parfile [file rootname [file tail $filename]]$::fitext
-    if { [ file exists $parfile ] } {
-	tk_messageBox -type ok -icon warning -message \
-		"File $parfile exists; use Save as... to choose a different name"
-    }
-    gmlayer pf $parfile
+
+    set ::parfile [file rootname [file tail $filename]]$::fitext
+    
+    gmlayer pf $::parfile
     gmlayer of ""
 
     default_pars
@@ -3215,6 +3217,11 @@ proc new_parfile {filename} {
     clear_constraints
     clean_temps
     reset_all
+
+    if { [ file exists $::parfile ] } {
+	tk_messageBox -type ok -icon warning -message \
+		"File $::parfile exists; use Save as... to choose a different name"
+    }
     return 1
 }
 
@@ -3277,13 +3284,14 @@ proc set_datafile {filename} {
     gmlayer if $base
     if { [catch { gmlayer gd } msg] } {
 	# restore old file
+	cd $::directory
 	gmlayer if $oldfile
 	if { $oldfile ne "" } { gmlayer gd }
 	tk_messageBox -type ok -icon error -message $msg
 	return 0
     }
 
-    cd $newdir
+    set ::directory $newdir
     focus_beambox
     return 1
 }
