@@ -21,3 +21,4 @@ bind Button <Key-Return> {tk::ButtonInvoke %W}
 
 option add *Hiertable.ResizeCursor size_we 81
 
+option add *Graph.Legend.Font {Helvetica -8} widgetDefault
