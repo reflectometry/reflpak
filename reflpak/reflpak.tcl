@@ -27,7 +27,8 @@ namespace eval reflpak {
             -command [list set [namespace current]::choose_app Reflred]
         button $root.wish -text "Tcl Console..." \
             -command [list set [namespace current]::choose_app tkcon]
-        pack $root.fit $root.pol $root.red $root.wish -fill x -side top
+        pack $root.fit $root.pol $root.red $root.wish \
+            -fill x -side top
 
 	switch $::tcl_platform(platform) {
 	    windows {

@@ -33,11 +33,17 @@ fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
 	makeconstrain.tcl gmlayer$(LDEXT) gj2$(LDEXT)
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
-redsrc=viewrun.tcl loadicp.tcl loaduxd.tcl loadreduced.tcl \
-	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc pkgIndex.tcl
+redsrc=viewrun.tcl loadicp.tcl loadice.tcl loaduxd.tcl loadreduced.tcl \
+	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc \
+	footprint.tcl pkgIndex.tcl
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
-	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
-	plotrunop.m run_div.m run_poisson_avg.m run_tol.m run_send.m
+	run_avg.m run_interp.m run_sub.m runlog.m \
+	plotrunop.m run_div.m run_poisson_avg.m run_tol.m run_send.m \
+	footprint_fit.m footprint_gen.m footprint_interp.m \
+	reduce.m reduce_part.m run_send.m run_send_pol.m \
+	polcor.m fitslits.m run_invscale.m 
+octlib=common_values.m inputname.m polyconf.m qlfit.m wsolve.m \
+	confidence.m qlconf.m wpolyfit.m interp1err.m
 
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
@@ -47,7 +53,8 @@ pakfiles=$(patsubst %,reflpak/%,$(paksrc))
 libfiles=$(patsubst %,lib/%,$(libsrc))
 fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc))
 redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc))
-redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc))
+redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc) $(octlib))
+
 
 macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
