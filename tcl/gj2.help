@@ -1,30 +1,32 @@
 # ===============================================================
 if {![info exists ::commandbox]} { set ::commandbox {} }
-hpage {mlayer} $::commandbox {reflfit
-is implemented as a GUI layer on top of the underlying mlayer
-program.  For the most part you will never need to access mlayer directly,
+hpage {gj2} $::commandbox {reflpol 
+is implemented as a GUI layer on top of the underlying gj2
+program.  For the most part you will never need to access gj2 directly,
 but there are some features which are not yet implemented in the GUI.
 
 In particular you may need:
 
-   ulc	- unload constraints
-   lc	- load constraints
+   ulc         - unload constraints
+   lc          - load constraints
+   ps abcd     - use all four polarization states when fitting.
+   sl A B N y  - repeat layers A to B N times, erasing B+1 to B+N*(B-A).
 
 You must be sure to use the correct number of parameters for the
 command, or you will need to exit and restart the program.  In practice
 this means you will need to try them directly in the underlying program
 before you can use them from the GUI.
 
-The attached pages list all the mlayer commands for completeness, but you
+The attached pages list all the gj2 commands for completeness, but you
 will not need most of them, and some of them will cause the link between
-the GUI and mlayer to fail, so save your state before continuing!
+the GUI and gj2 to fail, so save your state before continuing!
 
-   [mlayer parameters]
-   [mlayer layers]
-   [mlayer fit]
-   [mlayer io]
-   [mlayer display]
-   [mlayer plot]
+   [gj2 parameters]
+   [gj2 layers]
+   [gj2 fit]
+   [gj2 io]
+   [gj2 display]
+   [gj2 plot]
 
 Don't try running the movie commands directly, because the command window
 will timeout before the movie is complete.  The [Tcl console] allows you
@@ -32,23 +34,16 @@ to program your own movies.
 }
 
 # ===============================================================
-hpage {mlayer parameters} {} {
- NcL    Enter number of layers for region c (between 1 and 9).
-        Set c to T for top, M for middle and B for bottom.
+hpage {gj2 parameters} {} {
+ AL     Add a layer between existing layers.
 
- AcL    Add a layer between existing layers in a region.
-        Set c to T for top, M for middle and B for bottom.
+ CL     Copy parameters from one layer to another.
 
- RcL    Remove a layer between existing layers.
-        Set c to T for top, M for middle and B for bottom.
+ RL     Remove a layer between existing layers.
 
- CL     Copy parameters from one layer in any region to another layer in
-        any region.
+ SL     Create a superlattice from a specified range of layers.
 
- NMR    Enter the number of repeats of the middle region to make a
-        superlattice.  Note: the bottom of the top region and the top of
-        the bottom region must each be set to one repeat if NMR is
-        greater than 1 for the profile to be constructed correctly.
+ NL     Enter number of layers (between 1 and 124 as of this writing ).
 
  NP     Enter number of data points (automatically done by GD).
 
@@ -56,6 +51,8 @@ hpage {mlayer parameters} {} {
         than 2).
 
  PR     Enter profile shape for simulated roughness.
+
+ PS     Enter polarization states to use.
 
  QL     Enter Q limits of data set (automatically done by GD).
 
@@ -84,30 +81,42 @@ hpage {mlayer parameters} {} {
 }
 
 # ===============================================================
-hpage {mlayer layers} {} {
- rDn    Enter thickness of nth chemical layer in region r.
+hpage {gj2 layers} {} {
+ Dn     Enter thickness of nth chemical layer.
 
- rMUn   Enter the length absorption coefficient for nth chemical layer in
-        region r.
+ DMn    Enter thickness of nth magnetic layer
 
- rQCn   Enter x-ray (or nuclear) critical Q squared of nth chemical layer
-        in region r.
+ MUn    Enter the length absorption coefficient for chemical layer n.
 
- rROn   Enter interfacial roughness at top of nth chemical layer in region
-        r.
+ QCn    Enter nuclear (or x-ray) critical Q squared of chemical layer n.
+
+ QMn    Enter magnetic critical Q squared of magnetic layer n.
+
+ RMn    Enter interfacial roughness at top of magnetic layer n.
+
+ ROn    Enter interfacial roughness at top of chemical layer n.
+
+ THn    Enter the angle (in degrees) in the plane for the moment in
+        magnetic layer n.  A value of 0 corresponds to the incident beam
+        direction.
 }
 
 # ===============================================================
-hpage {mlayer fit} {} {
- CSR    Calculate chi-squared for logarithm of reflectivity.  Append S to
-        calculate chi-squared for the spin asymmetry.
+hpage {gj2 fit} {} {
+ CS
+ CSR    Calculate chi-squared for logarithm of reflectivity.
 
- FR     Fit logarithm of reflectivity to data stored in IF.  Append S to
-        fit the spin asymmetry.  Append M to plot a movie of the fit as
-        it progresses.
+ FR     Fit logarithm of reflectivity to data stored in IF.
+
+ FRM    Fit logarithm of reflectivity to data stored in IF and plot a
+        movie of the fit as it progresses.  Append A, B, C or D to watch
+        only the specified cross-sections.
 
  UF     Restore parameters and uncertainties to values just before the last
         fit.
+
+ RE     Determine number of points required for resolution extension
+        (automatically done whenever necesssary).
 
  EC     Edit constraints found in the file entered using PF command.
         A new constrain module is created and loaded (automatically done
@@ -127,9 +136,12 @@ hpage {mlayer fit} {} {
 }
 
 # ===============================================================
-hpage {mlayer io} {} {
+hpage {gj2 io} {} {
+
  EX     Exit the program and save parameters and constraints to file entered
         using PF command.
+
+ EXS    Exit the program as with EX and print elapsed CPU time
 
  QU     Exit without saving changes to parameter file entered with PF.
 
@@ -146,7 +158,7 @@ hpage {mlayer io} {} {
  OF     Enter output file name.
 
  PF     Enter parameter file name.  Default is taken from commandline
-        argument.  Default is mlayer.staj if none given.
+        argument.  Default is gmagblocks4.sta if none given.
 
  LP     Load parameters from file entered using PF command without the
         constraints from that file.  This command resets the uncertainties.
@@ -160,73 +172,78 @@ hpage {mlayer io} {} {
  GD     Get data from filename entered using IF command.  The data is
         assumed to be in three-column format with the first column being
         the momentum transfer (Q=4 PI sin THETA/LAMBDA), the second
-        column either the logarithm of the counts or the spin asymmetry,
-        and the third column the uncertainty (error bar).  If the first
-        character in the line is #, the line is not read.
+        column either the logarithm of the counts, and the third column
+        the uncertainty (error bar).  If the first character in the line
+        is #, the line is not read.
 
- SA     Generate and print unconvolved complex amplitude of reflectivity.
-        The data are saved into file entered by OF.
+ SLP    Generate and print layer profile.  Append A, B, C, or D to 
+        generate scattering density for the specified cross-section.
+        Append O to generate separate magnetic and chemical profiles
+        before their integration into a common profile.  SLP saves
+        into file entered by OF (or IF if not yet given) with extension
+        .proC where C is n, m, t, a, b, c, d, N or M.
 
- SLP
- SSP    Generate and print layer profile.  The data are saved into file
-        entered by OF (or IF if not yet given) with extension .pro
-        SLP saves the critical angle in histogram form.  SSP saves scaled
-        critical angle and absorption in table form.
+ SRF    Save fit to log(reflectivity) in file name entered in OF.
+        Written in two-column format:  first column is Q=4 PI *
+        sin THETA/LAMBDA, second is fit.
 
- SRF    Save fit to reflectivity in file name entered in OF with
-        extensinon .fit.  Written in two-column format:  first column is
-        Q=4 PI sin THETA/LAMBDA, second is fit.
+ SV     Save values in Q4X and YFIT to file entered with OF with the
+        extension .genC where C is a, b, c or d.
 
- SRSF   Save fit to spin asymmetry in file name entered in OF with
-        extension .fit.  Written in two-column format:  first column is
-        Q=4 PI sin THETA/LAMBDA, second is fit.
-
- SV     Save values in XTEMP and YTEMP to file entered with OF.
+ SVA    Save values in Q4X and YFITA to file entered with OF with the
+        extension .genC where C is a, b, c or d.
 }
 
 # ===============================================================
-hpage {mlayer display} {} {
+hpage {gj2 display} {} {
  HE     Prints this help.
 
  VE     Print out current values of all fit parameters on screen.  Append
         U to print uncertainties of the fit parameters.
 
- VcE    Print out current values of only the fit parameters of layers
-        specified by c on screen.  Set c to T for top, M for middle and
-        B for bottom.  Append U to print uncertainties of the fit
-        parameters.
+ VEM    Print out current values of magnetic fit parameters on screen.
+        Append U to print uncertainties of the magnetic fit parameters.
 
  LID    List the data entered by GD and the fit generated by any of the
         fit commands.
 
  GR     Generate unconvoluted logarithm of reflectivity.
 
+ GA     Generate unconvolved complex amplitude of reflectivity.
+
  GLP    Generate and display layer profile.
 
- RD     Calculate reflectivity or derivative with respect to a
-        specified parameter. 
-
- RSD    Calculate spin asymmetry or derivative with respect to a
-        specified parameter. 
+ RD     Calculate log(reflectivity). 
 }
 
 # ===============================================================
-hpage {mlayer plot} {} {
- PLP    Plot profile on screen.  Data are saved in file mltmp.pro
+hpage {gj2 plot} {} {
+ PLP    Plot profile on screen.  Default is chemical and magnetic.
+        Append N for nuclear only; M for magnetic only; T for magnetic
+        angle.  Append A, B, C, or D for scattering density for the
+        specified cross-sections.  Append S for scattering density for
+        the cross-sections specified in PS.  Data are saved in file
+        mltmp.prC where C is n, m, t, a, b, c, or d.
 
- PRF    Plot reflectivity on screen.  Data are saved in file mltmp.fit
+ PRF    Plot reflectivity on screen.  Append A, B, C, or D for specific
+        cross-sections.  Default uses value from PS.
 
  MVc    Enter a parameter name and watch as the reflectivity varies with
-        that parameter.  Choose c to be one of R, D, I or P.  R plots the
-        reflectivity, D plots the ratio of successive frames of reflectivity
-        to the first frame, I plots the ratio of successive frames, P plots
-        the profile, and is the default.
+        that parameter.  Choose c to be one of R, D, I, S, or P.  R plots
+        the reflectivities, D plots the ratio of successive frames to the
+        first frame, I plots the ratio of successive frames, S plots the
+        scattering densities, and P plots the nuclear, magnetic, and
+        magnetic angle profile.  S is the default.  Append A, B, C or D
+        for specific cross-sections.  Default uses value from PS.
 
  MVFc   Plots a movie of the last fit progression.  Choose c as in MV.
+        Append A, B, C or D for specific cross-sections.  Default uses
+        value from PS.
 
  MVXc   Plots a movie of parameters tabulated in a file.  Choose c as in
-        MV.  The file is formatted with a line that begins with # followed
-        by a list of parameters to vary, separated with spaces.  The
-        following lines (1 per frame) list the values to use for each
-        respective parameter, again separated with spaces.
+        MV.  Append A, B, C or D for specific cross-sections.  Default uses
+        value from PS.  The file is formatted with a line that begins
+        with # followed by a list of parameters to vary, separated with
+        spaces.  The following lines (1 per frame) list the values to use
+        for each respective parameter, again seperated with spaces.
 }
