@@ -560,9 +560,13 @@ proc restart_octave {} {
 	   endif
 	endfunction
     }
-    # XXX FIXME XXX this belongs in octcl
-    octave eval { function tcldisp(x), send(['puts "',disp(x),'"']); end }
-    proc disp x { octave eval tcldisp($x) }
+}
+proc disp x { 
+    octave eval { retval='\n' }
+    octave eval "retval=$x"
+    octave eval { send(sprintf('set ::ans {%s}',disp(retval))) }
+    vwait ::ans 
+    return [string range $::ans 0 end-1]
 }
 
 proc write_data { fid data {log 0} } {
