@@ -382,7 +382,7 @@ proc reduce_footprint_correction {} {
     octave eval { foot = [] }
     foreach v { _x _y _dy p_y m_y } { ::foot$v delete : }
 
-    if { !$::footprint_correction } { return }
+    if { !$::footprint_correction || $::reduce_head == {} } { return }
 
     switch $::footprint_correction_type {
 	fit {
