@@ -1,12 +1,13 @@
 ARCH=win
 
-topdir=$(shell pwd -W)
+topdir=$(shell pwd -W | sed -e 's,^.:,,')
+drive=C:
 
 # Debugging statements?
 # DEBUG=-DEBUG
 
 # Things from tclConfig.sh
-TCL_PREFIX=C:/Tcl
+TCL_PREFIX=/Tcl
 TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
 TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub84
 TCL_SHLIB_LD=gcc -pipe -shared
