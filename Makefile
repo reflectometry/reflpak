@@ -7,6 +7,8 @@ endif
 VERSION = $(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
+NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
+SDXKIT ?= $(HOME)/bin/sdx.kit
 
 pakicon=icons/yellowpack.ico
 redicon=icons/Ryellow.ico
@@ -46,23 +48,20 @@ fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc))
 redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc))
 redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc))
 
-ifeq($(arch),win)
-pakicons=reflpak/pak.ico reflpak/wish.ico
-fiticons=tcl/fit.ico tcl/pol.ico
-redicons=reflred/red.ico
-endif
-
 macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
 SUBDIRS=src gj2 scifun
 
-ifeq ($(EXE),.exe)
-SUBDIRS+=winlink
-winlinksrc=pkgIndex.tcl winreg.tcl winlink$(LDEXT)
-winlinkfiles=$(patsubst %,winlink/%,$(winlinksrc))
-addwinlink=./vfslib reflpak winlink $(winfiles)
+ifeq ($(ARCH),win)
+  pakicons=reflpak/pak.ico reflpak/wish.ico
+  fiticons=tcl/fit.ico tcl/pol.ico
+  redicons=reflred/red.ico
+  SUBDIRS+=winlink
+  winlinksrc=pkgIndex.tcl winreg.tcl winlink$(LDEXT)
+  winlinkfiles=$(patsubst %,winlink/%,$(winlinksrc))
+  addwinlink=./vfslib reflpak winlink $(winlinkfiles)
 else
-addwinlink=:
+  addwinlink=:
 endif
 
 icons=$(fiticons) $(pakicons) $(redicons)
@@ -77,22 +76,24 @@ kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 kit/reflpak.res: win/reflpak.rc $(icons)
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
+kit/copykit$(EXE): $(NCNRKIT)
+	cp $(NCNRKIT) kit/copykit$(EXE)
+	
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
-		kit/ncnrkit$(EXE) main.tcl Makefile vfslib
+		kit/copykit$(EXE) main.tcl Makefile vfslib
 	./vfslib reflpak
 	./vfslib reflpak ncnrlib $(libfiles)
 	./vfslib reflpak scifun $(scifunfiles)
 	$(addwinlink)
-	./vfslib reflpak reflfit $(fitfiles) $(gmlayer) $(gj2) $(fiticons)
+	./vfslib reflpak reflfit $(fitfiles) $(fiticons) $(gmlayer) $(gj2)
 	./vfslib reflpak reflred $(redfiles) $(redicons)
 	./vfslib reflpak reflred/octave $(redoctavefiles)
 	./vfslib reflpak reflpak $(pakfiles) $(pakicons)
 	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
-	cd kit && cp ncnrkit$(EXE) copykit$(EXE) && \
-		./copykit sdx.kit wrap reflpak$(EXE) -runtime ncnrkit$(EXE)
+	cd kit && ./copykit $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
 	touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 reflred/red.ico: $(redicon)
