@@ -58,13 +58,13 @@
 *reflectivity.datac.pixels: 4
 
 *reflectivity.data.color: magenta
-*reflectivity.dataa.color: red
+*reflectivity.dataa.color: blue
 *reflectivity.datab.color: magenta
 *reflectivity.datac.color: green
 *reflectivity.datad.color: orange
 
 *reflectivity.reflect.color: darkmagenta
-*reflectivity.reflecta.color: darkred
+*reflectivity.reflecta.color: darkblue
 *reflectivity.reflectb.color: darkmagenta
 *reflectivity.reflectc.color: darkgreen
 *reflectivity.reflectd.color: darkorange
