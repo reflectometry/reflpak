@@ -48,26 +48,19 @@ void extres(double q[], double lambda, double lamdel, double thedel,
 STATIC int doExtend(double q, double qstep, double lambda, double lamdel,
    double thedel)
 {
-   double theta, twsgsq, qdel;
+   double twsgsq, qdel;
    register double qr;
    register int extension;
 
-   /* Determine extension */
-#ifdef MINUSQ
-   theta = lambda * fabs(q)/(4. * M_PI);
-#else
-   theta = lambda * q/(4. * M_PI);
-#endif
-   if (theta < 1.e-10) theta = 1.e-10;
-   qdel = q * (lamdel / lambda + thedel / theta);
-   twsgsq = 2.0 * qdel * qdel / (8. * M_LN2);
-   extension = 1;
+   /* Calculate resolution width */
+   /* Note:  |q| (dL/L + dtheta/theta) == (|q| dL + 4 pi dtheta)/L  */
+   qdel = (fabs(q) * lamdel + 4. * M_PI * thedel) / lambda;
+   twsgsq = 2. * qdel * qdel / (8. * M_LN2);
 
-   /* Check if resolution function exponential becomes less than .001
-   (argument of exponent less than -6.908) */
-   if (twsgsq >= 1.e-10)
-      for (qr = qstep; qr * qr / twsgsq <= 3. * M_LN10; qr += qstep)
-         extension++;
+   /* Loop until exponential becomes less than .001 */
+   extension = 0;
+   for (qr = qstep; qr * qr <= twsgsq * 3. * M_LN10; qr += qstep)
+      extension++;
 
    return extension;
 }

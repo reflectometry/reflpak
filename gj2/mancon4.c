@@ -24,7 +24,7 @@
 /* Local function prototypes */
 #include <static.h>
 
-STATIC int convolve(int finish, double *qj, double *qjprime, double *yjprime,
+STATIC int convolve(double qres, double yjprime,
    double *yfit, double *rnorm, double twsgsq, int deldelq);
 
 
@@ -33,84 +33,66 @@ void mancon4(double *q, double lambda, double lamdel, double thedel,
     int deldelq)
 /* double q[MAXPTS], yfit[4 * MAXPTS]; */
 {
-   double qdel, theta, twsgsq, rnorm;
-   int lfinish, hfinish;
-   int npnts;
-   register int j, n;
-   register double *qj, *yj, *yfitj;
-
-   npnts = nlow + nhigh + ndata;
+   const int npnts = nlow + nhigh + ndata;
+   int j, k, n;
 
    /* Perform convolution over NDATA between NLOW and NHIGH extensions */
    /* for the needed cross sections */
-   qj = q + nlow;
-   yj = y + nlow;
-   yfitj = yfit;
-   for (j = 0; j < ndata; j++) {
-      int nstep, yxsec, fitxsec;
-      double qeff;
+   for (j = nlow; j < nlow+ndata; j++) {
+      double qdel, twsgsq, rnorm;
 
-      /* Calculate resolution width and initialize resolution loop */
-#ifdef MINUSQ
-      theta = lambda * fabs(*qj) / (4. * M_PI);
-      if (theta < 1.e-10) theta = 1.e-10;
-      qeff = *qj;
-#else
-      theta = lambda * (*qj) / (4. * M_PI);
-      if (theta < 1.e-10) theta = 1.e-10;
-      if (theta < 1.e-10) theta = 1.e-10;
-      qeff = (*qj < 1.e-10) ? 1.e-10 : *qj;
-#endif
-      qdel = qeff * (lamdel / lambda + thedel / theta);
+      /* Calculate resolution width */
+      /* Note:  |q| (dL/L + dtheta/theta) == (|q| dL + 4 pi dtheta)/L  */
+      qdel = (fabs(q[j]) * lamdel + 4. * M_PI * thedel) / lambda;
       twsgsq = 2. * qdel * qdel / (8. * M_LN2);
-      if (twsgsq < 1.e-10) twsgsq = 1.e-10;
+
       for (n = 0; n < ncross; n++) {
+	 int yxsec, fitxsec;
+
          yxsec = n * npnts;
          fitxsec = n * ndata;
-         rnorm = 1.;
-         yfitj[fitxsec] = yj[yxsec];
-         /* Check if exponent term becomes smaller than .001 and loop */
-         /* until it does so */
-         lfinish = FALSE;
-         hfinish = FALSE;
-         for (nstep = 1; !lfinish || !hfinish; nstep++) {
-            /* Evaluate low-Q side */
-            lfinish = convolve(lfinish, qj, qj - nstep,
-                               yj + yxsec - nstep, yfitj + fitxsec, &rnorm, twsgsq, deldelq);
-            /* Evaluate high-Q side */
-            hfinish = convolve(hfinish, qj, qj + nstep,
-                               yj + yxsec + nstep, yfitj + fitxsec, &rnorm, twsgsq, deldelq);
-         }
 
+	 /* Loop until exponential becomes smaller than .001 */
+         rnorm = 1.;
+         *(yfit+fitxsec) = y[yxsec+j];
+
+	 /* Evaluate low-Q side */
+	 for (k=1; j-k >= 0; k++) {
+	   if (!convolve(q[j]-q[j-k], y[yxsec+j-k], yfit+fitxsec, &rnorm, twsgsq, deldelq))
+	     break;
+	 }
+	 
+	 /* Evaluate high-Q side */
+	 for (k=1; j+k < npnts; k++) {
+	   if (!convolve(q[j]-q[j+k], y[yxsec+j+k], yfit+fitxsec, &rnorm, twsgsq, deldelq))
+	     break;
+	 }
+	 
          /* Normalize convoluted value to integrated intensity of resolution */
          /* function */
-         yfitj[fitxsec] /= rnorm;
+         *(yfit+fitxsec) /= rnorm;
       }
-      qj++;
-      yj++;
-      yfitj++;
+      yfit++;
    }
 }
 
 
-STATIC int convolve(int finish, double *qj, double *qjprime, double *yjprime,
+STATIC int convolve(double qres, double yj,
    double *yfit, double *rnorm, double twsgsq, int deldelq)
 {
-   double qres, rexp, exparg;
+   double rexp;
 
-   qres = (finish) ? 1.e20 : *qjprime - *qj;
-   exparg = qres * qres / twsgsq;
-   if (exparg <= 3. * M_LN10) {
-      if (!isnan(*yjprime)) {
-         /* Evaluate straight convolution */
-         rexp = exp(-exparg);
-         *rnorm += rexp;
-         /* Evaluate derivative w.r.t. Q */
-         if (deldelq) rexp *= 2. * qres / twsgsq;
-         *yfit += rexp * (*yjprime);
-      }
-   } else
-       finish = TRUE;
-   return finish;
+   /* Be sure the following condition matches that in extend.c(doExtend) */
+   if (qres * qres > twsgsq * 3. * M_LN10) return FALSE;
+
+   if (!isnan(yj)) {
+      /* Evaluate convolution */
+      rexp = exp(-qres*qres/twsgsq);
+      *rnorm += rexp;
+      /* Evaluate derivative w.r.t. Q */
+      if (deldelq) rexp *= 2. * qres / twsgsq;
+      *yfit += rexp * yj;
+   }
+   return TRUE;
 }
 
