@@ -290,7 +290,90 @@ uncertainties other than selecting and pasting them into an editor.
 
 # ===============================================================
 if {![info exists ::constraintbox]} { set ::constraintbox {} }
-hpage constraints $::constraintbox {Constraints may be changed on the fly.  
+hpage constraints $::constraintbox {Constraits allow you to automatically
+update parameters during your fit.  Constraints can be simple, such as
+restricting a layer depth to a particular range, or complex, tying the
+value of one layer to another.
+
+After changing constraints, click Update so that the new constraints
+will be used.  Click Apply to apply the constraints to the current
+configuration.
+
+At present constraints need to be entered as Tcl code.  This will
+change eventually to a simple language which can be translated to C, 
+Tcl, Python or whatever implementation language we are using, so be 
+prepared to update your constraints as program versions change.
+No checks are done that the constraint code is correct, so be careful!
+
+The usual Tcl syntax applies:
+
+    set <var> [expr {<expression>}]
+    if { <expression> } {
+        statements
+    } else {
+        statements
+    }
+    foreach <var> { list } {
+        statements
+    }
+    while { <expression> } {
+        statements
+    }
+
+We define a function [range 1 $n] which returns a list of numbers
+from one to n.  This is useful when operating on every layer.
+
+Layer parameters are referenced using:
+
+    gmlayer set <par> <value>
+
+If value is missing, the layer parameter is
+returned, otherwise the layer parameter is
+updated and returned.
+
+The following parameters are available:
+
+    ntl nml nbl
+    bk bi vqc vmu
+    tdi troi tmui tqci for i in 1 to 9
+    mdi mroi mmui mqci for i in 1 to 9
+    bdi broi bmui bqci for i in 1 to 9
+
+Example:
+
+    # set depth of layer T2 to be equal to layer M1
+    gmlayer set td2 [gmlayer set md1]
+
+    # set roughness to 1/2 the layer depth for all layers
+    foreach i [range 1 [gmlayer set ntl]] { 
+	gmlayer set tro$i [expr {[gmlayer set td$i]/2}]
+    }
+    foreach i [range 1 [gmlayer set nml]] { 
+	gmlayer set mro$i [expr {[gmlayer set md$i]/2}]
+    }
+    foreach i [range 1 [gmlayer set nbl]] { 
+	gmlayer set bro$i [expr {[gmlayer set bd$i]/2}]
+    }
+
+    # set the total depth of the middle layers to be equal
+    # to the total depth of the top layers while preserving
+    # the relative depths of the middle layers
+    set sumt 0
+    foreach i [range 1 [gmlayer set ntl]] {
+        set sumt [expr {$sumt + [gmlayer set td$i]}]
+    }
+    set summ 0
+    foreach i [range 1 [gmlayer set nml]] {
+        set summ [expr {$summ + [gmlayer set md$i]}]
+    }
+    set scale [expr {$sumt/$summ}]
+    foreach i [range 1 [gmlayer set nml]] {
+        gmlayer set tm$i [expr {[gmlayer set tm$i]*$scale}]
+    }
+
+2003-09-16}
+
+hpage oldconstraints {Constraints may be changed on the fly.  
 To change the constraints, an auxiliary program
 makeconstrain must be available in the reflectometry directory.
 The makeconstrain program assumes the Bourne shell is available in /bin/sh.
