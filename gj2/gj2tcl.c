@@ -47,6 +47,7 @@ void ignore TCL_VARARGS_DEF(CONST char *,arg1) {}
 #include "genpsl.h"
 #include "genderiv4.h"
 #include "magblocks4.h"
+#include "genshift.h"
 
 int loaded; /* false if no dataset has been loaded */
 
