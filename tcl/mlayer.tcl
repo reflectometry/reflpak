@@ -3269,12 +3269,9 @@ menu .menu.options
 .menu.options add radiobutton -label "R" -variable ::use_Q4 -value 0 -command set_Q4
 .menu.options add separator
 .menu.options add command -label "Tcl console" -command { start_tkcon }
-.menu.options add command -label "Spy on mlayer" -command {
-    exp_log_user [expr 1 - [exp_log_user]]
+if { [package_available tablelist] } {
+    .menu.options add command -label "Browse widgets" -command { start_widget_browser }
 }
-#if { $::have_tablelist } {
-#    .menu.options add command -label "Browse widgets" -command {}
-#}
 
 helpmenu .menu reflfit
 

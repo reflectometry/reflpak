@@ -15,20 +15,6 @@ proc plist { list } { foreach l $list { puts $l } }
 
 # parray is part of standard tcl
 
-# =============================================================
-
-# HELP developer
-# Usage: app_fail msg
-#
-# Display a message and exit.  We need this because sometimes
-# we are not running on the console, so we can't rely on the
-# user seeing stdout/stderr.
-
-proc app_fail { msg } {
-    tk_messageBox -title $::argv0 -type ok -message $msg
-    exit 1
-}
-
 # ==================== resources ==============================
 
 # HELP internal
@@ -191,8 +177,8 @@ proc gethelp {args} {
 # Platform font defaults
 switch $tcl_platform(platform) {
     unix {
-	option add *Dialog.msg.font {Times -12}
-	option add *Dialog.msg.wrapLength 6i
+	option add *Dialog.msg.font {Times -12} widgetDefault
+	option add *Dialog.msg.wrapLength 6i widgetDefault
     }
     windows {
 	option add *Graph.Legend.Font {Arial 7} widgetDefault
@@ -221,14 +207,51 @@ proc start_tkcon {} {
     }
 }
 
-proc start_widget_browser {} {
-    if { [catch { 
-	package require tablelist 
-	source [file join $::tablelist::library demos browse.tcl]
-	::demo::displayChildren .
-    } msg ] } {
-	tk_messageBox -icon error -message $msg -type ok
-    }
+# HELP developer
+# Usage: package_available package
+#
+# Test whether a package is available, but do not load it.
+
+proc package_available { package } {
+    return [expr { [lsearch [package names] $package] >= 0 } ]
+}
+
+# HELP developer
+# Usage: start_widget_browser root
+# 
+# Start the generic widget browser at the given root, or . if no
+# root is specified.
+
+proc start_widget_browser { { root . } } {
+    if { [catch {
+	if { ![info exists ::tablelist::library] } {
+	    package require tablelist 
+	    source [file join $::tablelist::library demos browse.tcl]
+	}
+	::demo::displayChildren $root
+    } msg] } { app_error $msg }
+}
+
+# HELP developer
+# Usage: app_error msg
+#
+# Display an error message. The error message may go to the console
+# or to a message box depending on how the system is configured.
+
+proc app_error { msg } {
+    tk_messageBox -icon error -message $msg -type ok
+}
+
+# HELP developer
+# Usage: app_fail msg
+#
+# Display a message and exit.  We need this because sometimes
+# we are not running on the console, so we can't rely on the
+# user seeing stdout/stderr.
+
+proc app_fail { msg } {
+    tk_messageBox -title $::argv0 -type ok -message $msg
+    exit 1
 }
 
 
