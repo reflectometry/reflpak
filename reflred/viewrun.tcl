@@ -2816,8 +2816,7 @@ proc NG1mark {file {index ""}} {
     if { ![info exists rec(start,1)] || ![info exists rec(start,3)] \
 	    || ![info exists rec(start,4)] } {
 	marktype ? 0 0 $index
-    } elseif { $rec(start,3) == 0.0 && $rec(stop,3) == 0.0 \
-	    && $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 } {
+    } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 } {
 	marktype slit $rec(start,1) $rec(stop,1) $index
     } elseif { $fixed } {
 	marktype time 0 [expr $rec(monitor)*$rec(pts)] $index
@@ -2897,7 +2896,7 @@ proc NG7mark {file} {
 	marktype height $rec(start,12) $rec(stop,12)
 
     } elseif { [info exists rec(start,S1)] } {
-	if { $rec(start,Qz) != 0.0 && $rec(stop,Qz) != 0.0 } {
+	if { $rec(start,Qz) != 0.0 || $rec(stop,Qz) != 0.0 } {
 	    marktype spec $rec(start,Qz) $rec(stop,Qz)
 	} else {
 	    marktype slit $rec(start,S1) $rec(stop,S1)
