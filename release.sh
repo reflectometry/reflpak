@@ -23,6 +23,11 @@ builddir="~/cvs/reflfit"
 STORE=jazz:release
 SHARE=jazz:samba
 
+# Rather than getting gif2png conversion to work under
+# windows, export the problem to a machine with imagemagic
+# and tclsh.
+htmlmachine=h122045
+buildhtml="ssh $htmlmachine 'cd $builddir && make html'"
 # =========== End of configuration ============
 
 echo "== local cvs update ============================"
@@ -43,7 +48,7 @@ test "$ans" != "y" && exit
 echo; echo "== local build ========================"
 make dist
 echo; echo "== build html ========================="
-make html
+$buildhtml
 echo; echo "== build source ======================="
 make srcdist
 
@@ -57,7 +62,8 @@ done
 mkdir reflpak$VERSION
 echo; echo "== gather local build results ====================="
 cp release/reflpak$VERSION* reflpak$VERSION
-cp -a html reflpak$VERSION
+echo; echo "== gather html ======================="
+scp -r htmlmachine:$builddir/html reflpak$VERSION
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
     scp "$machine:$builddir/release/reflpak$VERSION*" reflpak$VERSION

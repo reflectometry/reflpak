@@ -67,7 +67,7 @@ endif
 
 icons=$(fiticons) $(pakicons) $(redicons)
 
-.PHONY: $(SUBDIRS) 
+.PHONY: $(SUBDIRS) ChangeLog
 
 all: $(SUBDIRS) kit/reflpak$(EXE)
 
@@ -118,11 +118,11 @@ pdf: html
 
 html/reflred/index.html: lib/help2html $(redhelpdeps)
 	rm -rf html/reflred
-	lib/help2html reflred windows $(redversion) $(redhelpdeps)
+	$(NCNRKIT) lib/help2html reflred windows $(redversion) $(redhelpdeps)
 
 html/reflfit/index.html: lib/help2html $(fithelpdeps)
 	rm -rf html/reflfit
-	lib/help2html reflfit introduction $(fitversion) $(fithelpdeps)
+	$(NCNRKIT) lib/help2html reflfit introduction $(fitversion) $(fithelpdeps)
 
 Makeconf.tcltk:
 	$(error Use ./tclConfig2Makeconf to build Makeconf.tcltk)
@@ -131,16 +131,16 @@ $(SUBDIRS):
 	cd $@ && $(MAKE)
 
 ChangeLog:
-	cvs2cl.pl --fsf --file ChangeLog
+	cvs2cl.pl --fsf --file ChangeLog > /dev/null
 
 tagdist:
 	cvs rtag R$(VERSIONTAG) reflfit
-	cvs export -r R$(VERSIONTAG) reflpak$(VERSION)-src
 
 srcdist: ChangeLog
+	cvs -q export -r HEAD -d reflpak$(VERSION)-src reflfit >/dev/null
 	cp ChangeLog reflpak$(VERSION)-src
 	if test ! -d release ; then mkdir release ; fi
-	tar cjf release/reflpak$(VERSION)-src.tar.bz2 reflpak$(VERSION)-src
+	tar czf release/reflpak$(VERSION)-src.tar.gz reflpak$(VERSION)-src
 	$(RM) -rf reflpak$(VERSION)-src
 
 ifeq ($(ARCH),macosx)
@@ -170,7 +170,7 @@ dist: kit/reflpak$(EXE) RELEASE-NOTES
 	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" < linux/reflpak.in > reflpak$(VERSION)/reflred
 	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" < linux/reflpak.in > reflpak$(VERSION)/reflfit
 	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" < linux/reflpak.in > reflpak$(VERSION)/reflpol
-	chmod a+rx
+	chmod a+rx reflpak$(VERSION)/refl{pak,red,fit,pol}
 endif
 endif
 
