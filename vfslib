@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Create a lib directory in the virtual file system for a tclkit app
+# and copy some files into it.
+#
+# usage: vfslib app package packagefile*
+#    copy the files into the package directory
+# usage: vfslib app
+#    clear out the old and create a new package directory
+
+APP=$1 ; shift
+
+if test $# -eq 0; then
+    rm -rf kit/$APP.vfs
+    install -d kit/$APP.vfs
+else
+    PACKAGE=$1 ; shift
+
+    install -d kit/$APP.vfs/lib/$PACKAGE
+    install $* kit/$APP.vfs/lib/$PACKAGE
+fi
