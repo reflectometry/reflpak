@@ -1,6 +1,20 @@
+ # This program is in the public domain.
+ #
+ # Please edit this as you see fit, but update the changelog.
+ #
+ # 2003-05-29 Paul Kienzle <pkienzle at users sf net>
+ #    * initial release
+ # 2003-10-17 Paul Kienzle <pkienzle at users sf net>
+ #    * fix blt graph scrolling so that it is a percentage of the
+ #      zoomed width rather than a percentage of the total width
+ # 2004-02-06 Paul Kienzle <pkienzle at users sf net>
+ #    * add package commands
+
+ package provide pan 0.2
+
  # Usage:  
  #
- #   pan::pan bind $w
+ #   pan bind $w
  #
  #   Add pan capabilities to a tcl/tk widget, including BLT graphs.
  #
@@ -10,7 +24,7 @@
  #   release to stop.  There is a timeout which stops panning after 10 seconds
  #   of no mouse movement.
  #
- #   pan::pan start $w
+ #   pan start $w
  #
  #   Start panning the widget from current mouse position.  Use this for
  #   example from a context sensitive menu with an entry for panning.
@@ -31,19 +45,19 @@
  #      *Pan.Accel: 20
  #   Since we have an application grab, we also have a timeout set.
  #      *Pan.Timeout: 10000
- #   Alternatively, you can set the variables ::pan::rate, ::pan::accel
- #   and ::pan::timeout
+ #   Alternatively, you can set the variables ::Pan::rate, ::Pan::accel
+ #   and ::Pan::timeout
  #
  #   Axis.ScrollIncrement is a BLT resource. It is set to 1 at the 
  #   widgetDefault level when pan.tcl is sourced.  Be sure to source
  #   pan.tcl before creating your graphs.
  #
  #   Pan is attached to the middle mouse button.  You could for example
- #   attach it to button 1 using the following in lieu of pan::pan bind
+ #   attach it to button 1 using the following in lieu of pan bind
  #
- #      bind $w <ButtonPress-1>   { ::pan::pan start %W %X %Y }
- #      bind $w <ButtonRelease-1> { ::pan::pan stop %W }
- #      bind $w <B1-Motion>       { ::pan::pan move %W %X %Y }
+ #      bind $w <ButtonPress-1>   { pan start %W %X %Y }
+ #      bind $w <ButtonRelease-1> { pan stop %W }
+ #      bind $w <B1-Motion>       { pan move %W %X %Y }
  #
  # Test using
  #    $wish pan.tcl
@@ -52,17 +66,9 @@
  # To do:
  #    The pan widget and the cursors are not as pretty as they might be.
  #    Keyboard support --- bind arrow keys to cursor warping events.
+ namespace eval Pan {
 
- # This program is in the public domain.
- #
- # Please edit this as you see fit, but update the changelog.
- #
- # 2003-05-29 Paul Kienzle <pkienzle at users sf net>
- #    * initial release
- # 2003-10-17 Paul Kienzle <pkienzle at users sf net>
- #    * fix blt graph scrolling so that it is a percentage of the
- #      zoomed width rather than a percentage of the total width
- namespace eval pan {
+    namespace export -clear pan
 
     # use these cursors to indicate pan direction
     variable cursor
@@ -156,9 +162,9 @@
 		option add *Axis.ScrollIncrement 1 widgetDefault
 	    }
 	    bind { # bind panning to a widget
-	        bind $w <ButtonPress-2>   { ::pan::pan start %W %X %Y }
-                bind $w <ButtonRelease-2> { ::pan::pan stop %W }
-                bind $w <B2-Motion>       { ::pan::pan move %W %X %Y }
+	        bind $w <ButtonPress-2>   [namespace code { pan start %W %X %Y }]
+                bind $w <ButtonRelease-2> [namespace code { pan stop %W }]
+                bind $w <B2-Motion>       [namespace code { pan move %W %X %Y }]
 	    }
 	    start { # start panning
 		if { [info exists pan($w,x)] } { return	}
@@ -186,16 +192,16 @@
 		wm deiconify .pan
 		raise .pan
 		# associate panning actions with the current widget
-		bind .pan <Motion>      [list ::pan::pan move $w %X %Y]
-		bind .pan <ButtonPress> [list set ::pan::pan($w,motion) 1]
-		bind .pan <ButtonRelease> [list ::pan::pan stop $w]
+		bind .pan <Motion>      [namespace code [list pan move $w %X %Y]]
+		bind .pan <ButtonPress> [list array set [namespace which -variable pan] [list $w,motion 1]]
+		bind .pan <ButtonRelease> [namespace code [list pan stop $w]]
 		grab set .pan
 		# start panning --- don't really need to start until
 		# after the mouse moves, but it doesn't seem to hurt
 		# anything starting immediately
-		after 0 [list ::pan::pan step $w]
+		after 0 [namespace code [list pan step $w]]
 		# set timeout
-		after $timeout [list ::pan::pan cancel $w]
+		after $timeout [namespace code [list pan cancel $w]]
 	    }
 	    move { # mouse motion
 		if { ![info exists pan($w,x)] } { return }
@@ -217,8 +223,8 @@
 		# the pan icon stays until the next click.
 		set pan($w,motion) 1
 		# reset timeout
-		after cancel [list ::pan::pan cancel $w]
-		after $timeout [list ::pan::pan cancel $w]
+		after cancel [namespace code [list pan cancel $w]]
+		after $timeout [namespace code [list pan cancel $w]]
 	    }
 	    step { # do the panning
 		if { ![info exists pan($w,x)] } { return }
@@ -233,11 +239,11 @@
 		    $w yview scroll $pan($w,v) units
 		}
 		# program the next step
-		after $rate [list ::pan::pan step $w]
+		after $rate [namespace code [list pan step $w]]
 	    }
 	    stop { # button release
 		# if the mouse hasn't moved yet, don't cancel panning
-		if { [info exists pan($w,motion)] } { ::pan::pan cancel $w }
+		if { [info exists pan($w,motion)] } { pan cancel $w }
 	    }
 	    cancel { # cancel panning for whatever reason
 		if { ![info exists pan($w,x)] } { return }
@@ -249,9 +255,9 @@
 		# clear variables
 		foreach el [array names pan "$w,*"] { unset pan($el) }
 		# stop panning update
-		after cancel [list ::pan::pan step $w]
+		after cancel [namespace code [list pan step $w]]
 		# stop timeout
-		after cancel [list ::pan::pan cancel $w]
+		after cancel [namespace code [list pan cancel $w]]
 	    }
 	}
     }
@@ -261,44 +267,32 @@
     catch { pan init }
  }
 
+ namespace eval :: {namespace import -force ::Pan::pan}
+
 
  # Test code
  if {[info exists argv0] && [file tail [info script]]==[file tail $argv0]} {
-    catch {
-	# add a blt graph if blt is available
-	package require BLT
-	blt::graph .g
-	.g elem create x -xdata { 1 1.2 1.4 1.6 1.8 1.9 2 3 4 5 } \
-	    -ydata { 2 1.8 1.7 1.5 1.3 1.1 1 3 1 2 }
-	Blt_ZoomStack .g
-	pan::pan bind .g
-	grid .g - -sticky news
-    }
+     catch {
+	 # add a blt graph if blt is available
+	 package require BLT
+	 blt::graph .g
+	 .g elem create x -xdata { 1 1.2 1.4 1.6 1.8 1.9 2 3 4 5 } \
+	     -ydata { 2 1.8 1.7 1.5 1.3 1.1 1 3 1 2 }
+	 Blt_ZoomStack .g
+	 pan bind .g
+	 grid .g - -sticky news
+     }
 
-    # add a text widget
-    text .t -width 10 -height 5 -wrap no \
+     # add a text widget
+     text .t -width 10 -height 5 -wrap no \
 	    -xscrollcommand { .h set } -yscrollcommand { .v set }
-    scrollbar .h -orient h -command { .t xview }
-    scrollbar .v -orient v -command { .t yview }
-    .t insert end "1 This is a bunch of text which I am using to test the panning capabilities\n2 of the text widget.\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22 end of text ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- really!"
+     scrollbar .h -orient h -command { .t xview }
+     scrollbar .v -orient v -command { .t yview }
+     .t insert end "1 This is a bunch of text which I am using to test the panning capabilities\n2 of the text widget.\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22 end of text ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- really!"
 
-    pan::pan bind .t
-    grid .t x -sticky news
-    grid .h x -sticky ew
-    grid .v -row 1 -column 1 -sticky ns
-    grid columnconf . 0 -weight 1
- }
-    
- if 0 {
-     # Handy-dandy debugging tools, if you have them
-     catch { 
-	 source /usr/local/bin/tkcon 
-	 if {![winfo exists .tkcon]} { tkcon init }
-	 tkcon attach Main
-     }
-     catch { 
-	 package require tablelist 
-	 source [file join $::tablelist::library demos browse.tcl]
-	 ::demo::displayChildren .
-     }
+     pan bind .t
+     grid .t x -sticky news
+     grid .h x -sticky ew
+     grid .v -row 1 -column 1 -sticky ns
+     grid columnconf . 0 -weight 1
  }
