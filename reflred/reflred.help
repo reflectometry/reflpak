@@ -1,6 +1,9 @@
 
 # ----------------------------------------------------------------------
-hpage windows {There are a number of different windows in the system.
+hpage windows {Reflred is a program for viewing and reducing X-Ray and
+neutron reflectometry data.
+
+There are a number of different windows in the system.
 
 The [choose] window lets you select directory and dataset.
 
@@ -616,7 +619,8 @@ Click "Cancel" to close the choose window.
 2002-09-13}
 
 # ----------------------------------------------------------------------
-hpage About {} {"Reflred $::VERSION
+hpage About {} [string map [list %V $::app_version] {
+%V
 
 NIST Center for Neutron Research
 Reflectivity reduction software.
@@ -644,4 +648,4 @@ many and is copyright UNIFIX and ActiveState Corp.
 >Expect was written by Don Libes with contributions from many
 and is a work of the US government.
 
-2003-01-22}
+2003-01-22}]

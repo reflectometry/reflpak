@@ -35,6 +35,7 @@ package require BLT
 
 # platform specific options
 source [file join "@ARCH@" options.tcl]
+source [file join "@ARCH@" reflfit_version.tcl]
 
 # mlayer extension
 load "@GMLAYER@"

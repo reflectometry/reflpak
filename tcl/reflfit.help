@@ -1,5 +1,5 @@
-hpage About {} {
-Reflfit v. 0.1 2002-05-12
+hpage About {} [string map [list %V $::app_version] {
+%V
 
  NIST Center for Neutron Research
  Gaithersburg, MD
@@ -26,7 +26,7 @@ Binary releases include the following additional packages:
   tablelist by Csaba Nemethi
 
 Paul Kienzle 2003-06-12
-}
+}]
 
 hpage disclaimer {} {
 This software was developed at the National Institute of Standards and

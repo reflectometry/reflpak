@@ -133,8 +133,8 @@ if { [ file exists [file join [HOME] .mlayer] ] } {
 # XXX FIXME XXX only create the contents of the window when the user
 # clicks on the notebook tab so that startup is faster
 set panes [ PanedWindow .panes -side right -weights available ]
-set reflectivitybox [ $panes add -weight 45 ]
-set notebookbox [ $panes add -weight 55 ]
+set reflectivitybox [ $panes add -weight 50 ]
+set notebookbox [ $panes add -weight 50 ]
 sashconf .panes
 
 set notebook [ NoteBook $notebookbox.notebook -internalborderwidth 3]

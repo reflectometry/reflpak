@@ -157,12 +157,7 @@ proc init_selector { } {
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { start_tkcon }
-    menu .menu.help
-    .menu add cascade -label Help -menu .menu.help
-    .menu.help add command -label "Browse" -command { help tkviewrun }
-    .menu.help add command -label "Index" -command { help Index }
-    .menu.help add command -label "Search" -command { help Search }
-
+    helpmenu .menu windows
 
     PanedWindow .treebydata -side top
     set treepane [.treebydata add -weight 1 -minsize 20]

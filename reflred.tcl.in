@@ -35,4 +35,5 @@ package require BLT
 package require octave
 
 source [file join "@ARCH@" options.tcl]
+source [file join "@ARCH@" reflred_version.tcl]
 source [file join $VIEWRUN_HOME viewrun.tcl]

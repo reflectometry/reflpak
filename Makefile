@@ -68,6 +68,7 @@ all: makegmlayer makegj2 $(ARCH)/reflpol$(EXE) $(ARCH)/reflfit$(EXE) $(ARCH)/ref
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflfit.manifest \
 		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl $(fitfiles) \
 		$(ARCH)/gmlayer$(LDEXT)
+	cd $(ARCH) && echo "set app_version {Reflfit `date +%F` for $(ARCH)}" > reflfit_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 $(ARCH)/reflfit.tcl: reflfit.tcl.in Makefile Makeconf
@@ -90,11 +91,13 @@ $(ARCH)/reflfit.manifest: Makefile Makeconf
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
 	@for f in $(fitfiles); do echo "$$f" >> $@ ; done
 	@echo "$(bindir)/options.tcl" >> $@
+	@echo "$(bindir)/reflfit_version.tcl" >> $@
 	@echo "$(bindir)/gmlayer$(LDEXT)" >> $@
 
 $(ARCH)/reflpol$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflpol.manifest \
 		$(ARCH)/reflpol.tcl $(ARCH)/options.tcl $(fitfiles) \
 		gj2/gj2$(LDEXT)
+	cd $(ARCH) && echo "set app_version {Reflpol `date +%F` for $(ARCH)}" > reflpol_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflpol.tcl -f reflpol.manifest
 
 $(ARCH)/reflpol.tcl: reflpol.tcl.in Makefile Makeconf
@@ -117,11 +120,13 @@ $(ARCH)/reflpol.manifest: Makefile Makeconf
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
 	@for f in $(fitfiles); do echo "$$f" >> $@ ; done
 	@echo "$(bindir)/options.tcl" >> $@
+	@echo "$(bindir)/reflpol_version.tcl" >> $@
 	@echo "$(topdir)/gj2/gj2$(LDEXT)" >> $@
 
 
 $(ARCH)/reflred$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflred.manifest \
 		$(ARCH)/reflred.tcl $(ARCH)/options.tcl $(redfiles)
+	cd $(ARCH) && echo "set app_version {Reflred `date +%F` for $(ARCH)}" > reflred_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflred.tcl -f reflred.manifest
 
 $(ARCH)/reflred.tcl: reflred.tcl.in
@@ -144,6 +149,7 @@ $(ARCH)/reflred.manifest: Makefile Makeconf
 	@for f in $(tktablefiles); do echo "$$f" >> $@ ; done
 	@for f in $(redfiles); do echo "$$f" >> $@ ; done
 	@for f in $(octavefiles); do echo "$$f" >> $@ ; done
+	@echo "$(bindir)/reflred_version.tcl" >> $@
 	@echo "$(bindir)/options.tcl" >> $@
 
 freewrap: Makeconf.tcltk
@@ -168,4 +174,5 @@ clean:
 distclean: clean
 	$(RM) $(ARCH)/reflfit.tcl $(ARCH)/reflfit$(EXE) \
 		$(ARCH)/reflred.tcl $(ARCH)/reflred$(EXE) \
-		$(ARCH)/gmlayer$(LDEXT)
+		$(ARCH)/gmlayer$(LDEXT) gj2/gj2$(LDEXT) \
+		$(ARCH)/refl{fit,red,pol}_version.tcl

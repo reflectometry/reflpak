@@ -799,13 +799,15 @@ proc write_reduce { } {
     upvar rec rec
     upvar fid fid
     upvar log log
-    puts $fid "# date [clock format $rec(date) -format %Y-%m-%d]"
-    puts $fid "# title \"$rec(comment)\""
-    puts $fid "# instrument $rec(instrument)"
-    puts $fid "# monitor $rec(monitor)"
-    puts $fid "# temperature $rec(T)"
-    puts $fid "# field $rec(H)"
-    puts $fid "# wavelength $rec(L)"
+    # Version info: #RRF $major $minor $appname $appversion for $arch
+    puts $fid "#RRF 1 0 $::app_version"
+    puts $fid "#date [clock format $rec(date) -format %Y-%m-%d]"
+    puts $fid "#title \"$rec(comment)\""
+    puts $fid "#instrument $rec(instrument)"
+    puts $fid "#monitor $rec(monitor)"
+    puts $fid "#temperature $rec(T)"
+    puts $fid "#field $rec(H)"
+    puts $fid "#wavelength $rec(L)"
     # XXX FIXME XXX Hmmm... type might be Specular Background Slit scan ...
     # or it may be:
     #   Subtracted specular (if it includes spec and back) 
@@ -814,9 +816,9 @@ proc write_reduce { } {
     #      this will require special processing during reduction in that
     #      subtraction will happen after slit scan rather than before.
     #   Reflectivity (if it includes footprint and polarization correction)
-    #puts $fid "# type $rec(type)"
-    #puts $fid "# xlabel $rec(xlab)"
-    #puts $fid "# ylabel $rec(ylab)"
+    #puts $fid "#type $rec(type)"
+    #puts $fid "#xlabel $rec(xlab)"
+    #puts $fid "#ylabel $rec(ylab)"
 
     # which runs make up the dataset?
     foreach type { spec back slit } {
@@ -824,7 +826,7 @@ proc write_reduce { } {
 	    upvar #0 $id scanrec
 #	    puts "writing scan #$id"
 #	    puts [array get scanrec]
-	    puts $fid "# $type $scanrec(files)"
+	    puts $fid "#$type $scanrec(files)"
 	}
     }
 
@@ -832,16 +834,16 @@ proc write_reduce { } {
     # is especially important for footprint correction since the output is
     # dependent on the kind of footprint correction that is needed.
     if {$::calc_transmission} {
-	puts $fid "# transmission coefficient [fix $::transmission_coeff {} {} 5]([fix $::dtransmission_coeff {} {} 5])"
+	puts $fid "#transmission coefficient [fix $::transmission_coeff {} {} 5]([fix $::dtransmission_coeff {} {} 5])"
     }
     if {$::footprint_correction} {
 	switch $::footprint_correction_type {
 	    fit -
 	    fix {
-		puts $fid "# footprint [fix $::footprint_m {} {} 5]([fix $::footprint_dm {} {} 5]) + [fix $::footprint_b {} {} 5]([fix $::footprint_db {} {} 5]) from Qz=[fix $::footprint_Qmin {} {} 5] to Qz=[fix $::footprint_Qmax {} {} 5], [fix $::footprint_at_Qmax {} {} 5]([fix $::footprint_at_Qmax_err {} {} 5]) above"
+		puts $fid "#footprint [fix $::footprint_m {} {} 5]([fix $::footprint_dm {} {} 5]) + [fix $::footprint_b {} {} 5]([fix $::footprint_db {} {} 5]) from Qz=[fix $::footprint_Qmin {} {} 5] to Qz=[fix $::footprint_Qmax {} {} 5], [fix $::footprint_at_Qmax {} {} 5]([fix $::footprint_at_Qmax_err {} {} 5]) above"
 	    }
 	    div {
-		puts $fid "# footprint divided by [set ::${::footprint_line}(file)]"
+		puts $fid "#footprint divided by [set ::${::footprint_line}(file)]"
 	    }
 	}
     }
