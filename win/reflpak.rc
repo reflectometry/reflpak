@@ -1,0 +1,24 @@
+1 VERSIONINFO
+FILEVERSION 0, 1, 1, 1
+PRODUCTVERSION 0, 1, 1, 1
+FILEOS 4
+FILETYPE 1 {
+    BLOCK "StringFileInfo" {
+        BLOCK "040904b0" {
+            VALUE "FileDescription", "NCNR Reflectometry reduction and fitting"
+            VALUE "OriginalFilename", "reflpak.exe"
+            VALUE "CompanyName", "NIST Center for Neutron Research"
+            VALUE "FileVersion", "0.1.1"
+            VALUE "LegalCopyright", "freely redistributable with modifications"
+            VALUE "ProductName", "ReflPak"
+            VALUE "ProductVersion", "0.1.1"
+        }
+    }
+    BLOCK "VarFileInfo" { 
+        VALUE "Translation", 0x0409, 0x04B0 
+    }
+}
+
+TK ICON "R.ico"
+TKRED ICON "red.ico"
+

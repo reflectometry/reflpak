@@ -6,6 +6,7 @@ endif
 
 DATE = $(shell date +%Y%m%d)
 TAR ?= tar
+RC ?= windres
 
 # Path to current directory; use ?= so Makeconf can override
 topdir ?= $(shell pwd)
