@@ -101,6 +101,9 @@ rename init_tree_select_images {}
 proc init_selector { } {
     menu .menu
     . config -menu .menu
+    menu .menu.file
+    .menu add cascade -underline 0 -label File -menu .menu.file
+    .menu.file add command -underline 0 -label "Quit" -command { exit }
     .menu add command -label "Data..." -command { choose_dataset setdirectory }
     .menu add command -label "Reduce..." -command { reduce_show }
     .menu add command -label "Attenuators..." -command { atten_table }
@@ -109,16 +112,16 @@ proc init_selector { } {
     menu .menu.options
     .menu add cascade -label Options -menu .menu.options
     .menu.options add radiobutton -label "Background Q(A3)" \
-	    -variable ::background_default -value A3 \
-	    -command reset_backgrounds
+	-variable ::background_default -value A3 \
+	-command reset_backgrounds
     .menu.options add radiobutton -label "Background Q(A4)" \
-	    -variable ::background_default -value A4 \
-	    -command reset_backgrounds
+	-variable ::background_default -value A4 \
+	-command reset_backgrounds
     .menu.options add command -label "Monitor..." -command { set_monitor }
     # XXX FIXME XXX This needs to be an option on the y-axis for the graph
     .menu.options add checkbutton -label "Show Temperature" \
-	    -variable ::show_temperature \
-	    -command { atten_set $::addrun }
+	-variable ::show_temperature \
+	-command { atten_set $::addrun }
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { tkcon show }
