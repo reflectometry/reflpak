@@ -394,6 +394,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 	double qstep;
 	int j;
 
+	allocCdata(npnts); /* XXX FIXME XXX - not checking alloc failure */
 	qstep = (qmax - qmin) / (double) (npnts - 1);
 	for (j = 0; j < npnts; j++)
 	  xtemp[j] = (double) j * qstep + qmin;
