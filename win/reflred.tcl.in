@@ -36,4 +36,5 @@ package require Tktable
 package require BLT
 package require octave
 
+source "@BINDIR@/winoptions.tcl"
 source [file join $VIEWRUN_HOME viewrun.tcl]

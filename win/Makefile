@@ -95,12 +95,13 @@ REFLFIT_ARCH = ok
 bindir = $(shell pwd | sed -e "s,^/c/,/,")
 reflfitdir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/tcl
 reflreddir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/reflred
-reflfitfiles = $(wildcard /c$(reflfitdir)/*)
+reflfitfiles = $(wildcard /c$(reflfitdir)/*.tcl /c$(reflfitdir)/*.help /c$(reflfitdir)/tkmlayerrc /c$(reflfitdir)/*.gif /c$(bindir)/winoptions.tcl)
+reflredfiles = $(wildcard /c$(reflreddir)/*.tcl /c$(reflreddir)/*.help /c$(reflreddir)/tkviewrunrc /c$(reflreddir)/octave/*.m /c$(bindir)/winoptions.tcl) 
 
 all: reflfit$(EXE) reflred$(EXE)
 
 reflfit$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) \
-	reflfit.manifest $(reflfitfiles) winoptions.tcl reflfit.tcl
+	reflfit.manifest $(reflfitfiles) reflfit.tcl
 	./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 reflfit.tcl: reflfit.tcl.in
@@ -123,12 +124,12 @@ reflfit.manifest:
 	echo "$(TKDND)/tkdnd.tcl" >> manifest.in
 	echo "$(TKDND)/libtkdnd10.dll" >> manifest.in
 	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest.in
-	echo "$(bindir)/winoptions.tcl" >> manifest.in
 	for f in $(reflfitfiles); do echo "$$f" >> manifest.in ; done
 	sed -e 's,^/c/,/,' <manifest.in > $@
 	$(RM) manifest.in
 
-reflred$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) reflred.manifest reflred.tcl
+reflred$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) \
+	$(reflredfiles) reflred.manifest reflred.tcl
 	./freewrapBLT -e reflred.tcl -f reflred.manifest
 
 reflred.tcl: reflred.tcl.in
@@ -150,7 +151,7 @@ reflred.manifest:
 	#echo "$(TKDND)/pkgIndex.tcl" >> manifest.in
 	#echo "$(TKDND)/tkdnd.tcl" >> manifest.in
 	#echo "$(TKDND)/libtkdnd1.0.so" >> manifest.in
-	for f in /c$(reflreddir)/*.tcl /c$(reflreddir)/*.help /c$(reflreddir)/tkviewrunrc /c$(reflreddir)/octave/*.m ; do echo "$$f" >> manifest.in ; done
+	for f in $(reflredfiles) ; do echo "$$f" >> manifest.in ; done
 	sed -e 's,^/c/,/,' <manifest.in > $@
 	$(RM) manifest.in
 
