@@ -82,7 +82,6 @@ c       constants
 C	Function to test and reset FPU error flags
 	external fperror
 	integer fperror
-C       Initialize FPU error trap and flags
 	call fpreset
 
 C       For this program, incident and substrate media must be non-magnetic, so
@@ -125,6 +124,86 @@ C          The reversed sample starts at NGLAY + 2
                FRONT = 1 + NGLAY + FRONT
                 BACK = 1 + NGLAY + BACK
            endif
+#endif
+
+c ****************************************************************      
+c      
+c Program "gepore.f" (GEneral POlarized REflectivity) calculates the
+c spin-dependent neutron reflectivities (and transmissions) for
+c model potentials, or scattering length density profiles, assuming
+c the specular condition.
+c      
+c In the present version, both nuclear and magnetic, real scattering
+c length densities can be input, whereas imaginary components of the
+c nuclear potential cannot.  Also, magnetic and nuclear incident, or
+c "fronting", and substrate, or "backing", media can be included.  A
+c description of the input parameters is given below:
+c
+c It must be noted that in the continuum reflectivity calculation
+c performed by this program, Maxwell's equations apply, specifically
+c the requirement that the component of the magnetic induction, B, 
+c normal to a boundary surface be continuous.  Neither the program
+c nor the wave equation itself automatically insure that this is so:
+c this condition must be satisfied by appropriate selection of the
+c magnetic field direction in the incident and substrate media, 
+c defined by the angle "EPS", and by the values of PN(J), THE(J),
+c and PHI(J) specified in the input.
+c
+c                  reflectivity = Re(r)**2 + Im(r)**2
+c      
+c *********************************************************************
+c
+
+C Given
+C   C+ = cosh(D*S1) + cosh(D*S3)
+C   C- = cosh(D*S1) - cosh(D*S3)
+C   S*+ = S1*sinh(D*S1) + S3*sinh(D*S3)
+C   S*- = S1*sinh(D*S1) - S3*sinh(D*S3)
+C   S/+ = sinh(D*S1)/S1 + sinh(D*S3)/S3
+C   S/- = sinh(D*S1)/S1 - sinh(D*S3)/S3
+C   pth = e^(j pi theta/180)
+C   mth = e^(-j pi theta/180)
+C   S1 = sqrt(Qc^2 + mQc^2 - j pi (8 mu/lambda) - Q^2)/2
+C   S2 = sqrt(Qc^2 - mQc^2 - j pi (8 mu/lambda) - Q^2)/2
+C   D, theta, mu, Qc^2 and mQc^2 are the parameters for layer L
+C
+C Construct the following matrix A(L)
+C
+C              /    C+  mthC-      S/+ mthS/- \
+C             |                                |
+C             |  pthC-     C+   pthS/-    S/+  |
+C   A(L)= 0.5*|                                |
+C             |     S*+ mthS*-     C+  mthC-   |
+C             |                                |
+C              \ pthS*-    S*+  pthC-     C+  /
+C
+C Multiply A by existing layers B=A(L)*A(L-1)*...A(1)*I
+C Use the factor of 0.5 to keep diagonals as close to 1 as possible
+
+C         B = I
+          B11=(1.0,0.0)
+          B12=(0.0,0.0)
+          B13=(0.0,0.0)
+          B14=(0.0,0.0)
+          B21=(0.0,0.0)
+          B22=(1.0,0.0)
+          B23=(0.0,0.0)
+          B24=(0.0,0.0)
+          B31=(0.0,0.0)
+          B32=(0.0,0.0)
+          B33=(1.0,0.0)
+          B34=(0.0,0.0)
+          B41=(0.0,0.0)
+          B42=(0.0,0.0)
+          B43=(0.0,0.0)
+          B44=(1.0,0.0)
+
+#ifdef MINUSQ
+          DO 300 L=TOP,BOTTOM
+#else
+          DO 300 L=2,NGLAY
+#endif
+
 C           Calculate 2*COSH and 2*SINH for D*S1
             S1=CDSQRT((ARG1(L)-Q(NQ)*Q(NQ))*.25)
             X=S1*GD(L)
