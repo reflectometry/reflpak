@@ -1,2 +1,2 @@
 if {[catch {package require Tcl 8.0}]} return
-package ifneeded scifun @VERSION@  [list load [file join $dir scifun.so] scifun]
+package ifneeded scifun @VERSION@  [list load [file join $dir scifun@LDEXT@] scifun]

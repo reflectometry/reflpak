@@ -16,7 +16,7 @@ $(DEST):
 	mkdir $(DEST)
 
 $(DEST)/pkgIndex.tcl: pkgIndex.tcl.in Makefile
-	sed -e 's,@VERSION@,$(VERSION),' < pkgIndex.tcl.in > $(DEST)/pkgIndex.tcl
+	sed -e 's,@VERSION@,$(VERSION),;s,@LDEXT@,$(LDEXT),' < pkgIndex.tcl.in > $(DEST)/pkgIndex.tcl
 
 $(DEST)/README.txt: README.txt
 	cat < README.txt > $(DEST)/README.txt
