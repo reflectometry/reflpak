@@ -32,8 +32,7 @@ int loadParms(char *command, int *npnts, char *parfile, char *scriptfile,
          infile, outfile,
          &bmintns, &bki, listA, &mfit, NA, &nrough, proftyp,
          DA, scriptfile, parfile, FALSE);
-   return failed;
-
+#if 0
    if (scriptfile != devnull) {
       if (result != NOPARMSCRIPT && makeconstrain(scriptfile, objectfile) == 0)
          Constrain = loadConstrain(objectfile);
@@ -42,6 +41,7 @@ int loadParms(char *command, int *npnts, char *parfile, char *scriptfile,
          failed = TRUE;
       }
    }
+#endif
    return failed;
 }
 
