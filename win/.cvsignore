@@ -1,1 +1,3 @@
-gmlayer.dll manifest reflfit.tcl
+gmlayer.dll 
+reflfit.manifest reflfit.tcl
+reflred.manifest reflred.tcl

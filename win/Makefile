@@ -53,6 +53,11 @@ FLIBS=-lg2c -lm
 # TCL_LD_SEARCH_FLAGS
 # TCL_COMPAT_OBS        posix functions missing from the platform
 
+OCTAVE=$(TCL_PREFIX)/lib/octave0.1
+BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
+TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
+
 #include Makeconf.tcltk
 
 ## Unless I'm compiling Tcl/Tk myself, tclConfig.sh is useless.
@@ -88,24 +93,22 @@ REFLFIT_ARCH = ok
 
 
 bindir = $(shell pwd | sed -e "s,^/c/,/,")
-tcldir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/tcl
+reflfitdir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/tcl
+reflreddir = $(shell cd .. && pwd | sed -e "s,^/c/,/,")/reflred
 
-all: reflfit$(EXE)
+all: reflfit$(EXE) reflred$(EXE)
 
-reflfit$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) mkmanifest reflfit.tcl
-	./freewrapBLT -e reflfit.tcl -f manifest
+reflfit$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) reflfit.manifest reflfit.tcl
+	./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 reflfit.tcl: reflfit.tcl.in
 	sed -e 's,@WISH@,$(TCL_PREFIX)/bin/bltwish,' \
 		-e 's,@TCL_PREFIX@,$(TCL_PREFIX_WIN),' \
-		-e 's,@MLAYER_HOME@,$(tcldir),' \
+		-e 's,@MLAYER_HOME@,$(reflfitdir),' \
 		-e 's,@MLAYER_EXT@,$(bindir)/gmlayer$(LDEXT),' < reflfit.tcl.in > reflfit.tcl
 	chmod a+x reflfit.tcl
 
-BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
-TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
-TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
-mkmanifest: 
+reflfit.manifest: 
 	$(RM) manifest.in
 	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest.in ; done
 	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest.in
@@ -116,8 +119,33 @@ mkmanifest:
 	echo "$(TKDND)/tkdnd.tcl" >> manifest.in
 	echo "$(TKDND)/libtkdnd10.dll" >> manifest.in
 	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest.in
-	for f in /c$(tcldir)/* ; do echo "$$f" >> manifest.in ; done
-	sed -e 's,^/c/,/,' <manifest.in > manifest
+	for f in /c$(reflfitdir)/* ; do echo "$$f" >> manifest.in ; done
+	sed -e 's,^/c/,/,' <manifest.in > $@
+	$(RM) manifest.in
+
+reflred$(EXE): freewrapBLT$(EXE) gmlayer$(LDEXT) reflred.manifest reflred.tcl
+	./freewrapBLT -e reflred.tcl -f reflred.manifest
+
+reflred.tcl: reflred.tcl.in
+	sed -e 's,@WISH@,$(TCL_EXEC_PREFIX)/bin/bltwish,' \
+		-e 's,@TCL_PREFIX@,$(TCL_PREFIX_WIN),' \
+		-e 's,@VIEWRUN_HOME@,$(reflreddir),' \
+		< reflred.tcl.in > reflred.tcl
+	chmod a+x reflred.tcl
+
+reflred.manifest: 
+	$(RM) manifest.in
+	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest.in ; done
+	for f in $(OCTAVE)/*.tcl $(OCTAVE)/*.m ; do echo "$$f" >> manifest.in ; done
+	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest.in
+	echo "$(TKTABLE)/pkgIndex.tcl" >> manifest.in
+	echo "$(TKTABLE)/Tktable28.dll" >> manifest.in
+	echo "$(TKTABLE)/tkTable.tcl" >> manifest.in
+	#echo "$(TKDND)/pkgIndex.tcl" >> manifest.in
+	#echo "$(TKDND)/tkdnd.tcl" >> manifest.in
+	#echo "$(TKDND)/libtkdnd1.0.so" >> manifest.in
+	for f in /c$(reflreddir)/*.tcl /c$(reflreddir)/*.help /c$(reflreddir)/tkviewrunrc /c$(reflreddir)/octave/*.m ; do echo "$$f" >> manifest.in ; done
+	sed -e 's,^/c/,/,' <manifest.in > $@
 	$(RM) manifest.in
 
 include ../src/Makefile
@@ -127,9 +155,9 @@ freewrapBLT$(EXE):
 
 clean:
 	# $(MAKE) -f Makefile.freewrap clean
-	$(RM) *.o core manifest
+	$(RM) *.o core *.manifest
 
 distclean: 
 	# $(MAKE) -f Makefile.freewrap distclean
-	$(RM) *.o core manifest Makeconf.tcltk
+	$(RM) *.o core *.manifest Makeconf.tcltk
 	$(RM) reflfit.tcl reflfit$(EXE) gmlayer$(LDEXT)
