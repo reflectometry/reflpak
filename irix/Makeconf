@@ -9,7 +9,7 @@ TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
 TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.4
 TCL_SHLIB_LD=ld -n32 -shared -rdata_shared
 TCL_SHLIB_SUFFIX=.so
-WISH=$(TCL_PREFIX)/bin/bltwish
+WISH=$(TCL_PREFIX)/bin/wish8.4
 
 # Tcl packages we need to include
 TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
