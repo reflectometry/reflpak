@@ -7,24 +7,38 @@
 # On irix, build the html help as well
 	gmake html	
 
+# This is the working version
+	REFLVER=refl-`date +%Y-%m-%d`
+
+# Assuming everything builds, generate an updated ChangeLog
+	cvs2cl.pl --fsf --file ChangeLog.tmp
+	echo "#Automatically generated file -- DO NOT EDIT" | cat - ChangeLog.tmp > ChangeLog
+	rm ChangeLog.tmp
+	cvs commit -m "$REFLVER release" ChangeLog
+
+# mark the version in CVS and build a tarball
+	cvs rtag $REFLVER reflfit
+	cvs export -r $REFLVER -d $REFLVER reflfit
+	gtar czf $REFLVER.tar.gz $REFLVER
+	rm -rf $REFLVER
+
 # On jazz, create the distribution
 	cd ~/samba
-	REFLDIR=refl-`date +%Y-%m-%d`
-	mkdir $REFLDIR
-	mkdir $REFLDIR/irix
-	mkdir $REFLDIR/macosx
-	mkdir $REFLDIR/win
-	mkdir $REFLDIR/linux
-	echo $REFLDIR
+	mkdir $REFLVER
+	mkdir $REFLVER/irix
+	mkdir $REFLVER/macosx
+	mkdir $REFLVER/win
+	mkdir $REFLVER/linux
+	echo REFLVER=$REFLVER
 
-# Move the html help to the distribution directory
-	mv ~/cvs/reflfit/html $REFLDIR
-	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLDIR
+# Move the html, the source and the irix version to the distribution
+	mv ~/cvs/reflfit/html $REFLVER
+	mv ~/cvs/reflfit/$REFLVER.tar.gz $REFLVER
+	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLVER
 
 # On macosx and linux
-	scp $OS/refl{fit,pol,red} jazz:samba/$REFLDIR/$OS
-
-# On windows
-	scp win/refl{fit,pol,red}.exe jazz:samba/$REFLDIR/win
+	scp macosx/refl{fit,pol,red} jazz:samba/$REFLVER/macosx
+	scp linux/refl{fit,pol,red} jazz:samba/$REFLVER/linux
+	scp win/refl{fit,pol,red}.exe jazz:samba/$REFLVER/win
 
 # Let Christina know a new release is ready
