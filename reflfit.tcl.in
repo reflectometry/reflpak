@@ -38,4 +38,5 @@ source [file join "@ARCH@" options.tcl]
 
 # mlayer extension
 load "@GMLAYER@"
+set ::MAGNETIC 0
 source [file join $MLAYER_HOME mlayer.tcl]

@@ -70,7 +70,6 @@ tracing 0
 
 # Determine if we are using polarized or unpolarized version
 # based on the name of the executable.
-set MAGNETIC [expr [string match "*gj2*" $argv0] || [string match "*pol*" $argv0] ]
 set ::env(MLAYER_CONSTRAINTS) [file native [file join $::MLAYER_HOME makeconstrain]]
 if {$::MAGNETIC} {
     set title Reflpol
@@ -1001,6 +1000,7 @@ proc read_pars { } {
 ## Ask gmlayer for the current data
 proc read_data { } {
     clean_temps
+    gmlayer gd
     foreach v $::active_slices {
 	foreach {q r dr } [gmlayer send data$v] break
 	::data_q$v set $q
@@ -1023,7 +1023,7 @@ proc read_profile {} {
     ::prof_mu set $mu
     ::prof_qcsq set $qcsq
     if { $::MAGNETIC } {
-	::prof_theat set $theta
+	::prof_theta set $theta
 	::prof_mqcsq set $mqcsq
     }
     # convert to sld units
