@@ -6,7 +6,7 @@ source [file join $::VIEWRUN_LIB tableentry.tcl]
 source [file join $::VIEWRUN_LIB pan.tcl]
 source [file join $::VIEWRUN_LIB htext.tcl]
 
-help $::VIEWRUN_HOME viewrun help
+help $::VIEWRUN_HOME reflred help
 
 set ::title Reflred
 

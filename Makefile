@@ -45,7 +45,7 @@ libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
 fitsrc=mlayer.tcl defaults.tcl generic.tcl tkmlayerrc help.help \
 	mlayer.help gj2.help reflfit.help reflpolorient.gif
 redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl generic.tcl \
-	NG7monitor.cal viewrun.help help.help tkviewrunrc
+	NG7monitor.cal reflred.help help.help tkviewrunrc footprint.gif
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m

@@ -1,0 +1,624 @@
+
+# ----------------------------------------------------------------------
+hpage windows {There are a number of different windows in the system.
+
+The [choose] window lets you select directory and dataset.
+
+The [compose] window lets you select files and compose scans.
+
+The [psd] window lets you view position sensitive detector scans.
+
+The [attenuator] window lets you set the attenuator values for each run in
+a complete scan.
+
+The [print] window lets you set the graph size and output destination.  Only
+postscript graphs are available at present.
+
+The [reduce] window lets you combine scans.
+
+The [footprint correction] window lets you set the footprint correction 
+parameters for the reduction.
+
+The [Tcl console] window lets you interact directly with Tcl/Tk.
+
+The [help] window lets you browse the help text.
+
+2002-09-13}
+
+# ===============================================================
+hpage print {.graph.print .reduce.print} {
+Print options for your graph.  Which graph gets printed depends how
+you got here.  To print the compose graph click the Print button on
+the compose screen.  To print the reduce graph click the Print button
+on the reduce screen. There is no support for printing the attenuator 
+table or the footprint parameters.
+
+The options on the left define the graph:
+
+>center centers the graph
+
+>landscape selects between portrait and landscape mode
+
+>maxpect preserves the aspect ratio of the graph
+
+>preview generates a preview in the postscript file which 
+programs such as xdvi can use to display the graph
+
+>decorations determines the color of the graph border
+
+>colormode should be color for a color printer.  Support 
+for black and white printers is weak --- there is no 
+attempt to use different dash patterns for the lines.
+
+The options on the right define the paper.  The defaults
+work for 8 1/2 x 11 paper.
+
+Output can either be to a postscript file or directly to the printer.
+If it is directly to a printer, use "|lpr -P<printer>".  Consult your
+local contact regarding the names and locations of the various printers.
+
+2003-01-17}
+
+
+# ----------------------------------------------------------------------
+hpage attenuator .attenuator {See also [attenuator controls].
+
+This window contains the attenuator scale factors for each segment of 
+the run.  Enter attenuator values into the table.  You can also enter
+expressions.
+
+It is possible to align a pair of overlapping curves using
+shift-right-click.  This will give a list of overlapping
+curves and you can select one to align with.  *This is work
+in progress!*  The value is only correct if there is a single
+point of overlap.  If the attenuation on the two curves is
+approximately equal you should copy the values from one to
+the other rather than aligning them.  You can do this by
+clicking on the value you want to copy, then center-clicking
+where you want to copy it to, or if you prefer the keyboard,
+use the copy and paste keys (Ctrl-C, Ctrl-V).
+
+At present the "align" button doesn't work very well.  Again, 
+it only works if the curves overlap at a single point.  It
+aligns every curve in the sequence, even if two curves are
+about equal, so the estimated error is very large.  It does
+not find the best attenuator value to use for all overlapping
+curves.  Do not use it for correct reduction, but you can use
+it to get a quick view of your aligned curves.
+
+2003-03-03}
+
+# ----------------------------------------------------------------------
+hpage {attenuator controls} {} {See also [attenuator].
+
+navigation
+    Mouse: click to change cell
+    Keys:  <Up>/<Down> to move up/down
+	   <Tab>/<Backtab> to move right/left
+	   <Return> to accept value without moving
+
+setting attenuators
+    Keys:  <Ctrl-C> to copy selected text to clipboard
+	   <Ctrl-V> to replace selection with text from clipboard
+	   <Ctrl-X> to clear the selection
+    Mouse: middle-click to paste the selected value in a new cell
+	   shift-right-click to align or clear a single row
+
+
+2002-09-13}
+
+# ----------------------------------------------------------------------
+hpage compose . {See also [compose controls] [windows] 
+
+The run composer is the main window of reflred.  From
+here you can view and plot individual data files, and compose them
+into complete scans.  You can access most of the other [windows] 
+directly from the menu.
+
+The initial list contains data files from the directory/pattern
+given on the command line, or from the current directory if none was
+given.  You can select a different data set from the [choose] window
+(Data... on the menu).
+
+Files are grouped according to the activity of the motors:
+
+>It is a slit scan if the beam is straight through 
+but the slit motors are moving.
+
+>It is a rocking curve if the incident angle 
+is fixed but the reflected angle is varying.
+
+>It is a specular scan if the incident angle 
+matches the reflected angle.
+
+>It is a background scan if the incident angle 
+does not match the reflected angle.  
+
+Background scans are tagged with + if the reflected angle is greater
+than the incident angle, or - if the reflected angle is greater than
+the incident angle.
+
+There are a few rare scan types possible.  A height scan is indicated
+by movement of motor 12 on NG-7.  If no motors are moving, but
+temperature is being recorded then it will be classified as a
+temperature scan.  Similarly for applied field.  If nothing is
+changing then the file is tagged as a time evolution (or a single
+point slit scan if the beam is straight through).
+
+Shown next to each data file is a box indicating the total range for
+the data set.  The shaded portion of the box indicates the Qz range
+for that file.  The vertical bar indicates a value of Qz = 0, or for
+Qx = 0 in the case of rocking curves.  For slit scans, the data range
+indicates the slit 1 opening.  For temperature scans, time evolution,
+or height scans, the data range indicates temperature, time or height
+respectively.
+
+For NG-1 and X-Ray files there is no data column for Qz.  Instead
+Qz is calculated from motor A3 (incident angle) or A4 (incident
+plus reflected angle).  For rocking curves it must be A3 and
+for specular scans it doesn't matter since A3 is 2*A4.  For background
+scans however either A3 or A4 can be the basis for Qz, with the other
+being the offset.  This is indicated in the file selection tree by
+the label Background Q(A3) or Background Q(A4).  It should be obvious
+which is correct by comparing the Q range of the background with the
+Q range of the corresponding specular.  Click the label to toggle, or
+select "Options Background A#" from the menu to change them all.  Doing
+so will change the Q range on the selected files as well, but not on
+the previously composed scans.
+
+All runs are displayed with the same monitor count, which is the
+monitor of the first run selected.  You can scale each run
+independently using the [attenuator] window (Attenuator... in the
+menu), or click "align" to calculate the attenuators automatically.
+WARNING: the attenuator calculator does not work reliably.  Read 
+the details in [attenuator].
+
+Note: you cannot combine NG1 runs counted against monitor and time in 
+the same scan.  The NG1 monitor is positioned between slit 1 and slit 2,
+so as slit 1 opens, the monitor rate increases which means the counting
+time decreases within the run.  When counting against time, the
+counting time is fixed within the run. The correct way to handle this 
+is to reduce the monitor and time data separately then join the 
+reduced lines.
+
+NG-7 data is scaled by monitor count when it is loaded.  A dead
+time correction is applied to the monitor count, which is linearly
+interpolated from the data in the file reflectivity/NG7monitor.cal.  
+You can see the calibration data by opening the [Tcl console] and typing
+	load_NG7_monitor_calibration
+	set NG7_monitor_calibration
+See [NG7load] for details.
+
+Since the NG7 monitor does not count every neutron, there will be 
+a detector to monitor ratio that needs to be measured.  Once 
+measured, this can be entered on the reduce screen as a transmission 
+coefficient, entered as an attenuator, or saved as an ICP file and
+used as a slit scan.  Since the detector to monitor ratio is
+not a constant especially at low Q, a slit scan taken at several
+points will give the best results.
+
+Once you have selected your sequence of files, click "Accept" to
+average them into a complete scan.  The resulting average will be
+displayed as a separate scan line.  Click on the legend entry to hide
+it, or click "Clear" to remove it.  The "Clear" button first removes
+the selected runs, then removes the scans.  Scans are available for
+further processing in the [reduce] window (Reduce... in the menu).
+
+For polarized beam, you will have to select A, B, C and D separately.
+Once you accept, separate lines will be created for each index.
+
+2002-09-13}
+
+# ----------------------------------------------------------------------
+hpage {compose controls} {} {See also [compose].
+
+open/close runlist subtree
+    Mouse: click on +/- box where the subtree branches
+    Keys:  <Up> or <Down> to highlight then <Right> or <Left> to toggle
+
+change background motor basis
+    Mouse: click the Background Q(A#) label to toggle one
+    Menu:  choose Options Background Q(A3/A4) to set all
+
+select/clear files
+    Mouse: click on run number to toggle, double-click to toggle sequence
+	   shift-click on run to force, shift-double-click to force sequence
+	   right-click in list or "Clear" to clear all files
+	   right-click in list or "Clear" again to clear all scans
+	   middle-click in list or "Accept" to save scan and clear all files
+    Keys:  <Up>/<Down> to highlight
+	   <Return> to toggle, <Control-Return> to toggle sequence
+	   <Shift-Return> to force, <Shift-Control-Return> to force sequence
+	   <Insert> to accept sequence then clear
+	   <Delete> to clear all files
+	   <Delete> again to clear all scans
+
+display run file
+    Mouse: shift-click on run number to view file, click-drag on sash to 
+           make the viewing area bigger.  You could simply click on the 
+	   run number, but that will toggle the selection.  
+    Keys:  <Up>/<Down> changes file without altering the selection.
+
+graph controls
+    Mouse: click on legend entry to hide/show line segment
+	   click on y-axis to toggle linear/log scale
+	   right-click on y-axis to hide/show all line segments on that axis
+	   hover on points on graph to show coordinates
+	   middle-click on points on graph to exclude from further analysis
+	   click-move-click on graph instead of click-drag-release to zoom
+	   right-click on graph unzoom
+
+2002-09-03}
+
+
+# ----------------------------------------------------------------------
+hpage reduce .reduce {See also [reduce controls].
+
+The reduce window is where you collect the various scans to create the
+reflectivity signal.  This is a confusing screen.
+
+The basic formula is (specular-background)/slitscan.  In addition there
+is scaling by the transmission coefficient of the sample environment,
+polarization correction for polarized beam (not implemented) and 
+[footprint correction].
+
+Select all specular lines.  These will appear on the legend annotated with
+a plus, and the "specular" entry will show the average of all the specular
+lines.  The highlighted line is the final reduction, which at this
+point will just be the average of the specular.  So selecting one line
+will display it overlayed by the identical average overlayed by the
+identical reduced line.
+
+Next select all background lines.  These will appear on the legend
+annotated with a minus, the "background" entry will show the average
+of all the background lines, and the "subtracted" entry will show the
+difference between the specular and the background. The highlighted 
+reduced line will now overlay the subtracted line. Note that [psd] 
+data will already have the background subtracted from the specular, 
+so no need to select any. 
+
+For NG-1 and X-ray data you need to divide by a slit-scan.  This is 
+a sequence of data taken with the same slit settings as the specular 
+and background data but directly counting the beam rather than its
+reflection. Because the detector is directly in line with the beam for
+a slit scan, there is no Qz value intrinsic to the specific slit openings.
+Instead for each Qz in the specular data, you must lookup the value of
+the slit 1 opening for that particular Qz in the slit data and this is
+your slit scan.  Linear interpolation is used if the slit values are
+not exactly aligned.  NG-7 data does not use slit scans but instead 
+the specular and background data is divided by the monitor count when 
+the data is loaded.  Note that NG-7's monitor does not count all
+incident neutrons.  Instead, you will have a "slit to monitor" ratio
+by which you need to scale the reflectivity curve.  You can enter this
+value as a factor in the "incident medium transmission coefficient" or
+if it is measured in a file, divided it through as a single point
+slit scan \[untested as of this writing\].  Note that the slit to monitor
+ratio decreases as the slit width approaches zero, so for careful 
+experiments you may want to measure the slit scan across many points.
+
+Select all the slit scan lines.   These will appear on the legend 
+annotated with a slash, but will not appear on the graph.  If you 
+select the legend entry, the actual data will appear but it will
+be counts versus slit 1 where slit 1 values go across the top axis
+rather than along the bottom axis, so there will be no correspondence
+with the Qz values of the specular or background curves.  The slit 
+scan entry represents Qz value of the specular interpolated into the 
+average of all the individual slit scans.  The divided entry is 
+(specular - background)/slit, which will be overlayed by the 
+highlighted reduced line.
+
+The next step is to calculate the [footprint correction].  Click the
+Parameters... button to enter the footprint parameters.  You can
+suppress the footprint correction by toggling the associated check
+box on this screen.
+
+Finally, you can scale the data by the "incident medium transmission
+coefficient".  If you "Guess" at the value, then it will scale the data
+so that the peak reflectivity is 1.0.  The error on the scale factor
+will equal the error on the peak value.
+
+Save your data as linear and/or print the graph and you are done.  The
+header will contain details of all the files which went into the reduced
+(Q,R,dR) data columns.
+
+2002-09-18}
+
+# ----------------------------------------------------------------------
+hpage {reduce controls} {} {See also [reduce].
+
+select scans
+    Mouse: click to select, click again to clear
+    Keys:  <Tab>/<Back Tab> to focus, arrows to choose, space to select
+
+graph controls
+    Mouse: click on legend entry to hide/show line segment
+	   click on y-axis to toggle linear/log scale
+	   right-click on y-axis to hide/show all line segments on that axis
+	   hover on points on graph to show coordinates
+	   middle-click on points on graph to exclude from further analysis
+	   click-move-click on graph instead of click-drag-release to zoom
+	   right-click on graph unzoom
+
+2002-09-18}
+
+# ----------------------------------------------------------------------
+hpage {footprint correction} .footprint {As
+the incident angle decreases the area illuminated by the beam increases
+without bound.  For higher Q, you can adjust the slits for each Q value so
+that a constant area of the sample is illuminated.  However, as the angle
+decreases the slits become so narrow that imprecision in the slit separation 
+and even the roughness of the slit surfaces can distort the beam shape.  So
+instead the slits are sometimes held fixed for small Q, which means an ever
+increasing portion of the beam will miss the sample as the incident angle
+approachs zero, which you will see as decreasing reflectivity. The signal 
+will rise again near zero as the detector enters the main beam (see Fig. 1).
+
+	[img::footprint.gif]
+	Fig. 1: At small angles and fixed slits, the detector
+	can be directly exposed to the main beam.
+
+Assuming fixed slits and a rectangular sample (or a fully illuminated 
+sample of arbitrary shape), the portion of beam
+which covers the sample will decrease linearly with Q (and since the
+sin(x) ~ x near x=0, the portion will also decrease linearly with angle).  
+Knowing the geometry of your experiment (distance between slits, width
+of slit opening, distance between slit and sample, size of sample), you
+can calculate the appropriate slope and intercept.  Select the 
+'Enter footprint correction' choice and enter the slope and intercept.  
+If your sample is not rectangular or fully illuminated, the footprint 
+correction will no longer be linear.  We do not support more 
+complicated footprints at this time.
+
+You can instead guess the slope and intercept from your data.
+Ideally, you will see 100% reflectivity below the critical angle for your
+sample.  That means your reflectivity signal will also decrease linearly 
+in the fixed slit region below the critical angle.  Assuming your sample
+has a large enough critical angle, select the
+'Fit footprint correction' choice and click the 'From graph...' button.
+You will want to first select the lowest Q point of your data which is 
+not being directly illuminated by the beam.  This is at the bottom of the
+"V" in the reflectivity signal (assuming you have measured below about
+0.005 inv Angstroms).  You will want to next select the last point
+below the critical angle for which the reflectivity is 100%.  Since
+you can't know that for sure, choose the last point which is approximately
+linear from the bottom of the "V".  Be sure that both y axis scales are 
+_linear_ not _log_ when deciding if a series of points forms a line.
+Press 'Escape' to start again.
+
+Having specified the slope and intercept from the geometry, or having
+fit it from the graph, you must then select the portion of the curve
+over which to apply the footprint correction.  You can again click
+'From graph...' to select the points from the graph.  Usually this
+is from the bottom of the "V" to the end of the fixed slit region.  For
+NG1 and X-ray data, the fixed slit region will be obvious from the measured
+slit scan.  For NG7 you will have to go back to the data selection window
+and examine the first file in your specular sequence to see where the
+fixed slit region stops.  \[Use the right mouse button on the specular
+scan you are using from the list of specular scans and select 'Edit'.] 
+Often NG7 data is taken with continously varying slits.  Future versions
+will automatically enter the fixed slit range for you.
+
+Note that the value of the footprint correction at the end of the
+application range is extended to the entire Q range of your reflectivity
+scan.
+
+As an alternative to knowing the geometry or guessing it from your
+data, you may be able to measure the required footprint correction.
+First measure a sample of the same dimension and with a critical angle
+greater than the fixed slit region for your experiment.  Reduce that
+scan (being sure to divide by a slit scan if necessary) and save it.
+Now select the scan you wish to correct and click 'Parameters...' to
+get to the footprint window.  Choose the footprint scan from the
+'Measured footprint correction' dropdown list.  From the graph, select
+the region you want to correct as zero to the critical angle off the
+footprint scan.
+
+Click 'Apply' when you are have selected your footprint method and chosen
+the parameters.  You can toggle the 'Apply' using the check box on the
+[reduce] screen.
+
+2003-01-31}
+
+# ----------------------------------------------------------------------
+hpage {psd} .psd {See also [psd controls].
+
+Position sensitive detector data is a 2-D array.  Instead of a single
+pencil detector a linear array of detectors is deployed, so for each
+incident angle you can simultaneously measure an array of reflected
+angles.  Each Qz slice in the ICP file thus corresponds to a rocking
+curve.  From this curve we can estimate the specular and background
+signal simultaneously.
+
+The psd window shows four different graphs.  The top left graph shows
+data from the entire PSD array as a false color plot.  Below and beside
+this are graphs of slices through the array.  On the bottom right is
+a graph of the specular, background and subtracted data derived from
+the array. The legend on the top right shows the colour values 
+corresponding to the levels in the array.  
+
+There are two dashed vertical lines overlaying the array.  The data 
+between these lines is integrated to form the specular scan.  An equal 
+width region surrounding the specular region is integrated to form 
+the background scan.  These are subtracted to form the reduced data.
+Once the region is selected, you can use the [attenuator] window to 
+scale the data as usual.  The graph to the right shows the levels 
+for each line.
+
+By clicking the middle button in the array you can get a cross section
+through the data.  The vertical slice shows the counts versus Qz and
+is shown on the graph to the right.  The diagonal slice shows the 
+counts for a constant Qz on the graph below.
+
+2002-09-18}
+
+# ----------------------------------------------------------------------
+hpage {psd controls} {} {See also [psd].
+
+change region of integration:
+>click and drag thick dashed lines.  If this doesn't work, it may
+be because the cross section slice is stealing the mouse, so click
+the center mouse button somewhere else on the graph and try again
+
+log/linear scaling:
+
+>click on any y-axis to change all axes from log to linear (including
+the colormap)
+
+zoom image or reduction:
+
+>click-move-click to zoom, right-click to unzoom
+
+slice:
+
+>center click to draw a slice going through the coordinates
+
+unskew slices:
+
+>Choose the >Options >Tcl console menu from the compose screen to
+start the [Tcl console] then enter the command "set ::psd::skew 0"
+to unskew and "set ::psd::skew 1" to skew.
+
+2002-09-20}
+
+
+# ----------------------------------------------------------------------
+hpage {Tcl console} .tkcon {Tcl 
+is an easy to learn scripting language in which you will eventually be
+able to automate your data reduction if you take your data
+systematically.  
+
+I will not attempt to describe tcl here.  See
+http://www.msen.com/~clif/TclTutor.html for an interactive tutorial.
+
+At present, the reduction is set up to be driven by the GUI, so
+although you could automate it now it would be awkward to do so.
+Here are some incomplete notes to get you started.  Be warned 
+that the information given below is subject to change
+without notice as the scripting interface evolves.
+
+The active set of records is determined by a call to setdirectory.  This
+takes a file pattern, categorizes all the matching files and displays them
+in the file selection tree.  E.g., to load all the ng7 files in your
+reflectivity directory you might use:
+
+	setdirectory ~/refl/*.ng7
+
+Information about individual files are stored in arrays in the global
+namespace.  The name of the array is visible in parentheses beside the
+name of the file when the file is selected.  You can see what information
+is being stored for each file using "array get".  E.g.,
+
+	array get recR1
+
+To find the record associated with a particular file name, use
+the function rec which searches through all categorized files for a file
+of the given name.  E.g., to find 074A of dataset f524b use:
+
+	rec f542b074.na1
+
+This maps the array rec to the record found, so you can see the fields
+using, e.g., puts $rec(file).
+
+Records can be added to or removed from the current scan using 
+toggle_section.  The following command adds recR3 to the current
+scan.  The keep option makes sure that it is an add, since otherwise
+it will be a toggle.
+
+	toggle_section -keep 1 -node recR3
+
+Once the file is selected and displayed in the graph, the data is stored
+in a suite of BLT vectors.  For example, to see the vectors associated with
+recR1 use:
+
+	vector names *_recR1
+
+Some comments on the vectors are in order:
+
+  x_recR1	Qz value for data
+  xth_recR1	theta corresponding to the Qz stored in x
+  y_recR1	counts in the file normalized by monitor*prefactor
+  dy_recR1	standard error on y
+  ky_recR1	counts*attenuator scaled to current monitor
+  kdy_recR1	standard error on ky
+  idx_recR1	index of included points
+  XXX_recR1	data for column XXX as stored in the ICP file
+
+Note that not all records will exist for all files at all times.
+x and xth may change if the user changes the background basis for a dataset.
+ky and kdy will change whenever attenuators change or runs are added.
+idx will change whenever a point is included or excluded.
+
+Attenuators are stored for each record as rec(k) and rec(dk).  If you
+change the attenuator by hand, be sure to call the following to update
+the ky and kdy vectors:
+
+	atten_set $::addrun
+
+Once all the records are selected and the attenuators are set, you can
+accept the scan with a call to addrun accept.  A table of all accepted 
+scans is stored in scanindex. You can examine an individual scan with 
+array get scan#, where # is the number of the scan given in the scan 
+index.
+
+	addrun accept
+	array get scanindex
+
+The rest of reduction is even less amenable to scripting.  To use
+e.g. scan1 you will need to find "$scan1(name) $scan1(comment)" in
+the listbox for .reduce.$scan1(type) to get the index (see the function
+listbox_ordered_insert in generic.tcl for clues how to do this), then
+you will need to force that index to be selected (see the listbox manual
+page for clues).  Footprint correction is more awkward still.
+
+2002-09-18}
+
+# ----------------------------------------------------------------------
+hpage choose .choose {
+The left side shows directories, the right side shows datasets.
+
+Click a directory name to display the datasets available in that
+directory.  Double-click to change to that directory.  The "."
+directory is the current directory.  The ".." is the parent. All
+others are subdirectories.
+
+Click on a dataset to only work with that dataset, or click nothing to
+work with all datasets simultaneously.  Click on a column header to
+sort by that column (dataset name, instrument, number of runs in that
+dataset, earliest run, latest run, comment).
+
+Click "Apply" or "Ok" to categorize all files in the dataset/directory
+selected.  "Apply" leaves the choose window open, "Ok" closes it.
+Click "Cancel" to close the choose window.
+
+2002-09-13}
+
+# ----------------------------------------------------------------------
+hpage About {} {"Reflred $::VERSION
+
+NIST Center for Neutron Research
+Reflectivity reduction software.
+
+This software is a work of the US Government so is in the public
+domain.  Some components have their own copyright.  See the
+individual files for copyright details.
+
+We are standing on the shoulders of giants:
+
+>Octave is copyright John W Eaton, with contributions from many.
+
+>Tcl/Tk was written by John Ousterhout with contributions from
+many and is copyright the Regents of the University of 
+California, Sun Microsystems, Scriptics Corporation and 
+other parties.
+
+>BLT was written by George Howlett with contributions from many
+and is copyright Lucent Technologies, Sun Microsystems, 
+and other parties.
+
+>BWidgets was written by Eric Boudaillier with contributions from
+many and is copyright UNIFIX and ActiveState Corp.
+
+>Expect was written by Don Libes with contributions from many
+and is a work of the US government.
+
+2003-01-22}
