@@ -4,7 +4,13 @@
 <p>Precompiled binaries of the NCNR reflectometry are available
 for <a href="#windows>Windows</a>, <a href="#macosx">Mac OS X</a>,
 <a href="#unix">Linux</a> and <a href="#unix">IRIX</a>.
-<a href="#source">Source</a> is available as well.</p>
+
+<p>You can also download the
+<a href="reflpak@VERSION@-src.tar.gz">reflectometry source tree</a>,
+and follow the long set of instructions in README to build and install.
+
+<p>Online help for <a href="html/reflred/index.html">reflred</a> and
+<a href="html/reflfit/index.html">reflfit</a> are available.</p>
 
 <a name="windows"><h2>Windows</h2></a>
 
@@ -77,45 +83,6 @@ Many linux systems have pre-built binaries.  Details are available at
 For IRIX, you will have
 to build from source (information is available at
 <a href="http://wiki.octave.org/wiki.pl?PaulKienzleIrixConf">PaulKienzleIrixConf</a>).
-
-<p>Once octave is installed, start octave then start the octave server
-using the command
-<code><pre>
-	listen(1515)
-</pre></code>
-
-<a name="source"><h2>Build from source</h2></a>
-<p>First download and unpack the 
-<a href="reflpak@VERSION@-src.tar.gz">reflectometry source tree</a>.  
-
-<p>You may need to build and install
-<a href="http://tcl.sourceforge.net">Tcl/Tk</a>,
-<a href="http://sourceforge.net/projects/blt">BLT</a>,
-<a href="http://tktable.sourceforge.net">TkTable</a>,
-<a href="http://tcllib.sourceforge.net">BWidget</a> and
-<a href="http://tkcon.sourceforge.net">TkCon</a>, or you
-can try building 
-
-<p>Once you have built Tcl follow the instructions in README in the 
-reflectometry source tree for building a new ARCH directory and Makeconf.  
-Use the command 
-<code><pre>
-	make ARCH/refl{red,fit,pol}.tcl
-</pre></code>
-to build the Tcl scripts.  Move this scripts somewhere into your
-path without the .tcl extension.
-
-<p>To run, cd to your data directory and type ~/reflfit, ~/reflpol or
-~/reflred.
-
-<p>To run reflred, you will first need to install 
-<a href="http:://www.octave.org">Octave</a> and
-<a href="http://octave.sourceforge.net">octave-forge</a>.
-Instructions are available on the
-<a href="http://wiki.octave.org/wiki.pl?CategoryInstall">octave wiki</a>.
-Normally octave-forge does not install extra/soctcl.  Follow the
-instructions in extra/soctcl/README for building your own soctcl#.#.tar.gz
-and unpack it in your Tcl library directory.
 
 <p>Once octave is installed, start octave then start the octave server
 using the command

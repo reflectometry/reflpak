@@ -38,6 +38,10 @@ winlink/
 
   Tcl extension package providing access to windows shortcuts.
 
+icons/
+
+  Icons used by the app.
+
 freewrap/
 
   (Obsolete)
@@ -94,8 +98,14 @@ the closest configuration file as a starting point.
 
 Make sure you have ncnrkit and sdx.kit for your computer architecture.
 Both are available from the reflpak web pages, or you may build
-your own according to the instructions in mkncnrkit.
+your own according to the instructions in mkncnrkit.  
 
+Note that you can run without ncnrkit if you have the appropriate tcl 
+environment already setup.  Just change 'ncnrkit' to 'wish' in 
+reflpak.tcl and everything should work.  Your environment probably
+doesn't have tkcon as a package --- see the code for mkncnrkit for
+details how to do it.  The other packages you must have are tktable,
+blt, and bwidget.
 
 Type make.  The resulting files are:
 
@@ -106,9 +116,9 @@ Type make.  The resulting files are:
 Type make dist.  Depending on which system you are on, you will
 either have:
 
-	release/reflpakYYYYMMDD.dmg (arch=macosx)
-	reflpakYYYYMMDD-arch.tar.gz (arch=linux or arch=irix)
-	reflpakYYYYMMDD.exe (arch=win)
+	release/reflpak-YYYY.MM.DD.dmg (arch=macosx)
+	reflpak-YYYY.MM.DD-arch.tar.gz (arch=linux or arch=irix)
+	reflpak-YYYY.MM.DD.exe (arch=win)
 
 Paul Kienzle
 2004-03-16
