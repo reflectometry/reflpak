@@ -1774,8 +1774,8 @@ if { $::MAGNETIC } {
     $::varying tag conf theta -fg $::color(theta)
 }
 
-# don't change the parameter colour when the parameter is selected
-$::varying tag conf sel -fg {}
+## don't change the parameter colour when the parameter is selected
+#$::varying tag conf sel -fg {}
 
 # don't use mu or qcsq colours for parameters which
 # happen to be in mu or qcsq columns
