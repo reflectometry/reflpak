@@ -20,7 +20,7 @@
 # exclude point symbol pen
 *Graph.excludePoint.Symbol: circle
 *Graph.excludePoint.Color: red
-*Graph.excludePoint.Pixels: 2
+*Graph.excludePoint.Pixels: 5
 *Graph.excludePoint.Fill:
 
 # rockbar details
