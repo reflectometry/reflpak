@@ -15,7 +15,7 @@ namespace eval reflpak {
         toplevel $root -padx 7 -pady 6
         wm protocol $root WM_DELETE_WINDOW exit
         variable directory
-        wm iconbitmap $root [file join $directory pak.ico]
+        catch { wm iconbitmap $root [file join $directory pak.ico] }
         wm title $root Reflpak
         option add *app.Button.padX 10 widgetDefault
         option add *app.Button.padY 2 widgetDefault
@@ -59,8 +59,10 @@ namespace eval reflpak {
         pol { set app Reflpol; shift_arg }
         red { set app Reflred; shift_arg }
         wish { set app wish; shift_arg }
+	tkcon { set app tkcon; shift_arg }
         *.staj { set app Reflfit }
         *.sta { set app Reflpol }
+	*.tcl { set app wish }
         default { set app [choose_app] }
     }
     set ::app_version "app $::app_version"
@@ -73,6 +75,12 @@ switch -- $reflpak::app {
     Reflpol { package require reflpol }
     Reflred { package require reflred }
     wish { 
+    	set argv0 [lindex $argv 0]
+	info script $argv0
+	reflpak::shift_arg
+    	source $argv0
+    }
+    tkcon { 
 	package require tkcon
 	set ::tkcon::PRIV(protocol) exit
 	tkcon show 

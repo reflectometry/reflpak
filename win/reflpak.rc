@@ -1,6 +1,6 @@
 1 VERSIONINFO
-FILEVERSION 0, 1, 1, 1
-PRODUCTVERSION 0, 1, 1, 1
+FILEVERSION 0, 0, 0, 0
+PRODUCTVERSION 0, 0, 0, 0
 FILEOS 4
 FILETYPE 1 {
     BLOCK "StringFileInfo" {
@@ -8,10 +8,10 @@ FILETYPE 1 {
             VALUE "FileDescription", "NCNR Reflectometry reduction and fitting"
             VALUE "OriginalFilename", "reflpak.exe"
             VALUE "CompanyName", "NIST Center for Neutron Research"
-            VALUE "FileVersion", "0.1.1"
+            VALUE "FileVersion", "0.0.0"
             VALUE "LegalCopyright", "freely redistributable with modifications"
             VALUE "ProductName", "ReflPak"
-            VALUE "ProductVersion", "0.1.1"
+            VALUE "ProductVersion", "0.0.0"
         }
     }
     BLOCK "VarFileInfo" { 
@@ -23,4 +23,4 @@ TK ICON "../reflpak/pak.ico"
 TKFIT ICON "../tcl/fit.ico"
 TKPOL ICON "../tcl/pol.ico"
 TKRED ICON "../reflred/red.ico"
-
+TKWISH ICON "../reflpak/wish.ico"

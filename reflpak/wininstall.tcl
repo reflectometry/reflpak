@@ -83,7 +83,7 @@ namespace eval reflpak {
 	form_prog_links $linkpath
         log "Adding link to \"$exepath\" tkcon in $linkpath\\tkcon.lnk"
 	link set [file join $linkpath tkcon.lnk] \
-	    -path $exepath -args tkcon \
+	    -path $exepath -args tkcon -icon $exepath -index 4 \
 	    -cwd [file dirname $exepath] -desc "Tcl Console"
     }
     proc form_desktop_links {} { form_prog_links [desktop] }

@@ -26,6 +26,7 @@ icons.tcl:
 
 yellowjelly32.xcf, [FPR]yellow.ico: subprogram icons
 yellowpack32.xcf, yellowpack.ico: program pack icon
+wish.ico: genie lamp taken from redhat tcl distribution
 
 3Dred.xcf red.ico: older experiments
 

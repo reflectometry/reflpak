@@ -13,7 +13,9 @@ register_reduced
 
 help $::VIEWRUN_HOME reflred help
 wm protocol . WM_DELETE_WINDOW { exit }
-wm iconbitmap . -default [file join $::VIEWRUN_HOME red.ico]
+# XXX FIXME XXX getting icons to work properly for unix will require
+# changes to the Tk core
+catch { wm iconbitmap . -default [file join $::VIEWRUN_HOME red.ico] }
 
 set ::title Reflred
     

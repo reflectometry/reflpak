@@ -33,10 +33,11 @@ load_resources $::MLAYER_HOME tkmlayer
 
 wm protocol . WM_DELETE_WINDOW { exit }
 if { $::MAGNETIC } {
-    wm iconbitmap . -default [file join $::MLAYER_HOME pol.ico]
+    catch { wm iconbitmap . -default [file join $::MLAYER_HOME pol.ico] }
 } else {
-    wm iconbitmap . -default [file join $::MLAYER_HOME fit.ico]
+    catch { wm iconbitmap . -default [file join $::MLAYER_HOME fit.ico] }
 }
+
 
 # XXX FIXME XXX ask before closing the application without saving
 

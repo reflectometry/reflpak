@@ -12,6 +12,7 @@ pakicon=icons/yellowpack.ico
 redicon=icons/Ryellow.ico
 fiticon=icons/Fyellow.ico
 policon=icons/Pyellow.ico
+wishicon=icons/wish.ico
 
 # Path to current directory; use ?= so Makeconf can override
 topdir ?= $(shell pwd)
@@ -39,11 +40,17 @@ fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
 
 scifunfiles=$(patsubst %,scifun/%,$(scifunsrc))
-pakfiles=$(patsubst %,reflpak/%,$(paksrc) pak.ico)
+pakfiles=$(patsubst %,reflpak/%,$(paksrc))
 libfiles=$(patsubst %,lib/%,$(libsrc))
-fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc) fit.ico pol.ico)
-redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc) red.ico)
+fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc))
+redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc))
 redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc))
+
+ifeq($(arch),win)
+pakicons=reflpak/pak.ico reflpak/wish.ico
+fiticons=tcl/fit.ico tcl/pol.ico
+redicons=reflred/red.ico
+endif
 
 macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
@@ -52,13 +59,13 @@ SUBDIRS=src gj2 scifun
 ifeq ($(EXE),.exe)
 SUBDIRS+=winlink
 winlinksrc=pkgIndex.tcl winreg.tcl winlink$(LDEXT)
-winfiles=$(patsubst %,winlink/%,$(winlinksrc))
+winlinkfiles=$(patsubst %,winlink/%,$(winlinksrc))
 addwinlink=./vfslib reflpak winlink $(winfiles)
 else
 addwinlink=:
 endif
 
-icons = reflred/red.ico tcl/fit.ico tcl/pol.ico reflpak/pak.ico
+icons=$(fiticons) $(pakicons) $(redicons)
 
 .PHONY: $(SUBDIRS) 
 
@@ -70,17 +77,17 @@ kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 kit/reflpak.res: win/reflpak.rc $(icons)
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
-kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
-		$(scifunfiles) $(libfiles) $(pakfiles) \
+kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
+		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
 		kit/ncnrkit$(EXE) main.tcl Makefile vfslib
 	./vfslib reflpak
 	./vfslib reflpak ncnrlib $(libfiles)
 	./vfslib reflpak scifun $(scifunfiles)
 	$(addwinlink)
-	./vfslib reflpak reflfit $(fitfiles) $(gmlayer) $(gj2)
-	./vfslib reflpak reflred $(redfiles)
+	./vfslib reflpak reflfit $(fitfiles) $(gmlayer) $(gj2) $(fiticons)
+	./vfslib reflpak reflred $(redfiles) $(redicons)
 	./vfslib reflpak reflred/octave $(redoctavefiles)
-	./vfslib reflpak reflpak $(pakfiles)
+	./vfslib reflpak reflpak $(pakfiles) $(pakicons)
 	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
@@ -99,6 +106,9 @@ tcl/pol.ico: $(policon)
 
 reflpak/pak.ico: $(pakicon)
 	cp $(pakicon) $@
+
+reflpak/wish.ico: $(wishicon)
+	cp $(wishicon) $@
 
 html: html/reflred/index.html html/reflfit/index.html
 

@@ -1,12 +1,12 @@
 <html><title>Reflectivity software installation</title><body>
 <h2>Windows</h2>
 
-<p>Copy 
-<a href="win/reflfit.exe">reflfit</a> /
-<a href="win/reflpol.exe">reflpol</a> /
-<a href="win/reflred.exe">reflred</a> to your desktop.
+<p>Copy <a href="reflpak@VERSION@.exe">reflpak@VERSION@.exe</a> where you 
+want it installed on your computer (it is a single file executable, not
+an installation kit).
 
-<p>To run reflfit/reflpol/reflred, simply click on the icon.
+<p>Click on the icon.  Select <em>Install shortcuts...</em> to
+add start menu items and file associations to reflpak.
 
 <p>To reduce data in reflred, you will first need to install Octave from
 <a href="http://sourceforge.net/project/showfiles.php?group_id=2888">octave-forge</a>.  Use the latest version of octave-forge-windows (2.1.50 as of this
@@ -20,25 +20,26 @@ the octave server using the command
 
 <h2>Mac OS X</h2>
 
-<p>Copy 
-<a href="macosx/reflfit">reflfit</a> /
-<a href="macosx/reflpol">reflpol</a> /
-<a href="macosx/reflred">reflred</a>
-to your home directory.  This will probably
-require Ctrl-Click in your browser.
+<p>Copy <a href="reflpak@VERSION@.dmg">reflpak@VERSION@.dmg</a> to your home directory. 
 
-<p>You will need to start an X11 server (the BLT graphing package does
-not support Aqua).  This should also pop up a terminal.  In the
-terminal window, you will need change the file to an executable:
-<code><pre>
-	chmod a+x ~/refl{fit,pol,red}
-</pre></code>
+<p>In the disk you will find the reflpak@VERSION@ folder.  Drag this 
+whereever you want on your machine, but keep the files it contains together.  
+If you are working with the console, use <em>ditto -rsrc</em> rather than 
+<em>cp</em> or <em>mv</em> to move the files since some of the files 
+contain resource forks.
 
-<p>Now cd to your data directory and type ~/reflfit, ~/reflpol or
-~/reflred to run the program.
+<p>In the reflpak@VERSION@ folder there are four icons which work as usual.  
+If you prefer the command line, copy reflpak to your path and start it with
+<em>reflpak [red|pol|fit] file...</em>.  The data folder contains sample
+data and a short tutorial.
 
 <p>To reduce data in reflred, you will first need to install Octave and 
-octave-forge. <a href="http://fink.sf.net">Fink</a> has pre-built binaries.
+octave-forge. There are binaries at 
+<a href="http://hpc.sourceforge.net#octave>HPC Mac OS X</a> which
+have been used successfully.  By the time you read this,
+<a href="http://fink.sourceforge.net">Fink</a> or
+<a href="http://darwinports.opendarwin.org">DarwinPorts<a> 
+may have pre-built binaries available as well.
 
 <p>Once octave is installed, start octave then start the octave server
 using the command
@@ -49,31 +50,21 @@ using the command
 <h2>Linux/Irix</h2>
 
 <p>We have prebuilt binaries for Linux
-(<a href="linux/reflfit">reflfit</a> /
-<a href="linux/reflpol">reflpol</a> /
-<a href="linux/reflred">reflred</a>)
+(<a href="reflpak@VERSION@-linux.tar.gz">reflpak@VERSION@-linux.tar.gz</a>)
 and Irix
-(<a href="irix/reflfit">reflfit</a> /
-<a href="irix/reflpol">reflpol</a> /
-<a href="irix/reflred">reflred</a>).  
-Copy them to your home directory.  This will probably
-require Right-Click in your browser.
-
-
-<p>You will need change the file to an executable:
-<code><pre>
-	chmod a+x ~/refl{fit,pol,red}
-</pre></code>
-
-<p>Now cd to your data directory and type ~/reflfit, ~/reflpol or
-~/reflred to run the program.
+(<a href="irix/reflpak@VERSION@-irix.tar.gz">reflpak@VERSION@-irix.tar.gz</a>).
+Untar them and copy reflpak@VERSION@/refl* somewhere in your path.  You
+could also copy them to ~ and start them with ~/reflfit, ~/reflpol or
+~/reflred.
 
 <p>To run reflred, you will first need to install 
 <a href="http:://www.octave.org">Octave</a> and
 <a href="http://octave.sourceforge.net">octave-forge</a>.
-Many linux systems have pre-built binaries.  For IRIX, you will have
-to build from source (information is available on the
-<a href="http://wiki.octave.org/wiki.pl?PaulKienzleIrixConf">octave wiki</a>).
+Many linux systems have pre-built binaries.  Details are available at 
+<a href="http://wiki.octave.org/wiki.pl?OctaveForGNULinux">OctaveForGNULinux</a>
+For IRIX, you will have
+to build from source (information is available at
+<a href="http://wiki.octave.org/wiki.pl?PaulKienzleIrixConf">PaulKienzleIrixConf</a>).
 
 <p>Once octave is installed, start octave then start the octave server
 using the command
@@ -83,18 +74,15 @@ using the command
 
 <h2>Build from source</h2>
 <p>First download and unpack the 
-<a href="reflectometry.tar.gz">reflectometry source tree</a>.  
+<a href="reflpak@VERSION@-src.tar.gz">reflectometry source tree</a>.  
 
 <p>You may need to build and install
 <a href="http://tcl.sourceforge.net">Tcl/Tk</a>,
 <a href="http://sourceforge.net/projects/blt">BLT</a>,
 <a href="http://tktable.sourceforge.net">TkTable</a>,
 <a href="http://tcllib.sourceforge.net">BWidget</a> and
-<a href="http://tkcon.sourceforge.net">TkCon</a>.  Instructions for
-building these are in README.freewrap in the reflectometry source tree.  
-Note that you won't need to build freewrap itself, so ignore the 
-instructions for building
-<a href="http://www.info-zip.org/pub/infozip">zip</a>.
+<a href="http://tkcon.sourceforge.net">TkCon</a>, or you
+can try building 
 
 <p>Once you have built Tcl follow the instructions in README in the 
 reflectometry source tree for building a new ARCH directory and Makeconf.  
@@ -125,5 +113,5 @@ using the command
 
 <hr>
 Paul Kienzle<br>
-2003-10-07
+2004-03-24
 </body></html>
