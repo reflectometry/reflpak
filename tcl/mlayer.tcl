@@ -1285,10 +1285,25 @@ proc clear_constraints {} {
     gmlayer send constraints {}
     # clear the constraints text
     text_clear $::constraints
+    text_clear .compiler.code
     # don't reload constraints before next fit
     constraints_modified 0
 }
 
+proc constraints_error {msg} {
+    text_replace .compiler.out \
+	"The constraints could not be applied.  The error message is as follows:\n\n$msg\n\nCheck for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
+    showprogram 1
+    gmlayer constraints {}
+    gmlayer send constraints {}
+    
+    if 0 {
+	tk_messageBox -type ok -icon error -parent . \
+	    -title "Error in constraints" \
+	    -message "The constraints did not parse correctly.  Check for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
+    }
+    
+}
 
 ## If the constraints text has been modified, save it to the
 ## constraints file and recompile it.  Let gmlayer know that
@@ -1316,16 +1331,14 @@ proc update_constraints {} {
         set body [makeconstrain::prepareScript [linsert $::makeConstrainArgs \
 						    0 +f -t +T -- $text mltmp]]
     }
+    text_replace .compiler.code $body
     if {[catch {proc fit_constraints {} $body }]} {
 	# Parse error in constraints body.
-	gmlayer constraints {}
-	gmlayer send constraints {}
-	tk_messageBox -type ok -icon error -parent . \
-	    -title "Error in constraints" \
-	    -message "The constraints did not parse correctly.  Check for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
+	constraints_error $body
 	return 0
     }
 
+    text_replace .compiler.out {}
     gmlayer constraints fit_constraints
     gmlayer send constraints $text
     return 1
@@ -1384,11 +1397,15 @@ init_constraints
 ## Update the constraints and apply them to the current layout.
 ## Update all widgets with the new constraints.
 proc apply_constraints {} {
-    update_constraints
+    if {![update_constraints]} { return }
     send_layout
-    gmlayer uc
+    if {[catch {gmlayer uc} msg]} { 
+	constraints_error $msg
+	return 0
+    }
     read_pars
     reset_all
+    return 1
 }
 
 ## Don't apply the constraints during the fit
@@ -1427,23 +1444,23 @@ set constraints $::constraintbox.constraints
 ctext $::constraints
 #$::constraintbox.scroll setwidget $::constraints
 $::constraints.l conf -relief [option get $::constraints.l relief Relief]
-bind $::constraints <<Modified>> {
-    if {[constraints_modified]} {
-	$::cbb.update conf -state normal
-    } else {
-	$::cbb.update conf -state disabled
-    }
-}
+## Toggle update state
+#bind $::constraints <<Modified>> {
+#    if {[constraints_modified]} {
+#	$::cbb.update conf -state normal
+#    } else {
+#	$::cbb.update conf -state disabled
+#    }
+#}
 
 ## Buttons for manipulating constraints
 # XXX FIXME XXX Apply should be disabled if there are no constraints
 set cbb $constraintbox.b
 frame $cbb
-button $cbb.update -text "Update" -command { update_constraints } \
-	-state disabled
+#button $cbb.update -text Update -command {update_constraints} -state disabled
 button $cbb.apply -text "Apply" -command { apply_constraints }
-# button $cbb.showprogram -text "Show program" -command { showprogram 1 }
-grid $cbb.update $cbb.apply -sticky ew -padx 3
+button $cbb.showprogram -text "Show program" -command { showprogram 1 }
+grid $cbb.showprogram $cbb.apply -sticky ew -padx 3
 grid columnconfigure $cbb {0 1} -weight 1 -uniform a
 
 grid $::constraints -sticky news -padx 3
@@ -1457,8 +1474,8 @@ grid columnconfig $::constraintbox 0 -weight 1
 toplevel .compiler
 wm withdraw .compiler
 wm protocol .compiler WM_DELETE_WINDOW { showprogram 0 }
-text .compiler.out -wrap no -height 6 -state disabled
-text .compiler.code -wrap no -height 18 -state disabled
+text .compiler.out -wrap word -height 6 -state disabled
+text .compiler.code -wrap none -height 18 -state disabled
 PanedWindow .compiler.panes -side right
 pack [scroll .compiler.out] -in [ .compiler.panes add -weight 1 ] -fill both -expand yes
 pack [scroll .compiler.code] -in [ .compiler.panes add -weight 3 ] -fill both -expand yes
@@ -1598,7 +1615,7 @@ proc do_fit {} {
     init_results
 
     # make sure the constraints are up-to-date
-    if { ![update_constraints] } { stop_fit }
+    if { ![apply_constraints] } { stop_fit }
 
     # send the current parameters
     send_layout
