@@ -24,7 +24,7 @@ switch $::tcl_platform(platform) {
 	
 	option add *Hiertable.ResizeCursor size_we widgetDefault
 	
-	option add *Graph.Legend.Font {Arial -8} widgetDefault
+	option add *Graph.Legend.Font {{Arial Narrow} -10} widgetDefault
     }
     unix {
 	option add *Dialog.msg.font {Times -12} widgetDefault
