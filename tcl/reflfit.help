@@ -1,4 +1,9 @@
-hpage About {} [string map [list %V $::app_version] {
+if { [llength [info var ::app_version]] > 0 } {
+    set about_version $::app_version
+} else {
+    set about_version "Reflfit [clock format [clock seconds] -format %Y%m%d]"
+}
+hpage About {} [string map [list %V $about_version] {
 %V
 
  NIST Center for Neutron Research
@@ -11,21 +16,22 @@ is a work of the government and is in the public domain (see [disclaimer]).
 
 The source release includes the following packages:
 
-  ctext.tcl by George Peter Staplin
-  htext.tcl by Richard Suchenwirth
-  freewrap by Dennis R. LaBelle.  
+ ctext.tcl by George Peter Staplin
+ htext.tcl by Richard Suchenwirth
+ balloonhelp.tcl by Jeffery Hobbs
+ sizer.tcl by Kai Morich
 
 Binary releases include the following additional packages:
 
-  Tcl/Tk by John Ousterhout, et al.,
-  BLT by George Howlett, et al.,
-  Tktable by Jeffrey Hobbs
-  Tkdnd by George Petasis, et al.,
-  tkcon by Jeffrey Hobbs, et al.,
-  BWidget maintained by Jeffrey Hobbs, et al.
-  tablelist by Csaba Nemethi
+ Tcl/Tk by John Ousterhout, et al.,
+ DQkit by Wojciech Kocjan (based on Jean-Claude Wippler's starkit)
+ BLT by George Howlett, et al.,
+ Tktable by Jeffrey Hobbs
+ Tkdnd by George Petasis, et al.,
+ tkcon by Jeffrey Hobbs, et al.,
+ BWidget by Eric Boudaillier, et al. now maintained by Jeffrey Hobbs
 
-Paul Kienzle 2003-06-12
+Paul Kienzle 2004-03-22
 }]
 
 hpage disclaimer {} {

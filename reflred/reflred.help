@@ -1,3 +1,62 @@
+# ----------------------------------------------------------------------
+if { [llength [info var ::app_version]] > 0 } {
+    set about_version $::app_version
+} else {
+    set about_version "Reflred [clock format [clock seconds] -format %Y%m%d]"
+}
+hpage About {} [string map [list %V $about_version] {
+%V
+
+ NIST Center for Neutron Research
+ Reflectivity reduction software.
+
+Please send suggestions and bugs to reflectometry_software@nist.gov
+
+Except where stated in the individual files, this software
+is a work of the government and is in the public domain (see [disclaimer]).
+
+The source release includes the following packages:
+
+ ctext.tcl by George Peter Staplin
+ htext.tcl by Richard Suchenwirth
+ balloonhelp.tcl by Jeffery Hobbs
+ sizer.tcl by Kai Morich
+
+Binary releases include the following additional packages:
+
+ Tcl/Tk by John Ousterhout, et al.,
+ DQkit by Wojciech Kocjan (based on Jean-Claude Wippler's starkit)
+ BLT by George Howlett, et al.,
+ Tktable by Jeffrey Hobbs
+ Tkdnd by George Petasis, et al.,
+ tkcon by Jeffrey Hobbs, et al.,
+ BWidget by Eric Boudaillier, et al. now maintained by Jeffrey Hobbs
+
+Paul Kienzle 2004-03-22
+}]
+
+
+hpage disclaimer {} {
+This software was developed at the National Institute of Standards and
+Technology at the NIST Center for Neutron Research by employees of the
+Federal Government in the course of their official duties. Pursuant
+to title 17 section 105* of the United States Code this software is
+not subject to copyright protection and is in the public domain. The
+reflfit software package is an experimental neutron reflectometry analysis
+system. NIST assumes no responsibility whatsoever for its use, and makes
+no guarantees, expressed or implied, about its quality, reliability, or
+any other characteristic. The use of certain trade names or commercial
+products does not imply any endorsement of a particular product, nor does
+it imply that the named product is necessarily the best product for the
+stated purpose. We would appreciate acknowledgment if the software is used.
+
+*Subject matter of copyright: United States Government works
+
+Copyright protection under this title is not available for any work of the
+United States Government, but the United States Government is not precluded
+from receiving and holding copyrights transferred to it by assignment,
+bequest, or otherwise.  
+}
 
 # ----------------------------------------------------------------------
 hpage windows {Reflred is a program for viewing and reducing X-Ray and
@@ -638,34 +697,3 @@ Click "Cancel" to close the choose window.
 
 2002-09-13}
 
-# ----------------------------------------------------------------------
-hpage About {} [string map [list %V $::app_version] {
-%V
-
-NIST Center for Neutron Research
-Reflectivity reduction software.
-
-This software is a work of the US Government so is in the public
-domain.  Some components have their own copyright.  See the
-individual files for copyright details.
-
-We are standing on the shoulders of giants:
-
->Octave is copyright John W Eaton, with contributions from many.
-
->Tcl/Tk was written by John Ousterhout with contributions from
-many and is copyright the Regents of the University of 
-California, Sun Microsystems, Scriptics Corporation and 
-other parties.
-
->BLT was written by George Howlett with contributions from many
-and is copyright Lucent Technologies, Sun Microsystems, 
-and other parties.
-
->BWidgets was written by Eric Boudaillier with contributions from
-many and is copyright UNIFIX and ActiveState Corp.
-
->Expect was written by Don Libes with contributions from many
-and is a work of the US government.
-
-2003-01-22}]
