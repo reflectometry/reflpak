@@ -20,8 +20,6 @@ namespace eval ::psd {
 
 
 
-# blt::bitmap define ::psd::box {{7 7} { 0x7F 0x41 0x41 0x41 0x41 0x41 0x7F }}
-
 vector create psd_bin psd_bin_counts psd_bin_err \
 	psd_Qz psd_Qz_counts psd_Qz_err \
 	psd_select1_counts psd_select1_err \
@@ -89,10 +87,19 @@ proc ::psd::reset_axes {} {
 
 
 proc ::psd::init {} {
-    if { [winfo exists .psd] } { raise .psd; return }
+    if { [winfo exists .psd] } { 
+	wm deiconify .psd
+	raise .psd
+	return
+    }
 
     toplevel .psd
-
+    # XXX FIXME XXX need a way to reopen the psd window if the
+    # user closes it, and to switch between sections of the psd
+    # that are displayed.  Perhaps want a way to display the
+    # combined psd.
+    wm protocol .psd WM_DELETE_WINDOW { wm withdraw .psd }
+    bind .psd <Destroy> { }
 
     # coordinate labels
     label .psd.coords -textvariable ::psd::coords -relief ridge
@@ -106,10 +113,9 @@ proc ::psd::init {} {
     # colormap
     frame .psd.colormap
     label .psd.colormap.label -text "Color Map"
-    set colors [load_colormaps]
     ComboBox .psd.colormap.entry \
 	    -textvariable ::psd::colormap_expr \
-	    -values $colors \
+	-values [load_colormaps] \
 	    -modifycmd { ::psd::colormap } \
 	    -command { ::psd::colormap }
     graph .psd.colormap.bar
@@ -118,7 +124,6 @@ proc ::psd::init {} {
     grid .psd.colormap.bar
     # set initial colormap
     colormap [option get .psd.matrix colormap Colormap]
-
 
     # Create named axes
     .psd.matrix axis create Qz
@@ -192,8 +197,8 @@ proc ::psd::init {} {
 
     Blt_ZoomStack .psd.matrix
     Blt_ZoomStack .psd.reduction
-    Blt_ZoomStack .psd.binslice
     Blt_ZoomStack .psd.qzslice
+    Blt_ZoomStack .psd.binslice
     
     # Make sure the legends are showing in the slice boxes, because that's
     # where we are going to show the slice coordinates
@@ -240,17 +245,22 @@ proc ::psd::init {} {
     grid .psd.coords    -row 2 -column 0 -columnspan 3 -sticky ew
 
     # Set initial sizes and stretch
+if 0 {
     .psd.matrix conf -height 300 -width 300
     .psd.reduction conf -height 200 -width 250
     .psd.binslice conf -width 200
     .psd.qzslice conf -height 200
     .psd.colormap.bar conf -width 100
+}
+    # XXX FIXME XXX make BWidget respect resources
     .psd.colormap.entry configure -width 10
     grid rowconfigure    .psd 0 -weight 2 -minsize 150
     grid columnconfigure .psd 0 -weight 2 -minsize 150
     grid rowconfigure    .psd 1 -weight 1
     grid columnconfigure .psd 1 -weight 1
+}
 
+if 0 {
     # Set margins so that graphs are aligned
     .psd.matrix configure -plotpadx 0 -plotpady 0 \
 	    -leftmargin 50 -topmargin 50 -rightmargin 0 -bottommargin 0
@@ -263,17 +273,14 @@ proc ::psd::init {} {
 	    -leftmargin 0 -bottommargin 50 -rightmargin 50 -topmargin 0
     .psd.colormap.bar configure -plotpadx 0 -plotpady 0 \
 	    -leftmargin 0 -bottommargin 0 -rightmargin 50 -topmargin 0
-
-
-
 }
+
 
 proc ::psd::init_select {} {
 
     .psd.matrix marker bind handle <B1-Motion> { ::psd::select %x %y drag }
     .psd.matrix marker bind handle <Button-1> { zoom %W off; ::psd::select %x %y drag_start }
     .psd.matrix marker bind handle <ButtonRelease-1> { zoom %W on; ::psd::select %x %y drag_end }
-    .psd.matrix marker bind handle <Shift-Button-1> { zoom %W off; ::psd::select %x %y skew_start }
 
     foreach h { select1 select2 } {
 	.psd.matrix marker create line -name $h -mapx bin -mapy Qz -bindtags handle
@@ -309,20 +316,23 @@ proc ::psd::select { x y action } {
     hide_select 0
     variable drag
     switch -- $action {
-	skew_start {
-	    set drag(marker) [.psd.matrix marker get current]
-	    foreach {x1 y1 x2 y2} [.psd.matrix marker cget $drag(marker) -coords] break
-	    set bin [.psd.matrix axis invtransform bin $x]
-	    set Qz [.psd.matrix axis invtransform Qz $y]
-	    if { abs($x1-$bin)+abs($y1-$Qz) < abs($x2-$bin)+abs($y2-$Qz) } {
-		set drag(index) 0
-	    } else {
-		set drag(index) 1
-	    }
-	}
 	drag_start {
 	    set drag(marker) [.psd.matrix marker get current]
-	    set drag(index) {}
+	    foreach {x1 y1 x2 y2} [.psd.matrix marker cget $drag(marker) -coords] break
+
+	    set x1 [.psd.matrix axis transform bin $x1]
+	    set x2 [.psd.matrix axis transform bin $x2]
+	    set y1 [.psd.matrix axis transform Qz $y1]
+	    set y2 [.psd.matrix axis transform Qz $y2]
+	    set end1 [vector expr sqrt(($x1-$x)^2+($y1-$y)^2)]
+	    set end2 [vector expr sqrt(($x2-$x)^2+($y2-$y)^2)]
+	    if { $end1 < ($end1+$end2)/5. } {
+		set drag(index) 0
+	    } elseif { $end2 < ($end1+$end2)/5. } {
+		set drag(index) 1
+	    } else {
+		set drag(index) {}
+	    }
 	}
 	drag_end {}
 	drag {

@@ -67,19 +67,8 @@ This window contains the attenuator scale factors for each segment of
 the run.  Enter attenuator values into the table.  You can also enter
 expressions.
 
-It is possible to align a pair of overlapping curves using
-shift-right-click.  This will give a list of overlapping
-curves and you can select one to align with.  *This is work
-in progress!*  The value is only correct if there is a single
-point of overlap.  If the attenuation on the two curves is
-approximately equal you should copy the values from one to
-the other rather than aligning them.  You can do this by
-clicking on the value you want to copy, then center-clicking
-where you want to copy it to, or if you prefer the keyboard,
-use the copy and paste keys (Ctrl-C, Ctrl-V).
-
-At present the "align" button doesn't work very well.  Again, 
-it only works if the curves overlap at a single point.  It
+At present the "align" button on the [compose] window doesn't work very well.
+It only works if the curves overlap at a single point.  It
 aligns every curve in the sequence, even if two curves are
 about equal, so the estimated error is very large.  It does
 not find the best attenuator value to use for all overlapping
@@ -87,6 +76,17 @@ curves.  Do not use it for correct reduction, but you can use
 it to get a quick view of your aligned curves.
 
 2003-03-03}
+# It is possible to align a pair of overlapping curves using
+# shift-right-click.  This will give a list of overlapping
+# curves and you can select one to align with.  *This is work
+# in progress!*  The value is only correct if there is a single
+# point of overlap.  If the attenuation on the two curves is
+# approximately equal you should copy the values from one to
+# the other rather than aligning them.  You can do this by
+# clicking on the value you want to copy, then center-clicking
+# where you want to copy it to, or if you prefer the keyboard,
+# use the copy and paste keys (Ctrl-C, Ctrl-V).
+
 
 # ----------------------------------------------------------------------
 hpage {attenuator controls} {} {See also [attenuator].
@@ -357,67 +357,92 @@ will rise again near zero as the detector enters the main beam (see Fig. 1).
 	Fig. 1: At small angles and fixed slits, the detector
 	can be directly exposed to the main beam.
 
-Assuming fixed slits and a rectangular sample (or a fully illuminated 
-sample of arbitrary shape), the portion of beam
-which covers the sample will decrease linearly with Q (and since the
-sin(x) ~ x near x=0, the portion will also decrease linearly with angle).  
-Knowing the geometry of your experiment (distance between slits, width
-of slit opening, distance between slit and sample, size of sample), you
-can calculate the appropriate slope and intercept.  Select the 
-'Enter footprint correction' choice and enter the slope and intercept.  
-If your sample is not rectangular or fully illuminated, the footprint 
-correction will no longer be linear.  We do not support more 
-complicated footprints at this time.
+Our goal with footprint correction is to remove the geometric effects
+of using fixed slits for Q values at or beyond the critical edge.
+Assuming fixed slits and a rectangular sample (or a fully illuminated
+sample of arbitrary shape), the portion of beam which covers the
+sample will decrease linearly with Q and since the sin(x) ~ x near
+x=0, the portion will also decrease linearly with angle.  Given the
+geometry of your experiment (distance between slits, width of slit
+opening, distance between slit and sample, size and shape of sample),
+you can divide by a line up until the end of the correction region,
+and a constant thereafter.
 
-You can instead guess the slope and intercept from your data.
-Ideally, you will see 100% reflectivity below the critical angle for your
-sample.  That means your reflectivity signal will also decrease linearly 
-in the fixed slit region below the critical angle.  Assuming your sample
-has a large enough critical angle, select the
-'Fit footprint correction' choice and click the 'From graph...' button.
-You will want to first select the lowest Q point of your data which is 
-not being directly illuminated by the beam.  This is at the bottom of the
-"V" in the reflectivity signal (assuming you have measured below about
-0.005 inv Angstroms).  You will want to next select the last point
-below the critical angle for which the reflectivity is 100%.  Since
-you can't know that for sure, choose the last point which is approximately
-linear from the bottom of the "V".  Be sure that both y axis scales are 
-_linear_ not _log_ when deciding if a series of points forms a line.
-Press 'Escape' to start again.
+There are several cases which concern us:
+
+>(1) You see a flat region before the critical edge.  This is the easy
+case.  Normalizes this flat region to one (e.g., by guessing at an 
+incident medium transmission coefficient) and ignore all data before
+the flat region.  The flat region will be less than one if your beam
+is wider than your sample so some of the beam is not reflected.  If your
+sample is wider than the beam, you should see a value of about one.
+
+>(2) You see a flat slope rising to the critical edge.  Here you
+can guess the footprint correction by fitting a line to the flat slope,
+stopping where it curves into the critical edge.  The footprint correction
+window will tell you the Q value where the footprint correction is
+unity.  You should apply the footprint correction up to that Q value or
+up to the end of the fixed slit region, whichever comes first.
+
+>(3) You see neither the flat region nor the flat slope.  In this case
+you will have to calculate the footprint correction from the geometry
+of your experiment and enter it directly.  If your sample is not 
+rectangular, you may not be able to calculate the footprint correction,
+and you will need to measure it (see below).
+
+Let's look at the second case in more detail.  First zoom into the
+reduce graphs so that you can see both the fixed slit region and the
+corresponding reflectivity.  Be sure that the y-axis for the reflectivity
+uses a _linear_ scale so that you can locate the flat portion of the
+rising slope.  Click Parameters... to select the footprint fit parameters.
+
+In the footprint window, select 'Fit footprint correction' and click 
+the 'From graph...' button.  You will want to first select the lowest 
+Q point of your data which is not being directly illuminated by the beam.  
+This is at the bottom of the "V" in the reflectivity signal (assuming 
+you have measured below about 0.005 inv Angstroms).  Next choose the 
+last point which is approximately linear from the bottom of the "V".  
 
 Having specified the slope and intercept from the geometry, or having
-fit it from the graph, you must then select the portion of the curve
-over which to apply the footprint correction.  You can again click
-'From graph...' to select the points from the graph.  Usually this
-is from the bottom of the "V" to the end of the fixed slit region.  For
-NG1 and X-ray data, the fixed slit region will be obvious from the measured
-slit scan.  For NG7 you will have to go back to the data selection window
-and examine the first file in your specular sequence to see where the
-fixed slit region stops.  \[Use the right mouse button on the specular
-scan you are using from the list of specular scans and select 'Edit'.] 
-Often NG7 data is taken with continously varying slits.  Future versions
-will automatically enter the fixed slit range for you.
+selected the fit region from the graph, you must then select the portion 
+of the curve over which to apply the footprint correction.  You can again 
+click 'From graph...' to select points from the graph.  Usually this
+is from the bottom of the "V" to the Q value where the end of the fixed 
+slit region.  
 
-Note that the value of the footprint correction at the end of the
-application range is extended to the entire Q range of your reflectivity
-scan.
+For NG1 and X-ray data, the fixed slit region will be obvious from the
+measured slit scan.  For NG7 you will have to go back to the data
+selection window and examine the first file in your specular sequence
+to see where the fixed slit region stops.  \[Use the right mouse
+button on the specular scan you are using from the list of specular
+scans and select 'Edit'.]  Often NG7 data is taken with continously
+varying slits.
 
-As an alternative to knowing the geometry or guessing it from your
-data, you may be able to measure the required footprint correction.
+Click the Apply button to compute the footprint correction and the
+resulting reflectivity. Notice that the value of the footprint 
+correction at the end of the application range is extended to the 
+entire Q range of your reflectivity scan.  This value, listed at
+the bottom of the footprint dialog, should be less than one.  If it
+is not, use the Qz value where the correction is 1.0 given on the next
+line as the upper end of "Correct from" range.
+
+Your footprint correction is now complete.  If you do not which to
+use it, click off the "Footprint correction" check box on the [reduce]
+screen and it will no longer be applied.
+
+Note that if your sample is not rectangular or fully illuminated, 
+the footprint correction will no longer be linear.  In that case
+you will have to measure the footprint correction directly.  
 First measure a sample of the same dimension and with a critical angle
 greater than the fixed slit region for your experiment.  Reduce that
 scan (being sure to divide by a slit scan if necessary) and save it.
 Now select the scan you wish to correct and click 'Parameters...' to
 get to the footprint window.  Choose the footprint scan from the
 'Measured footprint correction' dropdown list.  From the graph, select
-the region you want to correct as zero to the critical angle off the
+the region you want to correct as zero to the critical angle of the
 footprint scan.
 
-Click 'Apply' when you are have selected your footprint method and chosen
-the parameters.  You can toggle the 'Apply' using the check box on the
-[reduce] screen.
-
-2003-01-31}
+2003-10-26}
 
 # ----------------------------------------------------------------------
 hpage {psd} .psd {See also [psd controls].
@@ -455,9 +480,11 @@ counts for a constant Qz on the graph below.
 hpage {psd controls} {} {See also [psd].
 
 change region of integration:
->click and drag thick dashed lines.  If this doesn't work, it may
-be because the cross section slice is stealing the mouse, so click
-the center mouse button somewhere else on the graph and try again
+>click and drag thick dashed lines.  Click and drag the ends of the
+line to change the slope of the line.  If you can't click and drag,
+it may be because the crosshairs are stealing the mouse, so click 
+the center mouse button somewhere else on the graph to move the 
+crosshairs and try again.
 
 log/linear scaling:
 
@@ -470,15 +497,11 @@ zoom image or reduction:
 
 slice:
 
->center click to draw a slice going through the coordinates
+>center click or alt+right click to draw a slice going through the coordinates
 
-unskew slices:
+>shift+center click or alt+shift+right click to change the angle of the slice
 
->Choose the >Options >Tcl console menu from the compose screen to
-start the [Tcl console] then enter the command "set ::psd::skew 0"
-to unskew and "set ::psd::skew 1" to skew.
-
-2002-09-20}
+2003-10-26}
 
 
 # ----------------------------------------------------------------------

@@ -34,6 +34,7 @@
 # as of blt2.4z, remove error bar caps
 *Graph.ErrorBarCap: 1
 *Graph.y.LogScale: 0
+*Graph.showErrorBars: both
 
 # sash drag colour and dimensions
 *sash1.but.background: darkgray
@@ -79,16 +80,20 @@ testviewrun.geometry: 700x500
 *reduce.Graph.y.BorderWidth: 50
 *reduce.Graph.y2.BorderWidth: 50
 *reduce.graph.refl.symbol:
-*reduce.graph.negrefl.symbol:
-*reduce.graph.foot.symbol:
-*reduce.graph.footp.symbol:
-*reduce.graph.footm.symbol:
-*reduce.graph.div.symbol: cross
-*reduce.graph.negdiv.symbol: cross
+*reduce.graph.div.symbol: scross
+*reduce.graph.sub.symbol: square
 *reduce.graph.slit.symbol: diamond
 *reduce.graph.spec.symbol: plus
 *reduce.graph.back.symbol: circle
+*reduce.graph.negrefl.symbol:
+*reduce.graph.negdiv.symbol: scross
+*reduce.graph.negsub.symbol: square
+*reduce.graph.negslit.symbol: diamond
+*reduce.graph.negspec.symbol: plus
 *reduce.graph.negback.symbol: circle
+*reduce.graph.foot.symbol:
+*reduce.graph.footp.symbol:
+*reduce.graph.footm.symbol:
 
 
 
@@ -140,25 +145,44 @@ testviewrun.geometry: 700x500
 
 *psd.matrix.colormap: bright
 
-## Like prism, but with each prism color broken in to sections of decreasing
-## value.  This is useful because every color cell is distinct.
-## *psd.matrix.colormap: hsv2rgb([kron([1,2,2.9,3.3,5,0.3]'/6,ones(10,1)),ones(60,1),kron(ones(6,1),linspace(0.4,1,10)')])
-
-## *psd.matrix.colormap: hot
-
-## Arbitrary gradient.  See help colorgradient in octave.
-## E.g., white->red->yellow->khaki
-## *psd.matrix.colormap: colorgradient([0.8,0.8,0.6; 1,1,0; 1,0,0; 1,1,1])
-
-## Random colormaps can be useful sometimes.  
-## *psd.matrix.colormap: rand(64,3)
-
 # Crosshairs for PSD array.  You need to choose these to complement the
 # colormap that you are using.
 *psd.matrix.binslice.outline: white
 *psd.matrix.binslice.xor: no
 *psd.matrix.qzslice.outline: white
 *psd.matrix.qzslice.xor: no
+
+# layout for the psd
+# default margin and padding
+*psd*PlotPad: 0
+*psd*Margin: 0
+
+# set initial sizes
+*psd.matrix.height: 300
+*psd.matrix.width: 300
+*psd.reduction.height: 200
+*psd.reduction.width: 250
+*psd.qzslice.height: 200
+*psd.binslice.width: 200
+*psd.colormap.bar.width: 100
+*psd.colormap.entry.width: 10
+
+# set margins so the graphs are aligned
+*psd.matrix.leftMargin: 50
+*psd.matrix.topMargin: 50
+*psd.binslice.rightMargin: 50
+*psd.binslice.topMargin: 50
+*psd.binslice.invertXY: true
+*psd.qzslice.leftMargin: 50
+*psd.qzslice.bottomMargin: 50
+*psd.colormap.bar.rightMargin: 50
+*psd.reduction.rightMargin: 50
+*psd.reduction.bottomMargin: 50
+
+*psd.matrix.PlotPad: 5
+*psd.binslice.PlotPad: 5
+*psd.qzslice.PlotPad: 5
+
 
 # Use logscale for the PSD array
 *psd.matrix.Logscale: yes
@@ -176,12 +200,12 @@ testviewrun.geometry: 700x500
 *psd.matrix.select1.lineWidth: 2
 *psd.matrix.select2.lineWidth: 2
 *psd.binslice.select1.symbol:
-*psd.binslice.select1.showErrorBars: y
+*psd.binslice.select1.showErrorBars: both
 *psd.binslice.select1.lineWidth: 1
 *psd.binslice.select1.label:
 *psd.binslice.select1.ErrorBarColor: green
 *psd.binslice.select2.symbol:
-*psd.binslice.select2.showErrorBars: y
+*psd.binslice.select2.showErrorBars: both
 *psd.binslice.select2.lineWidth: 1
 *psd.binslice.select2.label:
 *psd.binslice.select2.ErrorBarColor: green
