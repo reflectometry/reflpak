@@ -1,7 +1,8 @@
 ARCH=linux
 
 # Debugging statements?
-# DEBUG=-DEBUG
+#DEBUG=-DEBUG -g
+OPT=-O3
 
 # Things from tclConfig.sh
 TCL_PREFIX=/home/pkienzle/tcl-8.4.2
@@ -22,15 +23,15 @@ TKTABLE_EXT=$(TKTABLE)/libTktable2.8.so
 
 # Fortran compiler
 F77=g77
-FFLAGS=-O3
+FFLAGS=$(OPT)
 FLIBS=-lg2c -lm
 FPP=-x f77-cpp-input
 
 # C compiler
 CC=gcc
-CFLAGS=-O2 -fPIC -Wall $(TCL_INCLUDE_SPEC) $(DEBUG) 
+CFLAGS=$(OPT) -fPIC -Wall $(TCL_INCLUDE_SPEC) $(DEBUG) 
 LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=gcc -pipe -shared
-LDFLAGS=
+LDFLAGS=$(DEBUG)
 EXE=
 LDEXT=$(TCL_SHLIB_SUFFIX)
