@@ -1,9 +1,10 @@
 
-# XXX FIXME XXX turn these into resources
-set ::errreduce y
-
 # ======================================================
 proc reduce_init {} {
+    # XXX FIXME XXX turn these into resources
+    set ::errreduce y
+    set ::reduce_coloridx 0
+
     toplevel .reduce
     wm withdraw .reduce
     wm protocol .reduce WM_DELETE_WINDOW { wm withdraw .reduce }
@@ -227,6 +228,11 @@ proc reduce_init {} {
 
 }
 
+proc reduce_show {} {
+    wm deiconify .reduce
+    raise .reduce
+}
+
 # Dead code unless we want to do something while mousing over the
 # list items.
 proc reduce_listinfo { w x y } {
@@ -241,20 +247,23 @@ proc footprint_toggle { w elem hide } {
     }
 }
 
-set ::footprint_line {}
-set ::footprint_m {}
-set ::footprint_b {}
-set ::footprint_dm {}
-set ::footprint_db {}
-set ::footprint_Qmin {}
-set ::footprint_Qmax {}
-set ::footprint_correction 0
-set ::fit_footprint_correction 0
-set ::fit_footprint_style 3
-set ::fit_footprint_Qmin {}
-set ::fit_footprint_Qmax {}
-set ::footprint_at_Qmax {}
-set ::footprint_Q_at_one {}
+proc footprint_init {} {
+    set ::footprint_line {}
+    set ::footprint_m {}
+    set ::footprint_b {}
+    set ::footprint_dm {}
+    set ::footprint_db {}
+    set ::footprint_Qmin {}
+    set ::footprint_Qmax {}
+    set ::footprint_correction 0
+    set ::fit_footprint_correction 0
+    set ::fit_footprint_style 3
+    set ::fit_footprint_Qmin {}
+    set ::fit_footprint_Qmax {}
+    set ::footprint_at_Qmax {}
+    set ::footprint_Q_at_one {}
+}
+
 proc reduce_footprint_parms {} {
     if { [winfo exists .footprint] } {
 	raise .footprint
@@ -506,7 +515,6 @@ proc reduce_footprint_correction {} {
 }
 
 
-set ::reduce_coloridx 0
 proc reduce_graph {spec back slit} {
     # clear the old lines which are no longer used
     # XXX FIXME XXX do we really want to rely on the fact that scanids start
@@ -783,28 +791,6 @@ proc reduce_clear {} {
     reduce_selection
 }
 
-proc reduce_setpath { dir } {
-    # change to the new working directory
-    set cwd [pwd]
-    cd $dir
-    set ::scanpath [pwd]
-
-    # clear all existing scans (including ones created this session)
-    catch { unset [info names scan#*] }
-
-    # load all scan files in the new directory
-    foreach f [glob *.scan] {
-	if [catch { scan_load $f } scanid] {
-	    puts "scan_load: $scanid"
-	} else {
-	    reduce_add $scanid
-	}
-    }
-
-    cd $cwd
-}
-
-
 # ======================================================
 
 # This is just a macro for savescan.  It gets fid, log and rec
@@ -1035,3 +1021,6 @@ proc convertscan { scanid } {
     listbox_ordered_insert .reduce.$scanrec(type) $item
     reduce_selection
 }
+
+# initialize if haven't already done so
+if {![winfo exists .reduce]} { reduce_init }
