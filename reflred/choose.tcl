@@ -37,11 +37,11 @@ proc ::Choose::Fill_contents { w path } {
     set all 0
     foreach f [glob -nocomplain [file join $::Choose::Path $path *]] {
 	if { [file isdirectory $f] } {
-	    if { "$path" != "." && "$path" != ".." } {
+	    if { $path ne "." && $path ne ".." } {
 		lappend dirs [incr n] \
 		    -data [list Dataset [file tail $f]/ Comment directory]
-		continue
 	    }
+	    continue
 	}
 
 	incr all
@@ -264,10 +264,19 @@ proc  choose_dataset { callback } {
     }
 
     # children of current directory
-    label $pathbox.childrenlabel -text Directory
-    pack $pathbox.childrenlabel
+    # label $pathbox.childrenlabel -text Directory
+#    pack $pathbox.childrenlabel -side bottom
+
     listbox .choose.children -selectmode browse -exportselection no
-    scroll .choose.children -in $pathbox -fill both -expand yes
+
+
+    scroll .choose.children -in $pathbox
+
+    if { $::have_archive } {
+	button $pathbox.archive -text Archive -command { ::Choose::Fill_path /archive }
+	grid $pathbox.archive -
+    }
+
     ::Choose::Fill_path .
 
     # XXX FIXME XXX do we want { wm withdraw .choose } or { destroy .choose }
@@ -278,7 +287,8 @@ proc  choose_dataset { callback } {
     button .choose.b.okay -text Ok \
 	    -command { wm withdraw .choose; ::Choose::Update; destroy .choose }
     button .choose.b.cancel -text Cancel -command { destroy .choose }
-    pack .choose.b.apply .choose.b.okay .choose.b.cancel -side left
+    grid .choose.b.apply .choose.b.okay .choose.b.cancel -padx 3 -sticky ew
+    grid columnconfigure .choose.b { 0 1 2 } -uniform a
 
     # keyboard control
     foreach w .choose  {
@@ -301,11 +311,24 @@ proc  choose_dataset { callback } {
 	set ::Choose::Index($::Choose::Path) [.choose.children curselection]
     }
 
+    # Place to entry the entire path directly
+    set entrybox [frame .choose.entrybox]
+    button $entrybox.browse -image [Bitmap::get open] -command {
+	set dir [tk_chooseDirectory -initialdir $::Choose::Path \
+		     -parent .choose -title Directory -mustexist true ]
+	if { $dir ne "" } { ::Choose::Fill_path $dir }
+    }
+    entry $entrybox.entry -textvariable ::Choose::Path
+    bind $entrybox.entry <Return> { ::Choose::Fill_path $::Choose::Path ; break }
+    label $entrybox.label -text "Directory"
+    grid $entrybox.label $entrybox.entry $entrybox.browse -sticky ew
+    grid columnconf $entrybox 1 -weight 1
+
     # final packing
-    grid .choose.panes -sticky news
-    grid .choose.b -sticky e
-    grid rowconf .choose 0 -weight 1
-    grid rowconf .choose 1 -weight 0
+    grid $entrybox -sticky ew -pady {3 10}
+    grid .choose.panes - -sticky news
+    grid .choose.b - -sticky e
+    grid rowconf .choose 1 -weight 1
     grid columnconf .choose 0 -weight 1
     if { 0 } {
 	grid .choose.parent -sticky w
