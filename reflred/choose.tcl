@@ -49,6 +49,7 @@ proc ::Choose::Fill_contents { w path } {
 	# XXX FIXME XXX need to be able to add new types 
 	# XXX FIXME XXX should use pattern matching
 	switch [string tolower [file extension $f]] {
+	    .ng1 { set type CG-1 }
 	    .ng1 { set type NG-1 }
 	    .xr0 { set type XRAY }
 	    .ng7 { set type NG-7 }
@@ -311,7 +312,7 @@ proc  choose_dataset { callback } {
 	set ::Choose::Index($::Choose::Path) [.choose.children curselection]
     }
 
-    # Place to entry the entire path directly
+    # Place to enter the entire path directly
     set entrybox [frame .choose.entrybox]
     button $entrybox.browse -image [Bitmap::get open] -command {
 	set dir [tk_chooseDirectory -initialdir $::Choose::Path \
