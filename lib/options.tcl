@@ -1,4 +1,4 @@
-switch $tcl_platform(platform) {
+switch $::tcl_platform(platform) {
     windows {
 	option add *Scrollbar.width 12 widgetDefault
 	option add *Text.background white widgetDefault
@@ -23,6 +23,10 @@ switch $tcl_platform(platform) {
 	
 	option add *Hiertable.ResizeCursor size_we 81 widgetDefault
 	
-	option add *Graph.Legend.Font {Helvetica -8} widgetDefault
+	option add *Graph.Legend.Font {Arial -8} widgetDefault
+    }
+    unix {
+	option add *Dialog.msg.font {Times -12} widgetDefault
+	option add *Dialog.msg.wrapLength 6i widgetDefault
     }
 }

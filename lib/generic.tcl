@@ -208,16 +208,6 @@ proc gethelp {args} {
 }
 
 # ========================== config info =============================
-# Platform font defaults
-switch $::tcl_platform(platform) {
-    unix {
-	option add *Dialog.msg.font {Times -12} widgetDefault
-	option add *Dialog.msg.wrapLength 6i widgetDefault
-    }
-    windows {
-	option add *Graph.Legend.Font {Arial 7} widgetDefault
-    }
-}
 
 # HELP developer
 # Usage: package_available package
