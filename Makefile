@@ -30,7 +30,7 @@ libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl sizer.tcl \
 fithelp=reflfit.help help.help mlayer.help gj2.help
 fitfig=reflpolorient.gif
 fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
-	gmlayer$(LDEXT) gj2$(LDEXT)
+	makeconstrain.tcl gmlayer$(LDEXT) gj2$(LDEXT)
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
 redsrc=viewrun.tcl loadicp.tcl loaduxd.tcl loadreduced.tcl \
