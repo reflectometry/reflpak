@@ -27,7 +27,6 @@ SHARE=jazz:samba
 # windows, export the problem to a machine with imagemagic
 # and tclsh.
 htmlmachine=h122045
-buildhtml="ssh $htmlmachine \"cd $builddir && make html\""
 # =========== End of configuration ============
 
 echo "== local cvs update ============================"
@@ -48,7 +47,7 @@ test "$ans" != "y" && exit
 echo; echo "== local build ========================"
 make dist
 echo; echo "== build html ========================="
-$buildhtml
+ssh $htmlmachine "cd $builddir && make html"
 echo; echo "== build source ======================="
 make srcdist
 
