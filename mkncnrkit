@@ -178,7 +178,7 @@ EOF
     # split of the dqkit runtime
     $SDX mksplit ncnrkit$VERSION$EXE
     # recombine with the extended ncnrkit
-    $SDX wrap ncnrkit$VERSION$exe -runtime ncnrkit$VERSION.head
+    $SDX wrap ncnrkit$VERSION$EXE -runtime ncnrkit$VERSION.head
 
 ## On windows we will want to rebrand this.
     if test x$ARCH = xwindows ; then
