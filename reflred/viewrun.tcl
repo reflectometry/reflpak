@@ -82,7 +82,7 @@ bind all <F1> { help %W }
 bind all <Shift-F1> { help %W controls }
 
 # process command line args, if any
-if { [ string match [lindex $argv 0] "-h" ] } {
+if { [ string match $argv "-h" ] } {
     puts "usage: $argv0 \[data directory]"
     exit
 }
@@ -114,6 +114,7 @@ load_resources $::VIEWRUN_HOME tkviewrun
 
 # XXX FIXME XXX turn these into resources
 set ::xraywavelength 1.5416
+set ::cg1wavelength 5.0
 set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
 set ::logaddrun 0
@@ -571,6 +572,9 @@ proc restart_octave {} {
 	   endif
 	endfunction
     }
+    # XXX FIXME XXX this belongs in octcl
+    octave eval { function tcldisp(x), send(['puts "',disp(x),'"']); end }
+    proc disp x { octave eval tcldisp($x) }
 }
 
 proc write_data { fid data {log 0} } {
@@ -2306,6 +2310,9 @@ proc loadother {id} {
     ::y_$id expr "::y_$id/$rec(monitor)"
     ::dy_$id expr "::dy_$id/$rec(monitor)"
 
+    set rec(xlab) "Column 1"
+    set rec(ylab) "Column 2"
+
     return 1
 }
 
@@ -2452,9 +2459,12 @@ proc NG1load {id} {
 
     if { $rec(L) == 0.0 } { set rec(L) $::ng1wavelength }
     # yuck! wavelength in file may be wrong, so override but warn
-    if { $rec(L) != $::ng1wavelength } {
-	message "using wavelength $::ng1wavelength for $rec(L) in $rec(file)"
-	set rec(L) $::ng1wavelength
+    set wavelength $::ng1wavelength
+    if { $rec(instrument) == "CG1" } { set wavelength $::cg1wavelength }
+
+    if { $rec(L) != $wavelength } {
+	message "using wavelength $wavelength instead of $rec(L) in $rec(file)"
+	set rec(L) $wavelength
     }
 
     # If column A1 is not stored in the datafile because the slits
@@ -2662,9 +2672,9 @@ proc NG7load {id} {
 	# for fixed Qz, use the Qz motor start position
 	# for moving Qz
 	if { ![vector_exists ::QZ_$id] } {
-	    octave eval Qz=abs($rec(start,Qz))
+	    octave eval Qz=$rec(start,Qz)
 	} else {
-	    ::QZ_$id expr abs(::QZ_$id)
+	    ::QZ_$id expr ::QZ_$id
 	    octave send ::QZ_$id Qz
 	}
 
@@ -2806,6 +2816,8 @@ proc NG1mark {file {index ""}} {
     # instrument specific initialization
     if { ![string equal $index ""] } {
 	set rec(instrument) "NG1p"
+    } elseif { [string match -nocase "*.cg1" $file] } {
+	set rec(instrument) "CG1"
     } else {
 	set rec(instrument) "NG1"
     }
@@ -2986,7 +2998,7 @@ proc setdirectory { pattern_set } {
 	foreach f $files {
 	    if { [incr count] >= $next } {
 		incr ::loading_progress
-		update
+		update idletasks
 		set next [expr $next + $step]
 		if { $::loading_abort } { break }
 	    }
@@ -2997,6 +3009,7 @@ proc setdirectory { pattern_set } {
 		.nc1 { NG1mark $f C }
 		.nd1 { NG1mark $f D }
 		.ng1 { NG1mark $f }
+		.cg1 { NG1mark $f }
 		.xr0 { XRAYmark $f }
 		.ng7 { NG7mark $f }
 		default { lappend others $f }
@@ -3009,7 +3022,11 @@ proc setdirectory { pattern_set } {
     # Delay marking others so that we know what datasets are available
     # We want to try to match the 'other' to the dataset it may have
     # come from, but we can't do that without knowing the datasets
-    foreach f $others { markother $f }
+    foreach f $others { 
+	if { [catch { markother $f } msg] } {
+	    message $msg
+	}
+    }
 
     # display the tree
     set ::loading_text "Building tree..."
