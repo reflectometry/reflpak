@@ -11,8 +11,7 @@ if { $argc < 2 || "$package" == "-h" } {
 }
 set title [string totitle $package] 
 
-source [file join [file dir $argv0] htext.tcl]
-namespace import htext::*
+source [file join [file dir [info script]] htext.tcl]
 
 namespace eval htext {
     proc htmlmap { text } {
