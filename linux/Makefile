@@ -75,10 +75,14 @@ reflfit.tcl: reflfit.tcl.in
 	chmod a+x reflfit.tcl
 
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
 manifest: 
 	$(RM) manifest
 	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest ; done
 	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest
+	#echo "$(TKDND)/pkgIndex.tcl" >> manifest
+	#echo "$(TKDND)/tkdnd.tcl" >> manifest
+	#echo "$(TKDND)/libtkdnd1.0.so" >> manifest
 	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest
 	for f in $(tcldir)/* ; do echo "$$f" >> manifest ; done
 

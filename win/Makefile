@@ -101,12 +101,18 @@ reflfit.tcl: reflfit.tcl.in
 	chmod a+x reflfit.tcl
 
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
+TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
 mkmanifest: 
 	$(RM) manifest.in
 	for f in $(BWIDGET)/*.tcl $(BWIDGET)/images/* $(BWIDGET)/lang/* ; do echo "$$f" >> manifest.in ; done
 	echo "$(TCL_PREFIX)/lib/tkcon.tcl" >> manifest.in
-	echo "$(TCL_PREFIX)/lib/Tktable2.8/Tktable28.dll" >> manifest.in
-	echo "$(TCL_PREFIX)/lib/Tktable2.8/tkTable.tcl" >> manifest.in
+	echo "$(TKTABLE)/pkgIndex.tcl" >> manifest.in
+	echo "$(TKTABLE)/Tktable28.dll" >> manifest.in
+	echo "$(TKTABLE)/tkTable.tcl" >> manifest.in
+	echo "$(TKDND)/pkgIndex.tcl" >> manifest.in
+	echo "$(TKDND)/tkdnd.tcl" >> manifest.in
+	echo "$(TKDND)/libtkdnd10.dll" >> manifest.in
 	echo "$(bindir)/gmlayer$(LDEXT)" >> manifest.in
 	for f in /c$(tcldir)/* ; do echo "$$f" >> manifest.in ; done
 	sed -e 's,^/c/,/,' <manifest.in > manifest

@@ -3547,9 +3547,16 @@ proc reset_all {} {
 proc drop_file { file } {
     if { $file == "" } { return }
 
+    ## Trim uri indicator if any
+    ## XXX FIXME XXX maybe allow drag/drop links from browser?
+    regsub {^file:} $file {} file
+
     ## Try to guess if it is a staj file.  To be a staj file, it must
     ## exist and it must contain something other than numbers and comments.
-    if { [catch { open $file r } fid] } { return }
+    if { [catch { open $file r } fid] } { 
+	tk_messageBox -type ok -icon error -message $fid
+	return
+    }
 
     # suck in data
     set data [read $fid]
@@ -3562,15 +3569,15 @@ proc drop_file { file } {
     if { [catch { dummy set $data } valuelist] } {
 	open_parfile $file
     } else {
-	if { [set_datafile $file] } { 
+	if { [set_datafile $file] } {
             read_data
-            working_files 
+            working_files
         }
     }
     blt::vector destroy dummy
 }
 
-catch { dnd bindtarget . Files <Drop> {drop_file  %D} }
+catch { dnd bindtarget .reflectivity Files <Drop> {drop_file  %D} }
 
 # XXX FIXME XXX context sensitive help may not
 # be defined correctly if the help pages are
