@@ -3280,7 +3280,7 @@ if { [package_available tablelist] } {
     .menu.options add command -label "Browse widgets" -command { start_widget_browser }
 }
 
-helpmenu .menu reflfit
+helpmenu .menu introduction
 
 proc set_sld_labels {} {
     if { $::use_sld } {
