@@ -1,4 +1,4 @@
-# Make sure the system builds cleanly on windows, macosx, linux
+# Make sure the system builds cleanly on windows, macosx, linux, irix
 	cd ~/cvs/reflfit
 	cvs -q update -dP
 	make
@@ -7,14 +7,17 @@
 # On irix, build the html help as well
 	gmake html	
 
-# This is the working version
+# This is the new version number
 	REFLVER=refl-`date +%Y-%m-%d`
 
 # Assuming everything builds, generate an updated ChangeLog
 	cvs2cl.pl --fsf --file ChangeLog.tmp
 	echo "#Automatically generated file -- DO NOT EDIT" | cat - ChangeLog.tmp > ChangeLog
 	rm ChangeLog.tmp
-	cvs commit -m "$REFLVER release" ChangeLog
+
+# Edit the release notes by hand
+	emacs ChangeLog RELEASE_NOTES
+	cvs commit -m "$REFLVER release" ChangeLog RELEASE_NOTES
 
 # mark the version in CVS and build a tarball
 	cvs rtag $REFLVER reflfit
@@ -43,4 +46,18 @@
 	scp linux/refl{fit,pol,red} jazz:samba/$REFLVER/linux
 	scp win/refl{fit,pol,red}.exe jazz:samba/$REFLVER/win
 
+# On jazz, make sure the permissions are right:
+	chmod a+rx $REFLVER/{irix,macosx,win,linux}/*
+
+# Update jazz live version:
+	cd ~/bin
+	mv -f reflfit oldreflfit
+	mv -f reflred oldreflred
+	mv -f reflpol oldreflpol
+	cp $REFLVER/irix/* .
+	# mail refl release notes
+
 # Let Christina know a new release is ready
+
+# Announce the new release to world
+	# mail reflworld release notes
