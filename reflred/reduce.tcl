@@ -641,7 +641,8 @@ proc reduce {spec back slit} {
                     slit.y = _y;
                     slit.dy = _dy;
                     clear _y _dy
-	         elseif all(slit.x == spec.m)
+	         elseif all(abs(slit.x-spec.m) < 100*eps)
+                    # XXX FIXME XXX condition depends on slit.x less than 100
 	            # Single point slit scan
 	            slit.y = slit.y*ones(size(spec.m));
 	            slit.dy = slit.dy*ones(size(spec.m));
