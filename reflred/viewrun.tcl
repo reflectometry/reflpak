@@ -3,6 +3,8 @@ source [file join $::VIEWRUN_HOME generic.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
 source [file join $::VIEWRUN_LIB tableentry.tcl]
 
+set ::title Reflred
+
 # need to work out some more details before the ftp vfs is usable
 set have_archive 0
 if 0 { 
@@ -80,23 +82,14 @@ bind all <F1> { help %W }
 bind all <Shift-F1> { help %W controls }
 
 # process command line args, if any
-if { $argc == 1 } {
-    if { [ string match $argv "-h" ] } {
-	puts "usage: $argv0 \[data directory]"
-	exit
-    } elseif { [file isdirectory $argv] } {
-	set pattern [file join $argv *]
-    } else {
-#       puts "$argv0: directory $argv does not exist"
-#       exit
-	set pattern $argv
-    }
-} elseif { $argc == 0 } {
-    set pattern [file join . *]
-} else {
-#    set pattern $argv
+if { [ string match [lindex $argv 0] "-h" ] } {
     puts "usage: $argv0 \[data directory]"
     exit
+}
+if { $argc == 0 } {
+    set pattern [file join . *]
+} else {
+    set pattern $argv
 }
 
 # useful constants
@@ -2929,22 +2922,14 @@ proc typelabel { type } {
     }
 }
 
-proc setdirectory { args } {
-    # if no directory is given, ask for a new one in the parent
-    # XXX FIXME XXX pwd/cd need to handle symbolic links reasonably
-    if { [llength $args] == 0 } {
-	set pattern [file join [pwd] *]
-    } else {
-	set pattern [lindex $args 0]
-    }
-
+proc setdirectory { pattern_set } {
     # if currently loading a directory, abort before loading the new one
     if { [winfo exists .loading ] } {
 	# Can't abort directly, so instead signal an abort as if the
 	# user pressed the stop button, and check back every 50 ms until
 	# the abortion is complete.
 	set ::loading_abort 1
-	after 50 [list setdirectory $pattern ]
+	after 50 [list setdirectory $pattern_set ]
 	return
     }
 
@@ -2966,8 +2951,25 @@ proc setdirectory { args } {
 	    -command { set ::loading_abort 1 ; set ::loading_text "Stop..." }
 #   grab release .loading ;# allow user interaction while loading
 
+    # glob the patterns
+    set files {}
+    foreach p $pattern_set {
+        # implicitly extend patterns as if they are prefixes
+        if { [file isdirectory $p] } {
+            set p [file join $p *]
+        } else {
+            set p "$p*"
+        }
+        set files [concat $files [glob -nocomplain $p]]
+    }
+    set files [lsort -dictionary $files]
+
+    # Display data path in the window header.
+    set p [file dirname [lindex $files 0]]
+    catch { set p [file normalize $p] } ;# Tcl8.4 feature
+    wm title . "$::title [tildesub $p]"
+
     # set steps between progress bar updates based on number of files
-    set files [lsort -dictionary [glob -nocomplain $pattern]]
     set n [llength $files]
     if { 0 < $n && $n <= 100 } {
 	.loading configure -maximum $n

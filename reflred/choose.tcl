@@ -216,7 +216,7 @@ proc ::Choose::Update {} {
 	lappend patternset [file join $dir $pattern]
     }
     if ![llength $patternset] { file join $dir * }
-    eval $::Choose::Callback $patternset
+    $::Choose::Callback $patternset
 }
 
 proc  choose_dataset { callback } {

@@ -31,6 +31,22 @@ proc load_resources { base app } {
     }
 }
 
+# HELP developer
+# Usage: tildesub path
+#
+# Replace the portion of the file name corresponding to a user's
+# home directory with ~.  To get the name of the directory containing
+# a particular file, use:
+#    tildesub [file normalize [file dirname $file]]
+# This requires the ::HOME variable which is set by load_resources
+proc tildesub { path } {
+    if { [string match $::HOME* $path] } {
+        return ~[string range $path [string length $::HOME] end]
+    } else {
+        return $path
+    }
+}
+
 # ==================== config info =============================
 # Usage: blt_errorbars
 # Returns true if you can use -yerror as an option to the blt graphs
