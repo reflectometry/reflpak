@@ -1,3 +1,55 @@
+hpage About {} {
+Reflfit v. 0.1 2002-05-12
+
+ NIST Center for Neutron Research
+ Gaithersburg, MD
+
+Please send suggestions and bugs to reflectometry_software@nist.gov
+
+Except where stated in the individual files, this software
+is a work of the government and is in the public domain (see [disclaimer]).
+
+The source release includes the following packages:
+
+  ctext.tcl by George Peter Staplin
+  htext.tcl by Richard Suchenwirth
+  freewrap by Dennis R. LaBelle.  
+
+Binary releases include the following additional packages:
+
+  Tcl/Tk by John Ousterhout, et al.,
+  BLT by George Howlett, et al.,
+  Tktable by Jeffrey Hobbs
+  Tkdnd by George Petasis, et al.,
+  tkcon by Jeffrey Hobbs, et al.,
+  BWidget maintained by Jeffrey Hobbs, et al.
+  tablelist by Csaba Nemethi
+
+Paul Kienzle 2003-06-12
+}
+
+hpage disclaimer {} {
+This software was developed at the National Institute of Standards and
+Technology at the NIST Center for Neutron Research by employees of the
+Federal Government in the course of their official duties. Pursuant
+to title 17 section 105* of the United States Code this software is
+not subject to copyright protection and is in the public domain. The
+reflfit software package is an experimental neutron reflectometry analysis
+system. NIST assumes no responsibility whatsoever for its use, and makes
+no guarantees, expressed or implied, about its quality, reliability, or
+any other characteristic. The use of certain trade names or commercial
+products does not imply any endorsement of a particular product, nor does
+it imply that the named product is necessarily the best product for the
+stated purpose. We would appreciate acknowledgment if the software is used.
+
+*Subject matter of copyright: United States Government works
+
+Copyright protection under this title is not available for any work of the
+United States Government, but the United States Government is not precluded
+from receiving and holding copyrights transferred to it by assignment,
+bequest, or otherwise.  
+}
+
 # ===============================================================
 hpage introduction . {
 This program fits reflectivity data to a layer model of your sample.
@@ -388,6 +440,12 @@ or if you are using reflpol,
 Using this technique you can make the path through parameter space
 as complex as you want.
 
+For a more complicated example, enter the command "dump chisqplot".  
+This command is similar to movie, except it displays a plot of 
+chisq each step of the way.  Be warned that both of these examples 
+leave the GUI in an inconsistent state, so subsequent manipulation
+of the profile or layer table may have surprising results.
+
 With some effort you could cache the profiles and lineshapes for 
 each step of the movie in separate blt vectors, then play them back 
 quickly by setting the -ydata on each element of the graph to the 
@@ -400,7 +458,7 @@ into the Tcl console using:
 
 	source filename
 
-2003-01-17}
+2003-06-12}
 
 # ===============================================================
 hpage roughness {} {
