@@ -36,10 +36,10 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
 
-libfiles=$(patsubst %,"$(topdir)/lib/%",$(libsrc))
-fitfiles=$(patsubst %,"$(topdir)/tcl/%",$(fitsrc)) $(libfiles)
-redfiles=$(patsubst %,"$(topdir)/reflred/%",$(redsrc)) $(libfiles) \
-	$(patsubst %,"$(topdir)/reflred/octave/%",$(redoctavesrc))
+libfiles=$(patsubst %,$(topdir)/lib/%,$(libsrc))
+fitfiles=$(patsubst %,$(topdir)/tcl/%,$(fitsrc)) $(libfiles)
+redfiles=$(patsubst %,$(topdir)/reflred/%,$(redsrc)) $(libfiles) \
+	$(patsubst %,$(topdir)/reflred/octave/%,$(redoctavesrc))
 
 GMLAYER=$(bindir)/gmlayer$(LDEXT)
 FITBIN=$(ARCH)/reflfit$(EXE) 
@@ -51,7 +51,7 @@ all: makegmlayer $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
 
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(GMLAYER) $(ARCH)/reflfit.manifest \
 		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl \
-		freewrap/loadwrap.tcl $(fitfiles)
+		freewrap/loadwrap.tcl $(redfiles)
 	cd $(ARCH) && ./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 $(ARCH)/options.tcl:
