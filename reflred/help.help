@@ -1,0 +1,58 @@
+hpage {help menu} .#menu.#menu#help {
+  Browse   Go to the main page
+  [Index]    Go to the help index
+  [Search]   Go to the search page
+}
+
+# ----------------------------------------------------------------------
+hpage help .htext {See also [help controls].
+
+Context sensitive help is available by pressing the help key in the
+window.  There are two forms of help: a general overview describing
+what the window does as well as specific help on the key/mouse/menu
+controls to do it.
+
+Click on the highlighted text to follow the link.  
+
+Index is an alphabetical list of all help pages.  
+
+Search accepts case insensitive [regular expressions].
+
+You can invoke help for a window using the F1 key when the focus is in
+that window.  You can get help for the keyboard/mouse controls using
+the Shift-F1 key.
+
+2002-09-13}
+
+# ----------------------------------------------------------------------
+hpage {help controls} {} {
+ click on highlighted text to follow link
+ <F1>		description of window
+ <Shift-F1>	key/mouse binding for window
+ <Esc>		exit help
+}
+
+# ----------------------------------------------------------------------
+# source [file join $::VIEWRUN_HOME regexp.help]
+hpage {regular expressions} {} {Regular expressions
+are a way of searching for patterns in text. The basics
+are straight forward:
+   letter    matches itself
+   \[string\]  matches any character in string
+   \[^string\] matches any character not in string
+   .         matches anything
+   *         matches the previous item zero or more times
+   +         matches the previous item one or more times
+   ?         matches the previous item zero or one time
+   (expr)    groups a sequence into a single item for matching
+
+E.g.,
+   hello     matches hello (and Othello's and Hello)
+   h.*o      matches hello, halo, ho, etc.
+   h\[aeo\]w   matches haw hew how
+   (the)+    matches "the the the ..."   
+
+Expressions are case insensitive, but you can force it to match
+case after reading the complete regular expression documentation
+carefully.  See the tcl man page for re_syntax
+   http://www.tcl.tk/man/tcl8.2.3/TclCmd/re_syntax.htm}
