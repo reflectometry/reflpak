@@ -8,6 +8,7 @@
 
 #include <tcl.h>
 #include <string.h>
+#include <ctype.h>
 
 #if DEBUG
 #define debug_message printf
@@ -96,6 +97,52 @@ char *queryString(char *prompt, char *string, int length)
    return (*string == 0) ? NULL : string;
 }
 
+static int parselayer(const char name[], double **pd, 
+		      double *qc, double *mu, double *d, double *ro) 
+{
+  if (name[0] == 'd' && isdigit(name[1]) && name[2]=='\0') {
+    *pd = d+(name[1]-'0');
+  } else if (name[0] == 'r' && name[1] == 'o' && isdigit(name[2]) && name[3] == '\0') {
+    *pd = ro+(name[2]-'0');
+  } else if (name[0] == 'm' && name[1] == 'u' && isdigit(name[2]) && name[3] == '\0') {
+    *pd = mu+(name[2]-'0');
+  } else if (name[0] == 'q' && name[1] == 'c' && isdigit(name[2]) && name[3] == '\0') {
+    *pd = qc+(name[2]-'0');
+  } else {
+    return 0;
+  }
+  return 1;
+}
+
+static int parsevar(const char name[], int **pi, double **pd)
+{
+  *pi = NULL;
+  *pd = NULL;
+  if (name[0] == 'n') {
+    if (strcmp(name,"ntl") == 0) *pi = &ntlayer;
+    else if (strcmp(name,"nbl") == 0) *pi = &nblayer;
+    else if (strcmp(name,"nml") == 0) *pi = &nmlayer;
+    else return 0;
+  } else if (name[0] == 'b') {
+    if (strcmp(name,"bk") == 0) *pd = &bki;
+    else if (strcmp(name,"bi") == 0) *pd = &bmintns;
+    else return 0;
+  } else if (name[0] == 'v') {
+    if (strcmp(name,"vqc") == 0) *pd = tqcsq;
+    else if (strcmp(name,"vmu") == 0) *pd = tmu;
+    else return 0;
+  } else if (name[0] == 't') {
+    return parselayer(name+1,pd,tqcsq,tmu,td,trough);
+  } else if (name[0] == 'm') {
+    return parselayer(name+1,pd,mqcsq,mmu,md,mrough);
+  } else if (name[0] == 'b') {
+    return parselayer(name+1,pd,bqcsq,bmu,bd,brough);
+  } else {
+    return 0;
+  }
+  return 1;
+}
+
 
 /* mlayer uses printf to report errors directly to stdout.  We
  * need to return them from gmlayer.  So replace printf with
@@ -140,6 +187,7 @@ int ipc_fitupdate(void)
 {
   debug_message("ipc_fitupdate with %s\n", fit_callback);
   Tcl_Eval(fit_interp, fit_callback);
+  Tcl_ResetResult(fit_interp);
   /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
    * this every time --- leave it to the fit_callback code to decide?
    */
@@ -148,10 +196,14 @@ int ipc_fitupdate(void)
 }
 static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
 {
-  debug_message("tclconstraints with %s\n", fit_constraints);
-  if (*fit_constraints)
+  printf("tclconstraints\n");
+  if (fit_constraints) {
+    printf("applying constraints as %s\n", fit_constraints);
     Tcl_Eval(fit_interp, fit_constraints);
-  debug_message("done constraints\n");
+    printf("clearing results\n");
+    Tcl_ResetResult(fit_interp);
+  }
+  printf("done constraints\n");
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */
   /* flushqueue(); */
 }
@@ -288,16 +340,16 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 {
   static int fitting;
 
-  int i;
   CONST char *what;
 
 #if DEBUG
+  int i;
   for (i=0; i < argc; i++) { debug_message(argv[i]); debug_message(" ");}
   debug_message("\n");
 #endif
 
   if (argc < 2) {
-    interp->result = "gmlayer cmd ?args?";
+    Tcl_AppendResult(interp,"gmlayer cmd ?args?",NULL);
     return TCL_ERROR;
   }
   if (argc < 3) what = "";
@@ -309,7 +361,6 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
   } else if (strcmp(argv[1], "fit") == 0) {
     /* XXX FIXME XXX shouldn't need 'fitting' */
     fitting = 1;
-    fit_interp = interp;
     fit_callback = what;
     fitReflec("FRG ");
     fitting = 0;
@@ -324,17 +375,31 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 	strcpy(fit_constraints, what);
     } else {
 	Constrain = noconstraints;
+	fit_constraints = NULL;
     }
 
   } else if (strcmp(argv[1], "set") == 0) {
-    interp->result = "gmlayer recv is not implemented";
-    return TCL_ERROR;
+    double *pd; int *pi;
+    char result[20];
+    if (!parsevar(what,&pi,&pd)) {
+      Tcl_AppendResult(interp,"gmlayer variable ",what," is not defined",NULL);
+      return TCL_ERROR;
+    }
+    if (argc > 3) {
+      if (pi != NULL && Tcl_GetInt(interp,argv[3],pi) != TCL_OK)
+	return TCL_ERROR;
+      if (pd != NULL && Tcl_GetDouble(interp,argv[3],pd) != TCL_OK)
+	return TCL_ERROR;
+    }
+    if (pi != NULL) { sprintf(result,"%d",*pi); }
+    if (pd != NULL) { sprintf(result,"%.15g",*pd); }
+    Tcl_SetResult(interp,result,TCL_VOLATILE);
 
   } else if (strcmp(argv[1], "send") == 0) {
     if (strcmp(what, "datafile") == 0) {
-      interp->result = infile;
+      Tcl_SetResult(interp,infile,TCL_STATIC);
     } else if (strcmp(what, "parfile") == 0) {
-      interp->result = parfile;
+      Tcl_SetResult(interp,parfile,TCL_STATIC);
     } else if (strcmp(what, "constraints") == 0) {
       if (argc > 3) {
          cleanFree((double **)&ConstraintScript);
@@ -354,7 +419,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 #endif
     } else if (strcmp(what, "varying") == 0) {
       genva(listA, mfit, fitlist);
-      interp->result = fitlist;
+      Tcl_SetResult(interp,fitlist,TCL_STATIC);
     } else if (strcmp(what, "pars") == 0) {
       sendpars(interp);
     } else if (strcmp(what, "data") == 0) {
@@ -420,7 +485,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 		 nrough, ntlayer, nmlayer, nblayer, nrepeat, proftyp);
       sendprofile(interp,argc>3);
     } else {
-      interp->result = "gmlayer send ?: expected pars, work, ...";
+      Tcl_AppendResult(interp,"gmlayer send ?: expected pars, work, ...",NULL);
       return TCL_ERROR;
     }
 
@@ -432,7 +497,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
     failure = 0;
     mlayer();
     if (failure) {
-      interp->result = error_message;
+      Tcl_AppendResult(interp,error_message,TCL_STATIC);
       return TCL_ERROR;
     }
   }
@@ -455,19 +520,17 @@ int Gmlayer_Init(Tcl_Interp* interp)
 #if 0
   out = Tcl_GetChannel(interp, "stdout", NULL);
     if (out == NULL) {
-	interp->result = "could not find stdout";
-	return TCL_ERROR;
+      Tcl_AppendResult(interp, "could not find stdout", NULL);
+      return TCL_ERROR;
     }
 #endif
 
-#if DEBUG
   fit_interp = interp;
-#endif
 
   debug_message("gmlayer init\n");
 
   if (initialized) {
-    interp->result = "Only one copy of gmlayer is allowed";
+    Tcl_AppendResult(interp, "Only one copy of gmlayer is allowed", NULL);
     return TCL_ERROR;
   }
 
@@ -492,7 +555,7 @@ int Gmlayer_Init(Tcl_Interp* interp)
 
 int Gmlayer_SafeInit(Tcl_Interp* interp)
 {
-  interp->result = "gmlayer is not a safe command";
+  Tcl_AppendResult(interp, "gmlayer is not a safe command", NULL);
   return TCL_ERROR;
 
   // Until we remove commands to read/write files, we are not safe...
