@@ -50,8 +50,8 @@ REDSCRIPT=$(ARCH)/reflred.tcl
 all: makegmlayer $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
 
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(GMLAYER) $(ARCH)/reflfit.manifest \
-		$(ARCH)/reflfit.tcl $(fitpaths) $(ARCH)/options.tcl \
-		freewrap/loadwrap.tcl
+		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl \
+		freewrap/loadwrap.tcl $(fitfiles)
 	cd $(ARCH) && ./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 $(ARCH)/options.tcl:
@@ -79,8 +79,8 @@ $(ARCH)/reflfit.manifest: Makefile
 	echo "$(gmlayer)" >> $@
 
 $(ARCH)/reflred$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflred.manifest \
-		$(ARCH)/reflred.tcl $(redpaths) $(ARCH)/options.tcl \
-		freewrap/loadwrap.tcl
+		$(ARCH)/reflred.tcl $(ARCH)/options.tcl \
+		freewrap/loadwrap.tcl $(redfiles)
 	cd $(ARCH) && ./freewrapBLT -e reflred.tcl -f reflred.manifest
 
 $(ARCH)/reflred.tcl: reflred.tcl.in
