@@ -1,5 +1,6 @@
 VERSION=0.1
 DEFS=-DUSE_TCL_STUBS=1
+INSTALLDIR=scifun$(VERSION)
 
 sinclude ../Makeconf
 ifndef LDEXT
@@ -8,20 +9,20 @@ endif
 
 C99 ?= $(CC)
 
-DEST=scifun$(VERSION)
+all: scifun$(LDEXT) pkgIndex.tcl 
 
-all: $(DEST) $(DEST)/scifun$(LDEXT) $(DEST)/pkgIndex.tcl $(DEST)/README.txt
+dist: all 
+	-$(RM) -rf $(INSTALLDIR) 
+	$(MKDIR) $(INSTALLDIR) 
+	$(CP) pkgIndex.tcl README.txt scifun$(LDEXT) $(INSTALLDIR) 
+	tar czf $(INSTALLDIR).tar.gz
+	$(INSTALLDIR) $(RM) -rf $(INSTALLDIR)
 
-$(DEST):
-	mkdir $(DEST)
+pkgIndex.tcl: pkgIndex.tcl.in Makefile
+	sed -e 's,@VERSION@,$(VERSION),;s,@LDEXT@,$(LDEXT),' \
+		< pkgIndex.tcl.in > pkgIndex.tcl
 
-$(DEST)/pkgIndex.tcl: pkgIndex.tcl.in Makefile
-	sed -e 's,@VERSION@,$(VERSION),;s,@LDEXT@,$(LDEXT),' < pkgIndex.tcl.in > $(DEST)/pkgIndex.tcl
-
-$(DEST)/README.txt: README.txt
-	cat < README.txt > $(DEST)/README.txt
-
-$(DEST)/scifun$(LDEXT): scifun.o
+scifun$(LDEXT): scifun.o
 	$(LD) $(LDFLAGS) -o $@ $< $(LIBS)
 
 scifun.o: scifun.c
