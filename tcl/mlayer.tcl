@@ -441,7 +441,8 @@ proc layer { number field {value {}} } {
 	    mdepth { set conj mro }
 	    mro { set conj mdepth }
 	}
-	switch $field {
+	# Replace 0 with $field to apply the constraint
+	switch 0 {
 	    depth {
 # Grrr... can't comment out switches
 # Magnetic roughness is not subject to the depth constraint in this version.
@@ -2796,11 +2797,14 @@ foreach { col field } [array get field_from_col] {
 }
 
 ## Construct a table frame complete with scroll bars
+option add *layertable.title.relief raised widgetDefault
 set ::layertable $::tablebox.layertable
 table $::layertable -titlerows 1 -titlecols 1 -rows 1 \
 	-selectmode extended -selecttype row \
 	-command { show_entry %r %c %i %s } -usecommand yes \
 	-resizeborders col -roworigin -1 -colwidth 15 -colstretch unset
+$::layertable tag configure title -relief raised
+
 if {$::MAGNETIC} {
     $::layertable conf -cols 9
     set helpfields { qcsq depth ro mu mqcsq mdepth mro theta }
@@ -2818,6 +2822,8 @@ foreach field $helpfields {
     label $::layertable.$field -text $::table_titles($field) \
 	-fg [$::layertable tag cget title -fg] \
 	-bg [$::layertable tag cget title -bg] \
+	-relief [$::layertable tag cget title -relief] \
+	-bd [$::layertable cget -bd] \
 	-font [$::layertable cget -font]
     balloonhelp $::layertable.$field $::field_help($field)
     $::layertable window configure -1,$col \
