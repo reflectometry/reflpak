@@ -11,7 +11,7 @@
 #ifndef MALLOC
 #define MALLOC malloc
 #else
-extern void* MALLOC(int);
+extern void* MALLOC(size_t);
 #endif
 
 void freeCdata(void)

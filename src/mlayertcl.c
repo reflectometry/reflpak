@@ -66,7 +66,7 @@ void ignore TCL_VARARGS_DEF(CONST char *,arg1) {}
  * When (if?) we fully commit to being a tcl extension, these
  * can go away.  Use ckalloc/ckfree instead of MALLOC/FREE.
  */
-void *gmlayer_alloc(int n) { return Tcl_Alloc(n); }
+void *gmlayer_alloc(size_t n) { return Tcl_Alloc(n); }
 void gmlayer_free(void *p) { Tcl_Free(p); }
 
 /* Module data */

@@ -17,7 +17,7 @@
 #ifndef MALLOC
 #define MALLOC malloc
 #else
-extern void* MALLOC(int n);
+extern void* MALLOC(size_t);
 #endif
 #ifndef FREE
 #define FREE free

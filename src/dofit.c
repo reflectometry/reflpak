@@ -36,7 +36,7 @@
 #ifndef MALLOC
 #define MALLOC malloc
 #else
-extern void* MALLOC(int);
+extern void* MALLOC(size_t);
 #endif
 
 int clearLista(int lista[])
