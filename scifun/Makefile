@@ -7,6 +7,11 @@ ifndef LDEXT
   $(error Link ../<ARCH>/Makeconf to ../Makeconf and try again.)
 endif
 
+ifeq ($(ARCH),win)
+  # You must have first compiled fdlibm and copied libm.a to /usr/local/libfdm.a
+  FDLIBM=-L/usr/local/lib -lfdm
+endif
+
 C99 ?= $(CC)
 
 all: scifun$(LDEXT) pkgIndex.tcl 
@@ -23,10 +28,9 @@ pkgIndex.tcl: pkgIndex.tcl.in Makefile
 		< pkgIndex.tcl.in > pkgIndex.tcl
 
 scifun$(LDEXT): scifun.o
-	$(LD) $(LDFLAGS) -o $@ $< $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ $< $(LIBS) $(FDLIBM)
 
-scifun.o: scifun.c
-	$(C99) $(CFLAGS) $(DEFS) -c $< -o $@ -DVERSION=$(VERSION)
+%.o: %.c ; $(C99) $(CFLAGS) $(DEFS) -c $< -o $@ -DVERSION=$(VERSION)
 
 clean:
-	$(RM) scifun.o
+	$(RM) *.o

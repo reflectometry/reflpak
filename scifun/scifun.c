@@ -2,6 +2,19 @@
 #include <math.h>
 #include <tcl.h>
 
+#if defined(__MINGW32__)
+
+/* MinGW is missing some of the C99 functions still.  Pull them in
+ * from Sun Microsystem's fdlibm */
+extern double __ieee754_acosh(double);
+extern double __ieee754_atanh(double);
+extern double asinh(double);
+extern double expm1(double);
+#define acosh __ieee754_acosh
+#define atanh __ieee754_atanh
+
+#endif
+
 #define CONSTANT(name) expr_register_constant(interp,#name,&name);
 #define NULLARY(name) expr_register_nullary(interp,#name,name);
 #define UNARY(name) expr_register_unary(interp,#name,name);

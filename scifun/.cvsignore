@@ -1,2 +1,2 @@
 pkgIndex.tcl
-*.dylib
+*.dll *.so *.dylib
