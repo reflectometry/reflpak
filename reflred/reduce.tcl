@@ -113,7 +113,11 @@ proc reduce_init {} {
 	.reduce.graph element create $el -pixels 4 -fill {} -linewidth 0 \
 		-xdata ::${el}_x -ydata ::${el}_y \
 		-label {} -mapy $mapy \
-		-styles [list [list neg$el -1000000000 0]] -weight ::${el}_y
+		-styles [list [list neg$el -100000 0]] -weight ::${el}_y
+        # Note: BLT bug --- can't specify -styles {{neg -inf 0}}.
+	# Using -100000 isn't a good approximation, but as the that
+	# number grows smaller, and increasing number of spurious points
+	# are deemed to be negative.
 	if [blt_errorbars] {.reduce.graph element conf $el -yerror ::${el}_dy}
 	legend_set .reduce.graph $el on
     }
