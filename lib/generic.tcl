@@ -1099,10 +1099,11 @@ proc addfields { frame fields } {
 		    set uidx $frame.$vname-units
 		    label $uidx -text $units
 		} else {
-		    set uidx -
+		    set uidx x
 		}
 		if { $help != "" } { balloonhelp $frame.$vname-label $help }
 		grid $lidx $eidx $uidx -sticky w
+		grid configure $eidx -sticky ew
 	    }
 
 	    bool { # variable label
@@ -1122,6 +1123,7 @@ proc addfields { frame fields } {
 	    }
 	}
     }
+    grid columnconfigure $frame 1 -weight 1 -minsize 1c
 }
 
 
