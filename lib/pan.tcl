@@ -59,6 +59,9 @@
  #
  # 2003-05-29 Paul Kienzle <pkienzle at users sf net>
  #    * initial release
+ # 2003-10-17 Paul Kienzle <pkienzle at users sf net>
+ #    * fix blt graph scrolling so that it is a percentage of the
+ #      zoomed width rather than a percentage of the total width
  namespace eval pan {
 
     # use these cursors to indicate pan direction
@@ -75,18 +78,38 @@
 	-- top_left_corner
     }
 
-    # internal: xview and yview for BLT graphs
-    proc graph_xview { w args } {
+    # internal: improved xview and yview for BLT graphs which
+    # scroll as a percentage of visible area rather than a
+    # percentage of the entire visible range.
+    proc graph_xview { w scroll n units } {
         foreach side { xaxis x2axis } {
 	    foreach axis [$w $side use] {
-	        eval $w axis view $axis $args
+		# find current limits
+		set min [$w axis cget $axis -min]
+		set max [$w axis cget $axis -max]
+		# don't scroll if not zoomed
+		if { "$min" eq "" || "$max" eq "" } break
+		# calculate scroll step
+		set step [expr {($max-$min)*$n/20.}]
+		# move limits according to step
+		$w axis conf $axis -min [expr {$min+$step}] \
+		    -max [expr {$max+$step}]
 	    }
         }
     }
-    proc graph_yview { w args } {
+    proc graph_yview { w scroll n units } {
         foreach side { yaxis y2axis } {
 	    foreach axis [$w $side use] {
-	        eval $w axis view $axis $args
+		# find current limits
+		set min [$w axis cget $axis -min]
+		set max [$w axis cget $axis -max]
+		# don't scroll if not zoomed
+		if { "$min" eq "" || "$max" eq "" } break
+		# calculate scroll step (backwards because this is y)
+		set step [expr {($min-$max)*$n/20.}]
+		# move limits according to step
+		$w axis conf $axis -min [expr {$min+$step}] \
+		    -max [expr {$max+$step}]
 	    }
         }
     }
@@ -245,7 +268,8 @@
 	# add a blt graph if blt is available
 	package require BLT
 	blt::graph .g
-	.g elem create x -xdata { 1 2 3 4 5 } -ydata { 2 1 3 1 2 }
+	.g elem create x -xdata { 1 1.2 1.4 1.6 1.8 1.9 2 3 4 5 } \
+	    -ydata { 2 1.8 1.7 1.5 1.3 1.1 1 3 1 2 }
 	Blt_ZoomStack .g
 	pan::pan bind .g
 	grid .g - -sticky news
