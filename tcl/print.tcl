@@ -78,9 +78,10 @@ proc PrintDialog { graph } {
     blt::table configure $top c3 -width .125i
 
     frame $top.dest
-    label $top.dest.label -text "Output (use |lpr for printer)" \
+    label $top.dest.label -underline 0 -text "Output (use |lpr for printer)" \
 	    -font *courier*-r-*12*
     entry $top.dest.entry -textvariable ::PrintDialog_printer -width 20 
+    bind $top <Alt-o> [list focus $top.dest.entry ]
     pack $top.dest.label $top.dest.entry -side left
     blt::table $top $row,0 $top.dest -cspan 5
     incr row
@@ -89,8 +90,10 @@ proc PrintDialog { graph } {
     blt::table $top $row,0 $top.cancel  -width 1i -pady 2 -cspan 3
     #button $top.reset -text "Reset" -command "destroy $top"
     #blt::table $top $row,1 $top.reset  -width 1i
-    button $top.print -text "Print" -command "if {\[SendPrint $graph]} { destroy $top }"
+    button $top.print -underline 0 -text "Print" -command "if {\[SendPrint $graph]} { destroy $top }"
     blt::table $top $row,4 $top.print  -width 1i -pady 2 -cspan 2
+    bind $top <Escape> [list $top.cancel invoke ]
+    bind $top <Alt-p> [list $top.print invoke ]
 }
 
 proc SendPrint { graph } {

@@ -139,7 +139,7 @@ set reflectivitybox [ $panes add -weight 1 ]
 set notebookbox [ $panes add -weight 1 ]
 sashconf .panes
 
-set notebook [ NoteBook $notebookbox.notebook ]
+set notebook [ NoteBook $notebookbox.notebook -internalborderwidth 3]
 #set notebook [ tabset $notebookbox.notebook ]
 set layerbox [ $notebook insert end LayerProfile -text "Profile" \
 	-raisecmd { focus $::layerbox } ]
@@ -1332,10 +1332,11 @@ button $cbb.update -text "Update" -command { update_constraints } \
 	-state disabled
 button $cbb.apply -text "Apply" -command { apply_constraints }
 button $cbb.showprogram -text "Show program" -command { showprogram 1 }
-pack $cbb.update $cbb.apply $cbb.showprogram -side left -fill x -expand yes
+grid $cbb.update $cbb.apply $cbb.showprogram -sticky ew -padx 3
+grid columnconfigure $cbb {0 1 2} -weight 1 -uniform a
 
-grid [vscroll $::constraints] -sticky news
-grid $cbb -sticky ew
+grid [vscroll $::constraints] -sticky news -padx 3
+grid $cbb -sticky e
 grid rowconfig $::constraintbox 0 -weight 1
 grid columnconfig $::constraintbox 0 -weight 1
 
@@ -1795,13 +1796,17 @@ text .fitresults -wrap no -state disabled -relief flat -width 40
 
 # define fit control buttons
 frame $fitbox.b
-button $fitbox.b.fit -text "Fit" -command { try_fit }
+button $fitbox.b.fit -underline 3 -text "Fit" -command { try_fit }
 # button $fitbox.b.replay -text "Replay" -command { replay_fit }
-button $fitbox.b.snap -text "Snapshot" -command { snapshot }
-button $fitbox.b.revert -text "Undo" -command { revert_fit } -state disabled
+button $fitbox.b.snap -underline 0 -text "Snapshot" -command { snapshot }
+button $fitbox.b.revert -underline 0 -text "Undo" -command { revert_fit } -state disabled
 #button $fitbox.b.clear -text "Clear" -command { clear_fit }
 # XXX FIXME XXX add a print button
 pack $fitbox.b.fit $fitbox.b.revert $fitbox.b.snap -side top -fill x
+
+bind $fitbox <Alt-t> [list $fitbox.b.fit invoke ]
+bind $fitbox <Alt-s> [list $fitbox.b.snap invoke ]
+bind $fitbox <Alt-u> [list $fitbox.b.revert invoke ]
 
 # realize the fit control box
 label $fitbox.varying_label -text "Fit parameters"
@@ -1912,14 +1917,18 @@ scrollbar $layerbox.xbar -command { .layers axis view x } -orient horizontal
 
 # add the graph control buttons
 frame $layerbox.b
-button $layerbox.b.rescale -text Rescale -command rescale
-button $layerbox.b.print -text Print -command { print .layers }
-button $layerbox.b.snap -text Snapshot -command { snapshot }
-grid $layerbox.b.rescale $layerbox.b.print $layerbox.b.snap
+button $layerbox.b.rescale -underline 0 -text Rescale -command { rescale }
+button $layerbox.b.print -underline 0 -text Print -command { print .layers }
+button $layerbox.b.snap -underline 0 -text Snapshot -command { snapshot }
+grid $layerbox.b.rescale $layerbox.b.print $layerbox.b.snap -sticky ew -padx 3
+grid columnconfigure $layerbox.b {0 1 2} -uniform a
+bind $layerbox <Alt-r> [list $layerbox.b.rescale invoke ]
+bind $layerbox <Alt-p> [list $layerbox.b.print invoke ]
+bind $layerbox <Alt-s> [list $layerbox.b.snap invoke ]
 
 grid $layerbox.xbar -sticky ew
 grid .layers -in $layerbox -sticky news
-grid $layerbox.b -sticky ew
+grid $layerbox.b -sticky e
 grid rowconfigure $layerbox 1 -weight 1
 grid columnconfigure $layerbox 0 -weight 1
 pack $layerbox -fill both -expand yes
@@ -2758,9 +2767,9 @@ proc snapclear {w} {
     }
 }
 .reflectivity.menu add separator
-.reflectivity.menu add command -label "Snapshot" -command { snapshot }
-.reflectivity.menu add command -label "Revert" -command { snapto .reflectivity }
-.reflectivity.menu add command -label "Clear" -command { snapclear .reflectivity }
+.reflectivity.menu add command -label "Snapshot" -underline 0 -command { snapshot }
+.reflectivity.menu add command -label "Revert" -underline 0 -command { snapto .reflectivity }
+.reflectivity.menu add command -label "Clear" -underline 0 -command { snapclear .reflectivity }
 
 # ===================== Layer table ===================================
 
@@ -3278,48 +3287,71 @@ menu .menu
 
 menu .menu.file
 menu .menu.file.export
-.menu add cascade -label File -menu .menu.file
-.menu.file add command -label "New..."        -command { request_new }
-.menu.file add command -label "Open..."       -command { request_open }
-.menu.file add command -label "Save"          -command { save_parfile }
-.menu.file add command -label "Save as..."    -command { request_saveas }
-.menu.file add command -label "Data..."       -command { request_data }
-.menu.file add cascade -label "Export..." -menu .menu.file.export
-.menu.file add command -label "Save and exit" -command { if { [ save_parfile ] } { gmlayer quit; exit } }
-.menu.file add command -label "Quit without saving" -command { exit }
-.menu.file.export add command -label "Profile..." -command { request_export_profile }
-.menu.file.export add command -label "Reflectivity..." -command { request_export_refl }
+.menu add cascade -underline 0 -label File -menu .menu.file
+.menu.file add command -underline 0 -label "New..."        \
+    -command { request_new }
+.menu.file add command -underline 0 -label "Open..."       \
+    -command { request_open }
+.menu.file add command -underline 0 -label "Save"          \
+    -command { save_parfile }
+.menu.file add command -underline 5 -label "Save as..."    \
+    -command { request_saveas }
+.menu.file add command -underline 0 -label "Data..."       \
+    -command { request_data }
+.menu.file add cascade -underline 0 -label "Export..." \
+    -menu .menu.file.export
+.menu.file add command -underline 10 -label "Save and exit" \
+    -command { if { [ save_parfile ] } { gmlayer quit; exit } }
+.menu.file add command -underline 0 -label "Quit without saving" \
+    -command { exit }
+.menu.file.export add command -underline 0 -label "Profile..." \
+    -command { request_export_profile }
+.menu.file.export add command -underline 0 -label "Reflectivity..." \
+    -command { request_export_refl }
 
 
 menu .menu.layer
-.menu add cascade -label Layer -menu .menu.layer
-.menu.layer add command -label "Insert..."    -command { raise .insert; .insert draw }
-.menu.layer add command -label "Delete..."    -command { raise .delete; .delete draw }
-.menu.layer add command -label "Copy..."      -command { raise .copy; .copy draw }
-.menu.layer add command -label "Move..."      -command { raise .move; .move draw }
-.menu.layer add command -label "Overwrite..." -command { raise .overwrite; .overwrite draw }
+.menu add cascade -underline 0 -label Layer -menu .menu.layer
+.menu.layer add command -underline 0 -label "Insert..."    \
+    -command { raise .insert; .insert draw }
+.menu.layer add command -underline 0 -label "Delete..."    \
+    -command { raise .delete; .delete draw }
+.menu.layer add command -underline 0 -label "Copy..."      \
+    -command { raise .copy; .copy draw }
+.menu.layer add command -underline 0 -label "Move..."      \
+    -command { raise .move; .move draw }
+.menu.layer add command -underline 0 -label "Overwrite..." \
+    -command { raise .overwrite; .overwrite draw }
 .menu.layer add separator
-.menu.layer add command -label "Repeat..." -command {
-    if { !$::MAGNETIC } { set ::layerop_repeat $::nrepeat }
-    raise .repeat; .repeat draw
-}
+.menu.layer add command -underline 0 -label "Repeat..." \
+    -command {
+	if { !$::MAGNETIC } { set ::layerop_repeat $::nrepeat }
+	raise .repeat; .repeat draw
+    }
 .menu.layer add separator
-.menu.layer add command -label "Roughness..." -command {
-    set ::layerop_repeat $::nrough
-    raise .roughness; .roughness draw
-}
+.menu.layer add command -underline 3 -label "Roughness..." \
+    -command {
+	set ::layerop_repeat $::nrough
+	raise .roughness; .roughness draw
+    }
 
 menu .menu.options
-.menu add cascade -label Options -menu .menu.options
-.menu.options add radiobutton -label "Nb units" -variable ::use_sld -value 1 -command set_sld
-.menu.options add radiobutton -label "16$::symbol(pi) Nb units" -variable ::use_sld -value 0 -command set_sld
+.menu add cascade -underline 0 -label Options -menu .menu.options
+.menu.options add radiobutton -underline 0 -label "Nb units" \
+    -variable ::use_sld -value 1 -command set_sld
+.menu.options add radiobutton -underline 0 -label "16$::symbol(pi) Nb units" \
+    -variable ::use_sld -value 0 -command set_sld
 .menu.options add separator
-.menu.options add radiobutton -label "R*Q^4" -variable ::use_Q4 -value 1 -command set_Q4
-.menu.options add radiobutton -label "R" -variable ::use_Q4 -value 0 -command set_Q4
+.menu.options add radiobutton -underline 2 -label "R*Q^4" \
+    -variable ::use_Q4 -value 1 -command set_Q4
+.menu.options add radiobutton -underline 0 -label "R" \
+    -variable ::use_Q4 -value 0 -command set_Q4
 .menu.options add separator
-.menu.options add command -label "Tcl console" -command { start_tkcon }
+.menu.options add command -underline 0 -label "Tcl console" \
+    -command { start_tkcon }
 if { [package_available tablelist] } {
-    .menu.options add command -label "Browse widgets" -command { start_widget_browser }
+    .menu.options add command -underline 0 -label "Browse widgets" \
+	-command { start_widget_browser }
 }
 
 helpmenu .menu introduction
@@ -3713,6 +3745,7 @@ proc start_file {} {
             # app_fail "file $argv does not exist"
         }
     } elseif { $::argc == 0 } {
+	return "" ;# For now, lets try starting empty
         if { [file exists [set initfile $::defaultfile]] } {
             # mlayer.staj exists"
             set filetypes [list $::fitfiles $::datafiles $::allfiles]

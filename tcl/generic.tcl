@@ -170,11 +170,11 @@ proc help { dir args } {
 proc helpmenu { menu homepage } {
     menu  $menu.help
     .menu add cascade -label Help -menu $menu.help
-    $menu.help add command -label "Browse" -command [list gethelp $homepage]
-    $menu.help add command -label "Index" -command { gethelp Index }
-    $menu.help add command -label "Search" -command { gethelp Search }
+    $menu.help add command -underline 0 -label "Browse" -command [list gethelp $homepage]
+    $menu.help add command -underline 0 -label "Index" -command { gethelp Index }
+    $menu.help add command -underline 0 -label "Search" -command { gethelp Search }
     $menu.help add separator
-    $menu.help add command -label "About" -command { gethelp About }
+    $menu.help add command -underline 0 -label "About" -command { gethelp About }
 }
 
 # HELP developer
@@ -992,19 +992,19 @@ proc active_graph {w args} {
 
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
-    $w.menu add command -label "Unzoom" -command "blt::ResetZoom $w"
-    $w.menu add command -label "Pan" -command "pan::pan start $w"
-    $w.menu add command -label "Crosshairs" -command "$w crosshairs toggle"
+    $w.menu add command -underline 0 -label "Unzoom" -command "blt::ResetZoom $w"
+    $w.menu add command -underline 2 -label "Pan" -command "pan::pan start $w"
+    $w.menu add command -underline 5 -label "Crosshairs" -command "$w crosshairs toggle"
     if [blt_errorbars] {
 	set ::errbar-$w [option get $w showErrorBars ShowErrorBars]
-	$w.menu add command -label "Error bars" \
+	$w.menu add command -underline 0 -label "Error bars" \
 		-command "graph_toggle_error $w"
     }
-    $w.menu add command -label "Grid" -command "$w grid toggle"
+    $w.menu add command -underline 0 -label "Grid" -command "$w grid toggle"
     if { [string equal windows $::tcl_platform(platform)] } {
-        $w.menu add command -label "Copy" -command "$w snap -format emf CLIPBOARD"
+        $w.menu add command -underline 3 -label "Copy" -command "$w snap -format emf CLIPBOARD"
     }
-    $w.menu add command -label "Print" -command "PrintDialog $w"
+    $w.menu add command -underline 0 -label "Print" -command "PrintDialog$w"
 
     # Add zoom capability to graph, but use the menu to unzoom
     Blt_ZoomStack $w
