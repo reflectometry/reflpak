@@ -2850,6 +2850,7 @@ $::layertable tag raise disabled
 
 # called when the size or contents of the table may have changed
 proc reset_table {} {
+    $::layertable conf -usecommand yes
     if { [ $::layertable cget -rows ] != 1+$::num_layers } {
 	$::layertable conf -rows [ expr 1+$::num_layers ]
     }
