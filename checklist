@@ -34,9 +34,10 @@
 # Move the html, the source and the irix version to the distribution
 	mv ~/cvs/reflfit/html $REFLVER
 	mv ~/cvs/reflfit/$REFLVER.tar.gz $REFLVER
-	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLVER
+	cp ~/cvs/reflfit/irix/refl{fit,pol,red} $REFLVER/irix
 
 # On macosx and linux
+	# copy REFLVER=... line from jazz terminal
 	scp macosx/refl{fit,pol,red} jazz:samba/$REFLVER/macosx
 	scp linux/refl{fit,pol,red} jazz:samba/$REFLVER/linux
 	scp win/refl{fit,pol,red}.exe jazz:samba/$REFLVER/win
