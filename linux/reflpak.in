@@ -1,2 +1,11 @@
 #!/bin/sh
-exec reflpak@VERSION@ @PAR@ "$*"
+if test -e ${0%/*}/$bin ; then
+    bin=${0%/*}/reflpak@VERSION@
+else
+    bin=reflpak@VERSION@
+fi
+if test $# -gt 0 ; then
+    exec $bin @PAR@ "$*"
+else
+    exec $bin @PAR@
+fi
