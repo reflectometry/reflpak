@@ -1,6 +1,8 @@
     # From the wiki
     # http://mini.net/tcl/sizer%20control
     # signed: <mail@kai-morich.de>
+    # 2004-09-27 Paul Kienzle
+    # * X11 doesn't use sizer
     package provide sizer 0.1
 
     namespace eval ::sizer {
@@ -8,8 +10,10 @@
     }
 
     proc ::sizer::sizer {win} {
+	if { $::tcl_platform(platform) != "windows" } { return }
         variable config
         variable f
+	variable cursor
         if {$win=="."} {
             set config($win-widget) .sizer
         } else {
