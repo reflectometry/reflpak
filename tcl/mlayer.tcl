@@ -206,7 +206,7 @@ proc set_vars_from_pars {} {
 
     # roughness profile
     set ::roughwidth $::pars([incr ::layer_offset])
-    set ::nrough     $::pars([incr ::layer_offset])
+    set ::nrough     [expr int($::pars([incr ::layer_offset]))]
 
     incr ::layer_offset
 
@@ -3398,9 +3398,9 @@ proc request_export_refl {} {
 # process the Roughness layers... menu dialog
 proc layer_roughness { v } {
     if { [ string is integer $v ] } {
-	if { $v > 2 } { set ::nrough $v; return 1 }
+	if { $v > 2 && $v%2 == 1} { set ::nrough $v; return 1 }
     }
-    tk_messageBox -message "Roughness steps must be > 2" -type ok
+    tk_messageBox -message "Roughness steps must be an odd number > 1" -type ok
     return 0
 }
 
@@ -3483,7 +3483,7 @@ proc make_layerops {} {
 	}}]
     }
     set roughness [subst { roughness {
-	{ real layerop_repeat "Number of roughness steps" "must be >2" }
+	{ real layerop_repeat "Number of roughness steps" "must be an odd number > 1" }
     }}]
 
     # Build the forms and attach the controls
