@@ -5,6 +5,8 @@ namespace eval footprint {
         footprint_interp.m
         footprint_fit.m
     }
+    variable fp .footprint
+    variable opening_slits {}
 
 proc init {} {
     set ::footprint_line {}
@@ -41,7 +43,7 @@ proc desc {} {
 }
 
 proc draw {} {
-    set fp .footprint
+    variable fp
     if { [winfo exists $fp] } {
 	raise $fp
 	return
@@ -72,7 +74,7 @@ proc draw {} {
     $fp.graph element create footm -xdata ::foot_x -ydata ::foot_ym
     legend_set $fp.graph foot on
     set colors [option get $fp.graph lineColors LineColors]
-    foreach pol { {} A } color [lrange $colors 0 1] {
+    foreach pol { {} A D } color [lrange $colors 0 2] {
         opt $fp.graph.div$pol Pixels 4 Fill $color \
             LineWidth 0 Label "Data $pol" Color $color
 	$fp.graph element create div$pol \
@@ -101,9 +103,9 @@ proc draw {} {
     label $fpfr.from -text "Fit from Qz"
     label $fpfr.to -text "$::symbol(invangstrom) to Qz"
     label $fpfr.units -text "$::symbol(invangstrom)"
-    button $fpfr.click -text "From graph..." -command {
-	graph_select .footprint.graph ::fit_footprint_Qmin ::fit_footprint_Qmax
-    }
+    button $fpfr.click -text "From graph..." -command [subst {
+	graph_select $fp.graph ::fit_footprint_Qmin ::fit_footprint_Qmax
+    }]
     pack $fpfr.from $fpfr.min $fpfr.to $fpfr.max $fpfr.units $fpfr.click \
 	-side left
 
@@ -122,9 +124,10 @@ proc draw {} {
     frame $fp.div
     radiobutton $fp.div.lab -variable ::footprint_correction_type -value div \
 	    -text "Measured footprint correction"
-    ComboBox $fp.div.spec -editable no \
-	    -postcommand "$fp.div.spec configure -values \$::available_spec"
-    $fp.div.spec configure -modifycmd "footprint::line \[$fp.div.spec cget -text]"
+    ComboBox $fp.div.spec -editable no -postcommand \
+	"$fp.div.spec configure -values \$::available_spec"
+    $fp.div.spec configure -modifycmd \
+	"footprint::line \[$fp.div.spec cget -text]"
     pack $fp.div.lab $fp.div.spec -side left
 
     set fpar [frame $fp.applyrange]
@@ -133,9 +136,9 @@ proc draw {} {
     label $fpar.from -text "Correct from Qz"
     label $fpar.to -text "$::symbol(invangstrom) to Qz"
     label $fpar.units -text "$::symbol(invangstrom)"
-    button $fpar.click -text "From graph..." -command {
-	graph_select .footprint.graph ::footprint_Qmin ::footprint_Qmax
-    }
+    button $fpar.click -text "From graph..." -command [subst {
+	graph_select $fp.graph ::footprint_Qmin ::footprint_Qmax
+    }]
     pack $fpar.from $fpar.min $fpar.to $fpar.max $fpar.units $fpar.click \
 	-side left
 
@@ -188,6 +191,63 @@ proc draw {} {
     # column stretch
     foreach col { 2 4 } { grid columnconfigure $fp $col -weight 1 }
     pack conf $fpar.min $fpar.max $fpfr.min $fpfr.max -fill x -expand yes
+
+    variable opening_slits
+    draw_opening_slits $opening_slits
+}
+
+# Indicate on the footprint graph where the slits are opening using the
+# {start1 stop1 start2 stop2 ...} information in edges.
+proc draw_opening_slits {edges} {
+    variable fp
+    if { [winfo exists $fp] } {
+	eval [linsert [$fp.graph marker names] 0 $fp.graph marker delete]
+	foreach {start stop} $edges {
+	    $fp.graph marker create polygon -under true \
+		-coords [list $start -Inf $start Inf $stop Inf $stop -Inf] \
+		-fill AntiqueWhite
+	    $fp.graph marker create text \
+		-coords [list $start -Inf] -anchor sw -text "opening slits"
+	}
+    }
+}
+
+# Walk through a list of paired Q,slit values sorted by Q, returning
+# those ranges of Q for which the slits are moving as a a list of
+# {start1 stop1 start2 stop2 ...}.
+proc find_opening_slits {Q M} {
+    set state 0
+    set edges {}
+    foreach q $Q m $M {
+	switch $state {
+	    0 {
+		# first Q
+		set state 1
+	    }
+	    1 {
+		# Not in run
+		if {$curM != $m} {
+		    lappend edges $curQ
+		    set state 2
+		}
+	    }
+	    2 {
+		# In run, see if we can extend it
+		if {$curM == $m && $curQ != $q} {
+		    lappend edges $curQ
+		    set state 1
+		}
+	    }
+	}
+	set curM $m
+	set curQ $q
+    }
+    if {$state == 2} { lappend edges $curQ }
+    return $edges
+}
+
+proc slits { Q m } {
+    variable opening_slits [find_opening_slits $Q $m]
 }
 
 proc line { name } {
@@ -300,7 +360,9 @@ proc calc {{div div} {foot foot}} {
 
 }
 
-if {$argv0 eq [info script] && ![winfo exists .footprint]} {
+if {$argv0 eq [info script] && ![info exists running]} {
+    set running 1
+
     # Get needed library context
     lappend auto_path [file dirname $argv0]/..
     package require Tk
@@ -321,10 +383,11 @@ if {$argv0 eq [info script] && ![winfo exists .footprint]} {
     
     # set up some data
     foreach pol { {} A D } {
-        vector create ::div_x$pol ::div_y$pol ::div_dy$pol
+        vector create ::div_x$pol ::div_y$pol ::div_dy$pol ::div_m$pol
     }
     set pol A
     div_x$pol set { 1 2 3 4 5 6 7 8 9 10 }
+    div_m$pol set { 1 1 1 1 1 1 2 3 4 4  }
     div_y$pol set { 1.03 1.92 3.05 3.93 3.99 3.5  3.1  2.8  2.1  1.4 }
     div_dy$pol set { .06  .07  .08  .09  .09  .08  .07  .07  .07  .06 }
     div_y$pol expr div_y$pol/5
