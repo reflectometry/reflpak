@@ -190,7 +190,6 @@ interpolated from the data in the file reflectivity/NG7monitor.cal.
 You can see the calibration data by opening the [Tcl console] and typing
 	load_NG7_monitor_calibration
 	set NG7_monitor_calibration
-See [NG7load] for details.
 
 Since the NG7 monitor does not count every neutron, there will be 
 a detector to monitor ratio that needs to be measured.  Once 
@@ -375,11 +374,6 @@ divide by a line up until the end of the correction region, and a
 constant thereafter.
 
 There are several cases:
-
-#(1) A flat region is apparent before the critical angle: Normalize
-this flat region to one (e.g., by guessing at an incident medium 
-transmission coefficient) and ignore all data before
-the flat region.
 
 (1) A flat region is apparent below the critical angle: Normalizes 
 this flat region to one (e.g., by fitting the plateau) and ignore all 
