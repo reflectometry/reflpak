@@ -2,6 +2,8 @@ hpage {help menu} .#menu.#menu#help {
   Browse   Go to the main page
   [Index]    Go to the help index
   [Search]   Go to the search page
+  ------
+  [About]    Version information
 }
 
 # ----------------------------------------------------------------------
@@ -14,9 +16,9 @@ controls to do it.
 
 Click on the highlighted text to follow the link.  
 
-Index is an alphabetical list of all help pages.  
+[Index] is an alphabetical list of all help pages.  
 
-Search accepts case insensitive [regular expressions].
+[Search] accepts case insensitive [regular expressions].
 
 You can invoke help for a window using the F1 key when the focus is in
 that window.  You can get help for the keyboard/mouse controls using
