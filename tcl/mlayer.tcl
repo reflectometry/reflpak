@@ -15,6 +15,9 @@ source [file join $MLAYER_HOME ctext.tcl]
 source [file join $MLAYER_HOME pan.tcl]
 source [file join $MLAYER_HOME generic.tcl]
 
+option add *SelectTitles true widgetDefault
+option add *rowSeparator \n widgetDefault
+option add *colSeparator \t widgetDefault
 load_resources $::MLAYER_HOME tkmlayer
 
 set sixteenpi [expr 64.0*atan(1)]
@@ -140,8 +143,7 @@ if {$::MAGNETIC} {
 
 # Usage: set_vars_from_pars
 # decode the various parameters from ::pars into the associated globals
-proc set_vars_from_pars { } {
-
+proc set_vars_from_pars {} {
     # XXX FIXME XXX can we leave the parameters in the par vector
     # and access them directly from there (e.g., via [layer])?  Can
     # we attach a vector element as a textvariable to an input field?
@@ -1541,7 +1543,7 @@ proc do_fit {} {
 	    read_vec mltmp.mu prof_mu
 	    read_vec mltmp.qcsq prof_qcsq
 	    if { $::MAGNETIC} {
-		read_vec mltmp.mqcsq prof_qcmsq
+		read_vec mltmp.mqcsq prof_mqcsq
 		read_vec mltmp.theta prof_theta
 	    }
 	    # update the layer table
@@ -1769,7 +1771,7 @@ text .fitresults -wrap no -state disabled -relief flat -width 40
 frame $fitbox.b
 button $fitbox.b.fit -text "Fit" -command { try_fit }
 # button $fitbox.b.replay -text "Replay" -command { replay_fit }
-button $fitbox.b.snap -text "Snap" -command { snapshot }
+button $fitbox.b.snap -text "Snapshot" -command { snapshot }
 button $fitbox.b.revert -text "Undo" -command { revert_fit } -state disabled
 #button $fitbox.b.clear -text "Clear" -command { clear_fit }
 # XXX FIXME XXX add a print button
@@ -1886,7 +1888,7 @@ scrollbar $layerbox.xbar -command { .layers axis view x } -orient horizontal
 frame $layerbox.b
 button $layerbox.b.rescale -text Rescale -command rescale
 button $layerbox.b.print -text Print -command { print .layers }
-button $layerbox.b.snap -text Snap -command { snapshot }
+button $layerbox.b.snap -text Snapshot -command { snapshot }
 grid $layerbox.b.rescale $layerbox.b.print $layerbox.b.snap
 
 grid $layerbox.xbar -sticky ew
@@ -1995,6 +1997,9 @@ proc handle { x y action args } {
 	"drag_end" {
 	    # Stopped dragging, so hide the marker coordinates.
 	    .layers marker conf coords -hide 1 -text {}
+	    # XXX FIXME XXX can I put a trace on the relevant parameter
+	    # so that the table stays up to date?
+	    reset_table
 	}
 	"drag_special" -
 	"drag" {
@@ -2625,10 +2630,8 @@ foreach v $::active_slices {
     vector create data_q$v
     vector create data_r$v
     vector create data_e$v
-    .reflectivity elem create reflect$v \
-            -xdata reflect_q -ydata reflect_r$v
-    .reflectivity elem create data$v \
-	    -xdata data_q$v -ydata data_r$v
+    .reflectivity elem create reflect$v -xdata reflect_q -ydata reflect_r$v
+    .reflectivity elem create data$v -xdata data_q$v -ydata data_r$v
     if [blt_errorbars] { .reflectivity elem conf data$v -yerror data_e$v }
     if { $::use_dashes_on_screen } {
 	.reflectivity elem conf reflect$v -dashes $::dashes(r$v)
@@ -2729,7 +2732,7 @@ proc snapclear {w} {
     }
 }
 .reflectivity.menu add separator
-.reflectivity.menu add command -label "Snap" -command { snapshot }
+.reflectivity.menu add command -label "Snapshot" -command { snapshot }
 .reflectivity.menu add command -label "Revert" -command { snapto .reflectivity }
 .reflectivity.menu add command -label "Clear" -command { snapclear .reflectivity }
 
@@ -3544,11 +3547,14 @@ proc chisqplot {field min max frames} {
     set step [vector expr "($max - $min)/($frames-1)"]
     for {set i 0} { $i < $frames } { incr i } {
 	gmlayer $field $min
+	# XXX FIXME XXX shouldn't need to read reflectivity
+	# instead, the send chisq command should recognize
+	# that the parameters have changed, and recalculate
+	# the reflectivity as appropriate.
 	read_reflectivity
 	::scan_p append $min
-	::scan_chi append $::chisq
+	::scan_chi append [gmlayer send chisq]
 	set min [expr $min + $step]
-	# puts "p=$min, chi=$::chisq"
     }
     
 }
