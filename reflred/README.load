@@ -1,0 +1,35 @@
+# File load design
+# ================
+#
+# Assume we have a lot of files per dataset, and
+# these files are ordered by run number.  When we
+# are walking the directory tree, we want a snapshot 
+# of the datasets available in each directory.
+# Opening every file is expensive so we should be 
+# able to get the data set name, run number and type 
+# just from the filename.
+#
+# The procedure run.ext will be able to return
+# details such as dataset name and glob pattern
+# as follows:
+#    run.ext dataset filename
+#       returns the dataset portion of the file name
+#    run.ext instrument filename
+#       returns the instrument associated with the file name
+#    run.ext info filename
+#       returns the list { "data" date "comment" comment }
+#       where date is a value compatible with the clock function
+#       and comment is a comment associated with the filename.
+#    run.ext pattern filename
+#       Return a glob pattern describing all files belonging
+#       to a particular dataset.
+#    run.ext mark filename
+#       Create the data records needed for the dataset selection
+#       tree.
+#
+# The run.ext mark action sets up the information required 
+# by the dataset selection window, so it must be reasonably
+# thorough.  Since the program blocks while it is loading,
+# mark should be as fast as practical.  Documentation for the
+# individual fields required by mark will be entered into
+# reflred.help.
