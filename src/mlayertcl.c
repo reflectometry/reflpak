@@ -43,6 +43,7 @@ void ignore TCL_VARARGS_DEF(CONST char *,arg1) {}
 #include "loadData.h"
 #include "extres.h"
 #include "genderiv.h"
+#include "genshift.h"
 #include "mlayer.h"
 
 /* ============================================================ */
