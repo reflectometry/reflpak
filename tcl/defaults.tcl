@@ -57,17 +57,7 @@ if { $::MAGNETIC } {
     set color(mdepth) purple
     set color(mqcsq) orange
     set color(theta) darkgreen
-    set color(da) red
-    set color(ra) darkred
-    set color(db) magenta
-    set color(rb) darkmagenta
-    set color(dc) green
-    set color(rc) darkgreen
-    set color(dd) orange
-    set color(rd) darkorange
 } else {
-    set color(d) magenta
-    set color(r) darkmagenta
     set color(repeat) lightgray ;# background color for the repeating section
 }
 
