@@ -17,6 +17,9 @@
 #    scale factor internally from 11/10 to a more appropriate number
 #    if it complains it is running out of space.
 #
+#    It is possible to add a license agreement to a dmg file.  See
+#    the "Software License Agreements for UDIFs" sdk available at
+#    http://developer.apple.com/sdk/index.html
 
 test $# -lt 2 && echo "usage: $0 diskname [file|dir]+" && exit 1
 set -x
