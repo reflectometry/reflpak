@@ -132,7 +132,7 @@ dist: kit/reflpak $(macscripts) ChangeLog
 else
 dist: kit/reflpak$(EXE)
 	if test ! -d release ; then mkdir release ; fi
-	cp -a kit/reflpak$(EXE) release/reflpak$(DATE)$(EXE)
+	cp -p kit/reflpak$(EXE) release/reflpak$(DATE)$(EXE)
 endif
 
 clean:
