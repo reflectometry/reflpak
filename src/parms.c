@@ -138,7 +138,7 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
          pos = ftell (unit1);
          fseek(unit1,0L,SEEK_END);
          len = ftell (unit1) - pos + 1;
-         fseek(unit1,pos,SEEK_SET);
+         fseek(unit1,pos-1,SEEK_SET);
          ConstraintScript = MALLOC(len+1);
          if (ConstraintScript) {
             fread(ConstraintScript, len, 1, unit1);
