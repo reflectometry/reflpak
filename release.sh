@@ -87,7 +87,7 @@ tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
 scp reflpak$VERSION.tar.bz2 "$STORE"
 scp -r reflpak$VERSION "$SHARE"
 ssh ${SHARE%:*} "cd ${SHARE#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
-ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $builddir/kit/reflpak reflpak$VERSION && rm reflpak-latest && ln -s reflpak$VERSION reflpak-latest"
+ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $builddir/kit/reflpak reflpak$VERSION && rm reflpak && ln -s reflpak$VERSION reflpak"
 rm -rf reflpak$VERSION
 echo; echo "Please check that $STORE and $SHARE contain what you want"
 
