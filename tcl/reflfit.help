@@ -448,37 +448,68 @@ responsible user and DELETE THESE FILES IF THE PROGRAM DUMPS CORE.
 # ===============================================================
 if {![info exists ::beambox]} { set ::beambox {} }
 hpage {beam characteristics} $::beambox { 
-Beam intensity should normally be 1.0, leading to a total reflectivity
-of 1.0 at low angles.  If for some reason this is not the case (e.g.,
-because of an incident medium absorption coefficient not accounted for
-during reduction) then you can set the beam intensity here.  Beam intensity
-is also a [fit] parameter, BI.
+Beam intensity should normally be fixed to 1.0, leading to a total
+reflectivity of 1.0 at low angles.  If for some reason this is not the case
+(e.g., because of an incident medium absorption coefficient not accounted
+for during reduction) then you can adjust the beam intensity here.
+Beam intensity is also a [fit] parameter, BI.
 
 Background is the expected background count rate, below which all data
-is noise.  With sensitivity down to around 1E-7 for the reflectivity
-measurements, the default background level of 1e-10 is essentially zero.
-Background is also a [fit] parameter, BK.
+is noise.  With sensitivity down to around 1e-7 for the reflectivity
+measurements, the default background level of 1e-10 is typical and is
+essentially zero.  Background is also a [fit] parameter, BK.
 
-Wavelength is the incident wavelength of the beam.  The beam is assumed
-to be monochromatic.  At the time of writing, the following defaults are
-assumed for the instruments:
+Wavelength in Angstroms is the incident wavelength of the beam.  The beam 
+is assumed to be monochromatic.  At the time of writing, the following 
+defaults are assumed for the instruments:
 
->XRAY 1.5416 Angstroms
+	XRAY 1.5416 Angstroms
+	NG-1 4.75 Angstroms
+	NG-7 4.768 Angstroms
+	CG-1 5.0 Angstroms
 
->NG-1 4.75 Angstroms
+Wavelength is available in the header of the reflred data file and 
+eventually reflfit will be clever enough to read it, but for
+now you must enter it yourself.  
 
->NG-7 4.768 Angstroms
+Wavelength divergence in Angstroms is the spread of neutron velocities.
+It does not vary with Q.  Typical values are characteristic of the 
+monochromator at the instrument:
 
-Wavelength is available in the header of the reflred data file and
-eventually reflfit will be clever enough to read it, but for now 
-you must enter it yourself.
+	XRAY 0.005 Angstroms
+	NG-1 0.05 Angstroms
+	NG-7 0.05 Angstroms
+	CG-1 0.05 Angstroms
 
-Wavelength divergence is the spread of neutron velocities and angular 
-divergence is the spread of incident neutron angles.  Since angular
-divergence depends on the collimation, there will be a Q dependence
-in the value used.
+Angular divergence in radians is the spread of incident neutron angles.
+Since angular divergence depends on the collimation, and slits are
+typically opened with increasing Q, there is an implicit Q dependence in
+the value used.  We currently do not have an algorithm for determining 
+angular divergence directly from the slit settings.
 
-2003-01-17}
+After the ideal reflectivity is computed for the layers described in the
+[layer table], a convolution is performed to account for resolution of
+the instrument.  The convolution uses a gaussian whose full-width at half
+maximum (w) is computed from the wavelength (L), the wavelength divergence
+(dL) and the angular divergence (dtheta).  At each point Q in your data set,
+w is set to
+
+>w = Q * (dL/L + dtheta/theta),  
+
+where theta is computed from the linear approximation 
+
+>theta = L*Q/4/pi.
+
+The convolution at Qj is computed by the normalized sum over i of
+
+>Ri * exp(-ln(16)*(Qj - Qi)**2/w**2)
+    
+as long as the contribution to the convolution at your measured datapoint
+Qi is greater than 0.1%.  To handle the boundary points, the data set
+Q values are extended towards positive infinity and towards negative
+infinity using the Q-spacing at the appropriate boundary of the data set.
+    
+2003-09-22}
 
 
 # ===============================================================
