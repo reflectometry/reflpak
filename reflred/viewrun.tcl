@@ -25,10 +25,12 @@ set ::title Reflred
     
 # XXX FIXME XXX how can I make this automatic?
 set OCTAVE_SUPPORT_FILES { 
-    interp1err psdslice 
+    psdslice reduce reduce_part run_invscale
     run_div run_include run_interp run_poisson_avg 
-    run_scale run_sub run_tol run_trunc run_send
-    plotrunop runlog
+    run_scale run_sub run_tol run_trunc
+    plotrunop runlog run_send run_send_pol fitslits polcor
+    common_values inputname polyconf qlfit wsolve
+    confidence qlconf wpolyfit interp1err
 }
 
 # XXX FIXME XXX fix blt::busy problem with 8.4
