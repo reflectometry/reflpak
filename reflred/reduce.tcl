@@ -602,7 +602,7 @@ proc old_normalize_code {} {
     ## Scale reduced curve by the peak value
     ## Note that ^ is exponentiation in vector expr, not XOR as in expr
     ## XXX FIXME XXX what about the covariance between v and the peak?
-    set v [expr 1/$::transmission_coeff]
+    set v [expr 1.0/$::transmission_coeff]
     set dv [vector expr "$::dtransmission_coeff / $::transmission_coeff ^ 2" ]
     ::refl_dy expr "sqrt( ($v * ::refl_dy)^2 + ($dv * ::refl_y)^2 )"
     ::refl_y expr "$v * ::refl_y"
@@ -620,7 +620,7 @@ proc reduce {spec back slit} {
 		set ::reduce_monitor $this_monitor
 		set ::reduce_head $idx
 	    }
-	    set this_monitor [expr $::reduce_monitor/$this_monitor]
+	    set this_monitor [expr double($::reduce_monitor)/$this_monitor]
 	    ::${idx}_ky expr "$this_monitor*::${idx}_y"
 	    ::${idx}_kdy expr "$this_monitor*::${idx}_dy"
 	    octave eval "$part = run_poisson_avg($part,run_scale($idx,$this_monitor))"
