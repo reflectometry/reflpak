@@ -1023,4 +1023,7 @@ proc convertscan { scanid } {
 }
 
 # initialize if haven't already done so
-if {![winfo exists .reduce]} { reduce_init }
+if {![winfo exists .reduce]} { 
+    reduce_init 
+    footprint_init
+}

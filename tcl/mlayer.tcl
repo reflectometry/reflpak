@@ -15,6 +15,12 @@ package require tkcon
 package require ncnrlib
 package require scifun ;# scientific functions in expr
 
+if { [info exists ::app_version] } {
+    set version $::app_version
+} else {
+    set version "[clock format [clock seconds] -format %Y%m%d]-CVS"
+}
+
 # Let the user customize their version without changing the original
 # by loading resources from a file in their directory.
 # XXX FIXME XXX put this as late as possible in the source so that

@@ -266,7 +266,7 @@ proc check_wavelength { id wavelength } {
 	# datasets affected is going to be small enough that it doesn't
 	# matter.
 	tk_messageBox -type ok -default ok -icon info \
-	    -title "$::appname: Wrong wavelength" \
+	    -title "$::title: Wrong wavelength" \
 	    -message "ICP recorded a wavelength of $rec(L) in $rec(file).  We will instead use $wavelength. If this is not correct, enter 'set wavelength($rec(dataset),$rec(instrument)) $rec(L)' in the Tcl console and reload the file."
 	set rec(L) $wavelength
 	set $key $wavelength

@@ -7,6 +7,12 @@ package require tkcon
 package require ncnrlib
 package require octave
 
+if { [info exists ::app_version] } {
+    set version $::app_version
+} else {
+    set version "[clock format [clock seconds] -format %Y%m%d]-CVS"
+}
+
 register_icp
 register_uxd
 register_reduced

@@ -8,3 +8,5 @@ Install as user:
 
   $ mv refl* ~/bin
 
+The data subdirectory contains sample data from the
+NCNR 2002 summer school.  See data/README for details.

@@ -168,6 +168,7 @@ dist: kit/reflpak$(EXE) RELEASE-NOTES
 	mkdir $(DIR)
 	cp -p RELEASE-NOTES linux/README $(DIR)
 	cp -p kit/reflpak $(DIR)/reflpak$(VERSION)
+	cp -pR data $(DIR)/data
 	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
 		< linux/reflpak.in > $(DIR)/reflpak
 	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" \
