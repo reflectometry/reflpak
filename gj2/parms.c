@@ -1,3 +1,5 @@
+extern void *MALLOC(int);
+
 /* Subroutine retrieves and stores parameters from and to disk */
 
 #include <ctype.h>
@@ -185,7 +187,7 @@ int parms(double *qcsq, double *qcmsq, double *d, double *dm, double *rough,
          fseek(unit1,0L,SEEK_END);
          len = ftell (unit1) - pos + 1;
          fseek(unit1,pos-1,SEEK_SET);
-         ConstraintScript = malloc(len+1);
+         ConstraintScript = MALLOC(len+1);
          if (ConstraintScript) {
             fread(ConstraintScript, len, 1, unit1);
             ConstraintScript[len] = '\0';

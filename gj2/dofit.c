@@ -1,3 +1,5 @@
+extern void *MALLOC(int);
+
 /* Fitting routine preparation and execution */
 
 #include <stdlib.h>
@@ -161,8 +163,8 @@ int fitReflec(char *command)
          /* Allocate data for mrqmin */
          cleanFree((void **) (&ymod));
          cleanFree((void **) (&dyda));
-         ymod = malloc(sizeof(double) * ndata);
-         dyda = malloc(sizeof(double) * ndata * mfit);
+         ymod = MALLOC(sizeof(double) * ndata);
+         dyda = MALLOC(sizeof(double) * ndata * mfit);
          if (ymod == NULL || dyda == NULL) {
             cleanFree((void **) (&ymod));
             cleanFree((void **) (&dyda));

@@ -25,7 +25,7 @@ ifndef LDEXT
   $(error Link ../xxx/Makeconf to ../Makeconf and try again.)
 endif
 
-DEFS=-DUSE_TCL_STUBS=1 -Dmalloc=gmlayer_alloc -Dfree=gmlayer_free $(DEBUG)
+DEFS=-DUSE_TCL_STUBS=1 -DREALLOC=gmlayer_realloc -DMALLOC=gmlayer_alloc -DFREE=gmlayer_free $(DEBUG)
 
 #Next line is for a version which supports negative Q
 MINUSQ=-DMINUSQ

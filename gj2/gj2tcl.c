@@ -1,6 +1,3 @@
-#undef malloc
-#undef free
-
 /* recompile with -DEBUG to display debugging messages */
 #ifdef EBUG
 #define DEBUG 1
@@ -66,11 +63,12 @@ int loaded; /* false if no dataset has been loaded */
 
 /* I don't know if we need to use Tcl's allocators within
  * tcl extensions, but this provides them.  In the makefile
- * I use -Dmalloc=gmlayer_alloc.  When (if?) we fully commit 
+ * I use -DMALLOC=gmlayer_alloc.  When (if?) we fully commit 
  * to being a tcl extension, these can go away.  Use 
  * ckalloc/ckfree instead of malloc/free.
  */
 void *gmlayer_alloc(int n) { return Tcl_Alloc(n); }
+void *gmlayer_realloc(void *p, int n) { return Tcl_Realloc(p,n); }
 void gmlayer_free(void *p) { Tcl_Free(p); }
 
 /* Module data */

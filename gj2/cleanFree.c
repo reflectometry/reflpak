@@ -1,3 +1,5 @@
+void FREE(void *);
+
 /* Deallocates dynamically allocated arrays */
 
 #include <stdlib.h>
@@ -6,7 +8,7 @@
 void cleanFree(void **ptr)
 {
    if (*ptr != NULL) {
-      free(*ptr);
+      FREE(*ptr);
       *ptr = NULL;
    }
 }

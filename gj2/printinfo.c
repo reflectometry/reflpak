@@ -1,3 +1,5 @@
+extern void *MALLOC(int);
+
 /* Generates output */
 
 #include <stdlib.h>
@@ -197,7 +199,7 @@ int genReflect(char *command)
 
    /* Make sure q4x is defined */
    cleanFree((void **) (&q4x));
-   q4x = (double *) malloc(sizeof(double) * npnts);
+   q4x = (double *) MALLOC(sizeof(double) * npnts);
 
    if (q4x == NULL) {
       puts("/** Cannot get memory for q4x **/");
@@ -217,7 +219,7 @@ int genReflect(char *command)
    if (command[1] == 'A') {
       /* Make sure yfita is defined */
       cleanFree((void **) (&yfita));  
-      yfita = (complex *) malloc(sizeof(complex) * ncross * npnts);
+      yfita = (complex *) MALLOC(sizeof(complex) * ncross * npnts);
 
       if (yfita == NULL) {
          puts("/** Cannot get memory for yfita **/");
@@ -230,7 +232,7 @@ int genReflect(char *command)
    } else {
       /* Make sure y4x is defined */
       cleanFree((void **) (&y4x));
-      y4x = (double *) malloc(sizeof(double) * ncross * npnts);
+      y4x = (double *) MALLOC(sizeof(double) * ncross * npnts);
       if (y4x == NULL) {
          puts("/** Cannot get memory for y4x **/");
          failed = TRUE;
