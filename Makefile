@@ -41,21 +41,30 @@ bindir ?= $(topdir)/$(ARCH)
 
 
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
-	print.tcl tableentry.tcl help2html generic.tcl
-fitsrc=mlayer.tcl defaults.tcl tkmlayerrc help.help \
-	mlayer.help gj2.help reflfit.help reflpolorient.gif
-redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl \
-	NG7monitor.cal reflred.help help.help tkviewrunrc footprint.gif
+	print.tcl tableentry.tcl generic.tcl
+fithelp=reflfit.help help.help mlayer.help gj2.help
+fitfig=reflpolorient.gif
+fitsrc=mlayer.tcl defaults.tcl tkmlayerrc
+redhelp=reflred.help help.help
+redfig=footprint.gif fpflat.gif fplinear.gif
+redsrc=viewrun.tcl reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc 
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	interp1err.m run_avg.m run_interp.m run_sub.m runlog.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m
 
+fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
+redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
+
 libfiles=$(patsubst %,$(drive)$(topdir)/lib/%,$(libsrc))
 fitfiles=\
+	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fithelp)) \
+	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fitfig)) \
 	$(patsubst %,$(drive)$(topdir)/tcl/%,$(fitsrc)) \
 	$(drive)$(topdir)/freewrap/loadwrap.tcl \
 	$(libfiles)
 redfiles=\
+	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redhelp)) \
+	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redfig)) \
 	$(patsubst %,$(drive)$(topdir)/reflred/%,$(redsrc)) \
 	$(patsubst %,$(drive)$(topdir)/reflred/octave/%,$(redoctavesrc)) \
 	$(drive)$(topdir)/freewrap/loadwrap.tcl \
@@ -64,6 +73,16 @@ redfiles=\
 .PHONY: makegmlayer makegj2 freewrap 
 
 all: makegmlayer makegj2 $(ARCH)/reflpol$(EXE) $(ARCH)/reflfit$(EXE) $(ARCH)/reflred$(EXE)
+
+html: html/reflred/index.html html/reflfit/index.html
+
+html/reflred/index.html: lib/help2html $(ARCH)/reflred$(EXE) $(redhelpdeps)
+	rm -rf html/reflred
+	lib/help2html reflred windows $(ARCH)/reflred_version.tcl $(redhelpdeps)
+
+html/reflfit/index.html: lib/help2html $(ARCH)/reflfit$(EXE) $(fithelpdeps)
+	rm -rf html/reflfit
+	lib/help2html reflfit introduction $(ARCH)/reflfit_version.tcl $(fithelpdeps)
 
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflfit.manifest \
 		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl $(fitfiles) \
