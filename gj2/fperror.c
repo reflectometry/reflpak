@@ -51,6 +51,10 @@ See the following for details:
 
 */
 
+#if defined(__GCC__)
+#define _GNU_SOURCE
+#endif
+
 #include <fenv.h>
 
 /* Define C and fortran variants. */
@@ -106,3 +110,10 @@ int fperrorF77 (void)
   feclearexcept(USEFUL_FLAGS);
   return flags != 0;
 }
+
+#if defined(__GNUC__)
+void fptrap(void)
+{
+  feenableexcept(USEFUL_FLAGS);
+}
+#endif
