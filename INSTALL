@@ -2,7 +2,7 @@
 
 <h1>Reflectometry software installation</h1>
 
-<p>Please read the <a href="RELEASE-NOTES">V-@VERSION@ release notes.</a></p>
+<p>Please read the <a href="RELEASE-NOTES">V@VERSION@ release notes.</a></p>
 
 <p>Precompiled binaries of the NCNR reflectometry are available
 for <a href="#windows">Windows</a>, <a href="#macosx">Mac OS X</a>,
@@ -81,10 +81,10 @@ or as user:
 <p>To run reflred, you will first need to install 
 <a href="http:://www.octave.org">Octave</a> and
 <a href="http://octave.sourceforge.net">octave-forge</a>.
-Many linux systems have pre-built binaries.  Details are available at 
-<a href="http://wiki.octave.org/wiki.pl?OctaveForGNULinux">OctaveForGNULinux</a>
-For IRIX, you will have
-to build from source (information is available at
+Many linux systems have pre-built binaries. For IRIX, you will have to 
+build from source. Details are available on the
+<a href="http://wiki.octave.org">octave wiki</a>
+(<a href="http://wiki.octave.org/wiki.pl?OctaveForGNULinux">OctaveForGNULinux</a>,
 <a href="http://wiki.octave.org/wiki.pl?PaulKienzleIrixConf">PaulKienzleIrixConf</a>).
 
 <p>Once octave is installed, start octave then start the octave server
