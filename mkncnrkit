@@ -89,11 +89,10 @@ tkcon.tcl (latest):
 I did the following from the dqkit root:
 
 	host=$(host); host=${host%%.*}
-	withtcl="--with-tcl=../../../install/$host/lib"
-	withtk="--with-tk=../../../install/$host/lib"
+	tcllib="../../../install/$host/lib"
 	tar xzf Tktable2.8.tar.gz -C src
 	mkdir build/$host/tktable; cd build/$host/tktable
-	../../../src/Tktable2.8/configure $withtcl $withtk
+	../../../src/Tktable2.8/configure --with-tcl=$tcllib --with-tk=$tcllib --prefix=$tcllib
 	make ; make install
 	cd ../../..
 	tar xzf bwidget1.6.tar.gz -C install/$host/lib
