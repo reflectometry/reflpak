@@ -11,6 +11,10 @@ In particular you may need:
    lc          - load constraints
    ps abcd     - use all four polarization states when fitting.
    sl A B N y  - repeat layers A to B N times, erasing B+1 to B+N*(B-A).
+   ql "lo hi"  - set Q range for simulation from lo to hi.
+   np n        - use n points in Q range for simulation
+   srf         - save log(R) to file (use 'of file' to set file name)
+   slp         - save layer profile
 
 You must be sure to use the correct number of parameters for the
 command, or you will need to exit and restart the program.  In practice
