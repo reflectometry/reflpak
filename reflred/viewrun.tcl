@@ -1,34 +1,20 @@
+package require Tk
+package require BLT
 namespace import blt::graph blt::vector blt::hiertable
-source [file join $::VIEWRUN_LIB generic.tcl]
-source [file join $::VIEWRUN_HOME loadicp.tcl]
-source [file join $::VIEWRUN_HOME loaduxd.tcl]
-source [file join $::VIEWRUN_HOME loadreduced.tcl]
-source [file join $::VIEWRUN_HOME reduce.tcl]
-#source [file join $::VIEWRUN_HOME atten.tcl]
-source [file join $::VIEWRUN_LIB tableentry.tcl]
-source [file join $::VIEWRUN_LIB pan.tcl]
-source [file join $::VIEWRUN_LIB htext.tcl]
+package require Tktable
+package require BWidget
+package require tkcon
+package require ncnrlib
+package require octave
+
+register_icp
+register_uxd
+register_reduced
 
 help $::VIEWRUN_HOME reflred help
 wm protocol . WM_DELETE_WINDOW { exit }
 
 set ::title Reflred
-
-# need to work out some more details before the ftp vfs is usable
-set have_archive 0
-if 0 { 
-catch {
-    package require vfs::ftp
-    vfs::ftp::Mount ftp://charlotte.ncnr.nist.gov/pub/icpdata /archive
-#    after 500000 { keep_alive_charlotte }
-#    proc keep_alive_archive {} { 
-#	glob /archive
-#	after 50000 keep_alive_archive
-#    }
-    set have_archive 1
-}
-}
-# cd /archive/ng1/200307/akron1
     
 # XXX FIXME XXX how can I make this automatic?
 set OCTAVE_SUPPORT_FILES { 
@@ -42,20 +28,6 @@ set OCTAVE_SUPPORT_FILES {
 if { [string equal $::tcl_version 8.4] } {
     rename blt::busy {}
     proc blt::busy {args} {}
-}    
-
-# on-demand loading
-proc PrintDialog {args} {
-    uplevel #0 [list source [file join $::VIEWRUN_LIB print.tcl]]
-    eval PrintDialog $args
-}
-proc choose_dataset {args} {
-    uplevel #0 [list source [file join $::VIEWRUN_HOME choose.tcl]]
-    eval choose_dataset $args
-}
-proc psd {args} {
-    uplevel #0 [list source [file join $::VIEWRUN_HOME psd.tcl]]
-    eval psd $args
 }
 
 # Delay starting octave as long as possible
@@ -63,7 +35,6 @@ rename octave octave_orig
 proc octave {args} {
     rename octave {}
     rename octave_orig octave
-#    uplevel #0 [list source [file join $::VIEWRUN_LIB octave.tcl]]
     restart_octave
     eval octave $args
 }
@@ -104,9 +75,6 @@ set ::logaddrun 0
 set ::erraddrun y
 set ::background_default [option get . backgroundBasis BackgroundBasis]
 
-# default user preferences
-set appname [file tail $argv0]
-
 proc init_tree_select_images {} {
     set box9 {
 	{ 111111111}
@@ -134,10 +102,7 @@ proc init_selector { } {
     menu .menu
     . config -menu .menu
     .menu add command -label "Data..." -command { choose_dataset setdirectory }
-    .menu add command -label "Reduce..." -command {
-	wm deiconify .reduce
-	raise .reduce
-    }
+    .menu add command -label "Reduce..." -command { reduce_show }
     .menu add command -label "Attenuators..." -command { atten_table }
     # XXX FIXME XXX want menu options for setting Xray/Neutron wavelength
     # XXX FIXME XXX some users want separate scan directory and fit directory
@@ -272,7 +237,9 @@ proc init_selector { } {
 
     pack $datapane.filebygraph -fill both -expand yes
     pack .treebydata -fill both -expand yes
-    set geometry [option get . geometry Geometry]
+    wm deiconify .
+#    set geometry [option get . geometry Geometry]
+    set geometry 620x420
     if { ![string equal $geometry ""] } { wm geometry . $geometry }
 
 #   # Maximize the window on opening; this doesn't quite work on X since
@@ -281,6 +248,9 @@ proc init_selector { } {
 #   if { [catch { wm state . zoomed }] } {
 #	wm geometry [wm frame .] [join [wm maxsize .] x]
 #   }
+
+    # After wm geometry commands, use wm positionfrom/sizefrom program
+    # so that the wm doesn't think these came direct from the user.
     wm positionfrom . program
     wm sizefrom . program
 }
@@ -2120,6 +2090,7 @@ proc setdirectory { pattern_set } {
     set files {}
     foreach p $pattern_set {
         # implicitly extend patterns as if they are prefixes
+	set p [file normalize $p]
         if { [file isdirectory $p] } {
             set p [file join $p *]
         } else {
@@ -2225,10 +2196,6 @@ proc setdirectory { pattern_set } {
 
 init_selector
 
-# XXX FIXME XXX shouldn't require the reduce window just for looking at
-# a few data files
-reduce_init
-
 # ---------------------------------------------------------------------------
 #  Command Tree::_draw_node
 #  *** This is modified from BWidget's Tree::_draw_node ***
@@ -2303,9 +2270,6 @@ proc ::Tree::_draw_node { path node x0 y0 deltax deltay padx showlines } {
     return $y1
 }
 
-# load the initial directory (as set by the command line arguments if any)
-setdirectory $pattern
-
 
 # rec filename
 #   finds the record associated with filename and binds it to rec
@@ -2340,3 +2304,6 @@ proc app_source { f } {
     }
 }
 app_source [file join [HOME] .reflred.tcl]
+
+# load the initial directory (as set by the command line arguments if any)
+setdirectory $pattern
