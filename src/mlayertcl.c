@@ -196,14 +196,10 @@ int ipc_fitupdate(void)
 }
 static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
 {
-  printf("tclconstraints\n");
   if (fit_constraints) {
-    printf("applying constraints as %s\n", fit_constraints);
     Tcl_Eval(fit_interp, fit_constraints);
-    printf("clearing results\n");
     Tcl_ResetResult(fit_interp);
   }
-  printf("done constraints\n");
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */
   /* flushqueue(); */
 }
@@ -405,10 +401,11 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
          cleanFree((double **)&ConstraintScript);
          if (strlen(argv[3])) {
             ConstraintScript = Tcl_Alloc(strlen(argv[3])+1);
-            strcpy(ConstraintScript, argv[3]);
+            if (ConstraintScript)
+                strcpy(ConstraintScript, argv[3]);
          }
       } else if (ConstraintScript != NULL)
-         interp->result = ConstraintScript;
+         Tcl_SetResult(interp,ConstraintScript,TCL_VOLATILE);
     } else if (strcmp(what, "mkconstrain") == 0) {
 #if 0
       char version[15];
