@@ -570,7 +570,7 @@ proc layer_index { id section number offset type } {
 	set s "L"
 	set n $id
 	if { ![ string is integer $id ] } {
-	    tk_messageBox -message "Layer <$id> is not a number" -type ok
+	    tk_messageBox -message "Layer <$id> is not an integer" -type ok
 	    return 0
 	}
     } else {
@@ -813,24 +813,44 @@ proc layer_magnetic { mdepth theta mqcsq mro } {
 proc layer_lattice { start end copies } {
     if { ![ layer_index $start s n sidx source ] } { return 0 }
     if { ![ layer_index $end st m tidx source ] } { return 0 }
-    if { $sidx >= $tidx } {
-	tk_messageBox -message "Must have start < end" -type ok
+    if { $sidx > $tidx } {
+	tk_messageBox -message "Must have start <= end" -type ok
 	return 0
     }
-    if { $::num_layers + ($end - $start)*$copies >= $::MAX_LAYERS } {
+    if { $::num_layers + ($end - $start + 1)*($copies-1) >= $::MAX_LAYERS } {
 	tk_messageBox -message "Too many layers" -type ok
 	return 0
     }
-    incr $tidx $::num_fields
-    vector create copy
-    vector create tail
-    copy set $::pars($sidx:[expr $tidx - 1])
-    tail set $::pars($tidx:)
+
+    # Save the body and tail
+    incr tidx $::num_fields
+    vector create ::layer_lattice_copy
+    ::layer_lattice_copy set $::pars($sidx:[expr $tidx - 1])
+    if { $tidx < [::pars length] } {
+	vector create ::layer_lattice_tail
+	::layer_lattice_tail set $::pars($tidx:)
+    }
+
+    # Chop everything after the head
     ::pars set $::pars(:[expr $sidx - 1])
-    for { set i 0 } { $i < copies } { incr i } { ::pars append copy }
-    ::pars append tail
-    copy delete
-    tail delete
+
+    # Append copies
+    for { set i 0 } { $i < $copies } { incr i } { 
+	::pars append ::layer_lattice_copy 
+    }
+    vector destroy ::layer_lattice_copy
+
+    # Append the tail
+    if { [vector_exists ::layer_lattice_tail] } {
+	::pars append ::layer_lattice_tail
+	vector destroy ::layer_lattice_tail
+    }
+
+    # Record new number of layers
+    set ::pars(0) [incr ::num_layers  [expr {($end-$start+1)*($copies-1)}]]
+    layer_renumber
+
+    return 1
 }
 
 
@@ -3240,11 +3260,13 @@ menu .menu.layer
 .menu.layer add command -underline 0 -label "Overwrite..." \
     -command { raise .overwrite; .overwrite draw }
 .menu.layer add separator
-.menu.layer add command -underline 0 -label "Repeat..." \
-    -command {
-	if { !$::MAGNETIC } { set ::layerop_repeat $::nrepeat }
-	raise .repeat; .repeat draw
-    }
+if { $::MAGNETIC } {
+    .menu.layer add command -underline 0 -label "Repeat..." \
+	-command { raise .lattice; .lattice draw }
+} else {
+    .menu.layer add command -underline 0 -label "Repeat..." \
+	-command {set ::layerop_repeat $::nrepeat; raise .repeat; .repeat draw}
+}
 .menu.layer add separator
 .menu.layer add command -underline 3 -label "Roughness..." \
     -command {
@@ -3398,7 +3420,7 @@ set layerop_mu 0.0
 set layerop_qcsq 0.0
 set layerop_ro 1.0
 set layerop_md 10.0
-set layerop_theta 0.0
+set layerop_theta 270.0
 set layerop_mqcsq 0.0
 set layerop_mro 1.0
 set layerop_repeat 1
@@ -3415,37 +3437,53 @@ proc make_layerops {} {
     # associated with the fields in the field list.
     # WARNING!!! This means the order of the fields on the form
     # must match the order of the arguments to the function.
-    set from [list string layerop_id "From layer" ]
-    set to   [list string layerop_dest "To layer" ]
-    set delete [list delete [list \
-	    { string layerop_id "Delete layer" } ] ]
-    set copy   [list copy   [list $from $to ] ]
-    set move   [list move   [list $from $to ] ]
-    set overwrite [list overwrite [list $from $to ] ]
-    set insert [list insert [list \
-	    { string layerop_id "Insert layer" } \
-	    { real layerop_qcsq "Qc^2" "inv Angstroms^2" } \
-	    { real layerop_mu "Mu" "inv Angstroms^2" } \
-	    { real layerop_ro "Roughness" "Angstroms" } \
-	    { real layerop_d "layer depth" "Angstroms" } ]]
+
+    # common fields
+    set from [subst {string layerop_id "From layer"} ]
+    set to   [subst {string layerop_dest "To layer"} ]
+
+    # layer dialogs
+    set delete [subst { delete {
+	{ string layerop_id "Delete layer" } 
+    }}]
+    set copy   [subst { copy { { $from } { $to } }}]
+    set move   [subst { move { { $from } { $to } }}]
+    set overwrite [subst { overwrite { { $from } { $to } }}]
+    set insert [subst { insert {
+	{ string layerop_id "Insert before layer" }
+	{ real layerop_qcsq "Qc^2" "inv Angstroms^2" "$::field_help(qcsq)" }
+	{ real layerop_mu "Mu" "inv Angstroms^2" "$::field_help(mu)" }
+	{ real layerop_ro "Roughness" "Angstroms" "$::field_help(ro)" }
+	{ real layerop_d "Layer depth" "Angstroms" "$::field_help(depth)" } 
+    }}]
     if { $::MAGNETIC } {
-	set insert [ list insert [concat [lindex $insert 1] [ list \
-		{ real layerop_mqcsq "Qm^2" "inv Angstroms^2" } \
-		{ real layerop_theta "Theta" "degrees" } \
-		{ real layerop_mro "Magnetic roughness" "Angstroms" } \
-		{ real layerop_md "Magnetic layer depth" "Angstroms" } ]]]
+	# XXX FIXME XXX theta help does not include the embedded images
+	set insert [subst { insert {
+	    [lindex $insert 1]
+	    { real layerop_mqcsq "Qm^2" "inv Angstroms^2" 
+		"$::field_help(mqcsq)" }
+	    { real layerop_theta "Theta" "degrees" 
+		"$::field_help(theta)" }
+	    { real layerop_mro "Magnetic roughness" "Angstroms" 
+		"$::field_help(mro)" }
+	    { real layerop_md "Magnetic layer depth" "Angstroms" 
+		"$::field_help(mdepth)" }
+	}}]
     }
     if { $::MAGNETIC } {
-	set repeat [list lattice [list \
-		{ real layerop_id "Start layer" } \
-		{ real layerop_dest "End layer" } \
-		{ real layerop_repeat "Number of copies" } ]]
+	set repeat [subst { lattice {
+	    { real layerop_id "Start layer" }
+	    { real layerop_dest "End layer" }
+	    { real layerop_repeat "Number of copies" } 
+	}}]
     } else {
-	set repeat [list repeat [list \
-		{ real layerop_repeat "Number of middle section repeats" } ]]
+	set repeat [subst { repeat {
+	    { real layerop_repeat "Number of middle section repeats" }
+	}}]
     }
-    set roughness [list roughness [list \
-	    { real layerop_repeat "Number of roughness steps" "must be >2" } ]]
+    set roughness [subst { roughness {
+	{ real layerop_repeat "Number of roughness steps" "must be >2" }
+    }}]
 
     # Build the forms and attach the controls
     foreach op [list $insert $delete $copy $move $overwrite $repeat $roughness ] {
