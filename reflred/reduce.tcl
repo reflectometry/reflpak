@@ -255,6 +255,7 @@ proc footprint_init {} {
     set ::footprint_Qmin {}
     set ::footprint_Qmax {}
     set ::footprint_correction 0
+    set ::footprint_correction_type fit
     set ::fit_footprint_correction 0
     set ::fit_footprint_style 3
     set ::fit_footprint_Qmin {}
