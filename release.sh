@@ -23,6 +23,10 @@ builddir="~/cvs/reflfit"
 STORE=jazz:release
 SHARE=jazz:samba
 
+# The following directory will contain reflpak$VERSION and 
+# reflpak-latest symlinked to relfpak$VERSION.
+SHAREBIN=jazz:~/bin
+
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagic
 # and tclsh.
@@ -76,13 +80,14 @@ echo; echo -n "Update server? [y for yes]: "
 read ans
 test "$ans" != "y" && exit
 
-echo; echo "== updating $STORE and $SHARE ======================"
+echo; echo "== updating $STORE, $SHARE and $SHAREBIN ================="
 sed -e"s,@VERSION@,$VERSION,g" < INSTALL >reflpak$VERSION/index.html
 cp RELEASE-NOTES reflpak$VERSION
 tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
 scp reflpak$VERSION.tar.bz2 "$STORE"
 scp -r reflpak$VERSION "$SHARE"
 ssh ${SHARE%:*} "cd ${SHARE#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
+ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $BUILD/kit/reflpak reflpak$VERSION && rm reflpak-latest && ln -s reflpak$VERSION reflpak-latest"
 rm -rf reflpak$VERSION
 echo; echo "Please check that $STORE and $SHARE contain what you want"
 
