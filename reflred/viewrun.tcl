@@ -2476,6 +2476,7 @@ proc NG1load {id} {
 	    ::A1_$id dup ::x_$id
 	}
 	back {
+	    set rec(slit) A1_$id
 	    exclude_specular_ridge $id
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    set col $::background_basis($rec(dataset),$rec(instrument))
@@ -2696,6 +2697,7 @@ proc NG7load {id} {
 	back {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    ::QZ_$id dup ::x_$id
+	    set rec(slit) S1_$id
 	}
 	default { default_x $id }
     }

@@ -621,13 +621,18 @@ proc reduce {spec back slit} {
     # the work-around belongs in listen, not here.
     octave eval {
         refl = sub = div = [];
-	if !isempty(spec)
-	   refl = spec;
-	   if !isempty(back)
-	      back = run_interp(back,refl.x);
-	      refl = run_trunc(refl,back.x);
-              refl = run_sub(refl,back);
-	      sub = refl;
+	if !isempty(spec) || !isempty(back)
+	   if !isempty(spec)
+	      refl = spec;
+	      if !isempty(back)
+	         back = run_interp(back,refl.x);
+	         refl = run_trunc(refl,back.x);
+                 refl = run_sub(refl,back);
+	         sub = refl;
+	      endif
+	   else
+	      refl = spec = back;
+	      back = [];
 	   endif
 	   if !isempty(slit)
 	      if struct_contains(spec,'m')
@@ -880,7 +885,7 @@ proc reduce_save { args } {
     if { $havefoot || ($havespec && $haveback && !$needfoot) } {
 	set ext .refl
 	set data refl
-    } elseif {$havespec && $haveslit} {
+    } elseif {($havespec || $haveback) && $haveslit} {
 	set ext .div
 	set data div
     } elseif {$havespec && $haveback} {
