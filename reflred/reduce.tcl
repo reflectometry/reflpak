@@ -250,7 +250,7 @@ set ::footprint_Qmin {}
 set ::footprint_Qmax {}
 set ::footprint_correction 0
 set ::fit_footprint_correction 0
-set ::fit_footprint_thru_origin 0
+set ::fit_footprint_style 3
 set ::fit_footprint_Qmin {}
 set ::fit_footprint_Qmax {}
 set ::footprint_at_Qmax {}
@@ -264,10 +264,17 @@ proc reduce_footprint_parms {} {
 
     set fp [toplevel .footprint]
     radiobutton $fp.auto -variable ::footprint_correction_type -value fit \
-	    -text "Fit footprint correction"
+	-text "Fit footprint correction"
 
-    checkbutton $fp.origin -variable ::fit_footprint_thru_origin \
-	    -text "Fit through origin"
+    set fpfs [frame $fp.fitstyle]
+    label $fpfs.fit -text "Fit"
+    radiobutton $fpfs.origin -variable ::fit_footprint_style \
+	-value 1 -text "m*Qz"
+    radiobutton $fpfs.plateau -variable ::fit_footprint_style \
+	-value 2 -text "b"
+    radiobutton $fpfs.line -variable ::fit_footprint_style \
+	-value 3 -text "m*Qz+b"
+    pack $fpfs.fit $fpfs.line $fpfs.origin $fpfs.plateau -side left
 
     set fpfr [frame $fp.fitrange]
     entry $fpfr.min -textvariable ::fit_footprint_Qmin -width $width
@@ -333,7 +340,7 @@ proc reduce_footprint_parms {} {
     }
 
     grid $fp.auto - - - - - -sticky sw
-    grid x $fp.origin - - - - -sticky w
+    grid x $fpfs - - - - -sticky w
     grid x $fpfr - - - - -sticky ew
     grid $fp.manual - - - - - -sticky sw
     grid x $fp.mlab $fp.m $fp.dmlab $fp.dm x -sticky ew
@@ -392,10 +399,15 @@ proc reduce_footprint_correction {} {
 		return
 	    }
 	    octave eval "idx = refl.x >= $::fit_footprint_Qmin & refl.x <= $::fit_footprint_Qmax"
-	    if { $::fit_footprint_thru_origin } {
-		octave eval { origin='origin' }
+	    if { $::fit_footprint_style == 1 } {
+		octave eval { footprint_origin='origin' }
 	    } else {
-		octave eval { origin='' }
+		octave eval { footprint_origin='' }
+	    }
+	    if { $::fit_footprint_style == 2 } {
+		octave eval { footprint_order=0 }
+	    } else {
+		octave eval { footprint_order=1 }
 	    }
 	    #octave eval {
   	    #    send(sprintf('puts {x=%s}',mat2str(refl.x(idx))));
@@ -403,8 +415,9 @@ proc reduce_footprint_correction {} {
 	    #    send(sprintf('puts {dy=%s}',mat2str(refl.dy(idx))));
 	    #}
 	    octave eval {
-		[p,dp] = wpolyfit(refl.x(idx),refl.y(idx), ...
-	                      refl.dy(idx),1,origin);
+		[p,dp] = wpolyfit(refl.x(idx),refl.y(idx),refl.dy(idx), ...
+				  footprint_order,footprint_origin);
+		if footprint_order==0, p=[0;p]; dp=[0;dp]; end
 		send(sprintf('set ::footprint_m  %.15g', p(1)));
 		send(sprintf('set ::footprint_dm %.15g',dp(1)));
 		send(sprintf('set ::footprint_b  %.15g', p(2)));

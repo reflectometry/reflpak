@@ -345,73 +345,99 @@ graph controls
 2002-09-18}
 
 # ----------------------------------------------------------------------
-hpage {footprint correction} .footprint {As
-the incident angle decreases the area illuminated by the beam increases
-without bound.  For higher Q, you can adjust the slits for each Q value so
-that a constant area of the sample is illuminated.  However, as the angle
-decreases the slits become so narrow that imprecision in the slit separation 
-and even the roughness of the slit surfaces can distort the beam shape.  So
-instead the slits are sometimes held fixed for small Q, which means an ever
-increasing portion of the beam will miss the sample as the incident angle
-approachs zero, which you will see as decreasing reflectivity. The signal 
-will rise again near zero as the detector enters the main beam (see Fig. 1).
+hpage {footprint correction} .footprint {
+If the incident slits are fixed, the fraction of the sample area
+illuminated by the beam increases without bound as the incident angle  
+(theta) decreases.  For high Q, you can avoid correcting for this 
+geometrical effect and simultaneously increase the flux incident on the
+sample by linearly opening the slits with increasing angle such that a
+constant area of the sample is illuminated at each Q.
+
+For small Q, however, the variable slit openings would then approach
+zero as the angle decreases and the flux incident on the sample may be
+too small.  As a result the slits are sometimes held fixed for small Q
+and an ever-increasing fraction of the beam will spill over the sample
+surface as the incident angle approaches zero (Fig 1).  For fixed or
+variable slits, the signal will rise sharply near zero as the detector 
+enters the main beam.
 
 	[img::footprint.gif]
-	Fig. 1: At small angles and fixed slits, the detector
-	can be directly exposed to the main beam.
+	Fig. 1: Beam spills over the sample edges as the
+	incident angle approaches zero.
 
-Our goal with footprint correction is to remove the geometric effects
-of using fixed slits for Q values at or beyond the critical edge.
-Assuming fixed slits and a rectangular sample (or a fully illuminated
-sample of arbitrary shape), the portion of beam which covers the
-sample will decrease linearly with Q and since the sin(x) ~ x near
-x=0, the portion will also decrease linearly with angle.  Given the
-geometry of your experiment (distance between slits, width of slit
-opening, distance between slit and sample, size and shape of sample),
-you can divide by a line up until the end of the correction region,
-and a constant thereafter.
+Our goal with footprint correction is to compensate for the geometric
+effects resulting from the use of fixed slits.   Assuming a rectangular
+sample (or a fully illuminated sample of arbitrary shape), the fraction
+of beam which intercepts the sample will decrease linearly with Q.
+Since sin(theta) ~ theta near theta=0, the portion will also decrease
+linearly with incident angle.  To correct for this effect, you should 
+divide by a line up until the end of the correction region, and a
+constant thereafter.
 
-There are several cases which concern us:
+There are several cases:
 
->(1) You see a flat region before the critical edge.  This is the easy
-case.  Normalizes this flat region to one (e.g., by guessing at an 
-incident medium transmission coefficient) and ignore all data before
-the flat region.  The flat region will be less than one if your beam
-is wider than your sample so some of the beam is not reflected.  If your
-sample is wider than the beam, you should see a value of about one.
+#(1) A flat region is apparent before the critical angle: Normalize
+this flat region to one (e.g., by guessing at an incident medium 
+transmission coefficient) and ignore all data before
+the flat region.
 
->(2) You see a flat slope rising to the critical edge.  Here you
-can guess the footprint correction by fitting a line to the flat slope,
-stopping where it curves into the critical edge.  The footprint correction
-window will tell you the Q value where the footprint correction is
-unity.  You should apply the footprint correction up to that Q value or
-up to the end of the fixed slit region, whichever comes first.
+(1) A flat region is apparent below the critical angle: Normalizes 
+this flat region to one (e.g., by fitting the plateau) and ignore all 
+data below the flat region.
 
->(3) You see neither the flat region nor the flat slope.  In this case
-you will have to calculate the footprint correction from the geometry
-of your experiment and enter it directly.  If your sample is not 
+[img::fpflat.gif]
+	Fig 2: Flat region after "V".  The plateau is marked with
+	red "+". Fit to intercept b (the slope m is zero).
+
+Note that you should have some explanation for why intensity of the
+plateau is not unity.  For example, if the slit scan was taken in
+air but the reflected intensity was measured in vacuum, the 
+plateau will be above unity.  Similarly, if the beam is wider than 
+the sample, not all the beam will be reflected, and the plateau will
+be below unity.
+
+(2) The data linearly increases below the critical angle:  Approximate
+the footprint correction by fitting a line to the linear region,   
+stopping the fit where the data curve into the critical region.  The
+footprint correction window will tell you the Q value where the
+footprint correction is equal to 1.  You should apply the footprint  
+correction up to that Q value or up to the end of the fixed slit region,
+whichever occurs at the lowest Q.
+
+[img::fplinear.gif]
+	Fig 3: No flat region after "V". Linear portion is marked
+	with red "+".  Fit to line m*Qz+b.  Note the linear scale 
+	on the right hand axis.
+
+>(3) Neither a flat region nor a sloped region is evident below the  
+critical angle:  In this case calculate the footprint correction from
+the geometry of your sample and enter it directly  (Tools for this
+calculation are not yet available in reflred).  If your sample is not
 rectangular, you may not be able to calculate the footprint correction,
 and you will need to measure it (see below).
 
-Let's look at the second case in more detail.  First zoom into the
-reduce graphs so that you can see both the fixed slit region and the
-corresponding reflectivity.  Be sure that the y-axis for the reflectivity
-uses a _linear_ scale so that you can locate the flat portion of the
-rising slope.  Click Parameters... to select the footprint fit parameters.
+Since the second case is the most common, we consider it here in more
+detail.  First zoom into the reduce graphs so that you can see both
+the fixed slit region simultaneous with the corresponding
+reflectivity.  Be sure that the y-axis for the reflectivity uses a
+_linear_ scale so that you can locate the flat portion of the rising
+slope.  Click Parameters... to select the footprint fit parameters.
 
-In the footprint window, select 'Fit footprint correction' and click 
-the 'From graph...' button.  You will want to first select the lowest 
-Q point of your data which is not being directly illuminated by the beam.  
-This is at the bottom of the "V" in the reflectivity signal (assuming 
-you have measured below about 0.005 inv Angstroms).  Next choose the 
-last point which is approximately linear from the bottom of the "V".  
+In the footprint window, select 'Fit footprint correction' and click
+the 'From graph...' button.  You will want to first select the lowest
+Q point of your data which does not include scattering from the main
+beam.  (This is at the bottom of the "V" in the reflectivity signal
+assuming you have measured below about 0.005 inv Angstroms).  Next
+choose the last point which is approximately linear.  Make sure the
+m*Qz+b selection is active (use b if fitting a plateau, use m*Qz if you
+want to constrain the footprint to go through zero a Qz = 0).
 
-Having specified the slope and intercept from the geometry, or having
-selected the fit region from the graph, you must then select the portion 
-of the curve over which to apply the footprint correction.  You can again 
-click 'From graph...' to select points from the graph.  Usually this
-is from the bottom of the "V" to the Q value where the end of the fixed 
-slit region.  
+Having specified the slope and intercept, or having selected the fit
+region from the graph, you must then select the portion of the curve
+over which to apply the footprint correction.  You can again click
+'From graph...' to select points from the graph.  Usually the
+correction should be applied from the bottom of the "V" to the Q value
+corresponding to the end of the fixed slit region.
 
 For NG1 and X-ray data, the fixed slit region will be obvious from the
 measured slit scan.  For NG7 you will have to go back to the data
@@ -421,21 +447,21 @@ button on the specular scan you are using from the list of specular
 scans and select 'Edit'.]  Often NG7 data is taken with continously
 varying slits.
 
-Click the Apply button to compute the footprint correction and the
-resulting reflectivity. Notice that the value of the footprint 
-correction at the end of the application range is extended to the 
-entire Q range of your reflectivity scan.  This value, listed at
-the bottom of the footprint dialog, should be less than one.  If it
-is not, use the Qz value where the correction is 1.0 given on the next
+Click the Apply button to fit and apply the footprint
+correction. Notice that the value of the footprint correction
+specified at the end of the application range divided through the
+entire Q range of your reflectivity scan.  This value, listed at the
+bottom of the footprint dialog, should be less than one.  If it is
+not, use the Qz value where the correction is 1.0 given on the next
 line as the upper end of "Correct from" range.
 
-Your footprint correction is now complete.  If you do not which to
-use it, click off the "Footprint correction" check box on the [reduce]
-screen and it will no longer be applied.
+Your footprint correction is now complete.  If you do not wish to
+apply it, click off the "Footprint correction" check box on the [reduce]
+screen.
 
 Note that if your sample is not rectangular or fully illuminated, 
 the footprint correction will no longer be linear.  In that case
-you will have to measure the footprint correction directly.  
+you will have to measure the footprint correction directly (Case 3).  
 First measure a sample of the same dimension and with a critical angle
 greater than the fixed slit region for your experiment.  Reduce that
 scan (being sure to divide by a slit scan if necessary) and save it.
@@ -445,7 +471,7 @@ get to the footprint window.  Choose the footprint scan from the
 the region you want to correct as zero to the critical angle of the
 footprint scan.
 
-2003-10-26}
+2003-11-03}
 
 # ----------------------------------------------------------------------
 hpage {psd} .psd {See also [psd controls].
