@@ -1,0 +1,42 @@
+#! /bin/sh
+# \
+exec "@WISH@" "$0" "$@"
+
+# proc step msg { tk_messageBox -message $msg }
+
+set MLAYER_HOME [file join @TOPDIR@ tcl]
+set MLAYER_LIB [file join @TOPDIR@ lib]
+set TKCON "@TKCON@"
+
+## ==============================================================
+## Installation dependencies
+## ==============================================================
+
+## You may need to customize this file for each installation.  It
+## defines the locations of the various programs on the system.  There
+## are no user dependencies in this file.
+
+if { [namespace exists ::freewrap] } {
+    source [file join @TOPDIR@ freewrap loadwrap.tcl]
+    set dir "@BWIDGET@"
+    if { $dir ne "" } { source [file join $dir pkgIndex.tcl] }
+    set dir "@TKDND@"
+    if { $dir ne "" } { source [file join $dir pkgIndex.tcl] }
+    set dir "@TKTABLE@"
+    if { $dir ne "" } { source [file join $dir pkgIndex.tcl] }
+    unset dir
+}
+
+# external packages
+package require BWidget
+if { "@TKDND@" ne "" } { package require tkdnd }
+package require Tktable
+package require BLT
+
+# platform specific options
+source [file join "@ARCH@" options.tcl]
+
+# mlayer extension
+load "@GJ2@"
+set ::MAGNETIC 1
+source [file join $MLAYER_HOME mlayer.tcl]
