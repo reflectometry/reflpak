@@ -2,7 +2,7 @@
 
 <h1>Reflectometry software installation</h1>
 <p>Precompiled binaries of the NCNR reflectometry are available
-for <a href="#windows>Windows</a>, <a href="#macosx">Mac OS X</a>,
+for <a href="#windows">Windows</a>, <a href="#macosx">Mac OS X</a>,
 <a href="#unix">Linux</a> and <a href="#unix">IRIX</a>.
 
 <p>You can also download the
@@ -50,7 +50,7 @@ data and a short tutorial.
 
 <p>To reduce data in reflred, you will first need to install Octave and 
 octave-forge. There are binaries at 
-<a href="http://hpc.sourceforge.net#octave>HPC Mac OS X</a> which
+<a href="http://hpc.sourceforge.net#octave">HPC Mac OS X</a> which
 have been used successfully.  By the time you read this,
 <a href="http://fink.sourceforge.net">Fink</a> or
 <a href="http://darwinports.opendarwin.org">DarwinPorts<a> 
