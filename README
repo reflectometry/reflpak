@@ -26,8 +26,21 @@ reflred/
 
   Tcl scripts for reflred (also needs src/)
 
+reflpak/
+
+  Tcl scripts for the main package
+
+scifun/
+
+  Tcl extension package providing access to C99 math functions
+
+winlink/
+
+  Tcl extension package providing access to windows shortcuts.
+
 freewrap/
 
+  (Obsolete)
   Tcl scripts and C source for freewrap.  This needs
   to be replaced by a starkit infrastructure since
   freewrap is no longer supported (?).  Stubs-enabled
@@ -43,14 +56,17 @@ win/
 macosx/
 
   Architecture specific build directories containing
-  Makefile.freewrap, freewrapBLT and Makeconf for
-  each architecture.
+  Makeconf for each architecture and other architecture
+  specific files.
 
 Makefile
-reflred.tcl.in
-reflfit.tcl.in
+main.tcl
 
   Build files reflfit and reflred
+
+reflpak.tcl
+
+  Script for running unbundled in the source tree.
 
 tclConfig2Makeconf
 
@@ -68,28 +84,31 @@ ChangeLog
 Build
 =====
 
-You first need to link an appropriate configuration
-file to Makeconf.  E.g.,
+To build reflpak, you will first need to create Makeconf, or
+link to the appropriate version:
 
   ln -s linux/Makeconf .
 
 If none exists, create a new directory and copy
 the closest configuration file as a starting point.
 
-Make sure your architecture directory contains
-freewrapBLT.  See README.freewrap for build
-instructions.
+Make sure you have ncnrkit and sdx.kit for your computer architecture.
+Both are available from the reflpak web pages, or you may build
+your own according to the instructions in mkncnrkit.
+
 
 Type make.  The resulting files are:
 
-	arch/gmlayer.$LDEXT	the loadable module for mlayer
-	gj2/gj2.$LDEXT		the loadable module for gj2
-	reflfit.tcl		the driver program for reflfit
-	reflpol.tcl		the driver program for reflpol
-	reflred.tcl		the driver program for reflred
-	reflfit$EXE		wrapped versions of same
-	reflpol$EXE
-	reflred$EXE
+	tcl/gmlayer.$LDEXT	the loadable module for mlayer
+	tcl/gj2.$LDEXT		the loadable module for gj2
+	kit/reflpak$EXE
+
+Type make dist.  Depending on which system you are on, you will
+either have:
+
+	release/reflpakYYYYMMDD.dmg (arch=macosx)
+	reflpakYYYYMMDD-arch.tar.gz (arch=linux or arch=irix)
+	reflpakYYYYMMDD.exe (arch=win)
 
 Paul Kienzle
-2003-11-07
+2004-03-16
