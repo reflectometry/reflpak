@@ -122,7 +122,7 @@ if { $::MAGNETIC } {
 # XXX FIXME XXX also check version of ipc corresponds to current mlayer.tcl
 set VERSION 0.0.1
 source [file join $MLAYER_HOME defaults.tcl]
-if { [ file exists [file join $::HOME .mlayer] ] } {
+if { [ file exists [file join [HOME] .mlayer] ] } {
     source [file join $MLAYER_HOME defaults.tcl]
 }
 
@@ -3617,6 +3617,7 @@ proc movie {field min max frames} {
 	read_profile
 	read_reflectivity
 	set min [expr $min + $step]
+        update
     }
 }
 
@@ -3654,6 +3655,7 @@ proc chisqplot {field min max frames} {
 	::scan_p append $min
 	::scan_chi append [gmlayer send chisq]
 	set min [expr $min + $step]
+        update
     }
     
 }
