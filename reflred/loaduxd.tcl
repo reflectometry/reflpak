@@ -173,22 +173,18 @@ proc UXDmark {file} {
 		    marktype back $min $max -
 		} elseif { 2*$rec(THETA) > $rec(2THETA) } {
 		    marktype back $min $max +
-		} elseif { [string match -nocase *bgp $run] } {
-		    marktype back $min $max +
-		} elseif { [string match -nocase *bgm $run] } {
-		    marktype back $min $max -
-		} elseif { [string match -nocase *ba $run] } {
-		    marktype back $min $max +
-		} elseif { [string match -nocase *bb $run] } {
-		    marktype back $min $max -
-		} elseif { [string match -nocase *b $run] } {
-		    marktype back $min $max +
-		} elseif { [string match -nocase *bg $run] } {
-		    marktype back $min $max +
-		} elseif { [string match -nocase *bkg $run] } {
-		    marktype back $min $max +
 		} else {
-		    marktype spec $min $max 
+		    switch -regexp -- $run {
+			bk?g?[bm-]$ {
+			    marktype back $min $max -
+			}
+			bk?g?[ap+]?$ {
+			    marktype back $min $max +
+			}
+			default {
+			    marktype spec $min $max
+			}
+		    }
 		}
 	    }
 	}
