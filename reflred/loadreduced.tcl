@@ -1,10 +1,12 @@
 # Populate the file extensions reflred can produce.
 # <type> possibly followed by [ABCD] possibly followed by [+-] if type is back
-foreach ext { slit back spec refl div sub } {
-    foreach idx { {} A B C D } { set ::extfn(.$ext$idx) reduced_info }
-}
-foreach idx { {} A B C D } {
-    foreach side { + - } { set ::extfn(.back$idx$side) reduced_info }
+proc register_reduced {} {
+    foreach ext { slit back spec refl div sub } {
+	foreach idx { {} A B C D } { set ::extfn(.$ext$idx) reduced_info }
+    }
+    foreach idx { {} A B C D } {
+	foreach side { + - } { set ::extfn(.back$idx$side) reduced_info }
+    }
 }
     
 proc reduced_info { action {name {}} } {

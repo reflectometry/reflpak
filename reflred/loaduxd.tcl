@@ -1,10 +1,12 @@
 # See README.load
 
 # note the new extension
-set ::extfn(.uxd) UXDinfo
-set ::typelabel(height) "Height scan"
-set ::typelabel(tilt) "Tilt scan"
-set ::typelabel(khi) "Sample rock"
+proc register_uxd {} {
+    set ::extfn(.uxd) UXDinfo
+    set ::typelabel(height) "Height scan"
+    set ::typelabel(tilt) "Tilt scan"
+    set ::typelabel(khi) "Sample rock"
+}
 
 proc UXDinfo { action {name {}} } {
     switch -- $action {

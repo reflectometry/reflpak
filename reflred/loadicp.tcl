@@ -1,5 +1,4 @@
 # See README.load
-
 # XXX FIXME XXX dump this into a namespace
 
 set ::xraywavelength 1.5416
@@ -21,7 +20,6 @@ proc register_icp {} {
 	.ng1 NG1info .cg1 CG1info .ng7 NG7info .xr0 XR0info 
     }
 }
-register_icp
 
 
 proc NG1info { action {name {}} } {
