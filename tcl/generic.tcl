@@ -1008,7 +1008,7 @@ proc active_graph {w args} {
     if { [string equal windows $::tcl_platform(platform)] } {
         $w.menu add command -underline 3 -label "Copy" -command "$w snap -format emf CLIPBOARD"
     }
-    $w.menu add command -underline 0 -label "Print" -command "PrintDialog$w"
+    $w.menu add command -underline 0 -label "Print" -command "PrintDialog $w"
 
     # Add zoom capability to graph, but use the menu to unzoom
     Blt_ZoomStack $w
