@@ -9,13 +9,14 @@
 #    clear out the old and create a new package directory
 
 APP=$1 ; shift
+ROOT=`pwd`/kit/$APP.vfs
 
 if test $# -eq 0; then
-    rm -rf kit/$APP.vfs
-    install -d kit/$APP.vfs
+    rm -rf $ROOT
+    install -d $ROOT
 else
     PACKAGE=$1 ; shift
 
-    install -d kit/$APP.vfs/lib/$PACKAGE
-    install $* kit/$APP.vfs/lib/$PACKAGE
+    install -d $ROOT/lib/$PACKAGE
+    install $* $ROOT/lib/$PACKAGE
 fi
