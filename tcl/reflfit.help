@@ -305,9 +305,9 @@ Tcl, Python or whatever implementation language we are using, so be
 prepared to update your constraints as program versions change.
 No checks are done that the constraint code is correct, so be careful!
 
-The usual Tcl syntax applies:
+The usual Tcl syntax applies.
 
-    set <var> [expr {<expression>}]
+    set <var> \[expr {<expression>}]
     if { <expression> } {
         statements
     } else {
@@ -320,7 +320,7 @@ The usual Tcl syntax applies:
         statements
     }
 
-We define a function [range 1 $n] which returns a list of numbers
+We define a function \[range 1 $n] which returns a list of numbers
 from one to n.  This is useful when operating on every layer.
 
 Layer parameters are referenced using:
@@ -342,33 +342,33 @@ The following parameters are available:
 Example:
 
     # set depth of layer T2 to be equal to layer M1
-    gmlayer set td2 [gmlayer set md1]
+    gmlayer set td2 \[gmlayer set md1]
 
     # set roughness to 1/2 the layer depth for all layers
-    foreach i [range 1 [gmlayer set ntl]] { 
-	gmlayer set tro$i [expr {[gmlayer set td$i]/2}]
+    foreach i \[range 1 \[gmlayer set ntl]] { 
+	gmlayer set tro$i \[expr {\[gmlayer set td$i]/2}]
     }
-    foreach i [range 1 [gmlayer set nml]] { 
-	gmlayer set mro$i [expr {[gmlayer set md$i]/2}]
+    foreach i \[range 1 \[gmlayer set nml]] { 
+	gmlayer set mro$i \[expr {\[gmlayer set md$i]/2}]
     }
-    foreach i [range 1 [gmlayer set nbl]] { 
-	gmlayer set bro$i [expr {[gmlayer set bd$i]/2}]
+    foreach i \[range 1 \[gmlayer set nbl]] { 
+	gmlayer set bro$i \[expr {\[gmlayer set bd$i]/2}]
     }
 
     # set the total depth of the middle layers to be equal
     # to the total depth of the top layers while preserving
     # the relative depths of the middle layers
     set sumt 0
-    foreach i [range 1 [gmlayer set ntl]] {
-        set sumt [expr {$sumt + [gmlayer set td$i]}]
+    foreach i \[range 1 \[gmlayer set ntl]] {
+        set sumt \[expr {$sumt + \[gmlayer set td$i]}]
     }
     set summ 0
-    foreach i [range 1 [gmlayer set nml]] {
-        set summ [expr {$summ + [gmlayer set md$i]}]
+    foreach i \[range 1 \[gmlayer set nml]] {
+        set summ \[expr {$summ + \[gmlayer set md$i]}]
     }
-    set scale [expr {$sumt/$summ}]
-    foreach i [range 1 [gmlayer set nml]] {
-        gmlayer set tm$i [expr {[gmlayer set tm$i]*$scale}]
+    set scale \[expr {$sumt/$summ}]
+    foreach i \[range 1 \[gmlayer set nml]] {
+        gmlayer set tm$i \[expr {\[gmlayer set tm$i]*$scale}]
     }
 
 2003-09-16}
