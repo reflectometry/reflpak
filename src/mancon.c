@@ -24,7 +24,7 @@
 /* Local function prototypes */
 #include <static.h>
 
-STATIC int convolve(int finish, double *qj, double *qjprime, double *yjprime,
+STATIC int convolve(double *qj, double *qjprime, double *yjprime,
    double *yfit, double *rnorm, double twsgsq, int deldelq);
 
 
@@ -62,12 +62,16 @@ void mancon(double *q, double lambda, double lamdel, double thedel,
 
       for (nstep = 1; !(lfinish || hfinish); nstep++) {
       /* Evaluate low-Q side */
-         lfinish = convolve(lfinish, qj, qj - nstep, yj - nstep, yfit, &rnorm,
-            twsgsq, deldelq);
+	 if (j-nstep < 0) lfinish = TRUE;
+	 if (!lfinish) 
+           lfinish = convolve(qj, qj - nstep, yj - nstep, yfit, &rnorm,
+                              twsgsq, deldelq);
 
       /* Evaluate high-Q side */
-         hfinish = convolve(hfinish, qj, qj + nstep, yj + nstep, yfit, &rnorm,
-             twsgsq, deldelq);
+         if (j+nstep >= npnts+nlow+nhigh) hfinish = TRUE;
+         if (!hfinish)
+           hfinish = convolve(qj, qj + nstep, yj + nstep, yfit, &rnorm,
+                              twsgsq, deldelq);
 
       }
 
@@ -78,12 +82,12 @@ void mancon(double *q, double lambda, double lamdel, double thedel,
 }
 
 
-STATIC int convolve(int finish, double *qj, double *qjprime, double *yjprime,
+STATIC int convolve(double *qj, double *qjprime, double *yjprime,
    double *yfit, double *rnorm, double twsgsq, int deldelq)
 {
    double qres, rexp, exparg;
 
-   qres = (finish) ? 1.e20 : *qjprime - *qj;
+   qres = *qjprime - *qj;
    exparg = qres * qres / twsgsq;
    if (exparg <= 3. * M_LN10) {
       if (!isnan(*yjprime)) {
@@ -94,8 +98,9 @@ STATIC int convolve(int finish, double *qj, double *qjprime, double *yjprime,
          if (deldelq) rexp *= 2. * qres / twsgsq;
          *yfit += rexp * (*yjprime);
       }
-   } else
-      finish = TRUE;
-   return finish;
+      return FALSE;
+   } else {
+      return TRUE;
+   }
 }
 
