@@ -879,6 +879,7 @@ proc axis_toggle {w} {
 bind graph_select <Motion> {graph_select_motion %W %x %y}
 bind graph_select <Button-1> {graph_select_press %W %x %y; break}
 bind graph_select <B1-ButtonRelease> {graph_select_release %W %x %y; break}
+bind graph_select <Button-3> { break }
 bind graph_select <B3-ButtonRelease> {graph_select_cancel %W; break}
 option add *Graph.selectPointText.Coords {-Inf -Inf} widgetDefault
 option add *Graph.selectPointText.Anchor sw widgetDefault
@@ -980,6 +981,9 @@ proc graph_activate_menu {w X Y x y} {
     }
 }
 
+# bind zoom-$w <ButtonPress-3> {}
+bind active_graph <ButtonPress-3> { graph_activate_menu %W %X %Y %x %y; break }
+
 proc active_graph {w args} {
 
     switch -- $args {
@@ -1010,10 +1014,7 @@ proc active_graph {w args} {
     # Add zoom capability to graph, but use the menu to unzoom
     Blt_ZoomStack $w
     # bind zoom-$w <ButtonPress-2> [bind zoom-$w <ButtonPress-3>]
-    bind zoom-$w <ButtonPress-3> {}
-    bind $w <ButtonPress-3> { 
-        graph_activate_menu %W %X %Y %x %y
-    }
+    bindtags $w [concat active_graph [bindtags $w]]
 
     # Add panning capability
     pan bind $w
