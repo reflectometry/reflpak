@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <parms.h>
-#include <lenc.h>
 
 #include <cparms.h>
 
@@ -187,18 +186,22 @@ STATIC int saveLayers(FILE *file, int layers, double *qcsq, double *qcmsq,
 
 STATIC int loadFilename(FILE *file, char *filename, int namelength)
 {
+   int n;
+
    fgets(filebuf, FBUFFLEN, file);
    strncpy(filename, filebuf, namelength);
 
    /* Ensure null terminated */
-   filename[namelength] = 0;
+   filename[namelength] = '\0';
 
-   /* Strip trailing newline */
-   if (filename[strlen(filename) - 1] == '\n')
-      filename[strlen(filename) - 1] = 0;
-
-   /* Strip up to first space */
-   filename[lenc(filename)] = 0;
+   /* Strip trailing spaces and newline.  This will be a problem if
+    * the filename ends with a blank, but until we need to change the
+    * staj file format, we should continue to support the old fortran 
+    * staj files, which may have trailing blanks in the file name.
+    */
+   n = strlen(filename) - 1;
+   while (n>=0 && isspace(filename[n])) n--;
+   filename[n+1] = '\0';
 
    return 1;
 }
