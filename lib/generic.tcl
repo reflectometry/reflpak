@@ -1,5 +1,17 @@
 package provide ncnrlib 0.1
 
+# HELP developer
+# Usage: opt widget property value property value ...
+#
+# Quick way to set a bunch of options and values in
+# the options database using widgetDefault priority.
+proc opt {w args} {
+    set prefix "*[string range $w 1 end]"
+    foreach {name val} $args {
+        option add $prefix.$name $val widgetDefault 
+    }
+}
+
 # ===================== console functions =====================
 # HELP user
 # Usage: plist list
