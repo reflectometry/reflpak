@@ -12,7 +12,7 @@ TCL_INCLUDE_SPEC=-I$(drive)$(TCL_PREFIX)/include
 TCL_STUB_LIB_SPEC=-L$(drive)$(TCL_PREFIX)/lib -ltclstub84
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.dll
-WISH=$(drive)$(TCL_PREFIX)/bin/bltwish.exe
+WISH=/c$(TCL_PREFIX)/bin/bltwish.exe
 
 # Tcl packages we need to include
 TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
