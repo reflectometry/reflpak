@@ -27,7 +27,7 @@ FLIBS=-lg2c -lm
 
 # C compiler
 CC=gcc
-CFLAGS=-O2 -fPIC -Wall $(TCL_INCLUDE_SPEC) -I../src
+CFLAGS=-O2 -fPIC -Wall $(TCL_INCLUDE_SPEC) -I../src $(DEBUG) 
 LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=gcc -pipe -shared
 LDFLAGS=
