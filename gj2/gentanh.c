@@ -68,6 +68,6 @@ void gentanh(int nrough, double zint[], double rufint[])
 STATIC void doTanh(double *zint, double *rufint, double dist)
 {
    *rufint = dist;
-   *zint = log((1. + dist) / (1. - dist)) / CT;
+   *zint = log((1. + dist) / (1. - dist)) / CT / 2.;
 }
 

@@ -42,7 +42,7 @@
 
 /* Ensures that d(tanh CT*Z/ZF)/dZ = .5
    when Z = .5 * ZF, where ZF is fwhm */
-#define CT 2.292
+#define CT 1.763
 
 /* Constant CE that ensures that d(erf CE*Z/ZF)/dZ = .5
    when Z = .5 * ZF, where ZF is fwhm */

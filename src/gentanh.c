@@ -67,6 +67,6 @@ STATIC void doTanh(double *zint, double *rufint, double dist)
       when Z = .5 * ZF, where ZF is fwhm */
 
    *rufint = dist;
-   *zint = log((1. + dist) / (1. - dist)) / CT;
+   *zint = log((1. + dist) / (1. - dist)) / CT / 2.;
 }
 

@@ -34,11 +34,9 @@
 #define MAXINT 1002
 
 /* Comment is incorrect */
-/* Ensures that d(tanh CT * Z/ ZF) / DZ = .5
+/* Ensures that d(tanh CT * Z/ ZF) / dZ = .5
    when Z = .5 * ZF, where ZF is fwhm */
-/* Ensures that d(tanh(y))/dy|(y=CE*Z/ZF) = 0.334 when Z=.5*ZF,
-   where ZF is fwhm */
-#define CT 2.292
+#define CT 1.763
 
 /* Comment is incorrect */
 /* Constant CE that ensures that d(erf CE*Z/ZF)/dZ = .5 when Z=.5*ZF,
