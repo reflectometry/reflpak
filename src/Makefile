@@ -16,9 +16,11 @@
 #
 # DEBUG=-DEBUG		Build a debug version
 
-ifndef REFLFIT_ARCH
-$(error Please call make from the architecture build directory)
+sinclude ../Makeconf
+ifndef LDEXT
+  $(error Link ../xxx/Makeconf to ../Makeconf and try again.)
 endif
+VPATH=../src
 
 DEFS=-DUSE_TCL_STUBS=1 -DMALLOC=gmlayer_alloc -DFREE=gmlayer_free $(DEBUG)
 

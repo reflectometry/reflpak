@@ -1,6 +1,7 @@
 namespace import blt::graph blt::vector blt::hiertable
 source [file join $::VIEWRUN_HOME generic.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
+source [file join $::VIEWRUN_LIB tableentry.tcl]
 
 # need to work out some more details before the ftp vfs is usable
 set have_archive 0
@@ -34,7 +35,7 @@ if { [string equal $::tcl_version 8.4] } {
 
 # on-demand loading
 proc PrintDialog {args} {
-    uplevel #0 [list source [file join $::VIEWRUN_HOME print.tcl]]
+    uplevel #0 [list source [file join $::VIEWRUN_LIB print.tcl]]
     eval PrintDialog $args
 }
 proc choose_dataset {args} {
@@ -47,7 +48,7 @@ proc psd {args} {
 }
 proc help {args} {
     rename help {}
-    uplevel #0 [list source [file join $::VIEWRUN_HOME htext.tcl]]
+    uplevel #0 [list source [file join $::VIEWRUN_LIB htext.tcl]]
     namespace import htext::*
     set ::helpfile [file join $::VIEWRUN_HOME viewrun.help]
     set ::helpstamp {}
@@ -68,7 +69,7 @@ rename octave octave_orig
 proc octave {args} {
     rename octave {}
     rename octave_orig octave
-#    uplevel #0 [list source [file join $::VIEWRUN_HOME octave.tcl]]
+#    uplevel #0 [list source [file join $::VIEWRUN_LIB octave.tcl]]
     restart_octave
     eval octave $args
 }
@@ -836,6 +837,7 @@ proc atten_table_reset {} {
 	array set ::atten_table [list $row,0 "$rec(run)$rec(index)" $row,1 $rec(k) $row,2 $rec(dk)]
     }
     .attenuator.t conf -rows [expr 1 + [llength $::addrun]]
+    tableentry::reset .attenuator.t
 }
 
 proc atten_table {} {
@@ -853,7 +855,7 @@ proc atten_table {} {
     vscroll .attenuator.t
     atten_table_reset
     # XXX FIXME XXX want a combo box here
-    table_entry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
+    tableentry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
 }
 
 proc atten_update { row col val } {

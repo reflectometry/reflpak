@@ -1,10 +1,17 @@
 The directory freewrap contains a slightly modified version of
 freewrap-5.5/build/generic.  You will need to tweak your 
 arch/Makefile.freewrap file to build your own copy.  In particular,
-bersion numbers and build paths for various packages are built
-into the makefile.  Tcl/Tk version info is extracted from 
-<arch>/Makeconf.tcltk, change <arch>/configure to set your own
-particular version of Tcl.
+version numbers and build paths for various packages are built
+into the makefile.  
+
+Tcl/Tk version info is extracted from Makeconf.tcltk.  This can be
+generated automatically from tclConfig.sh using
+	./tclConfig2Makeconf [/usr | /usr/local | $HOME/tcl-xxx]
+depending on where you have Tcl/Tk installed.  
+
+First build the following packages.  Once they are available, tune
+<ARCH>/Makefile.freewrap appropriately and build freewrapBLT with
+	make freewrap
 
 I'm using the following packages:
 

@@ -1,0 +1,11 @@
+#! /bin/sh
+
+# Script to convert tclConfig.sh and tkConfig.sh to Makeconf.tcltk
+# for subsequent inclusion in the freewrap build process.
+test "$#" != 1 && echo "Usage: $0 TCL_PREFIX" && exit 1
+
+test -f "$1/lib/tclConfig.sh" || (echo "Missing $1/lib/tclConfig.sh" && exit 1)
+test -f "$1/lib/tkConfig.sh" || (echo "Missing $1/lib/tkConfig.sh" && exit 1)
+
+sed -e "s/'//g" < $1/lib/tclConfig.sh > Makeconf.tcltk
+sed -e "s/'//g" < $1/lib/tkConfig.sh >> Makeconf.tcltk

@@ -1,0 +1,144 @@
+#!/bin/sh
+# required line \
+exec tclsh "$0" "$@"
+
+if { $argc == 0 || [string equal [lindex $argv 0] "-h"] } {
+    puts "usage: $argv0 package [extrafiles...]"
+    exit
+}
+set package [lindex $argv 0]
+regsub {.help$} $package {} package
+set title [string totitle $package] 
+
+source htext.tcl
+namespace import htext::*
+
+namespace eval htext {
+    variable convert convert
+    proc htmlmap { text } {
+        # replace special html characters
+	set text [string map { < &lt; > &gt; & &amp; } $text]
+	# expand xxx://yyy to html links
+	regsub -all {(\S+://\S+)} $text {<a href="\1">\1</a>} text
+	return $text
+    }
+    proc htmlhead { text } { return "\n<h2>$text</h2>\n" }
+    proc htmlfile { title } { return [string map { " " "_" } $title].html }
+    proc htmllink { title } {
+	return "<a href=\"[htmlfile $title]\">[htmlmap $title]</a>"
+    }
+    proc htmlimg { name } {
+        variable convert
+	set target [file rootname $name].png
+	if { [catch { exec $convert ../../$name $target } result] } {
+	    puts "Could not convert image $name"
+	    puts $result
+	    return ""
+	}
+	return "<img src=\"$target\" alt=\"[file root $target]\">"
+    }
+    proc htmltag { file tag } {
+	switch $tag {
+	    p { puts $file "<p>" }
+	    pre { puts $file "<code><pre>" }
+	    quote { puts $file "<blockquote>" }
+	}
+	return $tag
+    }
+    proc htmltagend {file tag} {
+	switch $tag {
+	    p { puts $file "</p>" }
+	    pre { puts $file "</pre></code>" }
+	    quote { puts $file "</blockquote>" }
+	}
+	return {}
+    }
+    proc html {project} {
+	variable pages
+
+	# fail gracelessly if files can't be opened; this is never invoked
+	# from a GUI.
+	set index [open index.html w]
+	puts $index "<html><head><title>$project index</title></head>"
+	puts $index "<body>[htmlhead "$project index"]"
+	puts $index "<ul>"
+	foreach title [lsort [array names pages]] {
+	    puts $index "<li>[htmllink $title]</li>"
+	    set file [open [htmlfile $title] w]
+	    puts $file "<html><head><title>$project - [string totitle $title]</title></head>"
+	    puts $file "<body>[htmlhead [string totitle $title]]"
+	    set state {}
+	    foreach i [split $pages($title) \n] {
+		if [regexp {^[ \t]+[^ \t]} $i] {
+		    # a line is preformatted if it starts with a blank
+		    if {![string equal $state pre]} { 
+		        htmltagend $file $state
+			set state [htmltag $file pre]
+		    }
+		    ## uncomment the following if preformatted text
+		    ## should not contain links.
+		    # puts $file [htmlmap $i]
+		    # continue
+		} else {
+		    # remove extra space from the end of the line
+		    set i [string trim $i]
+		    # check for blank lines
+		    if { ![string length $i] } {
+		        set state [htmltagend $file $state]
+			continue
+		    }
+		    # line is not blank, so append it to the current paragraph
+		    if { [string equal $state pre] } {
+			set state [htmltagend $file pre]
+		    }
+		    if { [string equal $state {}] } {
+			if { [string match >* $i] } {
+			    set state [htmltag $file quote]
+			    set i [string range $i 1 end]
+			} else {
+			    set state [htmltag $file p]
+			}
+		    }
+		}
+		
+		# expand links
+		set i [map_escaped_brackets $i]
+		while {[regexp {([^[]*)[[]([^]]+)[]](.*)} $i \
+			-> before link after]} {
+		    puts -nonewline $file [htmlmap [unmap_escaped_brackets $before]]
+		    if { [string match img::* $link] } {
+			puts -nonewline $file [htmlimg [string range $link 5 end]]
+		    } elseif { ![info exists pages($link)] } {
+			puts stderr "Broken link ($title): $link"
+			puts -nonewline $file [htmlmap [unmap_escaped_brackets $link]]
+		    } else {
+			puts -nonewline $file [htmllink [unmap_escaped_brackets $link]]
+		    }
+		    set i $after
+		}
+		puts $file [htmlmap [unmap_escaped_brackets $i]]
+	    }
+	    htmltagend $file $state
+	    puts $file "</body></html>"
+	    close $file
+	}
+	puts $index "</ul></body></html>"
+	close $index
+    }
+}
+
+foreach file $argv {
+    if { [string equal {} [file ext $file]] } { set file $file.help }
+    if { ![file exists $file] } {
+	puts "$file does not exist --- skipping"
+    } else {
+	source $file
+    }
+}
+
+# puts "deleting html/$package --- hope that was okay"
+# file delete -force html/$package
+
+file mkdir html/$package
+cd html/$package
+htext::html $title

@@ -1,34 +1,91 @@
-This is the build directory for the fitting program.
-I may put reduction in here later, but I don't know yet.
+This is the build directory for the fitting and reduction
+programs. If you are here, then you are trying to build 
+your own copy.
 
-If you are here, then you are trying to build your
-own copy of the program.
 
-As it currently stands, I have the C source in src/
-(this is just mlayer for now, but gj2 is going to
-have to go somewhere --- I would very much like to
-merge the code bases for the two, but I think I
-will have to hold off on that for a little bit longer,
-so don't be surprised if src is renamed src-mlayer,
-and is accompanied by src-gj2.
+Manifest
+========
 
-The bulk of the tcl code is in tcl/.
+src/
 
-There are four separate environment directories:
-  irix, linux, macosx and win
-These contain the freewrapBLT binary which I need
-to wrap tcl/tk apps
+  C source for mlayer, converted to be a tcl loadable
+  module.  This is just mlayer for now, but gj2 is 
+  going to have to go somewhere --- I would very much 
+  like to merge the code bases for the two, but I think I
+  will have to hold off on that for a little bit longer,
+  so don't be surprised if src is renamed src-mlayer,
+  and is accompanied by src-gj2.
 
-For each of these, it should be a matter of changing
-to the directory, typing editting ./configure to 
-pick up the appropriate tclConfig.sh script, running
-./configure, then running make.
+lib/
 
-The output of this is:
+  Stand-alone tcl packages used by reflred and reflfit
 
-	gmlayer.$SHLEXT		the loadable module
-	reflfit.tcl		the driver program
-	reflfit$EXE		the wrapped executable
+tcl/
+
+  Tcl scripts for reflfit (also needs lib/ and src/)
+
+reflred/
+
+  Tcl scripts for reflred (also needs src/)
+
+freewrap/
+
+  Tcl scripts and C source for freewrap.  This needs
+  to be replaced by a starkit infrastructure since
+  freewrap is no longer supported (?).  Stubs-enabled
+  BLT would be nice.  Architecture specific make files 
+  are in arch/Makefile.freewrap.  See README.freewrap 
+  for build details.  (Note that there are some prebuilt 
+  versions of freewrapBLT floating around on the net, 
+  and in particular, my Windows build does not work.)
+
+irix/
+linux/
+win/
+macosx/
+
+  Architecture specific build directories containing
+  Makefile.freewrap, freewrapBLT and Makeconf for
+  each architecture.
+
+Makefile
+reflred.tcl.in
+reflfit.tcl.in
+
+  Build files reflfit and reflred
+
+tclConfig2Makeconf
+
+  Convert tclConfig.sh to Makeconf.tcltk for use in
+  compiling freewrapBLT (on some architectures).
+
+release.sh
+
+  Creates a release tarball for the source
+
+
+Build
+=====
+
+You first need to link an appropriate configuration
+file to Makeconf.  E.g.,
+
+  ln -s linux/Makeconf .
+
+If none exists, create a new directory and copy
+the closest configuration file as a starting point.
+
+Make sure your architecture directory contains
+freewrapBLT.  See README.freewrap for build
+instructions.
+
+Type make.  The resulting files are:
+
+	arch/gmlayer.$LDEXT	the loadable module
+	reflfit.tcl		the driver program for reflfit
+	reflred.tcl		the driver program for reflred
+	reflfit$EXE		wrapped versions of same
+	reflred$EXE
 
 Paul Kienzle
-2003-05-22
+2003-08-21

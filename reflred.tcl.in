@@ -2,8 +2,9 @@
 # \
 exec "@WISH@" "$0" "$@"
 
-set VIEWRUN_HOME "@VIEWRUN_HOME@"
-set TKCON "@TCL_PREFIX@/lib/tkcon.tcl"
+set VIEWRUN_HOME "@TOPDIR@/reflred"
+set VIEWRUN_LIB "@TOPDIR@/lib"
+set TKCON "@TKCON@"
 set OCTAVE_HOST localhost:1515
 
 ## ==============================================================
@@ -15,21 +16,23 @@ set OCTAVE_HOST localhost:1515
 ## are no user dependencies in this file.
 
 if { [namespace exists ::freewrap] } {
-    source [file join $VIEWRUN_HOME loadwrap.tcl]
-    set dir "@TCL_PREFIX@/lib/bwidget1.6"
-    source $dir/pkgIndex.tcl
-    #set dir "@TCL_PREFIX@/lib/tkdnd1.0"
-    #source $dir/pkgIndex.tcl
-    set dir "@TCL_PREFIX@/lib/Tktable2.8"
-    source $dir/pkgIndex.tcl
-    set dir "@TCL_PREFIX@/lib/octave0.1"
-    source $dir/pkgIndex.tcl
+    source [file join @TOPDIR@ freewrap loadwrap.tcl]
+    set dir "@BWIDGET@"
+    if { $dir ne "" } { source $dir/pkgIndex.tcl }
+    set dir "@TKDND@"
+    if { $dir ne "" } { source $dir/pkgIndex.tcl }
+    set dir "@TKTABLE@"
+    if { $dir ne "" } { source $dir/pkgIndex.tcl }
+    set dir "@OCTAVE@"
+    if { $dir ne "" } { source $dir/pkgIndex.tcl }
+    unset dir
 }
 
 package require BWidget
-#package require tkdnd
+if { "@TKDND@" ne "" } { package require tkdnd }
 package require Tktable
 package require BLT
 package require octave
 
+source [file join "@ARCH@" options.tcl]
 source [file join $VIEWRUN_HOME viewrun.tcl]

@@ -4,7 +4,7 @@
 #
 # Edit the parameters to suit your configuration, then type "make".
 
-include Makeconf.tcltk
+include ../Makeconf.tcltk
 
 # Name of the application program
 #

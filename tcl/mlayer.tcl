@@ -11,14 +11,15 @@ namespace import blt::bitmap blt::vector blt::graph
 
 # ctext is a text megawidget which supports line numbers.  It's a
 # bit of overkill for my needs.
-source [file join $MLAYER_HOME ctext.tcl]
+source [file join $MLAYER_LIB ctext.tcl]
 
 # Some functions that are not specific to mlayer.
-source [file join $MLAYER_HOME pan.tcl]
+source [file join $MLAYER_LIB pan.tcl]
 source [file join $MLAYER_HOME generic.tcl]
 
 # balloonhelp provides popup help when hovering over a widget
-source [file join $MLAYER_HOME balloonhelp.tcl]
+source [file join $MLAYER_LIB balloonhelp.tcl]
+source [file join $MLAYER_LIB tableentry.tcl]
 
 # popup help for the individual fields
 array set field_help {
@@ -51,7 +52,7 @@ set ::use_Q4 [string is true [option get . useQ4 UseQ4]]
 # Print dialog
 proc PrintDialog { args } {
     rename PrintDialog {}
-    uplevel #0 [list source [file join $::MLAYER_HOME print.tcl]]
+    uplevel #0 [list source [file join $::MLAYER_LIB print.tcl]]
     eval PrintDialog $args
 }
 
@@ -72,10 +73,8 @@ tracing 0
 set MAGNETIC [expr [string match "*gj2*" $argv0] || [string match "*pol*" $argv0] ]
 set ::env(MLAYER_CONSTRAINTS) [file native [file join $::MLAYER_HOME makeconstrain]]
 if {$::MAGNETIC} {
-    set mlayer_prog [file native [file join $::MLAYER_HOME gj2]]
     set title Reflpol
 } else {
-    set mlayer_prog [file native [file join $::MLAYER_HOME mlayer]]
     set title Reflfit
 }
 
@@ -2854,7 +2853,7 @@ proc reset_table {} {
     # Make sure the layertable is not using cached values
     $::layertable clear cache
     # Reset the value that the user is editting
-    table_entry::reset $::layertable
+    tableentry::reset $::layertable
     ## Disable input for vacuum depth/roughness and substrate depth
     $::layertable tag cell disabled 0,$::col_from_field(depth) 0,$::col_from_field(ro)
 }
@@ -2880,7 +2879,7 @@ proc show_entry { row col set value } {
 }
 
 # use an entry widget to edit the table cells
-table_entry::init $::layertable { if { %i } { set_entry %r %c %S } else { get_entry %r %c } }
+tableentry $::layertable { if { %i } { set_entry %r %c %S } else { get_entry %r %c } }
 
 proc get_entry { row col } {
     # get the original value from the field since the entry in the table
