@@ -12,6 +12,7 @@
 #ifndef _MLAYER_H
 #define _MLAYER_H
 
+void mlayer_init(void);
 void mlayer(void);
 
 #endif /* _MLAYER_H */

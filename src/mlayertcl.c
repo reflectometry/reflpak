@@ -1,3 +1,6 @@
+#undef malloc
+#undef free
+
 /* recompile with -DEBUG to display debugging messages */
 #ifdef EBUG
 #define DEBUG 1
@@ -420,7 +423,6 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
     } else if (strcmp(what, "pars") == 0) {
       sendpars(interp);
     } else if (strcmp(what, "data") == 0) {
-      if (*infile) loadData(infile);
       senddata(interp);
     } else if (strcmp(what, "refl") == 0) {
       if (fitting)
@@ -488,6 +490,11 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 
   } else if (strcmp(argv[1],"msg") == 0) {
     printf("%s\n",what);
+  } else if (strcmp(argv[1],"gd") == 0) {
+    if (*infile) {
+      loadData(infile);
+      loaded = !failure;
+    }
   } else {
     queue = argv+1;
     queued = argc-1;
@@ -540,8 +547,10 @@ int Gmlayer_Init(Tcl_Interp* interp)
     return TCL_ERROR;
   r = Tcl_PkgProvide(interp, "gmlayer", Tcl_GetString(version));
 
+  /* Global variable initialization */
   strcpy(parfile, "mlayer.staj");
   Constrain = noconstraints;
+
   Tcl_CreateCommand(interp, "gmlayer",
 		    gmlayer_TclCmd,
 		    (ClientData)NULL,

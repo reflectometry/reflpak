@@ -45,17 +45,17 @@ OOBJS=$(CSRC:.c=.o) $(FSRC:.f=.o)
 .SUFFIXES: .fuzz .ln .c .f .o
 
 .f.o:
-	$(F77) $(FFLAGS) -c $< -o $@
+	$(F77) $(FFLAGS) -I../src -c $< -o $@
 
 .c.o:
 
-	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
+	$(CC) $(CFLAGS) $(DEFS) -I../src -c $< -o $@
 
 .c.i:
-	$(CC) -P $(INCLUDES) $<
+	$(CC) -P $(INCLUDES) -I../src $<
 
 .c.fuzz .c.ln:
-	$(LINT) -c $(INCLUDES) $< $(LIBS) > $*.fuzz
+	$(LINT) -c $(INCLUDES) -I../src $< $(LIBS) > $*.fuzz
 
 
 all: gmlayer$(LDEXT)
