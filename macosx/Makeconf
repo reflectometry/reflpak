@@ -1,0 +1,31 @@
+ARCH=macosx
+
+# Debugging statements?
+# DEBUG=-DEBUG
+
+include Makeconf.tcl
+
+WISH=$(TCL_PREFIX)/bin/bltwish
+
+# Tcl packages we need to include
+TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
+OCTAVE=$(TCL_PREFIX)/lib/octave0.1
+BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+#TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
+TKDND_EXT=$(TKDND)/libtkdnd1.0.so
+#TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
+TKTABLE_EXT=$(TKTABLE)/libTktable2.8.so
+
+# Fortran compiler
+F77=g77
+FFLAGS=-O3
+FLIBS=-lg2c -lm
+
+# C compiler
+CC=$(TCL_CC)
+CFLAGS=$(TCL_CFLAGS_OPTIMIZE) $(TCL_SHLIB_CFLAGS) $(TCL_CFLAGS_WARNING) $(TCL_INCLUDE_SPEC) -I../src
+LIBS:=$(TCL_STUB_LIB_SPEC) $(TCL_LIBS) $(FLIBS) $(TCL_SHLIB_LD_LIBS)
+LD=$(TCL_SHLIB_LD)
+LDFLAGS=
+EXE=
+LDEXT=$(TCL_SHLIB_SUFFIX)

@@ -1,0 +1,35 @@
+ARCH=win
+
+# Debugging statements?
+# DEBUG=-DEBUG
+
+# Things from tclConfig.sh
+TCL_PREFIX=C:/Tcl
+TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
+TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.4
+TCL_SHLIB_LD=gcc -pipe -shared
+TCL_SHLIB_SUFFIX=.dll
+WISH=$(TCL_PREFIX)/bin/bltwish.exe
+
+# Tcl packages we need to include
+TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
+OCTAVE=$(TCL_PREFIX)/lib/octave0.1
+BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
+TKDND_EXT=$(TKDND)/libtkdnd10.dll
+TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
+TKTABLE_EXT=$(TKTABLE)/libTktable28.dll
+
+# Fortran compiler
+F77=g77
+FFLAGS=-O3
+FLIBS=-lg2c -lm
+
+# C compiler
+CC=gcc
+CFLAGS=-O2 -fPIC -Wall $(TCL_INCLUDE_SPEC) -I../src
+LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
+LD=gcc -pipe -shared
+LDFLAGS=
+EXE=.exe
+LDEXT=$(TCL_SHLIB_SUFFIX)

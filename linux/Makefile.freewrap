@@ -4,7 +4,10 @@
 #
 # Edit the parameters to suit your configuration, then type "make".
 
-include ../Makeconf.tcltk
+sinclude Makeconf.tcltk
+ifndef TCL_VERSION
+  $(error Use ../tclConfig2makeconf TCL_PREFIX first)
+endif
 
 # Name of the application program
 #

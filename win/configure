@@ -1,5 +1,0 @@
-#! /bin/sh
-
-PREFIX=/c/Tcl
-sed -e "s/'//g" < $PREFIX/lib/tclConfig.sh > Makeconf.tcltk
-sed -e "s/'//g" < $PREFIX/lib/tkConfig.sh >> Makeconf.tcltk
