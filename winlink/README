@@ -1,0 +1,22 @@
+This is a fork of the tlink32 package with an additional
+subcommand to return named paths.
+
+MinGW+MSys:  modify makefile to use suitable paths and type
+	make 
+	make test
+	make install
+
+Visual C: modify makefile.vcc and use it with your version
+of make.  *** Untested ***
+
+The original copyright rests with Sensus Consulting Ltd.
+(http://www.sensus.org).  No specific license is indicated
+in the source, and attempts to contact the author have not
+been successful.  While it is likely that the intended
+license is the same as that for Tcl, it is possible that
+this is not the case.  Use at your own risk.
+
+
+Paul Kienzle
+pkienzle@users.sf.net
+2004-03-01

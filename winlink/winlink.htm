@@ -1,0 +1,306 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="Author" content="Matt Newman &lt;matt@sensus.org&gt;">
+<meta name="Copyright" content="1996-1999 Sensus Consulting Ltd.">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>Win32::Link Tcl Command (version 1.1)</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<dl>
+    <dd><a href="#NAME">NAME</a> <dl>
+            <dd><strong>tlink32</strong> - binding to Windows
+                IShell Shortcut interface.</dd>
+        </dl>
+    </dd>
+    <dd><a href="#SYNOPSIS">SYNOPSIS</a> </dd>
+    <dd><dl>
+            <dd><b>package require tlink32 </b><em>?1.1?</em></dd>
+            <dt>&nbsp;</dt>
+            <dd><b>win32::link </b><strong>get</strong><em>
+                filename</em></dd>
+            <dd><b>win32::link </b><strong>set</strong><em>
+                filename ?options?</em></dd>
+            <dd><b>win32::link </b><strong>recent</strong><em>
+                filename ?options?</em></dd>
+            <dd><b>win32::link </b><strong>path</strong><em>
+                ?-create ?-common pathname</em></dd>
+        </dl>
+    </dd>
+    <dd><a href="#DESCRIPTION">DESCRIPTION</a></dd>
+    <dd><a href="#SEE ALSO">SEE ALSO</a></dd>
+</dl>
+
+<hr>
+
+<h3><a name="NAME">NAME</a></h3>
+
+<p><strong>tlink32</strong> - binding to Windows IShell Shortcut
+interface<strong>.</strong></p>
+
+<h3><a name="SYNOPSIS">SYNOPSIS</a></h3>
+
+<p><b>package require tlink32 </b><em>?1.1?</em><br>
+<br>
+<a href="#ldap"><b>win32::link </b><strong>get</strong><em>
+filename</em></a><br>
+<a href="#ldap"><b>win32::link </b><strong>set</strong><em>
+filename ?options?</em></a><br>
+<a href="#recent"><b>win32::link </b><strong>recent</strong><em>
+filename</em></a><br>
+<a href="#path"><b>win32::link </b><strong>path</strong><em>
+?-create ?-common pathname</em></a></p>
+
+<h3><a name="DESCRIPTION">DESCRIPTION</a></h3>
+
+<p>This is a very simple extension that provides a single command
+that can create, inspect, and modify Windows Shortcuts.  It also
+queries Windows for the location of common paths, such
+as <em>desktop</em> or <em>programs</em></p>
+
+<dl>
+    <dt><a name="ldap"><b>win32::link </b><strong>get</strong><i>
+        filename</i></a></dt>
+    <dt><strong>win32::link set</strong><i> filename </i><a
+        name="ldap"><i>?options?</i></a></dt>
+    <dd>The <strong>get</strong> sub-command returns the various
+        parameters that make up the shortcut definition (see
+        below). It will return an error if the filename specified
+        is not a valid shortcut or does not exist. The <strong>set</strong>
+        sub-command creates the specified filename, if it does
+        not already exists, and additionally modified the
+        attributes of the shortcut as specfied in the options
+        below. The <strong>recent</strong> sub-command creates a
+        shortcut in the recent documents directory and in the start
+        menu documents list.<strong>Note</strong>: the Win32 interface will
+        allow you to create shortcuts with any valid filename,
+        but the Windows explorer will only understand them if
+        they end in the extension <em><strong>&quot;.lnk&quot;</strong></em>.
+        The available options are: -</dd>
+</dl>
+
+<blockquote>
+    <dl>
+        <dt><strong>-path </strong>pathName</dt>
+        <dd>The pathname that this shortcut points to. (<strong>default</strong>:
+            empty)</dd>
+        <dt>-<strong>args </strong><em>string</em></dt>
+        <dd>The arguments to pass to the program specfied in <strong>-path</strong>
+            option. (<strong>default</strong>: empty)</dd>
+        <dt><strong>-cwd</strong> <em>pathName</em></dt>
+        <dd>The directory to start the specified program in. (<strong>default</strong>:
+            current directory)</dd>
+        <dt><strong>-desc</strong> <em>string</em></dt>
+        <dd>A human readable description of this shortcut. (<strong>default</strong>:
+            empty)</dd>
+        <dt><strong>-icon</strong> <em>pathName</em></dt>
+        <dd>The pathname of an icon file, or executable/dll that
+            contains icon resources. (<strong>default</strong>:
+            empty)</dd>
+        <dt><strong>-index</strong> <em>number</em></dt>
+        <dd>The index of the icon in the file specified in <strong>-icon</strong>
+            (if an executable/dll). (<strong>default</strong>: 0)</dd>
+        <dt><strong>-show</strong> <em>number</em></dt>
+        <dd>The numeric mask for controlling how the window
+            appears then the program is executed - consult
+            standard Win32 Api documentation for more details. (<strong>default</strong>:
+            1)</dd>
+        <dt><strong>-hotkey</strong> <em>number</em></dt>
+        <dd>The numeric mask for controlling hotkey access to
+            this shortcut - consult standard Win32 Api
+            documentation for more details. (<strong>default</strong>:
+            0)</dd>
+    </dl>
+</blockquote>
+
+<dl>
+    <dt><strong>win32::link recent</strong> <i>filename</i>|-clear<a
+        name="recent"></a></dt>
+    <dd>Add the file to the list of recent documents, to the Start menu
+        documents directory, and to the recent documents directory.  If
+        <strong>-clear</strong> is given, clear the recent document list.</dd>
+</dl>
+
+<dl>
+    <dt><a name="path"><b>win32::link </b><strong>path</strong><i>
+        ?-create ?-common pathname|id</i></a></dt>
+    <dd>The <strong>path</strong> sub-command queries the system for
+        the location of various named paths.  If the named path is not
+        available on the system, the empty string is returned.  Use the
+        path command without any path to get a list of available names.
+        Instead of name, you can use the CSIDL number (search MSDN for
+        a list of available numbers).
+        The <strong>-create</strong> option creates the path if it 
+        does not already exist.  The <strong>-common</strong> option 
+        returns the path for all users, instead of the current user.  This 
+        option is ignored if no common path is available.  Some paths
+        are virtual and should not be written to by your program.<br><br>
+        <dl>
+ 
+    <dt><strong>admintools</strong></dt><dd>
+    A directory where administrative tools are kept. The context of this constant (All Users or Current user) depends on the SetShellVarContext setting. The default is the current user.
+    <br>Windows 2000, ME and above.</dd>
+
+    <dt><strong>appdata*</strong></dt><dd>
+    The application data directory. Detection of the current user path requires 
+    Internet Explorer 4 and above. Detection of the common path requires 
+    Internet Explorer 5 and above.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+    
+    <dt><strong>appdatalocal</strong></dt><dd>
+    Repository for nonroaming application data. Typically 
+    C:\Documents and Settings\username\Local Settings\Application Data.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>cdburnarea</strong></dt><dd>
+    A directory where files awaiting to be burned to CD are stored.
+    <br>Windows XP and above.</dd>
+
+    <dt><strong>commonfiles</strong></dt><dd>
+    The common files directory. This is a directory for components that are shared across applications (usually C:\Program Files\Common Files but detected at runtime).
+    </dd>
+    
+    <dt><strong>controls</strong></dt><dd>
+    Control panel icons. For reference only, not for installation.</dd>
+
+    <dt><strong>cookies</strong></dt><dd>
+    Internet Explorer's cookies directory.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>desktop*</strong></dt><dd>
+    The windows desktop directory (usually C:\windows\desktop but detected at runtime). 
+    </dd>
+    
+    <dt><strong>documents*</strong></dt><dd>
+    The documents directory. A typical path for the current user is C:\Documents and Settings\Foo\My Documents.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>drives</strong></dt><dd>
+    The My Computer virtual folder.</dd>
+    
+    <dt><strong>favorites*</strong></dt><dd>
+    The directory that contains shortcuts to the user's favorite websites, documents, etc.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>fonts</strong></dt><dd>
+    The system fonts directory.
+    </dd>
+
+    <dt><strong>history</strong></dt><dd>
+    Internet Explorer's history directory.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>internet</strong></dt><dd>
+    A virtual folder representing the internet</dd>
+
+    <dt><strong>internetcache</strong></dt><dd>
+    Internet Explorer's temporary internet files directory.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>music*</strong></dt><dd>
+    The music files directory.
+    <br>Windows XP, ME and above.</dd>
+
+    <dt><strong>nethood</strong></dt><dd>
+    The directory that contains link objects that may exist in the My Network Places/Network Neighborhood folder.
+    <br>Needs at least Internet Explorer 4 and Active Desktop.</dd>
+
+    <dt><strong>pictures*</strong></dt><dd>
+    The picture files directory.
+    <br>Windows 2000, XP, ME and above.</dd>
+
+    <dt><strong>printhood</strong></dt><dd>
+    The directory that contains link objects that may exist in the Printers folder.
+    <br>Not available on Windows 95 and Windows 98.</dd>
+
+    <dt><strong>printers</strong></dt><dd>
+    The installed printers virtual folder.</dd>
+    
+    <dt><strong>profile</strong></dt><dd>
+    The user's profile directory. A typical path is C:\Documents and Settings\Foo.
+    <br>Windows 2000 and above.</dd>
+
+    <dt><strong>programfiles</strong></dt><dd>
+    The program files directory (usually C:\Program Files but detected at runtime).
+    </dd>
+
+    <dt><strong>programsmenu*</strong></dt><dd>
+    The Start menu Programs folder.
+    </dd>
+
+    <dt><strong>recent</strong></dt><dd>
+    Links to recently used documents.  Use win32::link recent to add items.
+    </dd>
+    
+    <dt><strong>resources</strong></dt><dd>
+    The resources directory that stores themes and other Windows resources (usually C:\Windows\Resources but detected at runtime).
+    <br>Windows XP and above.</dd>
+
+    <dt><strong>resourceslocal</strong></dt><dd>
+    The localized resources directory that stores themes and other Windows resources (usually C:\Windows\Resources\1033 but detected at runtime).
+    <br>Windows XP and above.</dd>
+
+    <dt><strong>sendto</strong></dt><dd>
+    The directory that contains Send To menu shortcut items.
+    </dd>
+
+    <dt><strong>startmenu*</strong></dt><dd>
+    The start menu folder where you want to add top level start menu items.
+    </dd>
+
+    <dt><strong>system</strong></dt><dd>
+    The windows system directory (usually C:\windows\system or C:\winnt\system32 but detected at runtime)
+    </dd>
+
+    <dt><strong>startupmenu*</strong></dt><dd>
+    The Start menu Programs Startup folder.
+    </dd>
+
+    <dt><strong>temp</strong></dt><dd>
+    The system temporary directory (usually C:\windows\temp but detected at runtime).
+    </dd>
+
+    <dt><strong>templates*</strong></dt><dd>
+    The document templates directory.
+    </dd>
+
+    <dt><strong>videos*</strong></dt><dd>
+    The video files directory.
+    <br>Windows XP, ME and above.</dd>
+
+    <dt><strong>virtualdesktop</strong></dt><dd>
+    The virtual desktop.  Use <strong>desktop</strong> to install desktop shortcuts.
+    </dd>
+
+    <dt><strong>windows</strong></dt><dd>
+    The windows directory (usually C:\windows or C:\winnt but detected at runtime)
+    </dd>
+
+
+
+        </dl><br>
+        Items marked with <strong>*</strong> are available as common
+        as well as user items.
+        <strong>Note</strong>: the <strong>-create</strong> may not
+        work on Windows 95, 98 or NT --- if this is important to you,
+        you can modify the tlink source to test for the existence of
+        the returned directory and create it if it doesn't exist.</dd>
+</dl>
+
+<h3><a name="SEE ALSO">SEE ALSO</a></h3>
+
+<p><strong>Windows IShell API</strong></p>
+<p><strong>Windows Shell Programmer's Guide, CSIDL descriptions</strong></p>
+
+<hr>
+
+<pre>
+Copyright © 1996-1999 Sensus Consulting Ltd.</pre>
+<pre>
+Support for named paths added by Paul Kienzle, 2004-02-17</pre>
+</body>
+</html>
