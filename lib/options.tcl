@@ -1,5 +1,6 @@
 switch $::tcl_platform(platform) {
     windows {
+	option add *ResizeCursor size_we 100
 	option add *Scrollbar.width 12 widgetDefault
 	option add *Text.background white widgetDefault
 	option add *Button.padY 0 widgetDefault
