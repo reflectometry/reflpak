@@ -3467,8 +3467,6 @@ proc make_layerops {} {
     foreach op [list $insert $delete $copy $move $overwrite $repeat $roughness ] {
 	foreach { name fieldlist } $op {}
 # XXX FIXME XXX Don't want modal dialogs if we are doing a bunch of ops
-# XXX FIXME XXX need to withdraw window rather than destroy
-# window if the user clicks the 'destroy' decoration
 	Dialog .$name -default 0 -cancel 1 -anchor c -modal local \
 	    -separator 1 -side bottom -title "[string toupper $name 0 0] Layer"
 	addfields [ .$name getframe ] $fieldlist
@@ -3480,6 +3478,8 @@ proc make_layerops {} {
 	set command "if { \[ $command ] } { .$name enddialog 0; reset_all }"
 	.$name add -text Ok -command $command
 	.$name add -text Cancel
+	# Hide rather than destroy the dialog when user closes the window
+	wm protocol .$name WM_DELETE_WINDOW ".$name withdraw"
     }
 }
 make_layerops
