@@ -186,7 +186,6 @@ proc helpmenu { menu homepage } {
 proc gethelp {args} {
     # ptrace
     rename gethelp {}
-    source [file join $::helpdir htext.tcl]
     set htext::photodir $::helpdir
     namespace import htext::*
     proc gethelp { args } {

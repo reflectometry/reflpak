@@ -9,17 +9,17 @@ tk appname Reflfit
 
 namespace import blt::bitmap blt::vector blt::graph
 
-# ctext is a text megawidget which supports line numbers.  It's a
-# bit of overkill for my needs.
+# Supporting widgets and helpers
+source [file join $MLAYER_LIB pan.tcl]
+source [file join $MLAYER_LIB tableentry.tcl]
+source [file join $MLAYER_LIB htext.tcl]
+source [file join $MLAYER_LIB balloonhelp.tcl]
 source [file join $MLAYER_LIB ctext.tcl]
 
-# Some functions that are not specific to mlayer.
-source [file join $MLAYER_LIB pan.tcl]
+# generic is not really mlayer specific, but I haven't yet
+# resolved the differences between it and the generic.tcl
+# in viewrun.
 source [file join $MLAYER_HOME generic.tcl]
-
-# balloonhelp provides popup help when hovering over a widget
-source [file join $MLAYER_LIB balloonhelp.tcl]
-source [file join $MLAYER_LIB tableentry.tcl]
 
 # popup help for the individual fields
 array set field_help {
@@ -1235,6 +1235,7 @@ if 0 {
 ## XXX FIXME XXX is the old constraints file being destroyed if there
 ## are no new constraints?
 proc reset_constraints {} {
+ptrace
     set ::constraints_script [gmlayer send constraints]
     text_load $::constraints $::constraints_script
     constraints_modified 0
@@ -1242,6 +1243,7 @@ proc reset_constraints {} {
 
 ## Clear the constraints box and unload the constraints module
 proc clear_constraints {} {
+ptrace
     # unload the constraints module
     # gmlayer ulc
     gmlayer send constraints {}
@@ -1250,6 +1252,7 @@ proc clear_constraints {} {
     # don't reload constraints before next fit
     constraints_modified 0
 }
+
 
 ## If the constraints text has been modified, save it to the
 ## constraints file and recompile it.  Let gmlayer know that
@@ -1326,16 +1329,17 @@ bind $::constraints <<Modified>> {
 }
 
 ## Buttons for manipulating constraints
+# XXX FIXME XXX Apply should be disabled if there are no constraints
 set cbb $constraintbox.b
 frame $cbb
 button $cbb.update -text "Update" -command { update_constraints } \
 	-state disabled
 button $cbb.apply -text "Apply" -command { apply_constraints }
-button $cbb.showprogram -text "Show program" -command { showprogram 1 }
-grid $cbb.update $cbb.apply $cbb.showprogram -sticky ew -padx 3
-grid columnconfigure $cbb {0 1 2} -weight 1 -uniform a
+# button $cbb.showprogram -text "Show program" -command { showprogram 1 }
+grid $cbb.update $cbb.apply -sticky ew -padx 3
+grid columnconfigure $cbb {0 1} -weight 1 -uniform a
 
-grid [vscroll $::constraints] -sticky news -padx 3
+grid $::constraints -sticky news -padx 3
 grid $cbb -sticky e
 grid rowconfig $::constraintbox 0 -weight 1
 grid columnconfig $::constraintbox 0 -weight 1
