@@ -20,7 +20,6 @@ sinclude ../Makeconf
 ifndef LDEXT
   $(error Link ../xxx/Makeconf to ../Makeconf and try again.)
 endif
-VPATH=../src
 
 DEFS=-DUSE_TCL_STUBS=1 -DMALLOC=gmlayer_alloc -DFREE=gmlayer_free $(DEBUG)
 
@@ -58,9 +57,9 @@ OOBJS=$(CSRC:.c=.o) $(FSRC:.f=.o)
 	$(LINT) -c $(INCLUDES) -I../src $< $(LIBS) > $*.fuzz
 
 
-all: gmlayer$(LDEXT)
+all: ../tcl/gmlayer$(LDEXT)
 
-gmlayer$(LDEXT): mlayertcl.o $(OOBJS)
+../tcl/gmlayer$(LDEXT): mlayertcl.o $(OOBJS)
 	$(LD) $(LDFLAGS) -o $@ mlayertcl.o $(OOBJS) $(FLIBS) $(LIBS)
 
 lint: $(FUZZIES)

@@ -68,9 +68,9 @@ OOBJS=$(FSRC:.f=.o) $(FPERROR) $(CSRC:.c=.o)
 	$(LINT) -c $(INCLUDES) -I../gj2 $< $(LIBS) > $*.fuzz
 
 
-all: gj2$(LDEXT)
+all: ../tcl/gj2$(LDEXT)
 
-gj2$(LDEXT): $(OOBJS) gj2tcl.o
+../tcl/gj2$(LDEXT): $(OOBJS) gj2tcl.o
 	$(LD) $(LDFLAGS) -o $@ gj2tcl.o $(OOBJS) $(FLIBS) $(LIBS)
 
 # if MINUSQ=-DMINUSQ changes in makefile, force rebuild of 
