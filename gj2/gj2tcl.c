@@ -106,6 +106,7 @@ char *queryString(char *prompt, char *string, int length)
 
 static int parsevar(const char name[], int **pi, double **pd)
 {
+  int i;
   int nl;
 
   *pi = NULL;
@@ -124,7 +125,9 @@ static int parsevar(const char name[], int **pi, double **pd)
     else return 0;
   } else {
     /* associate prefix with vector */
-    if (name[0] == 'd') {
+    if (name[0] == 'd' && name[1] == 'm') {
+      *pd = dm;
+    } else if (name[0] == 'd' && isdigit(name[1])) {
       *pd = d;
     } else if (name[0] == 'm' && name[1] == 'u') {
       *pd = mu;
@@ -139,9 +142,12 @@ static int parsevar(const char name[], int **pi, double **pd)
     } else if (name[0] == 't' && name[1] == 'h') {
       *pd = the;
     } else return 0;
+
     /* convert numeric portion of name 
      * if 'd', then pd==d and the name prefix is one character, otherwise 
      * the name prefix has two characters. */
+    for (i=2; isdigit(name[i]); i++) ;
+    if (name[i] != '\0') return 0;
     nl = atoi(name+(*pd!=d?2:1));
     
     if (nl > 0 && nl <= MAXLAY) *pd += nl;
@@ -192,23 +198,42 @@ static CONST char *fit_callback = NULL;
 static char *fit_constraints = NULL;
 void ipc_fitupdate(void)
 {
+  int ret;
+
   debug_message("ipc_fitupdate with %s\n", fit_callback);
-  Tcl_Eval(fit_interp, fit_callback);
-  Tcl_ResetResult(fit_interp);
-  /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
-   * this every time --- leave it to the fit_callback code to decide?
-   */
-  flushqueue();
-  /* How do we interrupt a fit? */
+  ret = Tcl_Eval(fit_interp, fit_callback);
+  if (ret == TCL_OK) {
+    Tcl_ResetResult(fit_interp);
+    /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
+     * this every time --- leave it to the fit_callback code to decide?
+     */
+    flushqueue();
+    /* How do we interrupt a fit? */
+  } else {
+    if (ret == TCL_ERROR) failure = 1;
+    stopFit(0);
+  }
   /*  return TCL_OK; */
 }
 static void tclconstraints(int del, double a[], int nl)
 {
-  if (fit_constraints) {
+  int ret;
+
+  if (fit_constraints && !abortFit) {
     genshift(a,FALSE);
-    Tcl_Eval(fit_interp, fit_constraints);
-    genshift(a,TRUE);
-    Tcl_ResetResult(fit_interp);
+    ret = Tcl_Eval(fit_interp, fit_constraints);
+    if (ret == TCL_OK) {
+      /* Constraints succeeded, so keep the new values */
+      genshift(a,TRUE);
+      Tcl_ResetResult(fit_interp);
+    } else {
+      /* Constraints failed, so warn error and abort fit */
+      /* Note: as a side effect, if the constraints end */
+      /* in continue or break, then it also stops the fit. */
+      /* This may be useful if the fit is entering a bad region */
+      if (ret == TCL_ERROR) failure = 1;
+      stopFit(0);
+    }
   }
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */
   /* flushqueue(); */
@@ -536,6 +561,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
     queue = argv+1;
     queued = argc-1;
     failure = 0;
+    abortFit = 0;
     magblocks4();
     if (failure) {
       Tcl_AppendResult(interp,error_message,TCL_STATIC);

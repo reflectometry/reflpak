@@ -187,24 +187,38 @@ static CONST char *fit_callback = NULL;
 static char *fit_constraints = NULL;
 int ipc_fitupdate(void)
 {
+  int ret;
+
   debug_message("ipc_fitupdate with %s\n", fit_callback);
-  Tcl_Eval(fit_interp, fit_callback);
-  Tcl_ResetResult(fit_interp);
-  /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
-   * this every time --- leave it to the fit_callback code to decide?
-   */
-  flushqueue();
+  ret = Tcl_Eval(fit_interp, fit_callback);
+  if (ret == TCL_OK) {
+    Tcl_ResetResult(fit_interp);
+    /* XXX FIXME XXX if fit speed improves, we may not want to evaluate
+     * this every time --- leave it to the fit_callback code to decide?
+     */
+    flushqueue();
+  } else {
+    failure = 1;
+    stopFit(0);
+  }
   return TCL_OK;
 }
 static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
 {
-  if (fit_constraints) {
+  int ret;
+
+  if (fit_constraints && !abortFit) {
     genshift(a,FALSE);
-    Tcl_Eval(fit_interp, fit_constraints);
-    /* XXX FIXME XXX we can remove both this genshift and the
-     * genshift in fgen/fsgen */
-    genshift(a,TRUE);
-    Tcl_ResetResult(fit_interp);
+    ret = Tcl_Eval(fit_interp, fit_constraints);
+    if (ret == TCL_OK) {
+      /* XXX FIXME XXX we can remove both this genshift and the
+       * genshift in fgen/fsgen */
+      genshift(a,TRUE);
+      Tcl_ResetResult(fit_interp);
+    } else {
+      if (ret == TCL_ERROR) failure = 1;
+      stopFit(0);
+    }
   }
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */
   /* flushqueue(); */
@@ -502,6 +516,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
     queue = argv+1;
     queued = argc-1;
     failure = 0;
+    abortFit = 0;
     mlayer();
     if (failure) {
       Tcl_AppendResult(interp,error_message,TCL_STATIC);
