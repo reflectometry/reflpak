@@ -37,5 +37,5 @@ package require BLT
 source [file join "@ARCH@" options.tcl]
 
 # mlayer extension
-freeload "@GMLAYER@"
+load "@GMLAYER@"
 source [file join $MLAYER_HOME mlayer.tcl]
