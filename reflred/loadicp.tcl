@@ -2,7 +2,7 @@
 # XXX FIXME XXX dump this into a namespace
 
 set ::xraywavelength 1.5416
-set ::cg1wavelength 5.0042
+set ::cg1wavelength 5.0
 set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
 
@@ -21,10 +21,20 @@ proc register_icp {} {
     }
 }
 
+proc splitname {name} {
+    set name [file rootname $name]
+    # Dataset is everything up to the last three digits, or
+    # everything if there are no digits at the end.
+    if {[regexp {^(.*?)([0-9]{1,3})$} $name {} dataset run]} {
+	return [list $dataset $run]
+    } else {
+	return [list {} $name]
+    }
+}
 
 proc NG1info { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "NG-1" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[nN]\[gG]1" }
@@ -34,7 +44,7 @@ proc NG1info { action {name {}} } {
 
 proc CG1info { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "CG-1" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[cC]\[gG]1" }
@@ -44,7 +54,7 @@ proc CG1info { action {name {}} } {
 
 proc NG7info { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "NG-7" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[nN]\[gG]7" }
@@ -54,7 +64,7 @@ proc NG7info { action {name {}} } {
 
 proc XR0info { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "XRAY" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[xR]\[rR]7" }
@@ -64,7 +74,7 @@ proc XR0info { action {name {}} } {
 
 proc NG1Pinfo { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "NG-1p" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[nN]\[aAbBcCdD]1" }
@@ -74,7 +84,7 @@ proc NG1Pinfo { action {name {}} } {
 
 proc CG1Pinfo { action {name {}} } {
     switch $action {
-	dataset { return [string range $name 0 end-7] }
+	dataset { return [lindex [splitname $name] 0] }
 	instrument { return "CG-1p" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[cC]\[aAbBcCdD]1" }
@@ -94,9 +104,14 @@ proc icp_date_comment { file } {
 	    set date [clock format $datenum -format %Y-%m-%d]
 	}
 	catch {
-	    gets $fid   ;# skip line 2 which contains the field names from line 1
-	    # comment is the first 50 characters of line 3
-	    set comment [string trim [string range [gets $fid] 0 49]]
+	    if {[string match \#ICE* $line]} {
+		::icedata::date_comment $fid date comment
+	    } else {
+		# skip line 2 which contains the field names from line 1
+		gets $fid
+		# comment is the first 50 characters of line 3
+		set comment [string trim [string range [gets $fid] 0 49]]
+	    }
 	}
 	close $fid
     }
@@ -259,21 +274,20 @@ proc check_wavelength { id wavelength } {
     } elseif { $rec(L) == 0.0 } { 
 	set rec(L) $wavelength 
 	message "Using default wavelength $wavelength for $rec(file)"
-    } elseif { $rec(L) == $wavelength } {
-    	# good
-    } elseif { abs($rec(L) - $wavelength) < 0.01*$wavelength } {
-	message "Using recorded wavelength $rec(L) instead of $wavelength for $rec(file)"
-    } else {
+    } elseif { abs($rec(L) - $wavelength)/$wavelength > 0.01 } {
 	# This is an intrusive dialog which hopefully won't be seen much
 	# by the users.  Yes we could make it nicer (e.g., by allowing
 	# mouse selection of the Tcl override command), but the number of
 	# datasets affected is going to be small enough that it doesn't
 	# matter.
-	tk_messageBox -type ok -default ok -icon info \
-	    -title "$::title: Wrong wavelength" \
-	    -message "ICP recorded a wavelength of $rec(L) in $rec(file).  We will instead use $wavelength. If this is not correct, enter 'set wavelength($rec(dataset),$rec(instrument)) $rec(L)' in the Tcl console and reload the file."
-	set rec(L) $wavelength
-	set $key $wavelength
+	set answer [tk_messageBox -type yesno -default yes -icon info \
+			-title "$::title: Inconsistent wavelength" \
+			-message "ICP recorded a wavelength of $rec(L) in $rec(file).  Do you want to use the default wavelength $wavelength instead?"]
+	switch -- $answer {
+	    yes { set rec(L) $wavelength }
+	    no {}
+	}
+	set $key $rec(L)
     }
 }
 
@@ -315,16 +329,15 @@ proc NG1load {id} {
     # will use 0.0025 rather than 0.00 when calculating
     # counts/sec for 0.00 minutes.
     #
-    # Note that we are working with y=COUNTS/monitor 
-    # rather than COUNTS.  Note also that we need to
-    # negate the condition because idx marks the points
-    # to include rather than the points to exclude.
+    # Note also that we need to negate the condition because idx 
+    # marks the points to include rather than the points to exclude.
     #
+    # XXX FIXME XXX Should we be using y=COUNTS/monitor rather than COUNTS?
     # XXX FIXME XXX 1/x is not linear!  Perhaps we want the geometric
     # mean of the range?
     if { [vector_exists ::MIN_$id] } {
 	vector create ::idx_$id
-	::idx_$id expr "(::MIN_$id+(0.0025*(::MIN_$id==0.0)))*(600000.0/$rec(monitor)) > ::y_$id"
+	::idx_$id expr "(::MIN_$id+(0.0025*(::MIN_$id==0.0)))*600000.0>::y_$id"
 	if { [vector expr prod(::idx_$id)] == 1.0 } {
 	    vector destroy ::idx_$id
 	} else {
@@ -370,16 +383,16 @@ proc NG1load {id} {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    set col $::background_basis($rec(dataset),$rec(instrument))
 	    switch $col {
-		A3 { 
+		A3 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz ::A3_$id $rec(L) ] 
-		    ::A3_$id dup ::xth_$id
+		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ] 
+		    $rec(A3) dup ::xth_$id
 		}
 		A4 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
+		    ::x_$id expr [ a4toQz $rec(A4) $rec(L) ]
 		    vector create ::xth_$id
-		    ::xth_$id expr ::A4_$id/2.
+		    ::xth_$id expr $rec(A4)/2.
 		}
 	    }
 	}
@@ -605,7 +618,7 @@ proc NG7load {id} {
 	}
 	default { default_x $id }
     }
-    set rec(ylab) "Unnormalized Reflectivity"
+    set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
 
     return 1
 }
@@ -659,7 +672,12 @@ proc loadhead {file} {
 	message $fid
 	return -code return
     }
-    set text [read $fid 1200] 
+    set text [read $fid 2048] 
+    if {[string match \#ICE* $text]} {
+	::icedata::mark $file $fid $text
+	close $fid
+	return -code return
+    }
     close $fid
 
     # if it has a motor line, then assume the format is good
@@ -674,9 +692,7 @@ proc loadhead {file} {
     upvar #0 [new_rec $file] rec
 
     # assign run# and dataset
-    set root [file rootname $rec(file)]
-    set rec(run) [string range $root end-2 end] ;# 3 digit run number
-    set rec(dataset) [string range [file tail $root] 0 end-3] ;# run name
+    foreach {rec(dataset) rec(run)} [splitname $file] { break }
 
     # parse the header1 line putting the fields into "rec"
     parse1 [lindex $lines 0] ;# grab record variables from line 1
@@ -768,6 +784,8 @@ proc XRAYmark {file} {
     } elseif { abs($rec(step,4) - 2.0*$rec(step,3)) < 1e-10 } {
 	# offset background
 	set m [string index $::background_default 1]
+	set rec(A3) ::A3_$rec(id)
+	set rec(A4) ::A4_$rec(id)
 	if { $rec(start,4) > 2.0*$rec(start,3) } {
 	    marktype back $rec(start,4) $rec(stop,4) +
 	} else {
@@ -855,10 +873,12 @@ proc NG1mark {file} {
 	} else {
 	    # use default background basis
 	    set m [string index $::background_default 1]
+	    set rec(A3) ::A3_$rec(id)
+	    set rec(A4) ::A4_$rec(id)
 	    if { $rec(stop,4) > 2.0*$rec(stop,3) } {
-		marktype back $rec(start,$m) $rec(stop,$m) $rec(polarization)+
+		marktype back $rec(start,$m) $rec(stop,$m) +$rec(polarization)
 	    } else {
-		marktype back $rec(start,$m) $rec(stop,$m) $rec(polarization)-
+		marktype back $rec(start,$m) $rec(stop,$m) -$rec(polarization)
 	    }
 	    set ::background_basis($rec(dataset),$rec(instrument)) \
 		    $::background_default
@@ -884,6 +904,9 @@ proc NG7mark {file} {
     set id [loadhead $file]
     upvar #0 $id rec
     set rec(load) NG7load
+
+    # NG-7 always counted against monitor
+    set rec(base) "NEUT"
 
     # parse2... parses the second set of fields into "rec".
     parse2ng7 $header2
