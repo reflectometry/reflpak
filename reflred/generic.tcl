@@ -1,3 +1,10 @@
+proc ptrace {} {
+    set call [info level -1]
+    set fn [uplevel [list namespace which -command [lindex $call 0]]]
+    set args [lrange $call 1 end]
+    puts "[expr {[info level]-1}] $fn $args"
+}
+
 # ==================== resources ==============================
 if { [info exists ::env(HOME)] } {
     set HOME $::env(HOME)
