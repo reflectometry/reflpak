@@ -708,3 +708,10 @@ proc ::psd::draw_slice {action skew Qzcross bincross} {
     octave recv psd_bin_err bindy
 }
 
+proc saveslice { {name "psdslice"}} {
+    if { [file extension $name] == "" } { append name ".txt" }
+    set fid [open $name "w"]
+    puts $fid [join $::psd_bin_counts(:) \n]
+    close $fid
+}
+
