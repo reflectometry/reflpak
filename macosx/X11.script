@@ -12,7 +12,7 @@
 
 on startApp(pars)
   set APPNAME to "Reflpak"
-  set COMMAND to "$scriptdir/reflpak.bin"
+  set COMMAND to "$scriptdir/reflpak"
 
   -- Find a DISPLAY variable to run your application.  This
   -- may require starting "X11" if it is not already running
