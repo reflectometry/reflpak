@@ -13,12 +13,12 @@ TAR ?= tar
 topdir ?= $(shell pwd)
 bindir ?= $(topdir)/$(ARCH)
 
-octavesrc=pkgIndex.tcl octave.tcl tclphoto.m tclsend.m
 scifunsrc=pkgIndex.tcl scifun$(LDEXT)
 
 paksrc=pkgIndex.tcl reflpak.tcl wininstall.tcl
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl \
-	print.tcl tableentry.tcl generic.tcl options.tcl pkgIndex.tcl
+	print.tcl tableentry.tcl generic.tcl options.tcl pkgIndex.tcl \
+	octave.tcl tclphoto.m tclsend.m
 fithelp=reflfit.help help.help mlayer.help gj2.help
 fitfig=reflpolorient.gif
 fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
@@ -34,7 +34,6 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
 
-octavefiles=$(patsubst %,soctcl/%,$(octavesrc))
 scifunfiles=$(patsubst %,scifun/%,$(scifunsrc))
 pakfiles=$(patsubst %,reflpak/%,$(paksrc))
 libfiles=$(patsubst %,lib/%,$(libsrc))
@@ -74,18 +73,17 @@ kit/reflpak.res: win/reflpak.rc win/R.ico win/red.ico
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winfiles) \
-		$(scifunfiles) $(libfiles) $(ncnrkit) $(octavefiles) \
+		$(scifunfiles) $(libfiles) $(ncnrkit) \
 		$(pakfiles) main.tcl Makefile
 	./vfslib reflpak
 	./vfslib reflpak ncnrlib $(libfiles)
 	./vfslib reflpak scifun $(scifunfiles)
-	./vfslib reflpak octave $(octavefiles)
 	$(addwinlink)
 	./vfslib reflpak reflfit $(fitfiles) $(gmlayer) $(gj2)
 	./vfslib reflpak reflred $(redfiles)
 	./vfslib reflpak reflred/octave $(redoctavefiles)
 	./vfslib reflpak reflpak $(pakfiles)
-	echo "set ::app_version {`date +%Y-%m-%d for $(ARCH)}" \
+	echo "set ::app_version {`date +%Y-%m-%d for $(ARCH)`}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
 	cd kit && $(SDX) wrap reflpak$(EXE) -runtime $(NCNRKIT)
