@@ -22,6 +22,33 @@ FORTRAN usage:
        WRITE (*,*) "There has been an error since the last call to FPERROR"
     ENDIF
 
+
+
+XXX FIXME XXX
+
+The intended model for the fenv stuff is for a subroutine to save 
+the floating point environment before changing it, and restore 
+that environment before returning:
+
+  f() {
+     feholdexcept(&env)
+     ... do some stuff involving fetestexcept/feclearexcept ...
+     fesetenv(&env)
+  }
+
+We do not support this model.  Perhaps the following functions would be
+more suitable:
+
+  fphold()   if not already held, issue feholdexcept(&env); increment held
+  fperror()  test and reset useful flags
+  fpfree()   decrement held; if 0 issue fesetenv(&env)
+
+The POSIX standard (2001) also seems to require the following at the
+start of each function which uses fphold/fpfree:
+  #pragma STDC FENV_ACCESS ON
+See the following for details:
+  http://www.opengroup.org/onlinepubs/007904975/basedefs/fenv.h.html
+
 */
 
 #include <fenv.h>
