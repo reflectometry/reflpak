@@ -1401,6 +1401,9 @@ proc addrun_remove { id } {
 }
 
 proc addrun_accept {} {
+
+    if { [llength $::addrun] == 0 } { return }
+
     blt::busy hold . 
 
     # sort run list by index
