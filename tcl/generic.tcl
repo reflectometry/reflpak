@@ -985,22 +985,39 @@ proc graph_select_cancel {w} {
     array unset ::graph_select *,$w
 }
 
+proc graph_activate_menu {w X Y x y} {
+    if {[$w inside $x $y]} {
+        set ::active_graph($w,marker) [$w marker get current]
+        $w element closest $x $y where
+        if [info exists where(x)] {
+            set ::active_graph($w,element) $where(name)
+            set ::active_graph($w,index) $where(index)
+        } else {
+            set ::active_graph($w,element) {}
+            set ::active_graph($w,index) {}
+        }
+        tk_popup $w.menu $X $Y 1
+    }
+}
+
 proc active_graph {w args} {
 
     switch -- $args {
-        marker { return [set ::marker-$w] }
-        element { return [set ::element-$w] }
+        marker - index -
+        element { return $::active_graph($w,$args) }
     }
-    set ::element-$w {}
-    set ::marker-$w {}
-
+    array set ::active_graph [list $w,element {} $w,marker {} $w,index {}]
+    set ::active_graph($w,errbar) [option get $w showErrorBars ShowErrorBars]
+    if { "$::active_graph($w,errbar)" eq "" } {
+	set ::active_graph($w,errbar) both
+    }
+    
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
     $w.menu add command -underline 0 -label "Unzoom" -command "blt::ResetZoom $w"
     $w.menu add command -underline 2 -label "Pan" -command "pan::pan start $w"
     $w.menu add command -underline 5 -label "Crosshairs" -command "$w crosshairs toggle"
     if [blt_errorbars] {
-	set ::errbar-$w [option get $w showErrorBars ShowErrorBars]
 	$w.menu add command -underline 0 -label "Error bars" \
 		-command "graph_toggle_error $w"
     }
@@ -1014,12 +1031,8 @@ proc active_graph {w args} {
     Blt_ZoomStack $w
     # bind zoom-$w <ButtonPress-2> [bind zoom-$w <ButtonPress-3>]
     bind zoom-$w <ButtonPress-3> {}
-    bind $w <ButtonPress-3> {
-	if {[%W inside %x %y]} {
-            set ::marker-%W [%W marker get current]
-            set ::element-%W [%W element get current]
-            tk_popup %W.menu %X %Y 1
-        }
+    bind $w <ButtonPress-3> { 
+        graph_activate_menu %W %X %Y %x %y
     }
 
     # Add panning capability
@@ -1031,13 +1044,13 @@ proc graph_toggle_error {w} {
 	# XXX FIXME XXX this toggles between both/none.  There are also
 	# options for x-only or y-only, but we will ignore these.  If your
 	# data only has x or y errors, then both/none will work fine.
-	if {[string equal [set ::errbar-$w] none]} {
-	    set ::errbar-$w both
+	if { "$::active_graph($w,errbar)" eq "none" } {
+	    set ::active_graph($w,errbar) both
 	} else {
-	    set ::errbar-$w none
+	    set ::active_graph($w,errbar) none
 	}
 	foreach el [$w element names] {
-	    $w elem conf $el -showerrorbars [set ::errbar-$w]
+	    $w elem conf $el -showerrorbars $::active_graph($w,errbar)
 	}
     }
 }
@@ -1068,7 +1081,7 @@ proc blt_errorbars {} {
 # and whether the
 proc graph_error {w el args} {
     if { [blt_errorbars] } {
-	eval $w elem conf $el $args -showerrorbars [set ::errbar-$w]
+	eval $w elem conf $el $args -showerrorbars $::active_graph($w,errbar)
     }
 }
 

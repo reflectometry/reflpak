@@ -1007,6 +1007,10 @@ proc active_graph {w args} {
         element { return $::active_graph($w,$args) }
     }
     array set ::active_graph [list $w,element {} $w,marker {} $w,index {}]
+    set ::active_graph($w,errbar) [option get $w showErrorBars ShowErrorBars]
+    if { "$::active_graph($w,errbar)" eq "" } {
+	set ::active_graph($w,errbar) both
+    }
     
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
@@ -1014,7 +1018,6 @@ proc active_graph {w args} {
     $w.menu add command -underline 2 -label "Pan" -command "pan::pan start $w"
     $w.menu add command -underline 5 -label "Crosshairs" -command "$w crosshairs toggle"
     if [blt_errorbars] {
-	set ::errbar-$w [option get $w showErrorBars ShowErrorBars]
 	$w.menu add command -underline 0 -label "Error bars" \
 		-command "graph_toggle_error $w"
     }
@@ -1041,13 +1044,13 @@ proc graph_toggle_error {w} {
 	# XXX FIXME XXX this toggles between both/none.  There are also
 	# options for x-only or y-only, but we will ignore these.  If your
 	# data only has x or y errors, then both/none will work fine.
-	if {[string equal [set ::errbar-$w] none]} {
-	    set ::errbar-$w both
+	if { "$::active_graph($w,errbar)" eq "none" } {
+	    set ::active_graph($w,errbar) both
 	} else {
-	    set ::errbar-$w none
+	    set ::active_graph($w,errbar) none
 	}
 	foreach el [$w element names] {
-	    $w elem conf $el -showerrorbars [set ::errbar-$w]
+	    $w elem conf $el -showerrorbars $::active_graph($w,errbar)
 	}
     }
 }
@@ -1078,7 +1081,7 @@ proc blt_errorbars {} {
 # and whether the
 proc graph_error {w el args} {
     if { [blt_errorbars] } {
-	eval $w elem conf $el $args -showerrorbars [set ::errbar-$w]
+	eval $w elem conf $el $args -showerrorbars $::active_graph($w,errbar)
     }
 }
 

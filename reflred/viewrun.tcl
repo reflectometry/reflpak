@@ -255,21 +255,8 @@ proc init_selector { } {
     bind .graph <2> { graph_exclude %W %x %y }
 
     frame .b
-    checkbutton .b.scale -text "Align" -indicatoron 1 \
-	    -variable ::prefer_aligned \
-	    -command { addrun align }
+    button .b.scale -text "Align" -command { addrun align }
     pack .b.scale -side left -anchor w
-
-    if [blt_errorbars] {
-	checkbutton .b.err -text Errorbar -variable ::erraddrun \
-		-indicatoron 1 -offvalue none -onvalue y \
-		-command {
-	    foreach id $::addrun {
-		.graph elem conf $id -showerrorbar $::erraddrun
-	    }
-	}
-	pack .b.err -side left
-    }
 
     # button to accept the current scan
     button .b.accept -text Accept -command { addrun accept }
@@ -787,7 +774,6 @@ proc editscan { scanid } {
 	}
     }
     foreach id $runs { addrun add $id }
-    if { $::prefer_aligned } {atten_calc $::addrun }
     atten_set $::addrun
     raise .
 }
@@ -1342,9 +1328,7 @@ proc addrun_add { id } {
 	    -xdata ::x_$id -ydata ::ky_$id \
 	    -label "[set ::${id}(legend)]" -labelrelief raised
     .graph elem show [concat [ldelete [.graph elem show] $id] $id]
-    if [blt_errorbars] {
-	.graph elem conf $id -yerror ::kdy_$id -showerrorbar $::erraddrun
-    }
+    graph_error	.graph $id -yerror ::kdy_$id
     if [vector_exists ::idx_$id] {
 	.graph elem conf $id -weight ::idx_$id -styles {{excludePoint -0.5 0.5}}
     }
@@ -1380,9 +1364,7 @@ proc addrun_addscan { id } {
     .graph element create $id -xdata ::${id}_x -ydata ::${id}_ghosty \
 	    -color $color -label "[set ::${id}(type)] [set ::${id}(legend)]" \
 	    -pixels 1 -scalesymbol 0 -labelrelief raised
-    if [blt_errorbars] {
-	.graph elem conf $id -yerror ::${id}_ghostdy -showerrorbar $::erraddrun
-    }
+    graph_error .graph $id -yerror ::${id}_ghostdy
 }
 
 proc addrun_clearscan {idlist} {
@@ -1471,11 +1453,7 @@ proc addrun { command args } {
     switch -- $command {
 	align {
 	    # recalculate alignment
-	    if { $::prefer_aligned } {
-		atten_calc $::addrun
-	    } else {
-		atten_revert $::addrun
-	    }
+	    atten_calc $::addrun
 	    atten_set $::addrun
 	    atten_table_reset
 	}
@@ -1485,6 +1463,7 @@ proc addrun { command args } {
 	load {}
 	accept {
 	    addrun_accept
+	    atten_table_reset
 	}
 	save {
 	    addrun clear
@@ -1494,6 +1473,7 @@ proc addrun { command args } {
 		addrun_clearscan -all
 	    } else {
 		foreach id $::addrun { addrun_remove $id }
+		atten_table_reset
 	    }
 	}
 	clearscan {
@@ -1508,9 +1488,11 @@ proc addrun { command args } {
 	}
 	add {
 	    addrun_add $args
+	    atten_table_reset
 	}
 	remove {
 	    addrun_remove $args
+	    atten_table_reset
 	}
 	matches {
 	    return [addrun_matches $args]
@@ -1644,7 +1626,6 @@ proc toggle_section { args } {
 	}
 	foreach node $nodes { addrun add $node }
     }
-    if { $::prefer_aligned } { atten_calc $::addrun }
     atten_set $::addrun
 }
 
@@ -1742,8 +1723,8 @@ if {0} {
     clear_run $node
 
     ## decorate the graph
-    if [blt_errorbars] { .graph elem conf data -yerror ::dy_data }
-    .graph element conf data -hide 0 -showerrorbar $::errviewfile
+    graph_error .graph data -yerror ::dy_data
+    .graph element conf data -hide 0
     decorate_graph $node
     .graph conf -title "\[$rec(dataset) $rec(run)] $rec(comment)"
 
