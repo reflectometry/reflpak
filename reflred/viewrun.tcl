@@ -71,7 +71,7 @@ if { [ string match $argv "-h" ] } {
     exit
 }
 if { $argc == 0 } {
-    set pattern [file join . *]
+    set pattern {{}}
 } else {
     set pattern $argv
 }

@@ -39,7 +39,8 @@ proc ::Choose::Fill_contents { w path } {
 	if { [file isdirectory $f] } {
 	    if { $path ne "." && $path ne ".." } {
 		lappend dirs [incr n] \
-		    -data [list Dataset [file tail $f]/ Comment directory]
+		    -data [list Dataset [file tail $f]/ Comment directory \
+			       Inst directory]
 	    }
 	    continue
 	}
@@ -199,10 +200,11 @@ proc ::Choose::Selected_set {} {
 	# XXX FIXME XXX use a mapper so that we can add new extensions
 	# on the fly
         switch $rec(Inst) {
-	    NG-1 { lappend patternset $rec(Dataset)*.\[nN]\[gG]1 }
-	    XRAY { lappend patternset $rec(Dataset)*.\[xX]\[rR]0 }
-	    NG-7 { lappend patternset $rec(Dataset)*.\[nN]\[gG]7 }
-	    NG-1p { lappend patternset $rec(Dataset)*.\[nN]\[aAbBcCdD]1 }
+	    NG-1 { lappend patternset "$rec(Dataset)*.\[nN]\[gG]1" }
+	    XRAY { lappend patternset "$rec(Dataset)*.\[xX]\[rR]0" }
+	    NG-7 { lappend patternset "$rec(Dataset)*.\[nN]\[gG]7" }
+	    NG-1p { lappend patternset "$rec(Dataset)*.\[nN]\[aAbBcCdD]1" }
+	    directory { lappend patternset "$rec(Dataset)" }
 	    default { return * ;# All, so return all }
 	}
     }
@@ -211,13 +213,16 @@ proc ::Choose::Selected_set {} {
 
 
 proc ::Choose::Update {} {
-    set dir [file join $::Choose::Path [Selected_dir]]
-    set patternset {}
-    foreach pattern [Selected_set] {
-	lappend patternset [file join $dir $pattern]
+    # Note: we are changing the current directory rather than
+    # using full path to the selected directory since file operations
+    # are up to 10x faster if you are in the current directory.  E.g.
+    #    file isdir: IRIX 10x, Windows 2000 5x, Linux 3x
+    set patternset [Selected_set]
+    if {[llength $patternset] == 0} { set patternset {{}} }
+    catch {
+	cd [file join $::Choose::Path [Selected_dir]]
+	$::Choose::Callback $patternset
     }
-    if ![llength $patternset] { file join $dir * }
-    $::Choose::Callback $patternset
 }
 
 proc  choose_dataset { callback } {
