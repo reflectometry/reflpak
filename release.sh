@@ -27,7 +27,7 @@ cvs export -r $TAG -d $ROOT $PROJECT
 # before commit command, and generate ChangeLog rather than $ROOT/ChangeLog
 cvs2cl.pl --fsf --file ChangeLog.tmp
 echo "# Automatically generated file --- DO NOT EDIT" | cat - ChangeLog.tmp > $ROOT/ChangeLog
-rm ChangeLog.tmp
+rm -f ChangeLog.tmp
 
 # build the tar ball
 tar czf $ROOT.tar.gz $ROOT
