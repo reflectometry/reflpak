@@ -6,6 +6,7 @@
 #include <common.h>
 #include <parameters.h>
 
+COMMON int realR;
 COMMON int npnts, loaded;
 COMMON double *xdat, *ydat, *srvar, *yfit, *xtemp, *ytemp;
 /* COMMON double ytemp1[MAXPTS], xtemp1[MAXPTS]; */

@@ -8,6 +8,8 @@
 #include <extres.h>
 #include <genmulti.h>
 #include <grefint.h>
+#include <grefamp.h>
+#include <cdata.h>
 #include <delparm.h>
 #include <mancon.h>
 
@@ -168,10 +170,15 @@ STATIC void calcReflec(double *qtemp, double *y, int npnts)
    newgrefint(qtemp,y,&npnts,&lambda,gqcsq,gmu,gd,&nglay);
    printf("newgrefint time=%g\n",tic());
 #endif
-   
+
    for (j = 0; j < npnts; j++) {
-      *y = grefint(qtemp, &lambda, gqcsq, gmu, gd, &nglay);
-      y++, qtemp++;
+     if (realR) {
+       double c;
+       grefamp(qtemp, &lambda, gqcsq, gmu, gd, &nglay, y, &c);
+     } else {
+       *y = grefint(qtemp, &lambda, gqcsq, gmu, gd, &nglay);
+     }
+     y++, qtemp++;
    }
 
 #if DOTIME
