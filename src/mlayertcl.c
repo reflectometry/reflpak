@@ -129,7 +129,7 @@ static int parsevar(const char name[], int **pi, double **pd)
   } else if (name[0] == 'b') {
     if (strcmp(name,"bk") == 0) *pd = &bki;
     else if (strcmp(name,"bi") == 0) *pd = &bmintns;
-    else return 0;
+    else return parselayer(name+1,pd,bqcsq,bmu,bd,brough);
   } else if (name[0] == 'v') {
     if (strcmp(name,"vqc") == 0) *pd = tqcsq;
     else if (strcmp(name,"vmu") == 0) *pd = tmu;
@@ -138,8 +138,6 @@ static int parsevar(const char name[], int **pi, double **pd)
     return parselayer(name+1,pd,tqcsq,tmu,td,trough);
   } else if (name[0] == 'm') {
     return parselayer(name+1,pd,mqcsq,mmu,md,mrough);
-  } else if (name[0] == 'b') {
-    return parselayer(name+1,pd,bqcsq,bmu,bd,brough);
   } else {
     return 0;
   }
@@ -200,7 +198,11 @@ int ipc_fitupdate(void)
 static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
 {
   if (fit_constraints) {
+    genshift(a,FALSE);
     Tcl_Eval(fit_interp, fit_constraints);
+    /* XXX FIXME XXX we can remove both this genshift and the
+     * genshift in fgen/fsgen */
+    genshift(a,TRUE);
     Tcl_ResetResult(fit_interp);
   }
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */

@@ -380,10 +380,10 @@ void mlayer(void)
 
       /* Update constraints */
       } else if (strcmp(command, "UC") == 0) {
-         /* genshift(a, TRUE); */
+         genshift(a, TRUE);
          /* constrain(a); */
          (*Constrain)(FALSE, a, ntlayer, nmlayer, nrepeat, nblayer);
-         /* genshift(a, FALSE); */
+         genshift(a, FALSE);
 
       /* Enter critical Q squared */
       /* or */

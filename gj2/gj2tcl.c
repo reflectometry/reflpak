@@ -204,7 +204,9 @@ void ipc_fitupdate(void)
 static void tclconstraints(int del, double a[], int nl)
 {
   if (fit_constraints) {
+    genshift(a,FALSE);
     Tcl_Eval(fit_interp, fit_constraints);
+    genshift(a,TRUE);
     Tcl_ResetResult(fit_interp);
   }
   /* XXX FIXME XXX why did I want to run the event loop during constraints? */
