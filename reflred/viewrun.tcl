@@ -122,7 +122,7 @@ proc init_tree_select_images {} {
     set ::image(new) [image create photo]
     $::image(new) put [string map { 0 "white " 1 "black " } $box9]
     set ::image(clear) [image create photo]
-    $::image(clear) put [string map { 0 "gray " 1 "black " } $box9]
+    $::image(clear) put [string map { 0 "#ccaeae " 1 "black " } $box9]
     set ::image(select) [image create photo]
     $::image(select) put [string map { 0 "red " 1 "black " } $box9]
 }
