@@ -803,12 +803,13 @@ proc write_reduce { } {
     upvar rec rec
     upvar fid fid
     upvar log log
+    upvar monitor monitor
     # Version info: #RRF $major $minor $appname $appversion for $arch
     puts $fid "#RRF 1 0 $::app_version"
     puts $fid "#date [clock format $rec(date) -format %Y-%m-%d]"
     puts $fid "#title \"$rec(comment)\""
     puts $fid "#instrument $rec(instrument)"
-    puts $fid "#monitor $rec(monitor)"
+    puts $fid "#monitor $monitor"
     puts $fid "#temperature $rec(T)"
     puts $fid "#field $rec(H)"
     puts $fid "#wavelength $rec(L)"
@@ -881,12 +882,17 @@ proc reduce_save { args } {
     set haveslit [expr $::calc_transmission || [llength $slit]]
     set havefoot [expr $havespec && $::footprint_correction]
 
+    # if data has been scaled by intensity, monitor is now 1,
+    # not the original monitor in the data record.
+    set monitor $rec(monitor)
     if { $havefoot || ($havespec && $haveback && !$needfoot) } {
 	set ext .refl
 	set data refl
+	set monitor 1.
     } elseif {($havespec || $haveback) && $haveslit} {
 	set ext .div
 	set data div
+	set monitor 1.
     } elseif {$havespec && $haveback} {
 	set ext .sub
 	set data sub
