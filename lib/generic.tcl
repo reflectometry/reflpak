@@ -24,8 +24,9 @@ proc plist { list } { foreach l $list { puts $l } }
 # Usage: HOME ?newhome
 #
 # Sets or returns the home directory.  HOME is taken from
-# the environment variable of the same name if it exists,
-# or from the current directory if it doesn't.
+# the environment variable USERPROFILE if it exists,
+# or from the environment variable HOME if it exists,
+# or from the current directory.
 #
 # TODO: On windows, this should look for the appropriate
 # TODO: registry keys for application settings if HOME
@@ -43,14 +44,15 @@ proc HOME { args } {
 	# tilde substitution to work even when $HOME contains
 	# a path with a symbolic link.  The pwd command returns the
 	# actual path rather than linked path.
-	if { [info exists ::env(HOME)] } {
-	    set dir [pwd]
-	    catch { cd $::env(HOME) }
-	    set ::HOME [ pwd ]
-	    cd $dir
-	} else {
-	    set ::HOME [ pwd ]
+	set startdir [ pwd ]
+	if { [catch { cd $::env(USERPROFILE) }] } {
+	    if { [catch { cd $::env(HOME) }] } {
+		set ::HOME $startdir
+		return $::HOME
+	    }
 	}
+	set ::HOME [ pwd ]
+	cd $startdir
     }
 
     return $::HOME
@@ -336,12 +338,28 @@ proc tracing { level } { ::tracing::init $level }
 # to the top of a function you are debugging, you immediately
 # give a context to the puts debugging statements you add to
 # the function.
-proc ptrace {} {
-    set call [info level -1]
+proc ptrace { {msg {}} } {
+    # show the windows console if necessary
+    catch {
+	if { ![winfo exists .tkcon] } {
+	    if { [console eval { wm state . }] eq "withdrawn" } { 
+		console show 
+	    }
+	}
+    }
+    # find the caller info
+    if { [info level] > 1 } {
+	set call [info level -1]
+    } else {
+	set call {}
+    }
     set fn [uplevel [list namespace which -command [lindex $call 0]]]
-    set args [lrange $call 1 end]
-    catch { console show }
-    puts "[expr {[info level]-1}] $fn $args"
+    # if no message, report calling parameters
+    if { $msg eq "" } {
+	set msg "called with [lrange $call 1 end]"
+    }
+    # display message
+    puts "${fn}([expr {[info level]-1}]) $msg"
 }
 
 # =========================== greek character codes ==================
@@ -407,7 +425,6 @@ proc fix { value {min {}} {max {}} {accuracy 3}} {
 # specified precision.
 proc makereal {a} {
     if { [string match $a {}] } { set a 0 }
-    #return [ expr {double($a)} ]
     return [ format %.15e $a ]
 }
 
@@ -911,7 +928,7 @@ option add *Graph.Axis.ScrollIncrement 1 widgetDefault
 proc graph_select { w args } {
     set ::graph_select(focus,$w) [focus]
     set ::graph_select(points,$w) $args
-    # puts "adding graph_select tag to [bindtags $w] for $w"
+    # ptrace "adding tag to [bindtags $w] for $w"
     bindtags $w [concat graph_select [bindtags $w]]
     # XXX FIXME XXX is there a way to save and restore stacking order?
     raise [winfo toplevel $w]
@@ -921,7 +938,7 @@ proc graph_select { w args } {
 }
 
 proc graph_select_motion {w x y} {
-    # puts "graph_select_motion"
+    # ptrace
     eval $w element deactivate [$w elem names]
     foreach line [array names ::graph_select "active*,$w"] {
 	eval $w element activate [string map [list active {} ",$w" {}] $line] $::graph_select($line)
@@ -938,7 +955,7 @@ proc graph_select_motion {w x y} {
         # a context such as 0+10+0.  I cannot reproduce this
         # behaviour outside of reflred, but within reflred it is
         # consistent across graphs.  Go figure!
-	#puts "activating $where(name) $where(index)"
+	#ptrace "activating $where(name) $where(index)"
 	if [info exists ::graph_select(active$where(name),$w)] {
 	    eval $w element activate $where(name) $::graph_select(active$where(name),$w) int($where(index))
         } else {
@@ -951,7 +968,7 @@ proc graph_select_press {w x y} {
     $w element closest $x $y where -halo 1i ;#\
 	    -interpolate [option get $w.Interpolate]
     if { [info exists where(x)] } {
-	#puts "graph_select_press setting [lindex $::graph_select(points,$w) 0] $where(x)"
+	#ptrace "setting [lindex $::graph_select(points,$w) 0] $where(x)"
 	foreach {x y el} [lindex $::graph_select(points,$w) 0] break
 	set ::graph_select(points,$w) [lrange $::graph_select(points,$w) 1 end]
 	if {![string equal $x {}]} { uplevel #0 [list set $x $where(x)] }
@@ -962,7 +979,7 @@ proc graph_select_press {w x y} {
 }
 
 proc graph_select_release {w x y} {
-     #puts "graph_select_release with $::graph_select(points,$w)"
+     #ptrace "with $::graph_select(points,$w)"
     if {[llength $::graph_select(points,$w)] == 0} {
 	graph_select_cancel $w
     } else {
@@ -973,7 +990,7 @@ proc graph_select_release {w x y} {
 }
 
 proc graph_select_cancel {w} {
-    #puts "graph_select_cancel"
+    #ptrace
     $w marker delete selectPointText
     eval $w element deactivate [$w elem names]
     bindtags $w [ldelete [bindtags $w] graph_select]

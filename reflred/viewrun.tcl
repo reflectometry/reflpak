@@ -1,5 +1,5 @@
 namespace import blt::graph blt::vector blt::hiertable
-source [file join $::VIEWRUN_HOME generic.tcl]
+source [file join $::VIEWRUN_LIB generic.tcl]
 source [file join $::VIEWRUN_HOME reduce.tcl]
 #source [file join $::VIEWRUN_HOME atten.tcl]
 source [file join $::VIEWRUN_LIB tableentry.tcl]

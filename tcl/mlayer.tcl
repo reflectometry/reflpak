@@ -19,7 +19,7 @@ source [file join $MLAYER_LIB ctext.tcl]
 # generic is not really mlayer specific, but I haven't yet
 # resolved the differences between it and the generic.tcl
 # in viewrun.
-source [file join $MLAYER_HOME generic.tcl]
+source [file join $MLAYER_LIB generic.tcl]
 
 # popup help for the individual fields
 array set field_help {
