@@ -4,7 +4,8 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-VERSION = $(shell date +%Y%m%d)
+VERSION = $(shell date +-%Y.%m.%d)
+VERSIONTAG = $(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
@@ -78,7 +79,7 @@ kit/reflpak.res: win/reflpak.rc $(icons)
 
 kit/copykit$(EXE): $(NCNRKIT)
 	cp $(NCNRKIT) kit/copykit$(EXE)
-
+	
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
 		kit/copykit$(EXE) main.tcl Makefile vfslib
@@ -132,12 +133,14 @@ $(SUBDIRS):
 ChangeLog:
 	cvs2cl.pl --fsf --file ChangeLog
 
+tagdist:
+	cvs rtag R$(VERSIONTAG) reflfit
+	cvs export -r R$(VERSIONTAG) reflpak$(VERSION)-src
+
 srcdist: ChangeLog
-	cvs rtag R$(VERSION) reflfit
-	cvs export -r R$(VERSION) reflpak$(VERSION)-src
 	cp ChangeLog reflpak$(VERSION)-src
 	if test ! -d release ; then mkdir release ; fi
-	tar czf release/reflpak$(VERSION)-src.tar.gz reflpak$(VERSION)-src
+	tar cjf release/reflpak$(VERSION)-src.tar.bz2 reflpak$(VERSION)-src
 	$(RM) -rf reflpak$(VERSION)-src
 
 ifeq ($(ARCH),macosx)
@@ -152,33 +155,22 @@ dist: kit/reflpak $(macscripts) RELEASE-NOTES
 	cd diskimage && ../macosx/dmgpack.sh reflpak$(VERSION) README reflpak$(VERSION) data
 	if test ! -d release ; then mkdir release ; fi
 	mv diskimage/reflpak$(VERSION).dmg release
-	rm -rf diskimage
 else
 ifeq ($(ARCH),win)
 dist: kit/reflpak$(EXE)
 	if test ! -d release ; then mkdir release ; fi
 	cp -a kit/reflpak$(EXE) release/reflpak$(VERSION)$(EXE)
 else
-dist: DIR=reflpak$(VERSION)-$(ARCH)
 dist: kit/reflpak$(EXE) RELEASE-NOTES
-	if test -d $(DIR) ; then rm -rf $(DIR); fi
-	mkdir $(DIR)
-	cp -p RELEASE-NOTES linux/README $(DIR)
-	cp -p kit/reflpak $(DIR)/reflpak$(VERSION)
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
-		< linux/reflpak.in > $(DIR)/reflpak
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" \
-		< linux/reflpak.in > $(DIR)/reflred
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" \
-		< linux/reflpak.in > $(DIR)/reflfit
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" \
-		< linux/reflpak.in > $(DIR)/reflpol
-	chmod a+rx $(DIR)/refl{pak,red,fit,pol}
-	if test ! -d release ; then mkdir release ; fi
-	tar cf release/$(DIR).tar $(DIR)
-	if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi
-	gzip release/$(DIR).tar
-	rm -rf $(DIR)
+	if test -d reflpak$(VERSION) ; then rm -rf reflpak$(VERSION); fi
+	mkdir reflpak$(VERSION)
+	cp -p RELEASE-NOTES reflpak$(VERSION)
+	cp -p kit/reflpak reflpak$(VERSION)/reflpak$(VERSION)
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" < linux/reflpak.in > reflpak$(VERSION)/reflpak
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" < linux/reflpak.in > reflpak$(VERSION)/reflred
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" < linux/reflpak.in > reflpak$(VERSION)/reflfit
+	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" < linux/reflpak.in > reflpak$(VERSION)/reflpol
+	chmod a+rx
 endif
 endif
 

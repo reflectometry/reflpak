@@ -1,65 +1,78 @@
-#! /bin/bash
+#!/bin/sh
 
-# Build an official release of reflpak.  Currently version is
-# tied to date
+# Build an official release of reflpak.  I'm assuming all the
+# tools are in place on your machine, including perl and cvs2cl.pl
 
-VERSION=`date +%Y%m%d`
+# Currently version is tied to date
+VERSION="`date +-%Y.%m.%d`"
 
 # I'm assuming this script is being run from one of the build
 # machines.  In my case, this is windows since my windows box
 # isn't set up for ssh operations.
 
-# Here are my architecture specific build machines.  Each has
-# already been set up with a build directory and the appropriate
-# Makeconf.  I'm building in ~/cvs/reflfit:
-BUILD="jazz bt7motor h122145"
-builddir=~/cvs/reflfit
-gatherdir=~/release/reflpak$VERSION
+# Here are my architecture specific build machines:
+BUILD="jazz bt7motor h122045"
+# Grrr... irix machines need gmake rather than make...
+makejazz="gmake"
+# Each machine has already been set up with a build directory 
+# in ~/cvs/reflfit and the appropriate Makeconf.
+builddir="~/cvs/reflfit"
 
 # The results are stored and shared in the following directories.
 # These may be local or remote since scp doesn't care:
 STORE=jazz:release
 SHARE=jazz:samba
 
-dir=`pwd`
+# =========== End of configuration ============
 
-echo local cvs update 
-cd $builddir; cvs -q update -dP; cd $dir
+echo "== local cvs update ============================"
+cvs -q update -dP
 for machine in $BUILD; do
-    echo cvs update on $machine:
+    echo;echo "== cvs update on $machine: ===================";
     ssh $machine "cd $builddir && cvs -q update -dP"
 done
 
-echo "Does everything look okay? [y to continue]"
+echo; echo "Are all files committed that need to be?"
+echo "Are any files not added that should be added?"
+echo "Are the RELEASE-NOTES up to date, and tagged with today's date?"
+echo -n "Press y to continue: "
 read ans
 test "$ans" != "y" && exit
 
 
-cd $builddir
-echo local build
+echo; echo "== local build ========================"
 make dist
-echo build html
+echo; echo "== build html ========================="
 make html
-echo build source
+echo; echo "== build source ======================="
 make srcdist
-cd $dir
 
 for machine in $BUILD; do
-    echo build on $machine
-    ssh $machine "cd $builddir && make dist"
+    echo; echo "== build on $machine ========================"
+    # if make$machine is a defined variable use it, otherwise use 'make'
+    par=make$machine
+    ssh $machine "cd $builddir && ${!par:-make} dist"
 done
 
-mkdir $gatherdir
-echo gather local build results
-cp $builddir/release/reflpak$VERSION* $gatherdir
-cp -a $builddir/html $gatherdir
+mkdir reflpak$VERSION
+echo; echo "== gather local build results ====================="
+cp release/reflpak$VERSION* reflpak$VERSION
+cp -a html reflpak$VERSION
 for machine in $BUILD; do
-    echo gather results from $machine
-    scp $machine:$builddir/release/reflpak$VERSION* $DIR
+    echo; echo "== gather results from $machine ================="
+    scp "$machine:$builddir/release/reflpak$VERSION*" reflpak$VERSION
 done
 
-cd $gatherdir/..
-tar cjf release-reflpak$VERSION.tar.gz reflpak$VERSION
-scp release-reflpak$VERSION.tar.gz $STORE
-scp -r $gatherdir $SHARE
-cd ~dir
+echo; echo "== updating $STORE and $SHARE ======================"
+sed -e"s,@VERSION@,$VERSION," < INSTALL >reflpak$VERSION/index.html
+cp RELEASE-NOTES reflpak$VERSION
+tar cjf reflpak$VERSION.tar.gz reflpak$VERSION
+scp reflpak$VERSION.tar.gz "$STORE"
+scp -r reflpak$VERSION "$SHARE"
+ssh ${SHARE%:*} "cd ${SHARE#*:} && ln -sf reflpak$VERSION reflpak"
+rm -rf reflpak$VERSION
+echo; echo "Please check that $STORE and $SHARE contain what you want"
+
+echo; echo -n "Tag the release? [y for yes]: "
+read ans
+test "$ans" = "y" && make tagdist
