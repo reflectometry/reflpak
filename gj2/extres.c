@@ -33,8 +33,6 @@ void extres(double q[], double lambda, double lamdel, double thedel,
    if (lambda < 1.e-10) {
       puts("/** Wavelength must be greater than zero **/");
    } else {
-      npnts--; /*ARRAY*/
-
       /* Determine low-Q extension */
       nlow = doExtend(q[0], q[1] - q[0], lambda, lamdel, thedel);
 
