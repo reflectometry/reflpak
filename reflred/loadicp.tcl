@@ -2,7 +2,7 @@
 # XXX FIXME XXX dump this into a namespace
 
 set ::xraywavelength 1.5416
-set ::cg1wavelength 5.0
+set ::cg1wavelength 5.0042
 set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
 
@@ -259,7 +259,11 @@ proc check_wavelength { id wavelength } {
     } elseif { $rec(L) == 0.0 } { 
 	set rec(L) $wavelength 
 	message "Using default wavelength $wavelength for $rec(file)"
-    } elseif { $rec(L) != $wavelength } {
+    } elseif { $rec(L) == $wavelength } {
+    	# good
+    } elseif { abs($rec(L) - $wavelength) < 0.01*$wavelength } {
+	message "Using recorded wavelength $rec(L) instead of $wavelength for $rec(file)"
+    } else {
 	# This is an intrusive dialog which hopefully won't be seen much
 	# by the users.  Yes we could make it nicer (e.g., by allowing
 	# mouse selection of the Tcl override command), but the number of
