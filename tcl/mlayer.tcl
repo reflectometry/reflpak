@@ -3789,8 +3789,9 @@ proc start_file {} {
 
 # generate a default layout
 default_pars
-gmlayer ql "0 0.35"
+gmlayer ql "0 0.5"
 gmlayer np 100
+if { $::MAGNETIC } { gmlayer ps abcd }
 reset_all
 
 drop_file [start_file]
