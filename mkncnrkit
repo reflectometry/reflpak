@@ -1,0 +1,182 @@
+#! /bin/sh
+
+# Customize the following for your installation:
+DQKIT=./dqkit
+SDX="$DQKIT sdx.kit"
+
+ARCH=`uname`
+if test x$ARCH = xwindows; then
+    # windows things
+    TCLLIB=/c/Tcl/lib
+    EXE=.exe
+    BINDRES=./bindres.sh
+    RC=windres
+else
+    host=`hostname`; host=${host%%.*}
+    TCLLIB=install/$host/lib
+fi
+
+# package versions for directories in your install
+# tree; note that we do some trimming of the tree
+# that we copy so if you are changing version
+# numbers, check the code below to make sure that
+# everything is being deleted that needs to be.
+BWIDGET=bwidget1.6
+TKTABLE=Tktable2.8
+TKDND=tkdnd1.0
+
+# tkcon is special since it is not usually distributed
+# as a package but instead as a stand-alone binary. If
+# you have at least version 2.4, we can make it into
+# a package by adding a pkgIndex.tcl file.  Point the
+# variable TKCONBIN to the location of your tkcon v2.4
+TKCONBIN=$TCLLIB/tkcon.tcl
+TKCON=tkcon2.4
+
+
+#
+if test x$1 != xdoit ; then
+    more <<EOF
+ncnrkit is a starkit containing the following:
+
+	Tcl/Tk BLT Tktable BWidget Tkcon Tkdnd
+
+Constructing it takes some effort.  Once it
+is constructed, then it can be used for a
+variety of NCNR programs, though those too
+may need to be built from source.
+
+Grab the dqkit sources (~16Mb) from 
+
+	http://sourceforge.net/project/showfiles.php?group_id=99106
+
+Assuming you are building from source, you will need to
+do the following in the source tree:
+
+	gen/buildkit -tk -tcl -blt
+	 
+This will generate a file in bin/@HOSTNAME@/dqkit...
+You may need the option --compression=none, but I don't know
+if it works --- I hacked buildkit directly so that upx wasn't
+called. 
+
+Copy the dqkit binary to dqkit in the current directory so it 
+is easier to work with:
+
+	cp bin/@HOSTNAME@/dqkit* dqkit.exe
+
+Grab sdx.kit from http://www.equi4.com/pub/sk/sdx.kit.  This
+will run under the new dqkit.exe that you have created.  Place
+it in the same directory as dqkit.
+
+We need to extend this package so that it also contains bwidget,
+TkTable, tkcon and optionally tkdnd. You may need to build 
+these packages for yourself, which you can do directly from
+the dqkit tree.  Grab the packages.
+
+Tktable2.8:
+	http://sourceforge.net/project/showfiles.php?group_id=11464
+
+bwidget1.6:
+	http://sourceforge.net/project/showfiles.php?group_id=12883
+
+tkdnd1.0:
+	http://sourceforge.net/project/showfiles.php?group_id=13167
+
+tkcon.tcl (latest):
+  http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD
+
+I did the following from the dqkit root:
+
+	host=$(host); host=${host%%.*}
+	withtcl="--with-tcl=../../../install/$host/lib"
+	withtk="--with-tk=../../../install/$host/lib"
+	tar xzf Tktable2.8.tar.gz -C src
+	mkdir build/$host/tktable; cd build/$host/tktable
+	../../../src/Tktable2.8/configure $withtcl $withtk
+	make ; make install
+	cd ../../..
+	tar xzf bwidget1.6.tar.gz -C install/$host/lib
+	cp tkcon.tcl install/$host/lib
+
+Presumably tkdnd is similar, but I didn't build it myself, and
+it only seems to work on windows.
+
+Customize this file (mkncnrlib) to point to your tcl tree and 
+the correct versions of the various packages.
+
+On windows, copy win/bindres.sh, win/ncnrkit.ico and win/ncnrkit.rc
+into the dqkit root directory.  You should find them somewhere near 
+mkncnrlib, such as the win subdirectory.
+
+Once everything is ready, build the kit 
+
+	mkncnrkit doit
+
+EOF
+    exit
+
+else
+
+    set -x
+
+    # clear out any old build kits
+    rm -rf ncnrkit.vfs
+
+    # expose the base package tree
+    $SDX unwrap dqkit$EXE
+    mv dqkit.vfs ncnrkit.vfs
+    kitlib=ncnrkit.vfs/lib
+
+    # add bwidget (without docs)
+    cp -r $TCLLIB/$BWIDGET $kitlib
+    rm -rf $kitlib/$BWIDGET/htmldoc
+
+    # add TkTable (without docs or static lib)
+    cp -r $TCLLIB/$TKTABLE $kitlib
+    rm -rf $kitlib/$TKTABLE/html
+    rm $kitlib/$TKTABLE/*.{a,lib}
+
+    # add Tkcon (with pkgIndex.tcl)
+    mkdir $kitlib/tkcon2.4
+    cp $TKCONBIN $kitlib/tkcon2.4
+    cat > $kitlib/tkcon2.4/pkgIndex.tcl <<EOF
+package ifneeded tkcon 2.4 [subst {
+    namespace eval ::tkcon {}
+    set ::tkcon::PRIV(showOnStartup) 0
+    set ::tkcon::PRIV(protocol) {tkcon hide}
+    set ::tkcon::OPT(exec) ""
+    package require Tk
+    tclPkgSetup [list \$dir] tkcon 2.4 {
+	{tkcon.tcl source {tkcon dump idebug observe}}
+    }
+}]
+EOF
+
+    # add tkdnd (if needed, without docs)
+    if test -d $TCLLIB/$TKDND; then
+        cp -r $TCLLIB/TKDND $kitlib
+        rm -rf $kitlib/$TKDND/html
+        rm -rf $kitlib/$TKDND/demo
+    fi
+
+## Now we need to recombine our kit into ncnrkit
+
+    # duplicate the kit so that you can use it to split itself
+    cp dqkit$EXE ncnrkit$EXE
+    # split of the dqkit runtime
+    $SDX mksplit ncnrkit$EXE
+    # recombine with the extended ncnrkit
+    $SDX wrap ncnrkit$exe -runtime ncnrkit.head
+
+## On windows we will want to rebrand this.
+    if test x$ARCH = xwindows ; then
+	$RC ncnrkit.rc ncnrkit.res
+	$BINDRES ncnrkit.exe ncnrkit.res
+    fi
+fi
+
+## The resulting ncnrkit can now be used to wrap your own applications.
+## E.g.,
+##
+##    ncnrkit sdx.kit wrap reflpak$exe -runtime ncnrkit$exe
