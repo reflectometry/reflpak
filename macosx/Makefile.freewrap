@@ -53,7 +53,7 @@ CFLAGS= -DSTATIC_BUILD $(TCL_CFLAGS_WARNING) $(TCL_CFLAGS_OPTIMIZE) $(TCL_INCLUD
 ###### Add these options to CFLAGS when linking object files into
 #      an executable.
 #
-#LFLAGS = -static -Xlinker -S
+#LFLAGS = 
 LFLAGS = $(TCL_LD_FLAGS) $(TCL_LDFLAGS_OPTIMIZE)
 
 ###### Name of the ZIP archiver program
@@ -95,7 +95,8 @@ HDR_TK =
 ###### The directory containing the zlib header files "zlib.h".
 #
 # HDR_ZLIB = -I/home/dennis/Pdrive/tcl_src/zlib
-HDR_ZLIB = -I$(HOME)/packages/zlib-1.1.4
+# HDR_ZLIB = -I$(HOME)/packages/zlib-1.1.4
+HDR_ZLIB =
 
 ###### The linker option used to link against the TCL library
 #
@@ -108,10 +109,13 @@ SCRIPT_TK = $(TCL_PREFIX)/lib/tk$(TK_VERSION)/tclIndex
 
 ###### The linker option needed to include the Z compression library.
 #      This library is required by both the Img extension and the
-#      virtual file system.
+#      virtual file system.  Note that libz is distributed with
+#      Mac OS X and the linux standard base so we can dynamically 
+#      link to it
 #
 # LIB_Z = /usr/lib/libz.a
-LIB_Z = $(HOME)/packages/zlib-1.1.4/libz.a
+# LIB_Z = $(HOME)/packages/zlib-1.1.4/libz.a
+LIB_Z = -lz
 
 ###### Select which Tcl extensions to include.
 #
@@ -167,14 +171,6 @@ OPT_TLINK = -DWITHOUT_TLINK=1
 OPT_WINICO = -DWITHOUT_WINICO=1
 
 #### Standard libraries
-#    Whatever you need for static linking on your machine.
-#    Note that Mac OS/X doesn't support static linking without
-#    more effort than I want to exert at this point.
-LIB_C = \
-  /usr/lib/libieee.a \
-  /usr/lib/libm.a \
-  /usr/lib/libc.a \
-  /usr/lib/libdl.a
 LIB_C = -lm
 
 ###############################################################################
