@@ -5,6 +5,9 @@
 #
 # Display a list, one entry per line.
 # E.g., plist [.graph conf]
+#
+# There is also a tkcon function dump widget which displays
+# only the non-default widget options.
 proc plist { list } { foreach l $list { puts $l } }
 
 # HELP user
@@ -17,44 +20,63 @@ proc plist { list } { foreach l $list { puts $l } }
 
 # ==================== resources ==============================
 
-# HELP internal
-# Usage: load_resources dir app
+# HELP developer
+# Usage: HOME
 #
-# Load the application specific resource defaults from the application
-# source directory, and the user customizations from the user home
-# directory.
-#
-# Sets the HOME variable according to the environment, or if HOME
-# is not in the environment, use the start directory.
-proc load_resources { base app } {
-    # define HOME
-    if { [info exists ::env(HOME)] } {
-	set ::HOME $::env(HOME)
-    } else {
-	set ::HOME [ pwd ]
+# Return the home directory
+proc HOME { args } {
+    if { [llength $args] == 1 } {
+	set ::HOME [lindex $args 0]
+    } elseif { [llength $args] > 1 } {
+	error "usage: HOME ?newhome"
     }
 
+    if { ![info exists ::HOME] } {
+	# Get the home directory from the environment, returning
+	# the value from pwd.  We do it this way because we want
+	# tilde substitution to work even when $HOME contains
+	# a path with a symbolic link.  The pwd command returns the
+	# actual path rather than linked path.
+	if { [info exists ::env(HOME)] } {
+	    set dir [pwd]
+	    catch { cd $::env(HOME) }
+	    set ::HOME [ pwd ]
+	    cd $dir
+	} else {
+	    set ::HOME [ pwd ]
+	}
+    }
+
+    return $::HOME
+}
+
+# HELP developer
+# Usage: load_resources dir app
+#
+# Load the application specific resource defaults from $dir/${app}rc
+# and the user customizations from $HOME/.${app}rc.
+#
+# XXX FIXME XXX we need something more clever under windows
+# since generally there is no home directory.  Where can
+# we put .${app}rc?
+proc load_resources { dir app } {
+
     # application defaults
-    set file [file join $base "${app}rc"]
+    set file [file join $dir "${app}rc"]
     if [file exists $file] {
-	if [catch { option readfile $file userDefault } err] {
+	if [catch { option readfile $file startupFile } err] {
 	    app_fail "error in $file\n$err"
 	}
     }
 
     # user defaults
-    set file [file join $::HOME ".${app}rc"]
+    set file [file join [HOME] ".${app}rc"]
     if [file exists $file] {
 	if [catch { option readfile $file userDefault } err] {
 	    app_fail "error in $file\n$err"
 	}
     }
 
-    # find the real home as returned by pwd
-    set dir [pwd]
-    cd $::HOME
-    set ::HOME [pwd]
-    cd $dir
 }
 
 # HELP developer
@@ -64,31 +86,15 @@ proc load_resources { base app } {
 # home directory with ~.  To get the name of the directory containing
 # a particular file, use:
 #    tildesub [file normalize [file dirname $file]]
-# This requires the ::HOME variable which is set by load_resources
 proc tildesub { path } {
-    if { [string match $::HOME* $path] } {
-	return ~[string range $path [string length $::HOME] end]
+    if { [string match [HOME]* $path] } {
+	return ~[string range $path [string length [HOME]] end]
     } else {
 	return $path
     }
 }
 
 # ========================== help system ==========================
-
-# HELP developer
-# Usage: helpmenu menu homepage
-#
-# Adds a help entry to the given menu.  The menu path is the top
-# level menu for your window.  It should not have a help menu
-# already.  The homepage is the base for browsing off that menu.
-#
-# To add help files to an already existing help system, set
-#    set ::helpstamp(complete_path_to_file) {}
-# This will cause your help file to be loaded the next time
-# you request help, or reloaded if it has changed.
-#
-# There is no support for the img:: tag in user help files at this
-# time.
 
 # HELP developer
 # Usage: hpage page_name widgetlist text
@@ -120,7 +126,7 @@ proc tildesub { path } {
 # System command to convert the help files to HTML.  Use this to
 # test for dangling references in you help text.
 
-# HELP internal
+# HELP developer
 # Usage: help dir name ?name...
 #
 # Defines the files containing a help system. All files should be
@@ -128,10 +134,10 @@ proc tildesub { path } {
 # whenever they are changed which makes it easy to modify and test
 # your help system.  Help is not loaded until the user requests it.
 #
-# By default, help for the controls for page_name is defined via:
-#    hpage {page_name controls} {} text
-# but you can change this to xxx using
-#    bind all <Shift-F1> { gethelp %W xxx}
+# Currently all help files must reside in the directory containing
+# htext.tcl.  This directory must be specified for each set of help
+# files that you add.  This is probably going to be your application
+# source directory.
 proc help { dir args } {
     set ::helpdir $dir
     foreach file $args { set ::helpstamp([file join $dir $file.help]) {} }
@@ -141,7 +147,26 @@ proc help { dir args } {
     bind all <F1> { gethelp %W }
     bind all <Shift-F1> { gethelp %W controls }
 
+    # XXX FIXME XXX currently all help files need to be in the same
+    # directory.  It is conceivable that a plugin might want to keep
+    # its files in a separate directory.  Note that images also use
+    # the same directory.
 }
+
+# HELP developer
+# Usage: helpmenu menu homepage
+#
+# Adds a help entry to the given menu.  The menu path is the top
+# level menu for your window.  It should not have a help menu
+# already.  The homepage is the base for browsing off that menu.
+#
+# To add help files to an already existing help system, set
+#    set ::helpstamp(complete_path_to_file) {}
+# This will cause your help file to be loaded the next time
+# you request help, or reloaded if it has changed.
+#
+# There is no support for the img:: tag in user help files at this
+# time.
 proc helpmenu { menu homepage } {
     menu  $menu.help
     .menu add cascade -label Help -menu $menu.help
@@ -151,6 +176,13 @@ proc helpmenu { menu homepage } {
     $menu.help add separator
     $menu.help add command -label "About" -command { gethelp About }
 }
+
+# HELP developer
+# Usage: gethelp page
+# 
+# Used by the menu system and by the context sensitive help system to
+# load a help page.  You could also use this if you want to add a help
+# button to a dialog.
 proc gethelp {args} {
     # ptrace
     rename gethelp {}
@@ -295,7 +327,10 @@ proc tracing { level } { ::tracing::init $level }
 # Usage: ptrace
 #
 # Display the fully qualified function name and argument
-# values of the function that is executing
+# values of the function that is executing.  By adding this
+# to the top of a function you are debugging, you immediately
+# give a context to the puts debugging statements you add to
+# the function.
 proc ptrace {} {
     set call [info level -1]
     set fn [uplevel namespace which -command [lindex $call 0]]
@@ -366,7 +401,8 @@ proc fix { value {min {}} {max {}} {accuracy 3}} {
 # specified precision.
 proc makereal {a} {
     if { [string match $a {}] } { set a 0 }
-    return [ format %.15e $a ]
+    return [ expr {double($a)} ]
+#    return [ format %.15e $a ]
 }
 
 # HELP developer
@@ -406,7 +442,7 @@ proc cumsum { x } {
 }
 
 # HELP developer
-# Usage: vector exists
+# Usage: vector_exists
 #
 # Returns true if the named vector exists
 proc vector_exists { x } {
@@ -492,7 +528,11 @@ proc set_colormap {name} {
 
 
 # ====================== array functions =============================
-# return index of an occurrence of $value in the named array
+# HELP developer
+# Usage: asearch arrayname value
+#
+# Reverse lookup into an associative array.
+#
 # XXX FIXME XXX This should accept -exact/-glob/-regexp like lsearch
 # XXX FIXME XXX Both asearch and lsearch should be returning lists!
 # XXX FIXME XXX Returns an incorrect result if value matches an index name
@@ -505,10 +545,20 @@ proc asearch { array value } {
 }
 
 # =================== PanedWindow resource handling ====================
-# process resource file entries for PanedWindow, since BWidget doesn't
-# do it
+# HELP developer
+# Usage: sashconf w
+# 
+# BWidget does not use the option database for its widgets.  This 
+# procedure replaces the configuration options used by BWidget for
+# setting the sash properties of a PanedWindow with resources from
+# the database.  Use the following database resources:
+#
 #   *sash1.but.size: long wide
 #   *sash1.but.background: color
+#
+# XXX FIXME XXX we should probably use $w.sashsize and $w sashbackground
+# rather than exporting details of the PanedWindow hierarchy to the
+# resource file, but that's a project for another day.
 proc sashconf { w } {
     set size [option get $w.sash1.but size Size]
     if { [llength $size] == 1 } {
@@ -537,7 +587,10 @@ proc sashconf { w } {
 }
 
 # =================== listbox operations ======================
-## Usage: listbox_ordered_insert .path_to_listbox item
+# HELP developer
+# Usage: listbox_ordered_insert .path_to_listbox item
+# 
+# Put the item into the listbox in alphabetical order
 proc listbox_ordered_insert { w item } {
     set len [ $w size ]
     for { set idx 0 } { $idx < $len } { incr idx } {
@@ -547,7 +600,10 @@ proc listbox_ordered_insert { w item } {
     return $idx
 }
 
-## Usage: listbox_delete_pattern .path_to_listbox name
+# HELP developer
+# Usage: listbox_delete_by_name .path_to_listbox name
+# 
+# Remove an item from a listbox according to the item name.
 proc listbox_delete_by_name { w item } {
     set len [ $w size ]
     for { set idx [expr {$len - 1}] } { $idx >= 0 } { incr idx -1 } {
@@ -558,28 +614,29 @@ proc listbox_delete_by_name { w item } {
 }
 
 # =================== scrolled window helper functions =================
-## Usage: scroll .path_to_widget
-##        vscroll .path_to_widget
-##        hscroll .path_to_widget
-## Returns a scrolled frame containing the widget which can be used
-## directly to place the widget in grid or pack.  This widget will 
-## be named .path_to_widget#box.
-##
-## E.g.,
-##    toplevel .test
-##    grid [label .test.textlabel -text "Text box"] -sticky ew
-##    grid [scroll [text .test.text -wrap none]] -sticky news
-##    grid columnconf .test 0 -weight 1
-##    grid rowconf .test 1 -weight 1
-##    .test.text insert end "Here you will see
-## a bunch of text
-## that I insert into my
-## window to test that the
-## scrollbars are working
-## as expected.
-##
-## Resize the box to see
-## them in action."
+# HELP developer
+# Usage: scroll .path_to_widget
+#        vscroll .path_to_widget
+#        hscroll .path_to_widget
+# Returns a scrolled frame containing the widget which can be used
+# directly to place the widget in grid or pack.  This widget will 
+# be named .path_to_widget#box.
+#
+# E.g.,
+#    toplevel .test
+#    grid [label .test.textlabel -text "Text box"] -sticky ew
+#    grid [scroll [text .test.text -wrap none]] -sticky news
+#    grid columnconf .test 0 -weight 1
+#    grid rowconf .test 1 -weight 1
+#    .test.text insert end "Here you will see
+# a bunch of text
+# that I insert into my
+# window to test that the
+# scrollbars are working
+# as expected.
+#
+# Resize the box to see
+# them in action."
 
 
 proc scroll { w } {
@@ -603,8 +660,10 @@ proc hscroll { w } {
 
 # ==================== text widget helper functions ====================
 
-## Usage: text_replace .path_to_text_widget "new text value"
-## replace the text in the widget with the new text value
+# HELP developer
+# Usage: text_replace .path_to_text_widget "new text value"
+#
+# replace the text in the widget with the new text value
 proc text_replace {w str} {
     set state [ $w cget -state ]
     $w conf -state normal
@@ -614,8 +673,10 @@ proc text_replace {w str} {
     catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_append .path_to_text_widget "new text"
-## append new text on the end of the text in the widget
+# HELP developer
+#
+# Usage: text_append .path_to_text_widget "new text"
+# append new text on the end of the text in the widget
 proc text_append {w str} {
     set state [ $w cget -state ]
     $w conf -state normal
@@ -624,8 +685,10 @@ proc text_append {w str} {
     catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_clear .path_to_text_widget
-## clear the text out of the widget
+# HELP developer
+# Usage: text_clear .path_to_text_widget
+#
+# clear the text out of the widget
 proc text_clear {w} {
     set state [ $w cget -state ]
     $w conf -state normal
@@ -634,8 +697,10 @@ proc text_clear {w} {
     catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
 }
 
-## Usage: text_load .path_to_text_widget "filename"
-## replace the text in the widget with the contents of the file
+# HELP developer
+# Usage: text_load .path_to_text_widget "filename"
+#
+# replace the text in the widget with the contents of the file
 proc text_load {w file} {
     if [ catch { open $file r } fid ] {
 	text_replace $w {}
@@ -647,6 +712,10 @@ proc text_load {w file} {
 }
 
 # ========================= List functions ========================
+# HELP developer
+# Usage: ldelete list value
+#
+# Delete a particular value from a list
 proc ldelete { list value } {
     set index [ lsearch -exact $list $value ]
     if { $index >= 0 } {
@@ -658,9 +727,12 @@ proc ldelete { list value } {
 
 
 #========================= BLT graph functions =====================
+# HELP developer
+# Usage: zoom w on|off
+#
 # To suppress the zoom action on the graph when you are twiddling the
-# marker and legend, set zoom off on the Button-1 event and zoom on
-# on the ButtonRelease-1 event for the marker/legend.
+# marker and legend, be sure to call zoom off on the the Button-1 
+# event and zoom on on the ButtonRelease-1 event for the marker/legend.
 # XXX FIXME XXX there must be a better way to do this
 proc zoom { w state } {
     switch $state {
@@ -671,7 +743,8 @@ proc zoom { w state } {
 }
 
 
-# active_legend graph ?callback
+# HELP developer
+# Usage: active_legend graph ?callback
 #
 # Highlights the legend entry when the user mouses over the line in the
 # graph.  Toggles the line when the user clicks on the legend entry.
@@ -699,7 +772,7 @@ proc active_legend {w {command ""}} {
 }
 
 # elem conf -hide now hides the legend entry.  Instead of hiding
-# the line, we will replace its x-vector with legend_hidden, and set
+# the line, we will replace its x-vector with _legend_hidden, and set
 # the element bindtag to {legend_hidden xdata-value}.  AFAICT, it won't
 # hurt anything since the bind tag is never bound, and it has the
 # advantage over a global variable in that it will be freed with the
@@ -751,7 +824,8 @@ proc legend_set {w line state} {
     }
 }
 
-# active_axis graph axis ?callback
+# HELP developer
+# Usage: active_axis graph axis ?callback
 #
 # Makes the specified axis for the graph "active" so that left click
 # toggles log/linear scaling and right click hides/shows all the lines
@@ -940,7 +1014,7 @@ proc active_graph {w args} {
 	if {[%W inside %x %y]} {
             set ::marker-%W [%W marker get current]
             set ::element-%W [%W element get current]
-            tk_popup %W.menu %X %Y 1 
+            tk_popup %W.menu %X %Y 1
         }
     }
 
@@ -996,14 +1070,20 @@ proc graph_error {w el args} {
 
 # ========================= Forms interface =======================
 
-# addfields .pathtoframe { field field ... }
-# where field is
+# HELP developer
+# Usage: addfields .pathtoframe { field field ... }
+#
+#     where field is
 #      { real variable label units }
 #      { string variable label comments }
 #      { bool variable label }
+#
 # Primitive form layout manager
 # Variable is placed in widget named .pathtoframe.variable
 # Uses grid packing manager (3 columns)
+
+# We can do a lot better here.  E.g., mini.net/tcl/layout
+# but I'm sure we can do better than that.
 
 proc addfields { frame fields } {
     foreach f $fields {
@@ -1042,49 +1122,51 @@ proc addfields { frame fields } {
 
 # ===================== TkTable Entry ======================
 
-## Use the entry widget for TkTable entries rather than letting
-## TkTable fake its own.
-##
-## table_entry::init p getset
-##
-##    Use an entry widget when editting the cells of table p.
-##    The getset function retrieves the cell values.
-##
-## table_entry::reset p
-##
-##    The values underlying table p have changed.  Reset the
-##    entry widget.
-##
-## where p is a tktable table widget and getset is an optional
-## command to get/set entries.
-##
-## The following substitutions are done on the getset command:
-##     %r   row containing entry
-##     %c   column containing entry
-##     %C   %r,%c
-##     %W   path to the table
-##     %i   0 if get, 1 if set
-##     %s   old value (if get, this is the value displayed in the table)
-##     %S   new value (if get, this is "")
-##
-## On get, the get/set command should return the value to edit.
-## On set, it should return the value to display.  These need
-## not be the same.  For example, the display value may be chopped
-## to 4 significant figures, but all the digits are retained and
-## available for editting.  Or the display value is the number,
-## but the stored entry is a command such as =A6 which gets
-## displayed as the contents of row 1, column 6 of the table.
-##
-## If set raises an error we catch the error, ring the bell, and
-## continue editting.  That way set can be used to validate the
-## entries.  We could also catch and display the message instead
-## of ringing the bell to give the user more feedback, but this
-## should be a user preference.
-##
-## The set command will only be called for edittable cells, not
-## for title or disabled cells.  For example, to disable cell 3,3
-## use $w tag cell disabled 3,3.
-##
+# HELP developer
+# Usage: table_entry
+#
+# Use the entry widget for TkTable entries rather than letting
+# TkTable fake its own.
+#
+# table_entry::init p getset
+#
+#   Use an entry widget when editting the cells of table p.
+#   The getset function retrieves the cell values.
+#
+# table_entry::reset p
+#
+#    The values underlying table p have changed.  Reset the
+#    entry widget.
+#
+# where p is a tktable table widget and getset is an optional
+# command to get/set entries.
+#
+# The following substitutions are done on the getset command:
+#     %r   row containing entry
+#     %c   column containing entry
+#     %C   %r,%c
+#     %W   path to the table
+#     %i   0 if get, 1 if set
+#     %s   old value (if get, this is the value displayed in the table)
+#     %S   new value (if get, this is "")
+#
+# On get, the get/set command should return the value to edit.
+# On set, it should return the value to display.  These need
+# not be the same.  For example, the display value may be chopped
+# to 4 significant figures, but all the digits are retained and
+# available for editting.  Or the display value is the number,
+# but the stored entry is a command such as =A6 which gets
+# displayed as the contents of row 1, column 6 of the table.
+#
+# If set raises an error we catch the error, ring the bell, and
+# continue editting.  That way set can be used to validate the
+# entries.  We could also catch and display the message instead
+# of ringing the bell to give the user more feedback, but this
+# should be a user preference.
+#
+# The set command will only be called for edittable cells, not
+# for title or disabled cells.  For example, to disable cell 3,3
+# use $w tag cell disabled 3,3.
 
 ## TODO: allow different widget types for each row/column/cell.
 
