@@ -8,7 +8,7 @@ namespace eval octave {
     variable DEFAULT_PORT 3132
     variable active_socket {}
     variable syncid 0
-
+    variable debug 0
     variable stamp [clock clicks -millisecond]
 }
 
@@ -475,6 +475,28 @@ proc octave::Request_Completion {f hint pos} {
     sync $f
 }
 
+proc octave::Debug state {
+    variable debug
+    variable log
+    set debug [string is true $state]
+    if { $debug } {
+	foreach msg $log { puts $msg }
+	puts "---"
+	set log {}
+    }
+}
+
+proc octave::Recvlog msg {
+    variable debug
+    if { $debug } {
+	put $msg
+    } else {
+	variable log
+	lappend log $msg
+	set log [lrange $log end-3 end]
+    }
+}
+
 # receive a packet from octave
 proc octave::Recv { file } {
     # toc
@@ -482,7 +504,6 @@ proc octave::Recv { file } {
     variable $file
     upvar 0 $file state
 
-    # puts "Entering Octave_recv"
     set head [read $file 8]
     set n [string length $head]
     while { $n < 8 } {
@@ -494,14 +515,14 @@ proc octave::Recv { file } {
 	    octave::close $file
 	    return
 	}
-	# puts "$state(command) grabbing next [expr 8-$n] bytes"
+	Recvlog "$state(command) grabbing next [expr 8-$n] bytes"
 	set head "$head[read $file [expr 8-$n]]"
 	set n [string length $head]
     }
     binary scan $head a4I cmd len
     switch -- $cmd {
 	!!!e {
-	    # puts "Error"
+	    Recvlog "Error"
 	    if { [info exists state(err)] } {
 		# capture an octave error to a variable
 		set ::$state(err) [read $file $len]
@@ -515,7 +536,7 @@ proc octave::Recv { file } {
 	    # set blt vector from matrix
 	    binary scan [read $file 12] III rows cols namelen
 	    set name [read $file $namelen]
-	    # puts "creating ${name}($rows,$cols)"
+	    Recvlog "Matrix ${name}($rows,$cols)"
 	    if { [string equal "" [blt::vector names ::$name]] } {
 		blt::vector create ::$name
 	    } else {
@@ -526,7 +547,7 @@ proc octave::Recv { file } {
 	    }
 	}
 	!!!s {
-	    # puts "string"
+	    Recvlog "String"
 	    # set tcl value from string
 	    binary scan [read $file 8] II strlen namelen
 	    set name [read $file $namelen]
@@ -536,13 +557,13 @@ proc octave::Recv { file } {
 	!!!x {
 	    # evaluate tcl command in global context
 	    set body [read $file $len]
-	    # puts "<send tcl>$body</send>"
-	    if [catch { uplevel #0 $body } msg ] {
+	    Recvlog "Command $body"
+	    if [catch { uplevel \#0 $body } msg ] {
 		# translate non-printables to ? before displaying
 		# regsub -all "\[^\[:print:]]" $body ? body
 		puts "octave tcl failed for <$body>\n$msg"
 	    }
-	    # puts "done <tcl>"
+	    Recvlog "Command complete"
 	}
 	!!!I {
 	    puts "shouldn't be in !!!I"
