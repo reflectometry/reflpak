@@ -68,7 +68,7 @@ all: makegmlayer makegj2 $(ARCH)/reflpol$(EXE) $(ARCH)/reflfit$(EXE) $(ARCH)/ref
 $(ARCH)/reflfit$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflfit.manifest \
 		$(ARCH)/reflfit.tcl $(ARCH)/options.tcl $(fitfiles) \
 		$(ARCH)/gmlayer$(LDEXT)
-	cd $(ARCH) && echo "set app_version {Reflfit `date +%F` for $(ARCH)}" > reflfit_version.tcl
+	cd $(ARCH) && echo "set app_version {Reflfit `date +%Y-%m-%d` for $(ARCH)}" > reflfit_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflfit.tcl -f reflfit.manifest
 
 $(ARCH)/reflfit.tcl: reflfit.tcl.in Makefile Makeconf
@@ -97,7 +97,7 @@ $(ARCH)/reflfit.manifest: Makefile Makeconf
 $(ARCH)/reflpol$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflpol.manifest \
 		$(ARCH)/reflpol.tcl $(ARCH)/options.tcl $(fitfiles) \
 		gj2/gj2$(LDEXT)
-	cd $(ARCH) && echo "set app_version {Reflpol `date +%F` for $(ARCH)}" > reflpol_version.tcl
+	cd $(ARCH) && echo "set app_version {Reflpol `date +%Y-%m-%d` for $(ARCH)}" > reflpol_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflpol.tcl -f reflpol.manifest
 
 $(ARCH)/reflpol.tcl: reflpol.tcl.in Makefile Makeconf
@@ -126,7 +126,7 @@ $(ARCH)/reflpol.manifest: Makefile Makeconf
 
 $(ARCH)/reflred$(EXE): $(ARCH)/freewrapBLT $(ARCH)/reflred.manifest \
 		$(ARCH)/reflred.tcl $(ARCH)/options.tcl $(redfiles)
-	cd $(ARCH) && echo "set app_version {Reflred `date +%F` for $(ARCH)}" > reflred_version.tcl
+	cd $(ARCH) && echo "set app_version {Reflred `date +%Y-%m-%d` for $(ARCH)}" > reflred_version.tcl
 	cd $(ARCH) && ./freewrapBLT -e reflred.tcl -f reflred.manifest
 
 $(ARCH)/reflred.tcl: reflred.tcl.in
