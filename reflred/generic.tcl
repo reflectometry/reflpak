@@ -985,15 +985,29 @@ proc graph_select_cancel {w} {
     array unset ::graph_select *,$w
 }
 
+proc graph_activate_menu {w X Y x y} {
+    if {[$w inside $x $y]} {
+        set ::active_graph($w,marker) [$w marker get current]
+        $w element closest $x $y where
+        if [info exists where(x)] {
+            set ::active_graph($w,element) $where(name)
+            set ::active_graph($w,index) $where(index)
+        } else {
+            set ::active_graph($w,element) {}
+            set ::active_graph($w,index) {}
+        }
+        tk_popup $w.menu $X $Y 1
+    }
+}
+
 proc active_graph {w args} {
 
     switch -- $args {
-        marker { return [set ::marker-$w] }
-        element { return [set ::element-$w] }
+        marker - index -
+        element { return $::active_graph($w,$args) }
     }
-    set ::element-$w {}
-    set ::marker-$w {}
-
+    array set ::active_graph [list $w,element {} $w,marker {} $w,index {}]
+    
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
     $w.menu add command -underline 0 -label "Unzoom" -command "blt::ResetZoom $w"
@@ -1014,12 +1028,8 @@ proc active_graph {w args} {
     Blt_ZoomStack $w
     # bind zoom-$w <ButtonPress-2> [bind zoom-$w <ButtonPress-3>]
     bind zoom-$w <ButtonPress-3> {}
-    bind $w <ButtonPress-3> {
-	if {[%W inside %x %y]} {
-            set ::marker-%W [%W marker get current]
-            set ::element-%W [%W element get current]
-            tk_popup %W.menu %X %Y 1
-        }
+    bind $w <ButtonPress-3> { 
+        graph_activate_menu %W %X %Y %x %y
     }
 
     # Add panning capability

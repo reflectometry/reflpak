@@ -236,29 +236,6 @@ proc init_selector { } {
 
     .graph pen create excludePoint
 
-    # add zoom capability.
-    Blt_ZoomStack    .graph
-
-    # crosshairs if the users wishes
-    if { [string is true [option get .graph crosshairs Crosshairs]] } {
-	.graph crosshairs on
-    }
-
-if 0 {
-    # add a legend so that clicking on the legend entry toggles the display
-    # of the corresponding line and moving over the lines highlights the
-    # corresponding legend entry
-    .graph legend conf -hide 0
-    .graph legend bind all <Button-1> { zoom %W off ; legend_toggle %W }
-    .graph legend bind all <ButtonRelease-1> { zoom %W on }
-    .graph element bind all <Enter> {
-	%W legend activate [%W element get current]
-    }
-    .graph element bind all <Leave> {
-	%W legend deactivate [%W element get current]
-    }
-}
-
     set ::colorlist [option get .graph lineColors LineColors]
 
     # put graph coordinates into message box
@@ -269,6 +246,10 @@ if 0 {
     active_graph .graph
     active_axis .graph y
     active_legend .graph
+    
+    .graph.menu add separator
+    .graph.menu add command -label Exclude \
+        -command { exclude_point [active_graph .graph element] [active_graph .graph index] }
 
     # click with middle button to exclude a value
     bind .graph <2> { graph_exclude %W %x %y }
@@ -381,28 +362,30 @@ proc graph_motion { w x y } {
     }
 }
 
+proc exclude_point { id index } {
+    if { ![string match rec* $id] } { return }
+    
+    # construct an index vector if needed
+    set vec ::idx_$id
+    if { ![vector_exists $vec] } {
+        vector create $vec
+        $vec expr 1+0*::x_$id
+        # XXX FIXME XXX do we have to leak info about the
+        # name of the graph widget here?
+        catch { .graph element conf $id -weight $vec -styles { {excludePoint -0.5 0.5} } }
+    }
+    # negate the particular index
+    set ${vec}($index) [expr 1.0 - [set ${vec}($index)]]
+}
+
 proc graph_exclude { w x y } {
+    # Find the data record and exclude the point
     $w element closest $x $y where -halo 1i
     if { [info exists where(x)] } {
-	# find the data record
-	if { [string match rec* $where(name) ] } {
-	    upvar #0 $where(name) rec
-	} else {
-	    return
-	}
-	# construct an index vector if needed
-	set vec ::idx_$rec(id)
-	if { ![vector_exists $vec] } {
-	    vector create $vec
-	    $vec expr 1+0*::x_$rec(id)
-	    $w element conf $where(name) -weight $vec -styles { {excludePoint -0.5 0.5} }
-	}
-	# negate the particular index
-	set idx $where(index)
-	set ${vec}($idx) [expr 1.0 - [set ${vec}($idx)]]
+        exclude_point $where(name) $where(index)
     } else {
-	message "No points under mouse"
-	bell
+        message "No points under mouse"
+        bell
     }
 }
 
