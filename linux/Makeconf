@@ -29,6 +29,7 @@ FPP=-x f77-cpp-input
 
 # C compiler
 CC=gcc
+C99=gcc -std=c99
 CFLAGS=$(OPT) -fPIC -Wall $(TCL_INCLUDE_SPEC) $(DEBUG) 
 LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=gcc -pipe -shared
