@@ -9,6 +9,8 @@
  #      zoomed width rather than a percentage of the total width
  # 2004-02-06 Paul Kienzle <pkienzle at users sf net>
  #    * add package commands
+ # 2004-04-06 Paul Kienzle <pkienzle at users sf net>
+ #    * use bindtags pan_widget for binding
 
  package provide pan 0.2
 
@@ -69,6 +71,12 @@
  namespace eval Pan {
 
     namespace export -clear pan
+    bind pan_widget <ButtonPress-2>   \
+	[namespace code { pan start %W %X %Y; break }]
+    bind pan_widget <ButtonRelease-2> \
+	[namespace code { pan stop %W; break }]
+    bind pan_widget <B2-Motion>       \
+	[namespace code { pan move %W %X %Y; break }]
 
     # use these cursors to indicate pan direction
     variable cursor
@@ -162,9 +170,7 @@
 		option add *Axis.ScrollIncrement 1 widgetDefault
 	    }
 	    bind { # bind panning to a widget
-	        bind $w <ButtonPress-2>   [namespace code { pan start %W %X %Y }]
-                bind $w <ButtonRelease-2> [namespace code { pan stop %W }]
-                bind $w <B2-Motion>       [namespace code { pan move %W %X %Y }]
+		bindtags $w [concat pan_widget [bindtags $w]]
 	    }
 	    start { # start panning
 		if { [info exists pan($w,x)] } { return	}
