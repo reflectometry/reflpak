@@ -12,9 +12,9 @@ TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
 OCTAVE=$(TCL_PREFIX)/lib/octave0.1
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
 #TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
-TKDND_EXT=$(TKDND)/libtkdnd1.0.so
+#TKDND_EXT=$(TKDND)/libtkdnd1.0.so
 #TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
-TKTABLE_EXT=$(TKTABLE)/libTktable2.8.so
+#TKTABLE_EXT=$(TKTABLE)/libTktable2.8.so
 
 # Fortran compiler
 F77=g77
