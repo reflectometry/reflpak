@@ -47,75 +47,55 @@ proc ::Choose::Fill_contents { w path } {
 
 	incr all
 
-	# XXX FIXME XXX need to be able to add new types 
-	# XXX FIXME XXX should use pattern matching
-	switch [string tolower [file extension $f]] {
-	    .cg1 { set type CG-1 }
-	    .ng1 { set type NG-1 }
-	    .xr0 { set type XRAY }
-	    .ng7 { set type NG-7 }
-	    .na1 -
-	    .nb1 -
-	    .nc1 -
-	    .nd1 { set type NG-1p }
-	    default { 
-	        incr other
-		continue
-		# XXX FIXME XXX perhaps we only want dataset###.ext files?
-	    }
-	}
-
-	set item "[string range $f 0 end-7],$type"
-	if { ![info exists count($item)] } {
-	    set count($item) 1
-	    set tmin($item) $f
-	    set tmax($item) $f
-	} else {
-	    incr count($item)
-	    if { "$f" > "$tmax($item)" } {
-		set tmax($item) $f
-	    } elseif { "$f" < "$tmin($item)" } {
+	# find the function which can process files with this extension
+	set ext [string tolower [file extension $f]]
+	if {[info exists ::extfn($ext)]} { 
+	    set inst [ $::extfn($ext) instrument $f ] 
+	    set dataset [ $::extfn($ext) dataset $f ]
+	    set item $dataset,$inst
+	    if { ![info exists count($item)] } {
+		set count($item) 1
 		set tmin($item) $f
+		set tmax($item) $f
+	    } else {
+		incr count($item)
+		if { [string compare $f $tmax($item)] > 0 } {
+		    set tmax($item) $f
+		} elseif { [string compare $f $tmin($item)] < 0 } {
+		    set tmin($item) $f
+		}
 	    }
+	} else {
+	    incr other
 	}
-
     }
+    
+    # Quick selection
+    lappend dirs [incr n] -data [list \
+	    Dataset All Inst {} "#Runs" $all Start {} End {} \
+	    Path $path Comment "including $other unrecognized files" \
+	    Pattern * ]
 
     # Construct the selection table
     foreach item [lsort [array names count]] {
-	foreach {dataset type} [split $item ,] {}
-	if [catch {open $tmin($item)} fid] {
-	    set start ????
-	    set comment ????
+	foreach {dataset inst} [split $item ,] break
+	set ext [string tolower [file extension $tmin($item)]]
+	array set startinfo [$::extfn($ext) info $tmin($item)]
+	if { $count($item) > 1 } {
+	    array set endinfo [$::extfn($ext) info $tmax($item)]
 	} else {
-	    if [catch {clock format [clock_scan [lindex [split [gets $fid] "'"] 3]] -format %Y-%m-%d } start] {
-		set start ????
-	    }
-	    # icp stores the comment as the second line of the file
-	    gets $fid
-	    set comment [gets $fid]
-	    close $fid
-	}
-	if [catch {open $tmax($item)} fid] {
-	    set end ????
-	} else {
-	    if [catch {clock format [clock_scan [lindex [split [gets $fid] "'"] 3]] -format %Y-%m-%d } end] {
-		set end ????
-	    }
-	    close $fid
+	    array set endinfo [array get startinfo]
 	}
 	lappend dirs [incr n] -data [list \
-	    Dataset [file tail $dataset] Inst $type #Runs $count($item) \
-	    Start $start End $end Path $path Comment $comment]
+	    Dataset [file tail $dataset] Inst $inst "#Runs" $count($item) \
+	    Start $startinfo(date) End $endinfo(date) Path $path \
+	    Comment $startinfo(comment) \
+	    Pattern [$::extfn($ext) pattern $dataset]]
     }
-    lappend dirs [incr n] -data [list \
-	    Dataset All Inst {} #Runs $all Start {} End {} \
-	    Path $path Comment "$other unrecognized files"]
 
     # Display the selection table
     $w delete 0 0 end
     eval $w insert end $dirs
-
 
     # "sort auto" appears to be broken
     .choose.contents sort conf -decreasing [.choose.contents sort cget -decreasing]
@@ -197,16 +177,7 @@ proc ::Choose::Selected_set {} {
     set patternset {}
     foreach item [.choose.contents curselection] {
 	array set rec [.choose.contents entry cget $item -data]
-	# XXX FIXME XXX use a mapper so that we can add new extensions
-	# on the fly
-        switch $rec(Inst) {
-	    NG-1 { lappend patternset "$rec(Dataset)*.\[nN]\[gG]1" }
-	    XRAY { lappend patternset "$rec(Dataset)*.\[xX]\[rR]0" }
-	    NG-7 { lappend patternset "$rec(Dataset)*.\[nN]\[gG]7" }
-	    NG-1p { lappend patternset "$rec(Dataset)*.\[nN]\[aAbBcCdD]1" }
-	    directory { lappend patternset "$rec(Dataset)" }
-	    default { return * ;# All, so return all }
-	}
+	lappend patternset $rec(Pattern)
     }
     return $patternset
 }
@@ -238,6 +209,7 @@ proc  choose_dataset { callback } {
 
     # Create a new toplevel window
     toplevel .choose
+    wm title .choose "$::title Choose"
     wm geometry .choose 600x400
     set panes [ PanedWindow .choose.panes -side top ]
     set pathbox [ $panes add -weight 0 -minsize 80 ]
@@ -247,9 +219,11 @@ proc  choose_dataset { callback } {
     # multicolumn sortable table to show the contents of a data directory
     hiertable .choose.contents
     .choose.contents configure -selectmode multiple
-    .choose.contents column insert end Path Dataset Inst #Runs Start End Comment
+    .choose.contents column insert end Path Dataset Inst \
+	"#Runs" Start End Comment Pattern
     .choose.contents column configure treeView -hide 1
     .choose.contents column configure Path -hide 1
+    .choose.contents column configure Pattern -hide 1
     foreach column [.choose.contents column names] {
 	.choose.contents column configure $column -justify left -width 0 \
 		-relief raised \
@@ -257,7 +231,7 @@ proc  choose_dataset { callback } {
     }
     .choose.contents column conf #Runs -justify right
 
-    # pack the contents in a able window
+    # pack the contents in a scrollable window
     pack [scroll .choose.contents] -in $contentbox -fill both -expand yes
 
     if { 0 } {
@@ -274,8 +248,6 @@ proc  choose_dataset { callback } {
 #    pack $pathbox.childrenlabel -side bottom
 
     listbox .choose.children -selectmode browse -exportselection no
-
-
     pack [scroll .choose.children] -in $pathbox -fill both -expand yes
 
     if { $::have_archive } {
