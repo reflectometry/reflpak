@@ -13,3 +13,4 @@ package ifneeded ncnrlib 0.1 [subst {
         {sizer.tcl source sizer}
     }
 }]
+package ifneeded octave 0.1 [list source [file join $dir octave.tcl]]
