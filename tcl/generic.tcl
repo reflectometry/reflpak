@@ -333,7 +333,7 @@ proc tracing { level } { ::tracing::init $level }
 # the function.
 proc ptrace {} {
     set call [info level -1]
-    set fn [uplevel namespace which -command [lindex $call 0]]
+    set fn [uplevel [list namespace which -command [lindex $call 0]]]
     set args [lrange $call 1 end]
     puts "[expr {[info level]-1}] $fn $args"
 }
@@ -950,9 +950,9 @@ proc graph_select_press {w x y} {
 	#puts "graph_select_press setting [lindex $::graph_select(points,$w) 0] $where(x)"
 	foreach {x y el} [lindex $::graph_select(points,$w) 0] break
 	set ::graph_select(points,$w) [lrange $::graph_select(points,$w) 1 end]
-	if {![string equal $x {}]} { uplevel #0 set $x $where(x) }
-	if {![string equal $y {}]} { uplevel #0 set $y $where(y) }
-	if {![string equal $el {}]} { uplevel #0 set $el $where(name) }
+	if {![string equal $x {}]} { uplevel #0 [list set $x $where(x)] }
+	if {![string equal $y {}]} { uplevel #0 [list set $y $where(y)] }
+	if {![string equal $el {}]} { uplevel #0 [list set $el $where(name)] }
 	lappend ::graph_select(active$where(name),$w) $where(index)
     }
 }
@@ -1074,9 +1074,9 @@ proc graph_error {w el args} {
 # Usage: addfields .pathtoframe { field field ... }
 #
 #     where field is
-#      { real variable label units }
-#      { string variable label comments }
-#      { bool variable label }
+#      { real variable label units help }
+#      { string variable label comments help }
+#      { bool variable label help }
 #
 # Primitive form layout manager
 # Variable is placed in widget named .pathtoframe.variable
@@ -1091,24 +1091,31 @@ proc addfields { frame fields } {
 	    string -
 	    real { # variable label units
 		set vname [lindex $f 1]
+		set label [lindex $f 2]
+		set units [lindex $f 3]
+		set help [lindex $f 4]
 		set lidx $frame.$vname-label
-		label $lidx -text [lindex $f 2]
+		label $lidx -text $label
 		set eidx $frame.$vname
-		entry $eidx -textvariable [lindex $f 1]
-		if { [ lindex $f 3 ] != "" } {
+		entry $eidx -textvariable $vname
+		if { $units != "" } {
 		    set uidx $frame.$vname-units
-		    label $uidx -text [lindex $f 3]
+		    label $uidx -text $units
 		} else {
 		    set uidx -
 		}
+		if { $help != "" } { balloonhelp $frame.$vname-label $help }
 		grid $lidx $eidx $uidx -sticky w
 	    }
 
 	    bool { # variable label
 		set vname [lindex $f 1]
+		set label [lindex $f 2]
+		set help [lindex $f 3]
 		set idx $frame.$vname
-		checkbutton $idx -text [lindex $f 2] -variable $vname
+		checkbutton $idx -text $label -variable $vname
 		grid $idx - - -sticky w
+		if { $help != "" } { balloonhelp $frame.$vname $help }
 	    }
 	    default {
 		# set { set of check buttons }

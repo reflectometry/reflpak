@@ -17,6 +17,26 @@ source [file join $MLAYER_HOME ctext.tcl]
 source [file join $MLAYER_HOME pan.tcl]
 source [file join $MLAYER_HOME generic.tcl]
 
+# balloonhelp provides popup help when hovering over a widget
+source [file join $MLAYER_HOME balloonhelp.tcl]
+
+# popup help for the individual fields
+array set field_help {
+    qcsq "Scattering length density.  Use Options menu to change between number density units and Qc^2 units."
+    depth "Layer depth in angstroms"
+    ro "Layer roughness in angstroms."
+    mu "Absorption."
+    mqcsq "Magnetic scattering length density."
+    mdepth "Depth of magnetic layer"
+    mro "Roughness for magnetic layer"
+    theta "Theta relative to -k in the H-k plane"
+    bi 	"Intensity of incoming beam.  If the reflectivity signal is properly normalized, then this will be 1.0.  If however there is a scaling factor such as an attenuator that is not accounted for by the data reduction process, then some other value should be used.  An initial guess can be further refined by fitting the variable BI."
+    bk "Background signal.  This is the level of background noise expected in the signal.  Any data below this level will be ignored by the fit.  An initial guess can be further refined by fitting the variable BK."
+    wl "Incident wavelength."
+    dl "wavelength divergence"
+    dt "angular divergence"
+}
+
 # By default, select and export tables as text with titles
 # XXX FIXME XXX how can you put \n and \t into the resource file?
 option add *SelectTitles true widgetDefault
@@ -31,9 +51,11 @@ set ::use_Q4 [string is true [option get . useQ4 UseQ4]]
 # Print dialog
 proc PrintDialog { args } {
     rename PrintDialog {}
-    uplevel #0 source [file join $::MLAYER_HOME print.tcl]
+    uplevel #0 [list source [file join $::MLAYER_HOME print.tcl]]
     eval PrintDialog $args
 }
+
+
 
 # how much debugging output to spit out
 tracing 0
@@ -1800,12 +1822,12 @@ grid rowconfigure $fitbox 2 -weight 0
 # ==================== Beam box =========================
 
 # input form for the various beam characteristics
-addfields $beambox {
-    {real bi "intensity"              }
-    {real bk "background"             }
-    {real wl "wavelenth"             "Angstroms" }
-    {real dl "wavelength divergence" "Angstroms" }
-    {real dt "angular divergence"    "radians" }}
+addfields $beambox [subst {
+    {real bi "intensity"             {} "$::field_help(bi)" }
+    {real bk "background"            {} "$::field_help(bk)" }
+    {real wl "wavelenth"             "Angstroms" "$::field_help(wl)" }
+    {real dl "wavelength divergence" "Angstroms" "$::field_help(dl)" }
+    {real dt "angular divergence"    "radians" "$::field_help(dt)" }}]
 bind $beambox.bi <Return> update_gmlayer
 bind $beambox.bk <Return> update_gmlayer
 bind $beambox.wl <Return> update_gmlayer
@@ -2772,12 +2794,32 @@ table $::layertable -titlerows 1 -titlecols 1 -rows 1 \
 	-resizeborders col -roworigin -1 -colwidth 15 -colstretch unset
 if {$::MAGNETIC} {
     $::layertable conf -cols 9
+    set helpfields { qcsq depth ro mu mqcsq mdepth mro theta }
 } else {
     $::layertable conf -cols 5
+    set helpfields { qcsq depth ro mu }
 }
 $::layertable width 0 6
 pack [scroll $::layertable] -in $::tablebox -fill both -expand yes
 # proc focustable {args} { focus $::layertable }
+
+## Set the column titles and associated help
+foreach field $helpfields {
+    set col $::col_from_field($field)
+    label $::layertable.$field -text $::table_titles($field) \
+	-fg [$::layertable tag cget title -fg] \
+	-bg [$::layertable tag cget title -bg] \
+	-font [$::layertable cget -font]
+    balloonhelp $::layertable.$field $::field_help($field)
+    $::layertable window configure -1,$col \
+	-window $::layertable.$field -sticky news
+}
+if {$::MAGNETIC} {
+    image create photo orient \
+	-file [file join $::MLAYER_HOME reflpolorient.gif]
+    balloonhelp $::layertable.theta -compound bottom \
+	-image orient $::field_help(theta)
+}
 
 ## Set the colours for columns to the colours used on the graph
 foreach field $::active_fields {
@@ -3062,7 +3104,7 @@ proc scanpar { text label name } {
     set pattern {(?:\s*[:=]\s*|\s+)["']?([-0-9.]+)['"]?[^-0-9.]}
     if {[regexp -nocase "\\W($label)$pattern" $text {} label value]} {
 	if {[string is double $value]} {
-	    uplevel set $name $value
+	    uplevel [list set $name $value]
 	    return 1
 	}
     }
@@ -3072,7 +3114,7 @@ proc scanpar { text label name } {
 proc scanparstr { text label name } {
     set pattern {(?:\s*[:=]\s*|\s+)["']?([^\n\r]*)['"]?\s*[\n\r]}
     if {[regexp -nocase "\\W($label)$pattern" $text {} label value]} {
-	uplevel set $name $value
+	uplevel [list set $name $value]
 	return 1
     }
     return 0
