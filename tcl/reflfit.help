@@ -52,7 +52,7 @@ bequest, or otherwise.
 
 # ===============================================================
 hpage introduction . {
-This program fits reflectivity data to a layer model of your sample.
+This program fits reflectivity data to a [layer model] of your sample.
 If started as reflfit, the data is from an unpolarized source.  If
 started as reflpol, the data is from a polarized source with ABCD
 cross sections.
@@ -243,9 +243,22 @@ front end and the underlying [gj2]/[mlayer] program.
 }
 
 # ===============================================================
+hpage {layer model} {} {This help describes both reflfit and reflpol,
+but the models in the two programs are different.
+
+Both models produce a set of slabs
+
+Reflfit uses a three section model of the sample, with the middle 
+section repeated one or more times. Each section is broken into
+a set of layers, with up to nine layers allowed per section.
+
+XXX FIXME XXX incomplete!
+}
+
+# ===============================================================
 if {![info exists ::tablebox]} { set ::tablebox {} }
 hpage {layer table} $::tablebox {The layer table allows you to
-directly enter parameter values for the layers.  You can instead
+directly enter parameter values for the [layer model].  You can instead
 manipulate the [profile] graphically.
 
 Click on a cell to edit the value.  Press Escape to restore the
