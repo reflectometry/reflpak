@@ -1,9 +1,11 @@
-# This procedure should be used instead of the normal LOAD command when
-# using binary extensions with freeWrap.
+# This procedure replaces the normal LOAD command when
+# using binary extensions with freeWrap.  If the target
+# file is wrapped, it will unwrap then load it.  If it
+# is not wrapped, then it will call load directly.
 #
 # Returns: On success, the full file path to the shared library 
 #          on the local file system.
-#          On failure, an error message starting with the text "Load Error: "
+#          On failure, generates an error.
 #
 rename load ::freewrap::builtin_load
 proc load {libfile args} {
