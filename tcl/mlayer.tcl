@@ -1,3 +1,7 @@
+if { ($argc == 1 && [lindex $argv 0] eq "-h") || ($argc > 1) } {
+    puts "usage: $argv0 \[fitfile|datafile]"
+    exit
+}
 
 # XXX FIXME XXX ask before closing the application without saving
 
@@ -95,58 +99,6 @@ if { [ file exists [file join $::HOME .mlayer] ] } {
 }
 
 
-# ====================== Initial file dialog ======================
-# if just asking how to use the program, then tell them.
-# if they actually supply a parameter file, then grab its
-# name, otherwise ask for the parameter file, defaulting
-# to $::defaultfile if it exists.  Don't worry if the file is
-# incorrect at this point: let the expect program deal with
-# that when it starts up mlayer.
-if { $argc == 1 } {
-    set argv [lindex $argv 0]
-    if { [ string match $argv "-h" ] } {
-	app_fail "usage: $argv0 \[fitfile|datafile]"
-    } elseif { [file exists $argv] } {
-	set initfile $argv
-    } elseif { [file exists $argv$fitext] } {
-	set initfile $argv$fitext
-    } elseif { !$::MAGNETIC && [file exists $argv.refl] } {
-	set initfile $argv.refl
-    } elseif { $::MAGNETIC && \
-	    [llength [set f [glob -nocomplain "$argv\[abcdABCD]"]]] > 0 } {
-	set initfile [lindex [lsort $f] end]
-    } else {
-	app_fail "file $argv does not exist"
-    }
-
-} elseif { $argc == 0 } {
-    if { [file exists [set initfile $::defaultfile]] } {
-	# mlayer.staj exists"
-	set filetypes [list $::fitfiles $::datafiles $::allfiles]
-    } elseif { [llength [set initfile [glob -nocomplain $::fitglob]]] > 0 } {
-	# mlayer.staj doesn't exist, but there are other .staj files
-	set filetypes [list $::fitfiles $::datafiles $::allfiles]
-    } elseif { [llength [set initfile [glob -nocomplain $::dataglob]]] > 0 } {
-	# no .staj files, but there are some data files
-	set filetypes [list $::datafiles $::fitfiles $::allfiles]
-    } else {
-	# neither .staj nor .log, so start without any file
-	# (user might change to another directory though)
-	set initfile ""
-	set filetypes [list $::allfiles $::fitfiles $::datafiles]
-    }
-    if { [llength $initfile] != 1 } { set initfile "" }
-if 0 {
-    set initfile [ tk_getOpenFile -initialfile $initfile \
-		       -title "$::title open" \
-		       -filetypes $filetypes]
-}
-
-    ## if no input file, might just want to play with lineshapes
-    # if { $initfile == "" } { exit }
-} else {
-    app_fail "usage: $argv0 \[parfile]"
-}
 
 # ==================== main frames =================================
 
@@ -3082,9 +3034,12 @@ proc open_parfile {filename} {
     set newdir [ file dirname $filename ]
     set newpar [ file tail $filename ]
     cd $newdir
-    gmlayer pf $newpar
-    if { [catch { gmlayer lpc } msg] } {
+    if { [catch {
+	gmlayer pf $newpar
+	gmlayer lp 
+    } msg] } {
 	tk_messageBox -type ok -icon error -message $msg
+	return 0
     }
 
     set parfile $newpar
@@ -3093,6 +3048,7 @@ proc open_parfile {filename} {
     clean_temps
     reset_constraints
     reset_all
+    return 1
 }
 
 proc scanpar { text label name } {
@@ -3599,26 +3555,22 @@ proc guess_init { initfile } {
 
     ## Try to guess if it is a staj file.  To be a staj file, it must
     ## exist and it must contain something other than numbers and comments.
-    if { ![catch { open $initfile r } fid] } {
-	# suck in data
-	set data [read $fid]
-	close $fid
-	# strip comment lines
-	regsub -all -line "\[#].*$" $data {} data
-	# try reading it into a blt vector
-	set data [string map { "\n" " " } $data]
-	blt::vector dummy
-	if { [catch { dummy set $data } valuelist] } {
-	    blt::vector destroy dummy
-	    open_parfile $initfile
-	    return
-	}
-	blt::vector destroy dummy
+    if { [catch { open $initfile r } fid] } { guess_init ""; return }
+
+    # suck in data
+    set data [read $fid]
+    close $fid
+    # strip comment lines
+    regsub -all -line "\[#].*$" $data {} data
+    # see if the rest is only numbers by reading it into a blt vector
+    set data [string map { "\n" " " } $data]
+    blt::vector dummy
+    if { [catch { dummy set $data } valuelist] } {
+	if { ! [open_parfile $initfile] } { guess_init "" }
+    } else {
+	if { ! [new_parfile $initfile] } { guess_init "" }
     }
-    if { ! [new_parfile $initfile] } { 
-	# couldn't open the file, so start as if there were no file
-	guess_init "" 
-    }
+    blt::vector destroy dummy
 }
 
 # XXX FIXME XXX context sensitive help may not
@@ -3631,6 +3583,56 @@ if {$::MAGNETIC} {
     help $::MLAYER_HOME reflfit help gj2
 } else {
     help $::MLAYER_HOME reflfit help mlayer
+}
+
+# ====================== Initial file dialog ======================
+# if just asking how to use the program, then tell them.
+# if they actually supply a parameter file, then grab its
+# name, otherwise ask for the parameter file, defaulting
+# to $::defaultfile if it exists.  Don't worry if the file is
+# incorrect at this point: let the expect program deal with
+# that when it starts up mlayer.
+if { $argc == 1 } {
+    set argv [lindex $argv 0]
+    if { [file exists $argv] } {
+	set initfile $argv
+    } elseif { [file exists $argv$fitext] } {
+	set initfile $argv$fitext
+    } elseif { !$::MAGNETIC && [file exists $argv.refl] } {
+	set initfile $argv.refl
+    } elseif { $::MAGNETIC && \
+	    [llength [set f [glob -nocomplain "$argv\[abcdABCD]"]]] > 0 } {
+	set initfile [lindex [lsort $f] end]
+    } else {
+	# We could fail here, or we can let guess_init take care of it.
+	set initfile $argv
+	# app_fail "file $argv does not exist"
+    }
+} elseif { $argc == 0 } {
+    if { [file exists [set initfile $::defaultfile]] } {
+	# mlayer.staj exists"
+	set filetypes [list $::fitfiles $::datafiles $::allfiles]
+    } elseif { [llength [set initfile [glob -nocomplain $::fitglob]]] > 0 } {
+	# mlayer.staj doesn't exist, but there are other .staj files
+	set filetypes [list $::fitfiles $::datafiles $::allfiles]
+    } elseif { [llength [set initfile [glob -nocomplain $::dataglob]]] > 0 } {
+	# no .staj files, but there are some data files
+	set filetypes [list $::datafiles $::fitfiles $::allfiles]
+    } else {
+	# neither .staj nor .log, so start without any file
+	# (user might change to another directory though)
+	set initfile ""
+	set filetypes [list $::allfiles $::fitfiles $::datafiles]
+    }
+    if { [llength $initfile] != 1 } { set initfile "" }
+    set initfile [ tk_getOpenFile -initialfile $initfile \
+		       -title "$::title open" \
+		       -filetypes $filetypes]
+
+    ## if no input file, might just want to play with lineshapes
+    # if { $initfile == "" } { exit }
+} else {
+    set initfile ""
 }
 
 guess_init $initfile
