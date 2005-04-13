@@ -6,6 +6,11 @@ set ::cg1wavelength 5.0
 set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
 
+proc atoQx {a3 a4 lambda} {
+    return "(cos($::piover180*$a3) - cos($::piover180*$a4/2))*$::pitimes2/$lambda"
+}
+
+
 proc register_icp {} {
     # add addition scan types not in the basic set
     array set ::typelabel { 
@@ -348,7 +353,7 @@ proc NG1load {id} {
     switch $rec(type) {
 	rock {
 	    vector create ::x_$id
-	    ::x_$id expr [ a3toQx ::A3_$id $rec(rockbar) $rec(L) ]
+	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
 	    ::A3_$id dup ::xth_$id 
 	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
 	    set rec(xlab) "Qx ($::symbol(invangstrom))"
@@ -359,7 +364,7 @@ proc NG1load {id} {
 	}
 	rock3 {
             vector create ::x_$id
-            ::x_$id expr [ a4toQx ::A4_$id [expr {-$rec(rockbar)/2.}] $rec(L) ]
+            ::x_$id expr [ atoQx [expr {-$rec(rockbar)/2.}] ::A4_$id $rec(L) ]
             ::A4_$id dup ::xth_$id
             set rec(Qrockbar) [expr [a4toQz -$rec(rockbar) $rec(L)]]
             set rec(xlab) "Qx ($::symbol(invangstrom))"
@@ -429,7 +434,7 @@ proc XRAYload {id} {
     switch $rec(type) {
 	rock {
 	    vector create ::x_$id
-	    ::x_$id expr [ a3toQx ::A3_$id $rec(rockbar) $rec(L) ]
+	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
 	    ::A3_$id dup ::xth_$id 
 	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
 	    set rec(xlab) "Qx ($::symbol(invangstrom))"

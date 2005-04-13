@@ -65,12 +65,6 @@ set ::pitimes4 [expr {16.*atan(1.)}]
 set ::pitimes2 [expr {8.*atan(1.)}]
 set ::piover360 [ expr {atan(1.)/90.}]
 set ::piover180 [ expr {atan(1.)/45.}]
-proc a3toQx {a3 a4over2 lambda} {
-    return "[expr {[a4toQz 2*$a4over2 $lambda]}] * atan( ($a3-$a4over2)*$::piover180 )"
-}
-proc a4toQx {a4 a3 lambda} {
-    return "[expr {[a3toQz $a3 $lambda]}] * atan( ($a3 - ($a4)/2.)*$::piover180 )"
-}
 proc a3toQz {a3 lambda} {
     return "$::pitimes4*sin($a3*$::piover180) / $lambda"
 }
