@@ -106,7 +106,7 @@
 		# calculate scroll step
 		set step [expr {($max-$min)*$n/20.}]
 		# move limits according to step
-		$w axis conf $axis -min [expr {$min+$step}] \
+		$w axis configure $axis -min [expr {$min+$step}] \
 		    -max [expr {$max+$step}]
 	    }
         }
@@ -122,7 +122,7 @@
 		# calculate scroll step (backwards because this is y)
 		set step [expr {($min-$max)*$n/20.}]
 		# move limits according to step
-		$w axis conf $axis -min [expr {$min+$step}] \
+		$w axis configure $axis -min [expr {$min+$step}] \
 		    -max [expr {$max+$step}]
 	    }
         }
@@ -152,7 +152,7 @@
 		toplevel .pan -class Pan
 		wm overrideredirect .pan 1
 		wm withdraw .pan
-		.pan conf -cursor $cursor(==)
+		.pan configure -cursor $cursor(==)
 		option add *Pan.Label.Background yellow widgetDefault
 		option add *Pan.Label.Relief raised widgetDefault
 		pack [label .pan.label -text Pan]
@@ -189,8 +189,8 @@
 		set pan($w,cursor) [$w cget -cursor]
 		set pan($w,focus) [focus]
 		# set the cursor
-		$w conf -cursor $cursor(==)
-		.pan conf -cursor $cursor(==)
+		$w configure -cursor $cursor(==)
+		.pan configure -cursor $cursor(==)
 		# display the pan icon
 		set xpos [expr {$x-[winfo width .pan]/2}]
 		set ypos [expr {$y-[winfo height .pan]/2}]
@@ -222,8 +222,8 @@
 		set pan($w,h) [expr {$hstep*$hsign}]
 		# puts "$v $vstep $vsign $h $hstep $hsign"
 		# set new cursor
-		$w conf -cursor $cursor([dir $pan($w,v)][dir $pan($w,h)])
-		.pan conf -cursor $cursor([dir $pan($w,v)][dir $pan($w,h)])
+		$w configure -cursor $cursor([dir $pan($w,v)][dir $pan($w,h)])
+		.pan configure -cursor $cursor([dir $pan($w,v)][dir $pan($w,h)])
 		# remember that there is motion --- if there is no motion
 		# between press and release, then it is a click action and
 		# the pan icon stays until the next click.
@@ -256,7 +256,7 @@
 		# restore state
 		grab release .pan
 		wm withdraw .pan
-		$w conf -cursor $pan($w,cursor)
+		$w configure -cursor $pan($w,cursor)
 		focus $pan($w,focus)
 		# clear variables
 		foreach el [array names pan "$w,*"] { unset pan($el) }
@@ -300,5 +300,5 @@
      grid .t x -sticky news
      grid .h x -sticky ew
      grid .v -row 1 -column 1 -sticky ns
-     grid columnconf . 0 -weight 1
+     grid columnconfigure . 0 -weight 1
  }
