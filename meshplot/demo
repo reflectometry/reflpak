@@ -1,0 +1,14 @@
+#!/bin/sh
+# \
+exec wish "$0" "$@"
+
+lappend auto_path .
+package require snit
+catch {
+  package require tkcon
+  tkcon show
+}
+source ../lib/pan.tcl
+package require meshplot
+meshplot demo
+
