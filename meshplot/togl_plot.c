@@ -20,7 +20,7 @@ typedef struct PLOTINFO {
 } PlotInfo;
 
 /* New scene */
-void tp_create( struct Togl *togl )
+void tp_create( Togl *togl )
 {
   Tcl_Interp *interp = Togl_Interp(togl);
   PlotInfo *plot = (PlotInfo*)malloc(sizeof(PlotInfo));
@@ -41,7 +41,7 @@ void tp_create( struct Togl *togl )
 
 
 /* Resize scene */
-void tp_reshape( struct Togl *togl )
+void tp_reshape( Togl *togl )
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   int w = Togl_Width( togl );
@@ -56,7 +56,7 @@ void tp_reshape( struct Togl *togl )
 }
 
 /* Redraw scene */
-void tp_display( struct Togl *togl )
+void tp_display( Togl *togl )
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   // printf("display with plot=%p\n",plot);
@@ -66,14 +66,14 @@ void tp_display( struct Togl *togl )
 }
 
 /* Destroy scene */
-void tp_destroy( struct Togl *togl )
+void tp_destroy( Togl *togl )
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   // printf("display with plot=%p\n",plot);
   free(plot);
 }
 
-int tp_demo(struct Togl *togl, int argc, char *argv[])
+int tp_demo(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   // printf("demo with plot=%p\n",plot);
@@ -83,7 +83,7 @@ int tp_demo(struct Togl *togl, int argc, char *argv[])
   return TCL_OK;
 }
 
-int tp_grid(struct Togl *togl, int argc, char *argv[] )
+int tp_grid(Togl *togl, int argc, CONST84 char *argv[] )
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -99,7 +99,7 @@ int tp_grid(struct Togl *togl, int argc, char *argv[] )
   return TCL_OK;
 }
 
-int tp_valmap(struct Togl *togl, int argc, char *argv[])
+int tp_valmap(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -121,7 +121,7 @@ int tp_valmap(struct Togl *togl, int argc, char *argv[])
 }
 
 /* Remove an object from the plot */
-int tp_delete(struct Togl *togl, int argc, char *argv[])
+int tp_delete(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -147,7 +147,7 @@ int tp_delete(struct Togl *togl, int argc, char *argv[])
 
 
 /* Raise an object from the plot */
-int tp_raise(struct Togl *togl, int argc, char *argv[])
+int tp_raise(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -173,7 +173,7 @@ int tp_raise(struct Togl *togl, int argc, char *argv[])
 
 
 /* Lower an object from the plot */
-int tp_lower(struct Togl *togl, int argc, char *argv[])
+int tp_lower(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -199,7 +199,7 @@ int tp_lower(struct Togl *togl, int argc, char *argv[])
 
 
 /* Hide an object on the plot */
-int tp_hide(struct Togl *togl, int argc, char *argv[])
+int tp_hide(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -225,7 +225,7 @@ int tp_hide(struct Togl *togl, int argc, char *argv[])
 
 
 /* Show an object on the plot */
-int tp_show(struct Togl *togl, int argc, char *argv[])
+int tp_show(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -278,7 +278,7 @@ getvalue(Tcl_Interp *interp,const char *name,const char *dim,int size)
   return (double *)data;
 }
 
-int tp_mesh(struct Togl *togl, int argc, char *argv[])
+int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -311,7 +311,7 @@ int tp_mesh(struct Togl *togl, int argc, char *argv[])
 }
 
 /* List all objects on the plot */
-int tp_list(struct Togl *togl, int argc, char *argv[])
+int tp_list(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -333,7 +333,7 @@ int tp_list(struct Togl *togl, int argc, char *argv[])
 }
 
 
-int tp_limits(struct Togl *togl, int argc, char *argv[])
+int tp_limits(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -364,7 +364,7 @@ int tp_limits(struct Togl *togl, int argc, char *argv[])
 }
 
 
-int tp_pick(struct Togl *togl, int argc, char *argv[])
+int tp_pick(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
@@ -389,7 +389,7 @@ int tp_pick(struct Togl *togl, int argc, char *argv[])
   return TCL_OK;
 }
 
-int tp_draw(struct Togl *togl, int argc, char *argv[] )
+int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
 {
   Togl_PostRedisplay(togl);
   return TCL_OK;
