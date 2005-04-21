@@ -5,13 +5,19 @@
 #ifdef TEST
 # ifdef OSX
 #  include <OpenGL/gl.h>
+#  include <OpenGL/glu.h>
 # else
 #  include <GL/gl.h>
+#  include <GL/glu.h>
 # endif
 #else 
 # include "togl.h"
+# if defined(TOGL_AGL) || defined(TOGL_AGL_CLASSIC)
+#  include <OpenGL/glu.h>
+# else
+#  include <GL/glu.h>
+# endif
 #endif
-#include <GL/glu.h>
 #define DEMO
 #include "plot.h"
 
