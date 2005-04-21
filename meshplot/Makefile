@@ -20,7 +20,7 @@ endif
 
 ifeq ($(OS),IRIX64)
   GLUTINC = -I/usr/freeware/include
-  GLUTLIB = -L/usr/freeware/lib -lglut
+  GLUTLIBS = -L/usr/freeware/lib32 -lglut
 endif
 ifeq ($(OS),WINDOWS)
   GLDEF = -DTOGL_WGL
