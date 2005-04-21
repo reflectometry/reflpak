@@ -37,6 +37,7 @@
 #  include <X11/Xlib.h>
 #  include <X11/Xutil.h>
 #  include <X11/Xatom.h>        /* for XA_RGB_DEFAULT_MAP atom */
+#  include <X11/Intrinsic.h>    /* for TRUE/FALSE */
 #  if defined(__vms)
 #    include <X11/StdCmap.h>    /* for XmuLookupStandardColormap */
 #  else
