@@ -135,7 +135,7 @@ TOGL_EXTERN void Togl_SwapBuffers(const Togl *togl);
  * Query functions
  */
 
-TOGL_EXTERN char *Togl_Ident(const Togl *togl);
+TOGL_EXTERN const char *Togl_Ident(const Togl *togl);
 TOGL_EXTERN int Togl_Width(const Togl *togl);
 TOGL_EXTERN int Togl_Height(const Togl *togl);
 TOGL_EXTERN Tcl_Interp *Togl_Interp(const Togl *togl);

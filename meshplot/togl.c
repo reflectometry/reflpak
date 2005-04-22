@@ -37,7 +37,6 @@
 #  include <X11/Xlib.h>
 #  include <X11/Xutil.h>
 #  include <X11/Xatom.h>        /* for XA_RGB_DEFAULT_MAP atom */
-#  include <X11/Intrinsic.h>    /* for TRUE/FALSE */
 #  if defined(__vms)
 #    include <X11/StdCmap.h>    /* for XmuLookupStandardColormap */
 #  else
@@ -53,8 +52,10 @@
 #  include <tclMacCommonPch.h>
 
 #elif defined(TOGL_AGL)
+#  define Cursor QDCursor
 #  include <AGL/agl.h>
-#  include <tkMacOSX.h>
+#  undef Cursor
+#  include "tkMacOSX.h"
 #  include <tkMacOSXInt.h>      /* usa MacDrawable */
 #  include <ApplicationServices/ApplicationServices.h>
 
@@ -241,10 +242,10 @@ struct Togl
     int     AuxNumber;
     Bool    Indirect;
     int     PixelFormat;
-    char   *ShareList;          /* name (ident) of Togl to share dlists with */
-    char   *ShareContext;       /* name (ident) to share OpenGL context with */
+    const char *ShareList;      /* name (ident) of Togl to share dlists with */
+    const char *ShareContext;   /* name (ident) to share OpenGL context with */
 
-    char   *Ident;              /* User's identification string */
+    const char *Ident;          /* User's identification string */
     ClientData Client_Data;     /* Pointer to user data */
 
     Bool    UpdatePending;      /* Should normal planes be redrawn? */
@@ -403,8 +404,7 @@ static Tk_ConfigSpec configSpecs[] = {
             NULL, Tk_Offset(Togl, ShareList), 0, NULL},
 
     {TK_CONFIG_STRING, TCL_STUPID "-sharecontext", "sharecontext",
-                "ShareContext",
-            NULL, Tk_Offset(Togl, ShareContext), 0, NULL},
+            "ShareContext", NULL, Tk_Offset(Togl, ShareContext), 0, NULL},
 
     {TK_CONFIG_STRING, TCL_STUPID "-ident", "ident", "Ident",
             DEFAULT_IDENT, Tk_Offset(Togl, Ident), 0, NULL},
@@ -487,6 +487,7 @@ FindTogl(const char *ident)
 }
 
 
+#if defined(TOGL_X11)
 /* 
  * Return pointer to another togl widget with same OpenGL context.
  */
@@ -509,6 +510,7 @@ FindToglWithSameContext(Togl *togl)
     }
     return NULL;
 }
+#endif
 
 #ifdef USE_OVERLAY
 /* 
@@ -567,9 +569,9 @@ get_rgb_colormap(Display *dpy,
      * Check if we're using Mesa.
      */
     if (strstr(glXQueryServerString(dpy, scrnum, GLX_VERSION), "Mesa")) {
-        using_mesa = TRUE;
+        using_mesa = True;
     } else {
-        using_mesa = FALSE;
+        using_mesa = False;
     }
 
     /* 
@@ -1174,7 +1176,7 @@ Togl_Render(ClientData clientData)
         SetMacBufRect(togl);
     }
 #endif
-    togl->UpdatePending = FALSE;
+    togl->UpdatePending = False;
 }
 
 
@@ -1204,7 +1206,7 @@ RenderOverlay(ClientData clientData)
 
         togl->OverlayDisplayProc(togl);
     }
-    togl->OverlayUpdatePending = FALSE;
+    togl->OverlayUpdatePending = False;
 }
 
 
@@ -1462,32 +1464,32 @@ Togl_Cmd(ClientData clientData, Tcl_Interp *interp, int argc,
     togl->Height = 0;
     togl->SetGrid = 0;
     togl->TimerInterval = 0;
-    togl->RgbaFlag = TRUE;
+    togl->RgbaFlag = True;
     togl->RgbaRed = 1;
     togl->RgbaGreen = 1;
     togl->RgbaBlue = 1;
-    togl->DoubleFlag = FALSE;
-    togl->DepthFlag = FALSE;
+    togl->DoubleFlag = False;
+    togl->DepthFlag = False;
     togl->DepthSize = 1;
-    togl->AccumFlag = FALSE;
+    togl->AccumFlag = False;
     togl->AccumRed = 1;
     togl->AccumGreen = 1;
     togl->AccumBlue = 1;
     togl->AccumAlpha = 1;
-    togl->AlphaFlag = FALSE;
+    togl->AlphaFlag = False;
     togl->AlphaSize = 1;
-    togl->StencilFlag = FALSE;
+    togl->StencilFlag = False;
     togl->StencilSize = 1;
-    togl->OverlayFlag = FALSE;
-    togl->StereoFlag = FALSE;
+    togl->OverlayFlag = False;
+    togl->StereoFlag = False;
 #ifdef __sgi
-    togl->OldStereoFlag = FALSE;
+    togl->OldStereoFlag = False;
 #endif
     togl->AuxNumber = 0;
-    togl->Indirect = FALSE;
+    togl->Indirect = False;
     togl->PixelFormat = 0;
-    togl->UpdatePending = FALSE;
-    togl->OverlayUpdatePending = FALSE;
+    togl->UpdatePending = False;
+    togl->OverlayUpdatePending = False;
     togl->CreateProc = DefaultCreateProc;
     togl->DisplayProc = DefaultDisplayProc;
     togl->ReshapeProc = DefaultReshapeProc;
@@ -1684,7 +1686,7 @@ SetupOverlay(Togl *togl)
     Tcl_SetHashValue(hPtr, winPtr);
 
     /* XMapWindow( dpy, togl->OverlayWindow ); */
-    togl->OverlayIsMapped = FALSE;
+    togl->OverlayIsMapped = False;
 
     /* Make sure window manager installs our colormap */
     XSetWMColormapWindows(dpy, togl->OverlayWindow, &togl->OverlayWindow, 1);
@@ -1703,7 +1705,7 @@ SetupOverlay(Togl *togl)
 
 #ifdef TOGL_WGL
 #  define TOGL_CLASS_NAME "Togl Class"
-static Bool ToglClassInitialized = FALSE;
+static Bool ToglClassInitialized = False;
 
 static LRESULT CALLBACK
 Win32WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1768,10 +1770,10 @@ Togl_CreateWindow(Tk_Window tkwin, Window parent, ClientData instanceData)
     Display *dpy;
     Colormap cmap;
     int     scrnum;
-    Bool    directCtx = TRUE;
     Window  window;
 
 #if defined(TOGL_X11)
+    Bool    directCtx = True;
     int     attrib_list[1000];
     int     attrib_count;
     int     dummy;
@@ -1905,7 +1907,7 @@ Togl_CreateWindow(Tk_Window tkwin, Window parent, ClientData instanceData)
                     attrib_list[attrib_count++] = togl->AuxNumber;
                 }
                 if (togl->Indirect) {
-                    directCtx = FALSE;
+                    directCtx = False;
                 }
 
                 if (togl->StereoFlag) {
@@ -1965,7 +1967,7 @@ Togl_CreateWindow(Tk_Window tkwin, Window parent, ClientData instanceData)
     parentWin = Tk_GetHWND(parent);
     hInstance = Tk_GetHINSTANCE();
     if (!ToglClassInitialized) {
-        ToglClassInitialized = TRUE;
+        ToglClassInitialized = True;
         ToglClass.style = CS_HREDRAW | CS_VREDRAW;
         ToglClass.cbClsExtra = 0;
         ToglClass.cbWndExtra = 4;       /* to save struct Togl* */
@@ -2197,7 +2199,7 @@ Togl_CreateWindow(Tk_Window tkwin, Window parent, ClientData instanceData)
     if (togl->OverlayFlag) {
         if (SetupOverlay(togl) == TCL_ERROR) {
             fprintf(stderr, "Warning: couldn't setup overlay.\n");
-            togl->OverlayFlag = FALSE;
+            togl->OverlayFlag = False;
         }
     }
 #endif /* USE_OVERLAY */
@@ -2228,9 +2230,9 @@ Togl_CreateWindow(Tk_Window tkwin, Window parent, ClientData instanceData)
                     aglDescribePixelFormat(fmt, AGL_DOUBLEBUFFER,
                             &has_doublebuf)
                     && aglDescribePixelFormat(fmt, AGL_STEREO, &has_stereo)) {
-                togl->RgbaFlag = (has_rgba ? TRUE : FALSE);
-                togl->DoubleFlag = (has_doublebuf ? TRUE : FALSE);
-                togl->StereoFlag = (has_stereo ? TRUE : FALSE);
+                togl->RgbaFlag = (has_rgba ? True : False);
+                togl->DoubleFlag = (has_doublebuf ? True : False);
+                togl->StereoFlag = (has_stereo ? True : False);
             } else {
                 Tcl_SetResult(togl->Interp,
                         TCL_STUPID
@@ -2659,7 +2661,7 @@ void
 Togl_PostRedisplay(Togl *togl)
 {
     if (!togl->UpdatePending) {
-        togl->UpdatePending = TRUE;
+        togl->UpdatePending = True;
         Tk_DoWhenIdle(Togl_Render, (ClientData) togl);
     }
 }
@@ -2686,7 +2688,7 @@ Togl_SwapBuffers(const Togl *togl)
 
 
 
-char   *
+const char *
 Togl_Ident(const Togl *togl)
 {
     return togl->Ident;
@@ -3054,7 +3056,7 @@ static GLuint ListCount[MAX_FONTS];
 GLuint
 Togl_LoadBitmapFont(const Togl *togl, const char *fontname)
 {
-    static Bool FirstTime = TRUE;
+    static Bool FirstTime = True;
 
 #  if defined(TOGL_X11)
     XFontStruct *fontinfo;
@@ -3075,7 +3077,7 @@ Togl_LoadBitmapFont(const Togl *togl, const char *fontname)
         for (i = 0; i < MAX_FONTS; i++) {
             ListBase[i] = ListCount[i] = 0;
         }
-        FirstTime = FALSE;
+        FirstTime = False;
     }
 
     /* 
@@ -3242,7 +3244,7 @@ Togl_ShowOverlay(Togl *togl)
     if (togl->OverlayWindow) {
         (void) XMapWindow(Tk_Display(togl->TkWin), togl->OverlayWindow);
         (void) XInstallColormap(Tk_Display(togl->TkWin), togl->OverlayCmap);
-        togl->OverlayIsMapped = TRUE;
+        togl->OverlayIsMapped = True;
     }
 #endif /* TOGL_X11 */
 }
@@ -3253,7 +3255,7 @@ Togl_HideOverlay(Togl *togl)
 {
     if (togl->OverlayWindow && togl->OverlayIsMapped) {
         (void) XUnmapWindow(Tk_Display(togl->TkWin), togl->OverlayWindow);
-        togl->OverlayIsMapped = FALSE;
+        togl->OverlayIsMapped = False;
     }
 }
 
@@ -3264,7 +3266,7 @@ Togl_PostOverlayRedisplay(Togl *togl)
     if (!togl->OverlayUpdatePending
             && togl->OverlayWindow && togl->OverlayDisplayProc) {
         Tk_DoWhenIdle(RenderOverlay, (ClientData) togl);
-        togl->OverlayUpdatePending = TRUE;
+        togl->OverlayUpdatePending = True;
     }
 }
 
@@ -3691,7 +3693,7 @@ int
 Togl_DumpToEpsFile(const Togl *togl, const char *filename,
         int inColor, void (*user_redraw) (const Togl *))
 {
-    Bool    using_mesa = FALSE;
+    Bool    using_mesa = False;
 
 #if 0
     Pixmap  eps_pixmap;
@@ -3699,17 +3701,17 @@ Togl_DumpToEpsFile(const Togl *togl, const char *filename,
     XVisualInfo *vi = togl->VisInfo;
     Window  win = Tk_WindowId(togl->TkWin);
 #endif
-    Display *dpy = Tk_Display(togl->TkWin);
     int     retval;
-    int     scrnum = Tk_ScreenNumber(togl->TkWin);
     unsigned int width = togl->Width, height = togl->Height;
 
 #if defined(TOGL_X11)
+    Display *dpy = Tk_Display(togl->TkWin);
+    int     scrnum = Tk_ScreenNumber(togl->TkWin);
     if (strstr(glXQueryServerString(dpy, scrnum, GLX_VERSION), "Mesa"))
-        using_mesa = TRUE;
+        using_mesa = True;
     else
 #endif /* TOGL_X11 */
-        using_mesa = FALSE;
+        using_mesa = False;
     /* I don't use Pixmap do drawn into, because the code should link with Mesa
      * libraries and OpenGL libraries, and the which library we use at run time
      * should not matter, but the name of the calls differs one from another:
