@@ -6,14 +6,133 @@
 #define DEMO
 #include "plot.h"
 
-static double dpi;
+
+/* library functions which may go to a separate file */
+
+static PReal *
+get_vector_internal(Tcl_Interp *interp,
+		    const char *name, const char *context, const char *role,
+		    int size, int unshared)
+{
+  unsigned char *data;
+  int bytes;
+
+  /* Find the data object associated with the name */
+  Tcl_Obj *obj = Tcl_GetVar2Ex(interp,name,NULL,0);
+  if (obj == NULL) {
+    Tcl_AppendResult( interp, context, ": ",
+		      "expected variable name for ",role,
+		      NULL);
+    return NULL;
+  }
+
+  /* Get a private copy of the data if we need to modify it */
+  if (Tcl_IsShared(obj) && unshared) {
+    obj = Tcl_DuplicateObj(obj);
+    Tcl_SetVar2Ex(interp,name,NULL,obj,0);
+  }
+
+  /* Make sure the object is a byte array */
+  data = Tcl_GetByteArrayFromObj(obj,&bytes);
+  if (data == NULL) {
+    Tcl_AppendResult( interp, context, ": ",
+		      "expected binary format array in ",
+		      name,NULL);
+    return NULL;
+  }
+
+  /* Check that the size is correct */
+  if (bytes != size*sizeof(PReal)) {
+    if (sizeof(PReal) == 4 && bytes == 8*size)
+      Tcl_AppendResult( interp, context, ": ",
+			"wrong number of elements in ",name,
+			"; try [binary format f* $data]",
+			NULL);
+    else if (sizeof(PReal) == 8 && bytes == 4*size)
+      Tcl_AppendResult( interp, context, ": ",
+			"wrong number of elements in ",name,
+			"; try [binary format d* $data]",
+			NULL);
+    else if ( (bytes%sizeof(PReal)) == 0)
+      Tcl_AppendResult( interp, context, ": ",
+			"wrong number of elements in ",name,
+			NULL);
+    else
+      Tcl_AppendResult( interp, context, ": ",
+			"expected binary format in ",name,
+			NULL);
+    return NULL;
+  }
+
+  /* Good: return a handle to the data */
+  return (PReal *)data;
+}
+
+
+/* Return a pointer to a dense array of data.
+ *
+ * The data must be stored in a named variable, possibly constructed
+ * with a binary format command, or perhaps obtained from some other
+ * function.  The role of that variable in the command is reported
+ * as part of the error message.  The size of the array expected
+ * must be given explicitly so that the actual size can be checked.
+ *
+ * There are three different flavours:
+ *
+ * get_tcl_vector
+ *   The returned data pointer will not be modified.
+ *
+ * get_unshared_tcl_vector 
+ *   The returned data pointer may be modified, and the modifications
+ *   will show up in the variable in the interpreter.
+ *
+ *   This routine creats a copy of the data if another variable
+ *   references it.  For efficiency, be careful in the Tcl code to
+ *   always pass by name rather than by value to keep the reference
+ *   count to 1.
+ *
+ * get_private_tcl_vector
+ *   The returned data pointer may be modified, but the modifications
+ *   will not show up in the variable in the interpreter.  This routine 
+ *   creates a private copy of the data which must be freed with 
+ *   Tcl_Free, presumably on a later call to the C extension.
+ */
+const PReal *
+get_tcl_vector(Tcl_Interp *interp, const char *name,
+	       const char *context, const char *role,int size)
+{
+  return get_vector_internal(interp,name,context,role,size,0);
+}
+PReal *
+get_unshared_tcl_vector(Tcl_Interp *interp, const char *name, 
+			const char *context, const char *role, int size)
+{
+  return get_vector_internal(interp,name,context,role,size,1);
+}
+PReal *
+get_private_tcl_vector(Tcl_Interp *interp, const char *name,
+		       const char *context, const char *role, int size)
+{
+  PReal *data = get_vector_internal(interp,name,context,role,size,0);
+  if (data) {
+    PReal *copy = (PReal *)Tcl_Alloc(size*sizeof(PReal));
+    memcpy(copy,data,size*sizeof(PReal));
+    return copy;
+  } else {
+    return NULL;
+  }
+}
+
+/* end lib */
+
+static double DPI;
 
 #define STACK_SIZE 100
 #define COLORMAP_LENGTH 64
 typedef struct PLOTINFO {
-  double limits[6];
+  PReal limits[6];
   int stack[STACK_SIZE];
-  double tics[4];
+  PReal tics[4];
   int xtics, ytics;
   int grid;
   float colors[4*COLORMAP_LENGTH];
@@ -47,8 +166,8 @@ void tp_reshape( Togl *togl )
   int w = Togl_Width( togl );
   int h = Togl_Height( togl );
   // printf("reshape to %d,%d\n",w,h);
-  plot->xtics = (2*w)/dpi;
-  plot->ytics = (2*h)/dpi;
+  plot->xtics = (2*w)/DPI;
+  plot->ytics = (2*h)/DPI;
   if (plot->xtics < 1) plot->xtics = 1;
   if (plot->ytics < 1) plot->ytics = 1;
   plot_grid_tics(plot->limits,plot->tics,plot->xtics,plot->ytics);
@@ -250,40 +369,13 @@ int tp_show(Togl *togl, int argc, CONST84 char *argv[])
 }
 
 /* Add a mesh object to the plot */
-static double *
-getvalue(Tcl_Interp *interp,const char *name,const char *dim,int size)
-{
-  unsigned char *data;
-  int bytes;
-  Tcl_Obj *obj = Tcl_GetVar2Ex(interp,name,NULL,0);
-  if (obj == NULL) {
-    Tcl_AppendResult( interp,
-		      "expected variable name for data ",dim,
-		      NULL);
-    return NULL;
-  }
-  data = Tcl_GetByteArrayFromObj(obj,&bytes);
-  if (data == NULL) {
-    Tcl_AppendResult( interp,
-		      "expected binary format d* for data ",name,
-		      NULL);
-    return NULL;
-  } else if (bytes != size*sizeof(double)) {
-    Tcl_AppendResult( interp,
-		      "incorrect size for array ",name,
-		      NULL);
-    return NULL;
-  }
-
-  return (double *)data;
-}
 
 int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
   int m,n;
-  double *x,*y,*v;
+  const PReal *x,*y,*v;
 
   if (argc != 7) {
     Tcl_SetResult( interp,
@@ -297,11 +389,11 @@ int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
   }
 
   
-  x = getvalue(interp,argv[4],"x",m*n);
+  x = get_tcl_vector(interp,argv[4],"mesh","x",m*n);
   if (x == NULL) return TCL_ERROR;
-  y = getvalue(interp,argv[5],"y",m*n);
+  y = get_tcl_vector(interp,argv[5],"mesh","y",m*n);
   if (y == NULL) return TCL_ERROR;
-  v = getvalue(interp,argv[6],"v",m*n);
+  v = get_tcl_vector(interp,argv[6],"mesh","v",m*n);
   if (v == NULL) return TCL_ERROR;
 
   Togl_MakeCurrent(togl);
@@ -354,10 +446,10 @@ int tp_limits(Togl *togl, int argc, CONST84 char *argv[])
     return TCL_ERROR;
   }
 
-  plot->limits[0] = xmin;
-  plot->limits[1] = xmax;
-  plot->limits[2] = ymin;
-  plot->limits[3] = ymax;
+  plot->limits[0] = (PReal)xmin;
+  plot->limits[1] = (PReal)xmax;
+  plot->limits[2] = (PReal)ymin;
+  plot->limits[3] = (PReal)ymax;
 
   plot_grid_tics(plot->limits,plot->tics,plot->xtics,plot->ytics);
   return TCL_OK;
@@ -395,6 +487,9 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
   return TCL_OK;
 }
 
+#include "refl.c"
+
+
 /*
  * Called by Tk_Main() to let me initialize the modules (Togl) I will need.
  */
@@ -415,15 +510,16 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_MacSetupMainInterp(interp);
 #endif
 
-  dpi = 100.;
+  /* Ask Tk for the screen resolution */
+  DPI = 100.;
   if (Tcl_Eval(interp,"expr {72.*[tk scaling]}") == TCL_OK) {
     double r;
     if (Tcl_GetDouble(interp,interp->result,&r) == TCL_OK) {
-      dpi = r;
+      DPI = r;
     }
     Tcl_ResetResult(interp);
   }
-  // printf("dpi=%g\n",dpi);
+  /* printf("DPI=%g\n",DPI); */
 
 
   plot_init();
@@ -449,6 +545,8 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "show", tp_show );
   Togl_CreateCommand( "list", tp_list );
   Togl_CreateCommand( "pick", tp_pick );
+
+  refl_init(interp);
 
   return TCL_OK;
 }

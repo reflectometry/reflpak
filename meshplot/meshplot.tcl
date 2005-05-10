@@ -264,9 +264,9 @@ catch { package require snit }
 	set y {1 2 3 1 2 3 1 2 3}
 	set v {.1 .2 .3 .4 .5 .6 .7 .8 .8}
 
-	set x [binary format d* $x]
-	set y [binary format d* $y]
-	set v [binary format d* $v]
+	set x [binary format f* $x]
+	set y [binary format f* $y]
+	set v [binary format f* $v]
 
 	set hue [expr {($num_demos%9)/10.}]
 	$self hue $hue
