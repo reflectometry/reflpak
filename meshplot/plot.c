@@ -61,15 +61,15 @@ static void hsv2rgb(float h, float s, float v, float *r, float *g, float *b)
   }
 }
 
-void plot_graymap(int n, PlotColor *map)
+void plot_graymap(int n, PReal *map)
 {
   int i;
   for (i=0; i < n; i++) {
-    map[4*i]=map[4*i+1]=map[4*i+2]=(double)i/(double)(n-1);
+    map[4*i]=map[4*i+1]=map[4*i+2]=(PReal)i/(PReal)(n-1);
     map[4*i+3]=PLOT_COLORMAP_ALPHA;
   }
 }
-void plot_huemap(int n, PlotColor *map)
+void plot_huemap(int n, PReal *map)
 {
   int i;
   for (i=0; i < n; i++) {
@@ -77,7 +77,7 @@ void plot_huemap(int n, PlotColor *map)
     map[4*i+3]=PLOT_COLORMAP_ALPHA;
   }
 }
-void plot_valmap(int n, PlotColor *map, PlotColor hue)
+void plot_valmap(int n, PReal *map, PReal hue)
 {
   int i;
   for (i=0; i < n; i++) {
@@ -104,20 +104,20 @@ void plot_valmap(int n, PlotColor *map, PlotColor hue)
  * won't be.
  */
 typedef struct PLOT_COLORMAP {
-  double lo, hi, step;
-  PlotColor *sky, *ground, *colors;
+  PReal lo, hi, step;
+  PReal *sky, *ground, *colors;
   int n, log;
 } PlotColormap;
 static PlotColormap plot_colormap;
 
 #define PLOT_COLORMAP_LEN 64
 
-PlotColor plot_invisible[4] = {0.,0.,0.,0.};
-PlotColor plot_shadow[4] = {0.,0.,0.,0.1};
-PlotColor plot_black[4] = {0.,0.,0.,1.};
-PlotColor plot_white[4] = {1.,1.,1.,1.};
-static PlotColor grid_color[4] = {0.5,0.5,0.5,0.5};
-static PlotColor plot_default_colors[4*PLOT_COLORMAP_LEN];
+PReal plot_invisible[4] = {0.,0.,0.,0.};
+PReal plot_shadow[4] = {0.,0.,0.,0.1};
+PReal plot_black[4] = {0.,0.,0.,1.};
+PReal plot_white[4] = {1.,1.,1.,1.};
+static PReal grid_color[4] = {0.5,0.5,0.5,0.5};
+static PReal plot_default_colors[4*PLOT_COLORMAP_LEN];
 
 static void mapcalc(void)
 {
@@ -145,9 +145,9 @@ static void mapinit(void)
 }
 
 /* Return the color corresponding to value v in the current colormap */
-static PlotColor *mapcolor(double v)
+static PReal *mapcolor(PReal v)
 {
-  PlotColor *c;
+  PReal *c;
   int idx;
   if (isnan(v)) {
     c = plot_shadow;
@@ -181,7 +181,7 @@ void plot_init(void)
 
 
 /* Set the range for the colormap, and whether it is log or linear */
-void plot_vrange(int islog, double lo, double hi)
+void plot_vrange(int islog, PReal lo, PReal hi)
 {
   plot_colormap.log = islog;
   if (islog && lo < hi*PLOT_LOGRANGE) lo = hi*PLOT_LOGRANGE;
@@ -191,7 +191,7 @@ void plot_vrange(int islog, double lo, double hi)
 }
 
 /* Set the colors for the colormap */
-void plot_colors(int n, PlotColor *colors)
+void plot_colors(int n, PReal *colors)
 {
   plot_colormap.colors = colors;
   plot_colormap.n = n;
@@ -199,13 +199,13 @@ void plot_colors(int n, PlotColor *colors)
 }
 
 #ifdef TEST
-void drawquadrants(const double limits[], int pick)
+void drawquadrants(const PReal limits[], int pick)
 {
-  double xlo=limits[0],xhi=limits[1];
-  double ylo=limits[2],yhi=limits[3];
-  double xmid = (xhi+xlo)/2;
-  double ymid = (yhi+ylo)/2;
-  PlotColor c1[4], c2[4], c3[4], c4[4];
+  PReal xlo=limits[0],xhi=limits[1];
+  PReal ylo=limits[2],yhi=limits[3];
+  PReal xmid = (xhi+xlo)/2;
+  PReal ymid = (yhi+ylo)/2;
+  PReal c1[4], c2[4], c3[4], c4[4];
   
   hsv2rgb(0.,0.,0.2,c1+0,c1+1,c1+2);
   hsv2rgb(0.,0.,0.4,c2+0,c2+1,c2+2);
@@ -249,7 +249,7 @@ void drawquadrants(const double limits[], int pick)
 
 /* Generate a mesh object in list k */
 void plot_mesh(int k, int m, int n, 
-	       const double x[], const double y[], const double v[])
+	       const PReal x[], const PReal y[], const PReal v[])
 {
   int i, j;
 
@@ -314,9 +314,9 @@ void plot_mesh(int k, int m, int n,
 }
 
 static void 
-linear_tics(const double limits[2], double tics[2], int steps)
+linear_tics(const PReal limits[2], PReal tics[2], int steps)
 {
-  double range, d;
+  PReal range, d;
 
   assert(limits[0] < limits[1]);
   
@@ -334,14 +334,14 @@ linear_tics(const double limits[2], double tics[2], int steps)
   }
 }
 void 
-plot_grid_tics(const double limits[], double tics[], int numx, int numy)
+plot_grid_tics(const PReal limits[], PReal tics[], int numx, int numy)
 {
   linear_tics(limits,tics,numx);
   linear_tics(limits+2,tics+2,numy);
 }
 
-void plot_grid_object(int k, const double limits[], 
-		      int Mx, int mx, int My, int my, const double v[])
+void plot_grid_object(int k, const PReal limits[], 
+		      int Mx, int mx, int My, int my, const PReal v[])
 {
   int i,start,stop;
   float sizes[2];
@@ -387,7 +387,7 @@ void plot_grid_object(int k, const double limits[],
   glEndList();
 }
 
-void plot_grid(const double limits[], const double grid[])
+void plot_grid(const PReal limits[], const PReal grid[])
 {
   int i,start,stop;
   float sizes[2];
@@ -407,7 +407,7 @@ void plot_grid(const double limits[], const double grid[])
     glBegin(GL_LINES);
     if (grid[1]>0.) {
       int sub = grid[1];
-      double d = grid[0]/sub;
+      PReal d = grid[0]/sub;
       start = ceil(limits[0]/d);
       stop = floor(limits[1]/d);
       for (i = start; i <= stop; i++) {
@@ -419,7 +419,7 @@ void plot_grid(const double limits[], const double grid[])
     }
     if (grid[3]>0.) {
       int sub = grid[3];
-      double d = grid[2]/sub;
+      PReal d = grid[2]/sub;
       start = ceil(limits[2]/d);
       stop = floor(limits[3]/d);
       for (i = start; i <= stop; i++) {
@@ -439,7 +439,7 @@ void plot_grid(const double limits[], const double grid[])
     glLineWidth(1.); /* Standard width line for major tics */
     glBegin(GL_LINES);
     if (grid[0] > 0.) {
-      double d = grid[0];
+      PReal d = grid[0];
       start = ceil(limits[0]/d);
       stop = floor(limits[1]/d);
       for (i = start; i <= stop; i++) {
@@ -448,7 +448,7 @@ void plot_grid(const double limits[], const double grid[])
       }
     }
     if (grid[2] > 0.) {
-      double d = grid[2];
+      PReal d = grid[2];
       start = ceil(limits[2]/d);
       stop = floor(limits[3]/d);
       for (i = start; i <= stop; i++) {
@@ -463,7 +463,7 @@ void plot_grid(const double limits[], const double grid[])
 
 }
 
-void plot_display(const double limits[], const int stack[])
+void plot_display(const PReal limits[], const int stack[])
 {
   int i;
 
@@ -531,10 +531,10 @@ void plot_reshape (int w, int h)
 {
 #ifdef PLOT_AXES
   /* Translate borders from inches to pixels */
-  double R = PLOT_RBORDER*PLOT_DPI;
-  double T = PLOT_TBORDER*PLOT_DPI;
-  double B = PLOT_BBORDER*PLOT_DPI;
-  double L = PLOT_LBORDER*PLOT_DPI;
+  PReal R = PLOT_RBORDER*PLOT_DPI;
+  PReal T = PLOT_TBORDER*PLOT_DPI;
+  PReal B = PLOT_BBORDER*PLOT_DPI;
+  PReal L = PLOT_LBORDER*PLOT_DPI;
 #endif
 
   /* Size of viewport in pixels */
@@ -670,8 +670,8 @@ static void show_hits(GLint hits, GLuint select[])
   for (i=0; i < hits; i ++) {
     int j,dims=select[k];
     printf(" depth=[%5g,%5g]",
-	   (double)select[k+1]/4294967295.,
-	   (double)select[k+2]/4294967295.);
+	   (PReal)select[k+1]/4294967295.,
+	   (PReal)select[k+2]/4294967295.);
     for (j=k+3; j<k+3+dims; j++) printf(" %5d",select[j]);
     k+=dims+3;
     printf("\n");
@@ -683,7 +683,7 @@ static void show_hits(GLint hits, GLuint select[])
 /* XXX FIXME XXX this function reports a hit even if the thing it is
  * hitting is invisible.  My solution is to make out of bounds values
  * into shadows. */
-void plot_pick(const double limits[], const int stack[], int x, int y)
+void plot_pick(const PReal limits[], const int stack[], int x, int y)
 {
   GLuint select[SELECT_BUFFER_LENGTH];
   GLint hits;
@@ -729,17 +729,17 @@ void plot_pick(const double limits[], const int stack[], int x, int y)
 
 /* Determine the data limits of the plotted objects
  */
-static void defaultlimits(double limits[6])
+static void defaultlimits(PReal limits[6])
 {
   limits[0]=limits[2]=limits[4] = 0.;
   limits[1]=limits[3]=limits[5] = 1.;
 }
-static void copylimits(double to[6], const double from[6])
+static void copylimits(PReal to[6], const PReal from[6])
 {
   int i;
   for (i=0; i < 6; i++) to[i] = from[i];
 }
-static void extendlimits(double to[6], const double from[6])
+static void extendlimits(PReal to[6], const PReal from[6])
 {
   int i;
   if (to[0] < from[0]) to[0] = from[0];
@@ -749,7 +749,7 @@ static void extendlimits(double to[6], const double from[6])
   if (to[4] < from[4]) to[4] = from[4];
   if (to[5] > from[5]) to[5] = from[5];
 }
-void plot_limits(const PlotInfo *plot, double limits[6], int visible) 
+void plot_limits(const PlotInfo *plot, PReal limits[6], int visible) 
 {
   int i;
 
@@ -782,32 +782,32 @@ void plot_limits(const PlotInfo *plot, double limits[6], int visible)
 /* meshadd
  * Add a new mesh to the display, keeping track of the data limits.
  */
-static double vmin(int k, double x[])
+static PReal vmin(int k, PReal x[])
 {
   int i;
-  double min;
+  PReal min;
   min = x[0];
   for (i=1; i < k; i++) if (min > x[i]) min = x[i];
   return min;
 }
-static double vmax(int k, double x[])
+static PReal vmax(int k, PReal x[])
 {
   int i;
-  double max;
+  PReal max;
   max = x[0];
   for (i=1; i < k; i++) if (max < x[i]) max = x[i];
   return max;
 }
 static void drawmesh(PlotObject *V)
 {
-  PlotColor colors[4*PLOT_COLORMAP_LEN];
+  PReal colors[4*PLOT_COLORMAP_LEN];
 
   plot_valmap(PLOT_COLORMAP_LEN, colors, V->color[0]);
   plot_colors(PLOT_COLORMAP_LEN, colors);
   plot_mesh(V->glid, m, n, x, y, v);
 }
 int plot_add_mesh(PlotInfo *plot, int m, int n, 
-	double x[], double y[], double v[])
+	PReal x[], PReal y[], PReal v[])
 {
   PlotObject *V = plot->V+plot->num_objects;
 
@@ -836,10 +836,10 @@ int plot_add_mesh(PlotInfo *plot, int m, int n,
 
 void drawsquares(int stack[])
 {
-  static double x[] = {0., 1., 2., 0., 1., 2., 0., 1., 2.};
-  static double y[] = {0., 0., 0., 1., 1., 1., 2., 2., 2.};
-  static double v[] = {.1, .2, .3, .4, .5, .6, .7, .8, .9};
-  static PlotColor map[4*PLOT_COLORMAP_LEN];
+  static PReal x[] = {0., 1., 2., 0., 1., 2., 0., 1., 2.};
+  static PReal y[] = {0., 0., 0., 1., 1., 1., 2., 2., 2.};
+  static PReal v[] = {.1, .2, .3, .4, .5, .6, .7, .8, .9};
+  static PReal map[4*PLOT_COLORMAP_LEN];
   int k = plot_add(stack);
 
   plot_valmap(PLOT_COLORMAP_LEN,map,0.);
@@ -847,14 +847,14 @@ void drawsquares(int stack[])
   plot_mesh(k,3,3,x,y,v);
 }
 
-void buildwarp(int m, int n, double *x, double *y, double *v)
+void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
 {
   int i,j;
-  double p = 0.;
+  PReal p = 0.;
   for (i=0; i < m; i++) {
     for (j=0; j < n; j++) {
-      double angle = (i * M_PI)/(m-1);
-      double distance = 1. + (9.*j)/(n-1);
+      PReal angle = (i * M_PI)/(m-1);
+      PReal distance = 1. + (9.*j)/(n-1);
       *x++ = sin(angle)*distance;
       *y++ = cos(angle)*distance;
       *v++ = p; p += 1./m/n;
@@ -867,8 +867,8 @@ void buildwarp(int m, int n, double *x, double *y, double *v)
 #define Q (WARP_M*WARP_N)
 void drawwarp(int stack[])
 {
-  static double Wx[Q], Wy[Q], Wv[Q];
-  static PlotColor Wmap[4*PLOT_COLORMAP_LEN];
+  static PReal Wx[Q], Wy[Q], Wv[Q];
+  static PReal Wmap[4*PLOT_COLORMAP_LEN];
   static int iter=-1;
   int i,k;
 
@@ -881,7 +881,7 @@ void drawwarp(int stack[])
   plot_mesh(k,WARP_M,WARP_N,Wx,Wy,Wv);
 }
 
-void plot_demo(double limits[6], int stack[])
+void plot_demo(PReal limits[6], int stack[])
 {
   // printf("entering plotdemo\n");
   limits[4] = 0.1;
@@ -896,7 +896,7 @@ void plot_demo(double limits[6], int stack[])
   limits[3] = 12.;
 
 #if 0
-  double tics[100];
+  PReal tics[100];
   int n,k,v,Mx,mx,My,my;
 
   n=0; 
@@ -928,8 +928,8 @@ void plot_demo(double limits[6], int stack[])
 #endif
 
 int stack[20];
-double limits[6];
-double tics[4];
+PReal limits[6];
+PReal tics[4];
 
 void init(void) 
 {
