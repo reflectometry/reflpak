@@ -262,7 +262,7 @@ catch { package require snit }
 	set x {}
 	foreach i {1 2 3 2 3 4 3 4 5} { lappend x [expr {$i+$num_demos}] }
 	set y {1 2 3 1 2 3 1 2 3}
-	set v {.1 .2 .3 .4 .5 .6 .7 .8 .8}
+	set v {.1 .2 .3 .4}
 
 	set x [binary format f* $x]
 	set y [binary format f* $y]
@@ -270,7 +270,7 @@ catch { package require snit }
 
 	set hue [expr {($num_demos%9)/10.}]
 	$self hue $hue
-	$self mesh 3 3 $x $y $v "Mesh $num_demos"
+	$self mesh 2 2 $x $y $v "Mesh $num_demos"
 	$self configure -limits [list 0 [expr {$num_demos+6}] 0 4]
     }
 
@@ -288,6 +288,5 @@ catch { package require snit }
 	.d plot_demo
 	.c configure -grid on
     }
-
 
 }

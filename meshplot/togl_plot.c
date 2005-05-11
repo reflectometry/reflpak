@@ -389,9 +389,9 @@ int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
   }
 
   
-  x = get_tcl_vector(interp,argv[4],"mesh","x",m*n);
+  x = get_tcl_vector(interp,argv[4],"mesh","x",(m+1)*(n+1));
   if (x == NULL) return TCL_ERROR;
-  y = get_tcl_vector(interp,argv[5],"mesh","y",m*n);
+  y = get_tcl_vector(interp,argv[5],"mesh","y",(m+1)*(n+1));
   if (y == NULL) return TCL_ERROR;
   v = get_tcl_vector(interp,argv[6],"mesh","v",m*n);
   if (v == NULL) return TCL_ERROR;

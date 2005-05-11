@@ -259,18 +259,18 @@ void plot_mesh(int k, int m, int n,
   glNewList(k,GL_COMPILE);
   glPushName(k);
   glPushName(-1);
-  for (i = 0; i < m-1; i++) {
+  for (i = 0; i < m; i++) {
     glLoadName(i);
     glBegin(GL_QUAD_STRIP);
     glVertex2f(x[0],y[0]);
-    glVertex2f(x[n],y[n]);
-    for (j = 1; j < n; j++) {
+    glVertex2f(x[n+1],y[n+1]);
+    for (j = 1; j <= n; j++) {
       glVertex2f(x[j],y[j]);
-      glColor4fv(mapcolor(v[j]));
-      glVertex2f(x[j+n],y[j+n]);
+      glColor4fv(mapcolor(v[j-1]));
+      glVertex2f(x[j+n+1],y[j+n+1]);
     }
     glEnd();
-    x+=n; y+=n; v+= n;
+    x+=n+1; y+=n+1; v+=n;
   }
   glPopName();
   glPopName();
@@ -838,43 +838,47 @@ void drawsquares(int stack[])
 {
   static PReal x[] = {0., 1., 2., 0., 1., 2., 0., 1., 2.};
   static PReal y[] = {0., 0., 0., 1., 1., 1., 2., 2., 2.};
-  static PReal v[] = {.1, .2, .3, .4, .5, .6, .7, .8, .9};
+  static PReal v[] = {.1, .2, .3, .4};
   static PReal map[4*PLOT_COLORMAP_LEN];
   int k = plot_add(stack);
 
   plot_valmap(PLOT_COLORMAP_LEN,map,0.);
   plot_colors(PLOT_COLORMAP_LEN,map);
-  plot_mesh(k,3,3,x,y,v);
+  plot_mesh(k,2,2,x,y,v);
 }
 
 void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
 {
   int i,j;
   PReal p = 0.;
-  for (i=0; i < m; i++) {
-    for (j=0; j < n; j++) {
+  for (i=0; i <= m; i++) {
+    for (j=0; j <= n; j++) {
       PReal angle = (i * M_PI)/(m-1);
       PReal distance = 1. + (9.*j)/(n-1);
       *x++ = sin(angle)*distance;
       *y++ = cos(angle)*distance;
-      *v++ = p; p += 1./m/n;
     }
+  }
+  for (i=0; i < m*n; i++) {
+    *v++ = p; 
+    p += (1./m)/n;
   }
 }
 
 #define WARP_M 140
 #define WARP_N 51
 #define Q (WARP_M*WARP_N)
+#define QM ((WARP_M+1)*(WARP_N+1))
 void drawwarp(int stack[])
 {
-  static PReal Wx[Q], Wy[Q], Wv[Q];
+  static PReal Wx[QM], Wy[QM], Wv[Q];
   static PReal Wmap[4*PLOT_COLORMAP_LEN];
   static int iter=-1;
   int i,k;
 
   iter++;
   buildwarp(WARP_M,WARP_N,Wx,Wy,Wv);
-  for (i=0; i < Q; i++) { Wx[i] += 3*iter; Wy[i] += 2*iter; }
+  for (i=0; i < QM; i++) { Wx[i] += 3*iter; Wy[i] += 2*iter; }
   k = plot_add(stack);
   plot_valmap(PLOT_COLORMAP_LEN,Wmap,iter/10.);
   plot_colors(PLOT_COLORMAP_LEN,Wmap);
