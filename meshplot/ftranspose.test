@@ -1,44 +1,4 @@
-set verbose 0
-proc try {statements} {
-    if {$::verbose} { puts "Trying $statements" }
-    if {[catch {uplevel $statements} result]} {
-        puts "[info script] fail: $result\n$statements"
-    }
-}
-
-proc fail {statements {with {}} {msg {}}} {
-    if {$::verbose} { puts "Trying $statements" }
-    if {[catch {uplevel $statements} result]} {
-        if {![string equal $msg $result]} {
-	    puts "[info script] fail: in $statements\nexpected \"$msg\"\nbut got  \"$result\"\n"
-        }
-    } else {
-        puts "[info script] fail: no error\n$statements"
-    }
-}  
-
-
-proc assert_vector {a b {msg {}}} {
-    upvar $a vec
-    binary scan $vec h* hexa
-    binary scan [binary format f* $b] h* hexb
-    if {![string equal $hexa $hexb]} { 
-        error "expected {$b} but got {[fvector $vec]}"
-    }
-}
-
-proc fvector {name args} { 
-    upvar $name vec
-    set nargin [llength $args]
-    if {$nargin == 0} {
-	binary scan $name f* h
-	return $h
-    } elseif {$nargin == 1} {
-        set vec [binary format f* [lindex $args 0]]
-    } else {
-	error "wrong # args: should be \"fvector name ?value_list\""
-    }
-}
+source paktest.tcl
 
 proc ftranspose.test {} {
 
@@ -71,7 +31,7 @@ proc ftranspose.test {} {
      # Check that we can put the data in a tcl array
      fvector q(1) {1 2 3 4 5 6}
      ftranspose 2 3 q(1)
-     assert_vector q(1) {1 3 5 2 4 6} "ftranspose 2 3 q(1)"
+     assert_vector q(1) {1 3 5 2 4 6}
   }
 
   fail {
@@ -100,7 +60,5 @@ proc ftranspose.test {} {
   } with "ftranspose: expected binary format in g"
   fail {ftranspose 2 3 {1 2 3}} with "ftranspose: expected variable name for x"
 }
-
-try { error hello }
 
 ftranspose.test

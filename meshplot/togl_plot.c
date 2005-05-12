@@ -20,6 +20,7 @@ get_vector_internal(Tcl_Interp *interp,
   /* Find the data object associated with the name */
   Tcl_Obj *obj = Tcl_GetVar2Ex(interp,name,NULL,0);
   if (obj == NULL) {
+    Tcl_ResetResult(interp);
     Tcl_AppendResult( interp, context, ": ",
 		      "expected variable name for ",role,
 		      NULL);
@@ -35,6 +36,7 @@ get_vector_internal(Tcl_Interp *interp,
   /* Make sure the object is a byte array */
   data = Tcl_GetByteArrayFromObj(obj,&bytes);
   if (data == NULL) {
+    Tcl_ResetResult(interp);
     Tcl_AppendResult( interp, context, ": ",
 		      "expected binary format array in ",
 		      name,NULL);
@@ -43,24 +45,29 @@ get_vector_internal(Tcl_Interp *interp,
 
   /* Check that the size is correct */
   if (bytes != size*sizeof(PReal)) {
-    if (sizeof(PReal) == 4 && bytes == 8*size)
+    if (sizeof(PReal) == 4 && bytes == 8*size) {
+      Tcl_ResetResult(interp);
       Tcl_AppendResult( interp, context, ": ",
 			"wrong number of elements in ",name,
 			"; try [binary format f* $data]",
 			NULL);
-    else if (sizeof(PReal) == 8 && bytes == 4*size)
+    } else if (sizeof(PReal) == 8 && bytes == 4*size) {
+      Tcl_ResetResult(interp);
       Tcl_AppendResult( interp, context, ": ",
 			"wrong number of elements in ",name,
 			"; try [binary format d* $data]",
 			NULL);
-    else if ( (bytes%sizeof(PReal)) == 0)
+    } else if ( (bytes%sizeof(PReal)) == 0) {
+      Tcl_ResetResult(interp);
       Tcl_AppendResult( interp, context, ": ",
 			"wrong number of elements in ",name,
 			NULL);
-    else
+    } else {
+      Tcl_ResetResult(interp);
       Tcl_AppendResult( interp, context, ": ",
 			"expected binary format in ",name,
 			NULL);
+    }
     return NULL;
   }
 

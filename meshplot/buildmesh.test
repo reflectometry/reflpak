@@ -1,0 +1,46 @@
+source paktest.tcl
+
+proc buildmesh.test {} {
+  try {
+    fvector xin {0 1 2 3}
+    fvector yin {0 1 2}
+    foreach {x y} [buildmesh 3 2 xin yin] {}
+    assert_vector x {0 1 2 3 0 1 2 3 0 1 2 3}
+    assert_vector y {0 0 0 0 1 1 1 1 2 2 2 2}
+  }
+
+  try {
+    fvector alpha {1 2 3 4}
+    fvector beta {2 4 6 8}
+    fvector dtheta {0 1 2}
+    foreach {x y} [buildmesh -f 3 2 alpha beta dtheta] {}
+    assert_vector x {1 2 3 2 3 4 3 4 5 4 5 6}
+    assert_vector y {1 1 1 2 2 2 3 3 3 4 4 4}
+  }
+
+  try {
+    fvector alpha {1 2 3 4}
+    fvector beta {2 4 6 8}
+    fvector dtheta {0 1 2}
+    foreach {x y} [buildmesh -d 3 2 alpha beta dtheta] {}
+    assert_vector x {0 1 2 0 1 2 0 1 2 0 1 2}
+    assert_vector y {1 1 1 2 2 2 3 3 3 4 4 4}
+  }
+
+  try {
+    fvector alpha {1 2 3 4}
+    fvector beta {2 4 6 8}
+    fvector dtheta {0 1 2}
+    foreach {Qx Qz} [buildmesh -Q 5. 3 2 alpha beta dtheta] {}
+    assert_vector Qx {
+      0.0000000 0.0005741 0.0015308 0.0000000 0.0009567 0.0022956 
+      0.0000000 0.0013389 0.0030597 0.0000000 0.0017208 0.0038229
+    } 2e-7
+    assert_vector Qz {
+      0.043863  0.065787  0.087699  0.087712  0.109623  0.131515  
+      0.131535  0.153426  0.175290  0.175317  0.197182  0.219013
+    } 2e-6
+  }
+}
+
+buildmesh.test
