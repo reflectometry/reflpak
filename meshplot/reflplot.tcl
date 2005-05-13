@@ -138,13 +138,13 @@ proc demo {} {
     $path colormap [colormap_bright 64]
     $path configure -logdata on -grid on -vrange {0.00002 2}
 
-    ice::read_data ~/data/joh/joh00909.cg1
+    ice::read_data joh00909.cg1
     Qmesh
     dmesh
     plot $path
     foreach {xmin xmax ymin ymax} [limits] {}
 
-    ice::read_data ~/data/joh/joh00916.cg1
+    ice::read_data joh00916.cg1
     Qmesh
     dmesh
     plot $path
