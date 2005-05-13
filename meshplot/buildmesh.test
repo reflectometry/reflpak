@@ -1,3 +1,4 @@
+source base.tcl
 source paktest.tcl
 
 proc buildmesh.test {} {
@@ -43,4 +44,12 @@ proc buildmesh.test {} {
   }
 }
 
-buildmesh.test
+proc edges.test {} {
+  try { error "Add center->edge conversion tests" }
+}
+
+proc run_tests {} {
+  buildmesh.test
+  edges.test
+}
+run_tests
