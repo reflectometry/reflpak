@@ -156,8 +156,11 @@ static PReal *mapcolor(PReal v)
   } else if (v > plot_colormap.hi) {
     c = plot_colormap.sky;
   } else {
-    if (plot_colormap.log) v = log(v);
-    idx = floor(plot_colormap.step*(v-plot_colormap.lo));
+    if (plot_colormap.log) {
+      idx = floor(plot_colormap.step*(log(v/plot_colormap.lo)));
+    } else {
+      idx = floor(plot_colormap.step*(v-plot_colormap.lo));
+    }
     if (idx >= plot_colormap.n) idx = plot_colormap.n-1;
     c = plot_colormap.colors + 4*idx;
   }
