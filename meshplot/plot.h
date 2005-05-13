@@ -10,6 +10,7 @@ void plot_valmap(int n, PReal *colors, PReal hue);
 // void plot_init(PlotSwapfn fn);
 void plot_init(void);
 void plot_colors(int n, PReal *colors);
+void plot_vrange(int islog, PReal lo, PReal hi);
 void plot_mesh(int k, int m, int n, 
 	       const PReal x[], const PReal y[], const PReal v[]);
 void plot_display(const PReal limits[], const int stack[]);

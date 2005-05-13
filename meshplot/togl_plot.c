@@ -141,8 +141,8 @@ typedef struct PLOTINFO {
   int stack[STACK_SIZE];
   PReal tics[4];
   int xtics, ytics;
-  int grid;
-  float colors[4*COLORMAP_LENGTH];
+  int grid, log;
+  PReal colors[4*COLORMAP_LENGTH];
 } PlotInfo;
 
 /* New scene */
@@ -160,6 +160,7 @@ void tp_create( Togl *togl )
   plot_clearstack(plot->stack, STACK_SIZE);
   plot->limits[0] = plot->limits[2] = plot->limits[4] = 0.;
   plot->limits[1] = plot->limits[3] = plot->limits[5] = 1.;
+  plot->log = 0;
   plot->grid = 0;
   plot_grid_tics(plot->limits,plot->tics,5,5);
   //  plot_demo(plot->limits, plot->stack);
@@ -225,6 +226,23 @@ int tp_grid(Togl *togl, int argc, CONST84 char *argv[] )
   return TCL_OK;
 }
 
+int tp_logdata(Togl *togl, int argc, CONST84 char *argv[] )
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+
+  if (argc != 3) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName logdata on|off\"",
+		   TCL_STATIC );
+    return TCL_ERROR;
+  }
+  plot->log = (strcmp(argv[2],"on")==0);
+
+  plot_vrange(plot->log,plot->limits[4],plot->limits[5]);
+  return TCL_OK;
+}
+
 int tp_valmap(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
@@ -242,6 +260,27 @@ int tp_valmap(Togl *togl, int argc, CONST84 char *argv[])
   }
 
   plot_valmap(COLORMAP_LENGTH,plot->colors,hue);
+  plot_colors(COLORMAP_LENGTH,plot->colors);
+  return TCL_OK;
+}
+
+int tp_colormap(Togl *togl, int argc, CONST84 char *argv[])
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+  const PReal *colors;
+
+  if (argc != 3) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName colormap map\"",
+		   TCL_STATIC );
+    return TCL_ERROR;
+  }
+
+  colors = get_tcl_vector(interp,argv[2],"colormap","map",4*COLORMAP_LENGTH);
+  if (colors == NULL) return TCL_ERROR;
+
+  memcpy(plot->colors,colors,4*COLORMAP_LENGTH*sizeof(PReal));
   plot_colors(COLORMAP_LENGTH,plot->colors);
   return TCL_OK;
 }
@@ -381,7 +420,7 @@ int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
-  int m,n;
+  int m,n,id;
   const PReal *x,*y,*v;
 
   if (argc != 7) {
@@ -404,7 +443,9 @@ int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
   if (v == NULL) return TCL_ERROR;
 
   Togl_MakeCurrent(togl);
-  plot_mesh(plot_add(plot->stack),m,n,x,y,v);
+  id=plot_add(plot->stack);
+  plot_mesh(id,m,n,x,y,v);
+  Tcl_SetObjResult (interp, Tcl_NewIntObj(id));
 
   return TCL_OK;
 }
@@ -422,6 +463,7 @@ int tp_list(Togl *togl, int argc, CONST84 char *argv[])
   }
 
   /* XXX FIXME XXX hide details of stack implementation */
+  Tcl_ResetResult(interp);
   for (i=2; i < plot->stack[1]; i++) {
     char number[20];
     sprintf(number,"%d",plot->stack[i]<0?-plot->stack[i]:plot->stack[i]);
@@ -431,6 +473,32 @@ int tp_list(Togl *togl, int argc, CONST84 char *argv[])
   return TCL_OK;
 }
 
+
+int tp_vrange(Togl *togl, int argc, CONST84 char *argv[])
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+  double vmin, vmax;
+
+  // printf("vlimits with plot=%p\n",plot);
+  if (argc != 4) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName vrange min max\"",
+		   TCL_STATIC );
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetDouble(interp,argv[2],&vmin) != TCL_OK
+      || Tcl_GetDouble(interp,argv[3],&vmax) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  plot->limits[4] = (PReal)vmin;
+  plot->limits[5] = (PReal)vmax;
+
+  plot_vrange(plot->log,plot->limits[4],plot->limits[5]);
+  return TCL_OK;
+}
 
 int tp_limits(Togl *togl, int argc, CONST84 char *argv[])
 {
@@ -540,10 +608,13 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 
   /* plot commands */
   Togl_CreateCommand( "limits", tp_limits );
+  Togl_CreateCommand( "vrange", tp_vrange );
   Togl_CreateCommand( "demo", tp_demo );
   Togl_CreateCommand( "grid", tp_grid );
+  Togl_CreateCommand( "logdata", tp_logdata );
   Togl_CreateCommand( "draw", tp_draw );
   Togl_CreateCommand( "valmap", tp_valmap );
+  Togl_CreateCommand( "colormap", tp_colormap );
   Togl_CreateCommand( "delete", tp_delete );
   Togl_CreateCommand( "mesh", tp_mesh );
   Togl_CreateCommand( "raise", tp_raise );
