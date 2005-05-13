@@ -72,8 +72,12 @@ catch { package require snit }
     option -xmax
     option -ymin
     option -ymax
+    option -vmin
+    option -vmax
     option -limits -configuremethod Limits
+    option -vrange -configuremethod Vrange
     option -grid -configuremethod Grid
+    option -logdata -configuremethod Logdata
     option -cursor
     option -legend -default {}
 
@@ -96,7 +100,7 @@ catch { package require snit }
 	grid rowconfigure $win 0 -weight 1
 	grid rowconfigure $win 1 -minsize 1c
 	$self configurelist $args
-	$self configure -limits {0 1 0 1}
+	$self configure -vmin 0 -vmax 1 -xmin 0 -xmax 1 -ymin 0 -ymax 1
 
 	event add <<Pick>> <Button-1>
 	event add <<ZoomIn>> <Button-4>
@@ -210,15 +214,24 @@ catch { package require snit }
 
     method hue {h} { $Mesh valmap $h }
 
+    method colormap {map} { $Mesh colormap map }
+
     method mesh {m n x y v {name {}}} {
 	set xvar $x
 	set yvar $y
 	set vvar $v
+	$Mesh vrange $options(-vmin) $options(-vmax)
 	set id [$Mesh mesh $m $n xvar yvar vvar]
 	if { $options(-legend) != "" && $name != ""} {
 	    $options(-legend) add $name
 	}
 	return $id
+    }
+
+    method delete {{h *}} {
+	foreach id [$Mesh list] {
+	    if {[string match $h $id]} { $Mesh delete $id }
+	}
     }
 
     # Cycle through all mesh objects */
@@ -245,14 +258,22 @@ catch { package require snit }
 
     method Grid {op v} {
 	$Mesh grid $v
-	$self draw
+    }
+
+    method Logdata {op v} {
+	$Mesh logdata $v
+    }
+
+    method Vrange {op v} {
+	foreach axis {-vmin -vmax} value $v {
+	    $self configure $axis $value
+	}
     }
 
     method Limits {op v} {
 	foreach axis {-xmin -xmax -ymin -ymax} value $v { 
 	    $self configure $axis $value
 	}
-	$self draw
     }
 
     variable num_demos 0
