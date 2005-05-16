@@ -131,7 +131,7 @@ proc sample {{f /home/pkienzle/data/joh/joh00916.cg1}} {
     plot $path
 }
 
-proc demo {} {
+proc demo {{mesh_style Qmesh}} {
     upvar rec rec
     set path .c
     $path delete
@@ -139,14 +139,12 @@ proc demo {} {
     $path configure -logdata on -grid on -vrange {0.00002 2}
 
     ice::read_data joh00909.cg1
-    Qmesh
-    dmesh
+    $mesh_style
     plot $path
     foreach {xmin xmax ymin ymax} [limits] {}
 
     ice::read_data joh00916.cg1
-    Qmesh
-    dmesh
+    $mesh_style
     plot $path
     foreach {xmin2 xmax2 ymin2 ymax2} [limits] {}
 
