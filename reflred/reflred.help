@@ -319,9 +319,8 @@ The reduce window is where you collect the various scans to create the
 reflectivity signal.  This is a confusing screen.
 
 The basic formula is (specular-background)/slitscan.  In addition there
-is scaling by the transmission coefficient of the sample environment,
-polarization correction for polarized beam (not implemented) and 
-[footprint correction].
+is scaling by the [transmission coefficient] of the sample environment,
+polarization correction for polarized beam and [footprint correction].
 
 Select all specular lines.  These will appear on the legend annotated with
 a plus, and the "specular" entry will show the average of all the specular
@@ -383,6 +382,37 @@ header will contain details of all the files which went into the reduced
 (Q,R,dR) data columns.
 
 2002-09-18}
+
+hpage {transmission coefficient} {} {See also [reduce].
+
+Transmission coefficient is a scalar multiplier for the reflectivity and
+can be used for several different purposes:  
+
+ * For NG-7 data is divided by the monitor.  If you set the transmission
+   coefficient to the detector to monitor ratio (usually about 12) you will 
+   get normalized reflectivity.
+
+ * For sample environments with significant absorption, set the transmission
+   coefficient to the attenuation you expect through the medium.
+
+ * For back reflectivity, where the beam enters the side of the substrate
+   and reflects off the back side of the film, set the transmission 
+   coefficient to the absorption you expect in the substrate.
+
+These effects are multiplicative.
+
+If you don't know the correct value of the transmission coefficient, you
+can guess by looking at the data below the critical angle.  There is a
+flat region which should be perfectly reflecting.  Take the average of
+the values in this region and use that for the transmission coefficient.
+The "Guess" button in Reflred uses the maximum value of the reflectivity
+rather than the average value.
+
+Please make sure the guessed value makes sense.  If for example the
+critical edge is too low, you may not see it in the data and the
+guessed transmission coefficient will be too high.
+
+2005-04-22}
 
 # ----------------------------------------------------------------------
 hpage {reduce controls} {} {See also [reduce].
