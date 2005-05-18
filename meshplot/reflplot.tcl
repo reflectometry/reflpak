@@ -9,6 +9,7 @@ if {![namespace exists reflplot]} {
     }
     package require ncnrlib
     package require meshplot
+    package require keystate
 
     namespace eval reflplot {
        variable root .plot

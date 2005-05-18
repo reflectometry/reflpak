@@ -102,9 +102,19 @@ catch { package require snit }
 	$self configurelist $args
 	$self configure -vmin 0 -vmax 1 -xmin 0 -xmax 1 -ymin 0 -ymax 1
 
-	event add <<Pick>> <Button-1>
+	#event add <<Pick>> <Button-1>
+	event add <<Navigate>> <ButtonPress-1>
+        event add <<NavigateEnd>> <ButtonRelease-1>
+	event add <<Pan>> <Control-Button-1>
 	event add <<ZoomIn>> <Button-4>
 	event add <<ZoomOut>> <Button-5>
+	bind $win.c <<Navigate>> [subst {$win navigate xy 5 %x %y}]
+	bind $win.x <<Navigate>> [subst {$win navigate x 5 %x %y}]
+	bind $win.y <<Navigate>> [subst {$win navigate y 5 %x %y}]
+        bind $win.c <<NavigateEnd>> [subst {$win navigate halt}]
+        bind $win.x <<NavigateEnd>> [subst {$win navigate halt}]
+        bind $win.y <<NavigateEnd>> [subst {$win navigate halt}]
+
 	bind $win   <<ZoomIn>>  [subst {$win  zoom  5}]
 	bind $win   <<ZoomOut>> [subst {$win  zoom -5}]
 	bind $win.c <<ZoomIn>>  [subst {$win  zoom  5 %x %y}]
@@ -115,10 +125,22 @@ catch { package require snit }
 	bind $win.y <<ZoomIn>>  [subst {$win yzoom  5 %y}]
 	bind $win.y <<ZoomOut>> [subst {$win yzoom -5 %y}]
 
-	bind $win.c <ButtonPress-2> [subst {pan start $win %X %Y; break }]
-	bind $win.c <ButtonRelease-2> [subst {pan stop $win; break }]
-	bind $win.c <B2-Motion> [subst {pan move $win %X %Y; break }]
+	bind $win.c <<Pan>> [subst {pan start $win %X %Y; break }]
+	#bind $win.c <ButtonRelease-2> [subst {pan stop $win; break }]
+	#bind $win.c <B2-Motion> [subst {pan move $win %X %Y; break }]
     }
+    method navigate { which {n 5} {x {}} {y {}} } {
+	variable afterid
+	if {$KeyState::Shift} { set step -$n } else { set step $n }
+        switch -- $which {
+	    x { $self xzoom $step $x }
+            y { $self yzoom $step $y }
+            xy { $self zoom $step $x $y }
+	    halt { after cancel $afterid; return }
+        }
+	set afterid [after 5 [subst {$self navigate $which $n $x $y}]]
+    }
+	  
     method zoom { n {x {}} {y {}}} {
 	set w [winfo width $win.c]
 	set h [winfo height $win.c]

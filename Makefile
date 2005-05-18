@@ -26,7 +26,7 @@ scifunsrc=pkgIndex.tcl scifun$(LDEXT)
 paksrc=pkgIndex.tcl reflpak.tcl wininstall.tcl
 libsrc=balloonhelp.tcl ctext.tcl htext.tcl pan.tcl sizer.tcl \
 	print.tcl tableentry.tcl generic.tcl options.tcl pkgIndex.tcl \
-	octave.tcl tclphoto.m tclsend.m
+	octave.tcl tclphoto.m tclsend.m keystate.tcl
 fithelp=reflfit.help help.help mlayer.help gj2.help
 fitfig=reflpolorient.gif
 fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \

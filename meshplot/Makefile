@@ -48,9 +48,9 @@ ifeq ($(OS),Darwin)
 	-I$(TK_F)/Versions/8.4/PrivateHeaders \
 	-I./macosx
     ifndef USE_STUBS
-      LIBS = -F/Library/Frameworks -framework Tk -framework Tcl
+      LIBS = -F/Library/Frameworks -framework Tk -framework Tcl -lm
     else
-      LIBS = -L$(TCL_F) -ltclstub8.4 -L$(TK_F) -ltkstub8.4
+      LIBS = -L$(TCL_F) -ltclstub8.4 -L$(TK_F) -ltkstub8.4 -lm
     endif
   endif # !USE_X11
 endif # Darwin
@@ -71,7 +71,7 @@ plot$(EXE): plot.c
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
 plot$(LDEXT): togl_plot.o plot.o togl.o
-	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(TK_STUB_LIB_SPEC) $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h refl.c

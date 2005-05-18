@@ -14,3 +14,4 @@ package ifneeded ncnrlib 0.1 [subst {
     }
 }]
 package ifneeded octave 0.1 [list source [file join $dir octave.tcl]]
+package ifneeded keystate 0.1 [list source [file join $dir keystate.tcl]]
