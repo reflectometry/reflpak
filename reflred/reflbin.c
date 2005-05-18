@@ -170,6 +170,7 @@ void vtk_save(FILE *out, unsigned int v[], int n, int continuation)
 }
 
 /* From Robin Becker <robin@jessikat.fsnet.co.uk>
+ * Posted to sci.math.num-analysis on Dec 6 2003, 2:24 pm
  * He does not remember who is the original author.
  */
 typedef unsigned int mxtype;
@@ -183,7 +184,7 @@ void mx_transpose(int n, int m, mxtype *a, mxtype *b)
     while(b<bmn) for(aij=a++;aij<anm; aij+=n ) *b++ = *aij;
   }
   else if(n!=1 && m!=1){ /* in place transpose */
-    /* PAK: changed test from size != 3 so vectors aren't transposed */
+    /* PAK: use (n!=1&&m!=1) instead of (size!=3) to avoid vector transpose */
     int i,row,column,current;
     for(i=1, size -= 2;i<size;i++){
       current = i;
