@@ -1,7 +1,3 @@
-#!/bin/sh
-# \
-exec wish "$0" "$@"
-
 package provide reflplot 0.1
 
 # first time through
