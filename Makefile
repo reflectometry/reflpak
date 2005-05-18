@@ -45,6 +45,10 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 octlib=common_values.m inputname.m polyconf.m qlfit.m wsolve.m \
 	confidence.m qlconf.m wpolyfit.m interp1err.m
 
+reflplotsrc=axis.tcl base.tcl meshplot.tcl pkgIndex.tcl  \
+	reflplot.tcl plot$(LDEXT) joh00909.cg1 joh00916.cg1
+snitsrc=snit.tcl pkgIndex.tcl
+
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
 redhelpdeps=$(patsubst %,reflred/%,$(redhelp) $(redfig))
 
@@ -54,11 +58,13 @@ libfiles=$(patsubst %,lib/%,$(libsrc))
 fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc))
 redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc))
 redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc) $(octlib))
+snitfiles=$(patsubst %,snit0.97/%,$(snitsrc))
+reflplotfiles=$(patsubst %,meshplot/%,$(reflplotsrc))
 
 
 macscripts=$(patsubst %,macosx/%.app,reflpak reflred reflfit reflpol)
 
-SUBDIRS=src gj2 scifun
+SUBDIRS=src gj2 scifun meshplot
 
 ifeq ($(ARCH),win)
   pakicons=reflpak/pak.ico reflpak/wish.ico
@@ -92,16 +98,19 @@ ncnrpack$(EXE): kit/copykit$(EXE) ncnrpack.vfs/main.tcl
 	touch ncnrpack ;# needed to trigger resource binding on ncnrpack.exe
 
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
+		$(snitfiles) $(reflplotfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
 		kit/copykit$(EXE) main.tcl Makefile vfslib
 	./vfslib reflpak
 	./vfslib reflpak ncnrlib $(libfiles)
 	./vfslib reflpak scifun $(scifunfiles)
+	./vfslib reflpak snit $(snitfiles)
 	$(addwinlink)
 	./vfslib reflpak reflfit $(fitfiles) $(fiticons) $(gmlayer) $(gj2)
 	./vfslib reflpak reflred $(redfiles) $(redicons)
 	./vfslib reflpak reflred/octave $(redoctavefiles)
 	./vfslib reflpak reflpak $(pakfiles) $(pakicons)
+	./vfslib reflpak reflplot $(reflplotfiles)
 	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl

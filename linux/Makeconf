@@ -10,6 +10,7 @@ OPT=-O3
 TCL_PREFIX=/home/pkienzle/tcl-8.4.2
 TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
 TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.4
+TK_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltkstub8.4
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.so
 WISH=$(TCL_PREFIX)/bin/bltwish

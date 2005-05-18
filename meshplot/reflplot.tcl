@@ -2,25 +2,27 @@
 # \
 exec wish "$0" "$@"
 
+package provide reflplot 0.1
+
 # first time through
 if {![namespace exists reflplot]} {
-    lappend auto_path .
     package require snit
     catch {
 	package require tkcon
 	tkcon show
     }
-    source ../lib/pan.tcl
+    package require ncnrlib
     package require meshplot
 
-    meshplot .c
-    grid .c -sticky news
-    grid rowconfigure . 0 -w 1
-    grid columnconfigure . 0 -w 1
-    wm geometry . 500x400    
+    namespace eval reflplot {
+       variable root .plot
+       toplevel $root -width 400 -height 500
+       meshplot $root.c
+       grid $root.c -sticky news
+       grid rowconfigure $root 0 -w 1
+       grid columnconfigure $root 0 -w 1
+    }
 }
-
-source base.tcl
 
 namespace eval reflplot {
 
@@ -120,40 +122,42 @@ proc vlimits {{path {}}} {
     }
 }
 
-proc sample {{f /home/pkienzle/data/joh/joh00916.cg1}} { 
+proc sample {{f $::REFLPLOT_HOME/joh00916.cg1}} { 
     upvar rec rec
     ice::read_data $f
     Qmesh
-    set path .c
-    $path colormap [colormap_bright 64]
-    $path configure -logdata on -grid on
-    $path configure -vrange [vlimits]
-    plot $path
+    variable root
+    $root.c colormap [colormap_bright 64]
+    $root.c configure -logdata on -grid on
+    $root.c configure -vrange [vlimits]
+    plot $root.c
 }
 
 proc demo {{mesh_style Qmesh}} {
     upvar rec rec
-    set path .c
-    $path delete
-    $path colormap [colormap_bright 64]
-    $path configure -logdata on -grid on -vrange {0.00002 2}
+    variable root
+    $root.c delete
+    $root.c colormap [colormap_bright 64]
+    $root.c configure -logdata on -grid on -vrange {0.00002 2}
 
-    ice::read_data joh00909.cg1
+    ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1]
+    set_center_pixel 466
     $mesh_style
-    plot $path
+    plot $root.c
     foreach {xmin xmax ymin ymax} [limits] {}
 
-    ice::read_data joh00916.cg1
+    ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1]
+    set_center_pixel 466
     $mesh_style
-    plot $path
+    plot $root.c
     foreach {xmin2 xmax2 ymin2 ymax2} [limits] {}
 
     if {$xmin2 < $xmin} { set xmin $xmin2 }
     if {$ymin2 < $ymin} { set ymin $xmin2 }
     if {$xmax2 > $xmax} { set xmax $xmax2 }
     if {$ymax2 > $ymax} { set ymax $ymax2 }
-    $path configure -limits [list $xmin $xmax $ymin $ymax]
-    $path draw
+    $root.c configure -limits [list $xmin $xmax $ymin $ymax]
+    $root.c draw
 }
 
 }

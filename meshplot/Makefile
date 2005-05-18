@@ -70,7 +70,7 @@ plot$(EXE): plot.c
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
 plot$(LDEXT): togl_plot.o plot.o togl.o
-	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(LIBS)
+	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(TK_STUB_LIB_SPEC) $(LIBS)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h refl.c

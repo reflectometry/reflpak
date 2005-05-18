@@ -60,6 +60,7 @@ namespace eval reflpak {
         pol { set app Reflpol; shift_arg }
         red { set app Reflred; shift_arg }
         wish { set app wish; shift_arg }
+	plot { set app Reflplot; shift_arg }
 	tkcon { set app tkcon; shift_arg }
         *.staj { set app Reflfit }
         *.sta { set app Reflpol }
@@ -75,6 +76,7 @@ switch -- $reflpak::app {
     Reflfit { package require reflfit }
     Reflpol { package require reflpol }
     Reflred { package require reflred }
+    Reflplot { package require reflplot }
     wish { 
     	set argv0 [lindex $argv 0]
 	info script $argv0
