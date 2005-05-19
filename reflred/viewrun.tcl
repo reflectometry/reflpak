@@ -1882,7 +1882,7 @@ proc decorate_node { node w bbox } {
 	upvar #0 $node rec
 
 	# determine range for the entire group
-        set gid [ .tree parent $node ]
+        set gid [.tree itemcget [ .tree parent $node ] -data]
 	group_range $gid shift end
 
 	# if no range, don't leave space for a range bar
@@ -2249,15 +2249,18 @@ proc setdirectory { pattern_set } {
 
     # display the tree
     set ::loading_text "Building tree..."
+    set branch 0
     update
     foreach dataset [dataset_list] {
-	.tree insert end root $dataset -open 0 -data dataset \
+	set dataset_branch "dataset[incr branch]"
+	.tree insert end root $dataset_branch -open 0 -data $dataset \
 		-text "[clock format $::dataset($dataset) -format "%Y-%m-%d"]  $dataset"
 	foreach gid [group_list $dataset] {
 	    foreach { setname instrument type } [split $gid ","] {}
 	    # Indicate the basis for background offsets in the section header.
 	    # Remember which section headers have the indicator so that we
 	    # toggle it between A3 and A4.
+	    set group_branch "group[incr branch]"
 	    set bgbasis {}
 	    if {[string equal $type back]} {
 		if {[info exists ::background_basis($dataset,$instrument)]} {
@@ -2265,11 +2268,12 @@ proc setdirectory { pattern_set } {
 		    set ::background_basis_nodes($gid) $dataset,$instrument
 		}
 	    }
-	    .tree insert end $dataset $gid -data group\
+	    .tree insert end $dataset_branch $group_branch -data $gid\
 		-text "$instrument [typelabel $type]$bgbasis" -open 0
 	    foreach id $::group($gid) {
 		upvar #0 $id rec
-		.tree insert end $gid $id -text {  } -image $::image(new) -data record
+		.tree insert end $group_branch $id -text {  } \
+		    -image $::image(new) -data record
 	    }
 	}
     }
