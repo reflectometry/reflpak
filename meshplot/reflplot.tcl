@@ -222,8 +222,8 @@ proc read_data {file} {
     set n [expr {$rec(pixels)+$rec(Ncolumns)}]
     # Try to guess the number of points stored in the file.
     # This won't match the #Npoints value if the scan was aborted.
-    # XXX FIXME XXX This could be wrong if the byte sequences happens
-    # to code to UTF multi-byte patterns.  Need something better
+    # XXX FIXME XXX vector length could be wrong if the byte sequences 
+    # happens to code to UTF multi-byte patterns.  Need something better
     # than [string length x] to handle this properly.
     set m [expr {([string length $d]/4+$n-1)/$n}]
     if {$m != $rec(points)} {

@@ -132,8 +132,6 @@ get_private_tcl_vector(Tcl_Interp *interp, const char *name,
 
 /* end lib */
 
-static double DPI;
-
 #define STACK_SIZE 100
 #define COLORMAP_LENGTH 64
 typedef struct PLOTINFO {
@@ -144,6 +142,7 @@ typedef struct PLOTINFO {
   int grid, log;
   PReal colors[4*COLORMAP_LENGTH];
 } PlotInfo;
+PReal black[4] = { 0., 0., 0., 1.};
 
 /* New scene */
 void tp_create( Togl *togl )
@@ -174,8 +173,8 @@ void tp_reshape( Togl *togl )
   int w = Togl_Width( togl );
   int h = Togl_Height( togl );
   // printf("reshape to %d,%d\n",w,h);
-  plot->xtics = (2*w)/DPI;
-  plot->ytics = (2*h)/DPI;
+  plot->xtics = (2*w)/plot_dpi();
+  plot->ytics = (2*h)/plot_dpi();
   if (plot->xtics < 1) plot->xtics = 1;
   if (plot->ytics < 1) plot->ytics = 1;
   plot_grid_tics(plot->limits,plot->tics,plot->xtics,plot->ytics);
@@ -414,6 +413,39 @@ int tp_show(Togl *togl, int argc, CONST84 char *argv[])
   return TCL_OK;
 }
 
+/* Add a line object to the plot; use segment to add a line segment */
+int tp_line(Togl *togl, int argc, CONST84 char *argv[])
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+  int id;
+  double x1,y1,x2,y2,width;
+  PReal x[4];
+  
+
+  if (argc != 7) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName line x1 y1 x2 y2 width\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetDouble(interp,argv[2],&x1) != TCL_OK
+      || Tcl_GetDouble(interp,argv[3],&y1) != TCL_OK
+      || Tcl_GetDouble(interp,argv[4],&x2) != TCL_OK
+      || Tcl_GetDouble(interp,argv[5],&y2) != TCL_OK
+      || Tcl_GetDouble(interp,argv[6],&width) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  x[0]=x1; x[1]=y1; x[2]=x2; x[3]=y2;
+  
+  Togl_MakeCurrent(togl);
+  id=plot_add(plot->stack);
+  plot_lines(id,1,x,width,0,black);
+  Tcl_SetObjResult (interp, Tcl_NewIntObj(id));
+
+  return TCL_OK;
+}
+
 /* Add a mesh object to the plot */
 
 int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
@@ -570,6 +602,8 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
  */
 TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 {
+  double dpi;
+
 #ifdef USE_TCL_STUBS
   if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {return TCL_ERROR;}
 #endif
@@ -585,19 +619,21 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_MacSetupMainInterp(interp);
 #endif
 
+
+  plot_init();
+
   /* Ask Tk for the screen resolution */
-  DPI = 100.;
+  dpi = 100.;
   if (Tcl_Eval(interp,"expr {72.*[tk scaling]}") == TCL_OK) {
     double r;
     if (Tcl_GetDouble(interp,interp->result,&r) == TCL_OK) {
-      DPI = r;
+      dpi = r;
     }
     Tcl_ResetResult(interp);
   }
-  /* printf("DPI=%g\n",DPI); */
+  /* printf("DPI=%g\n",dpi); */
+  plot_set_dpi(dpi);
 
-
-  plot_init();
 
   /* Standard Togl operations */
   Togl_CreateFunc (tp_create);
@@ -617,6 +653,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "colormap", tp_colormap );
   Togl_CreateCommand( "delete", tp_delete );
   Togl_CreateCommand( "mesh", tp_mesh );
+  Togl_CreateCommand( "line", tp_line );
   Togl_CreateCommand( "raise", tp_raise );
   Togl_CreateCommand( "lower", tp_lower );
   Togl_CreateCommand( "hide", tp_hide );

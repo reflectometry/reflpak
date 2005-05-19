@@ -21,12 +21,14 @@
 #define DEMO
 #include "plot.h"
 
+static double DPI = 80.;
+
+
 #ifdef PLOT_AXES
 #define PLOT_RBORDER 2.0
 #define PLOT_LBORDER 0.5
 #define PLOT_TBORDER 0.25
 #define PLOT_BBORDER 0.5
-#define PLOT_DPI 80.
 #endif
 
 #define PLOT_DOUBLE_BUFFER 1
@@ -105,17 +107,18 @@ void plot_valmap(int n, PReal *map, PReal hue)
  */
 typedef struct PLOT_COLORMAP {
   PReal lo, hi, step;
-  PReal *sky, *ground, *colors;
+  const PReal *sky, *ground;
+  PReal *colors;
   int n, log;
 } PlotColormap;
 static PlotColormap plot_colormap;
 
 #define PLOT_COLORMAP_LEN 64
 
-PReal plot_invisible[4] = {0.,0.,0.,0.};
-PReal plot_shadow[4] = {0.,0.,0.,0.1};
-PReal plot_black[4] = {0.,0.,0.,1.};
-PReal plot_white[4] = {1.,1.,1.,1.};
+const PReal plot_invisible[4] = {0.,0.,0.,0.};
+const PReal plot_shadow[4] = {0.,0.,0.,0.1};
+const PReal plot_black[4] = {0.,0.,0.,1.};
+const PReal plot_white[4] = {1.,1.,1.,1.};
 static PReal grid_color[4] = {0.5,0.5,0.5,0.5};
 static PReal plot_default_colors[4*PLOT_COLORMAP_LEN];
 
@@ -145,9 +148,9 @@ static void mapinit(void)
 }
 
 /* Return the color corresponding to value v in the current colormap */
-static PReal *mapcolor(PReal v)
+static const PReal *mapcolor(PReal v)
 {
-  PReal *c;
+  const PReal *c;
   int idx;
   if (isnan(v)) {
     c = plot_shadow;
@@ -181,6 +184,14 @@ void plot_init(void)
   mapinit();
 }
 #endif
+void plot_set_dpi(double dpi) 
+{ 
+  DPI = dpi; 
+}
+double plot_dpi(void)
+{
+  return DPI;
+}
 
 
 /* Set the range for the colormap, and whether it is log or linear */
@@ -249,6 +260,57 @@ void drawquadrants(const PReal limits[], int pick)
   
 }
 #endif
+
+/* Generate a line object in list k */
+void plot_lines(int k, int n, const PReal x[], 
+		PReal width, int stipple, const PReal* color)
+{
+  const int pattern=stipple&0xFFFF, factor=stipple>>16;
+  const PReal z=1e-5;
+  int i;
+
+  if (k < 0) return;
+  glNewList(k,GL_COMPILE);
+  glPushName(k);
+  if (stipple) {
+    glEnable(GL_LINE_STIPPLE);
+    glLineStipple(factor,pattern);
+  }
+  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+  glEnable(GL_LINE_SMOOTH);
+  glLineWidth(width*DPI/72.);
+  glColor4fv(color);
+  glBegin(GL_LINES);
+  for (i=0; i < n; i++) {
+    double x1=x[4*i],   y1=x[4*i+1];
+    double x2=x[4*i+2], y2=x[4*i+3];
+    if (x1==x2) {
+      glVertex4f(0.,-1.,z,0.);
+      glVertex4f(x1,0.,z,1.);
+      glVertex4f(x1,0.,z,1.);
+      glVertex4f(0.,1.,z,0.);
+    } else {
+      double slope = (double)(y1-y2)/(double)(x1-x2);
+      double intercept = (double)y1 - (double)x1*slope;
+
+      /* XXX FIXME XXX without overlap, there are artifacts at the joint, but
+       * they are only significant for thick lines. With overlap, there are 
+       * artifacts at the joint for translucent colors. */
+      /* XXX FIXME XXX there are artifacts at edge of the clip box because 
+       * line segments are drawn after clipping, and for sloped lines, half
+       * the line width will not reach the edge of the box. */
+      glVertex4f(-1.,-slope,z,0.);
+      glVertex4f(0.,intercept,z,1.);
+      glVertex4f(0.,intercept,z,1.);
+      glVertex4f(1.,slope,z,0.);
+    }
+  }
+  glEnd();
+  glPopName();
+  glDisable(GL_LINE_SMOOTH);
+  if (stipple) glDisable(GL_LINE_STIPPLE);
+  glEndList();
+}
 
 /* Generate a mesh object in list k */
 void plot_mesh(int k, int m, int n, 
@@ -534,10 +596,10 @@ void plot_reshape (int w, int h)
 {
 #ifdef PLOT_AXES
   /* Translate borders from inches to pixels */
-  PReal R = PLOT_RBORDER*PLOT_DPI;
-  PReal T = PLOT_TBORDER*PLOT_DPI;
-  PReal B = PLOT_BBORDER*PLOT_DPI;
-  PReal L = PLOT_LBORDER*PLOT_DPI;
+  PReal R = PLOT_RBORDER*DPI;
+  PReal T = PLOT_TBORDER*DPI;
+  PReal B = PLOT_BBORDER*DPI;
+  PReal L = PLOT_LBORDER*DPI;
 #endif
 
   /* Size of viewport in pixels */
@@ -888,6 +950,15 @@ void drawwarp(int stack[])
   plot_mesh(k,WARP_M,WARP_N,Wx,Wy,Wv);
 }
 
+void drawline(int stack[])
+{
+  static PReal x[8]={1.,5.,10.,8.,2.,0.,2.,2.};
+  int k;
+
+  k=plot_add(stack);
+  plot_lines(k,2,x,3.,0,plot_black);
+}
+
 void plot_demo(PReal limits[6], int stack[])
 {
   // printf("entering plotdemo\n");
@@ -897,6 +968,7 @@ void plot_demo(PReal limits[6], int stack[])
   drawsquares(stack);
   drawwarp(stack);
   drawwarp(stack);
+  drawline(stack);
   limits[0] = 0.;
   limits[1] = 15.;
   limits[2] = -3.;

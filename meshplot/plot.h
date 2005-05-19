@@ -1,5 +1,7 @@
 
 typedef float PReal;
+extern const PReal 
+plot_black[4], plot_white[4], plot_shadow[4], plot_invisible[4];
 
 /* void hsv2rgb(PReal h, PReal s, PReal v, PReal *r, PReal *g, PReal *b); */
 void plot_graymap(int n, PReal *colors);
@@ -9,10 +11,14 @@ void plot_valmap(int n, PReal *colors, PReal hue);
 // typedef void (*PlotSwapfn)(void);
 // void plot_init(PlotSwapfn fn);
 void plot_init(void);
+void plot_set_dpi(double dpi); /* default is 80 dots per inch */
+double plot_dpi(void);
 void plot_colors(int n, PReal *colors);
 void plot_vrange(int islog, PReal lo, PReal hi);
 void plot_mesh(int k, int m, int n, 
 	       const PReal x[], const PReal y[], const PReal v[]);
+void plot_lines(int k, int n, const PReal v[], PReal width, int stipple,
+		const PReal color[]);
 void plot_display(const PReal limits[], const int stack[]);
 void plot_reshape (int w, int h);
 void plot_grid_tics(const PReal limits[], PReal tics[], int numx, int numy);
