@@ -266,7 +266,7 @@ void plot_lines(int k, int n, const PReal x[],
 		PReal width, int stipple, const PReal* color)
 {
   const int pattern=stipple&0xFFFF, factor=stipple>>16;
-  const PReal z=1e-5;
+  const PReal z=0;
   int i;
 
   if (k < 0) return;
@@ -280,15 +280,17 @@ void plot_lines(int k, int n, const PReal x[],
   glEnable(GL_LINE_SMOOTH);
   glLineWidth(width*DPI/72.);
   glColor4fv(color);
-  glBegin(GL_LINES);
+  glPushName(-1);
   for (i=0; i < n; i++) {
     double x1=x[4*i],   y1=x[4*i+1];
     double x2=x[4*i+2], y2=x[4*i+3];
+    glLoadName(i);
     if (x1==x2) {
+      glBegin(GL_LINE_STRIP);
       glVertex4f(0.,-1.,z,0.);
       glVertex4f(x1,0.,z,1.);
-      glVertex4f(x1,0.,z,1.);
       glVertex4f(0.,1.,z,0.);
+      glEnd();
     } else {
       double slope = (double)(y1-y2)/(double)(x1-x2);
       double intercept = (double)y1 - (double)x1*slope;
@@ -299,13 +301,14 @@ void plot_lines(int k, int n, const PReal x[],
       /* XXX FIXME XXX there are artifacts at edge of the clip box because 
        * line segments are drawn after clipping, and for sloped lines, half
        * the line width will not reach the edge of the box. */
+      glBegin(GL_LINE_STRIP);
       glVertex4f(-1.,-slope,z,0.);
       glVertex4f(0.,intercept,z,1.);
-      glVertex4f(0.,intercept,z,1.);
       glVertex4f(1.,slope,z,0.);
+      glEnd();
     }
   }
-  glEnd();
+  glPopName();
   glPopName();
   glDisable(GL_LINE_SMOOTH);
   if (stipple) glDisable(GL_LINE_STIPPLE);
