@@ -21,6 +21,18 @@
 #define DEMO
 #include "plot.h"
 
+#ifdef USE_DOUBLE
+#define glVertex2 glVertex2d
+#define glVertex3 glVertex3d
+#define glVertex4 glVertex4d
+#define glColor4v glColor4dv
+#else
+#define glVertex2 glVertex2f
+#define glVertex3 glVertex3f
+#define glVertex4 glVertex4f
+#define glColor4v glColor4fv
+#endif
+
 static double DPI = 80.;
 
 
@@ -42,7 +54,7 @@ static double DPI = 80.;
 /* ============================================= */
 /* Color functions */
 
-static void hsv2rgb(float h, float s, float v, float *r, float *g, float *b)
+static void hsv2rgb(PReal h, PReal s, PReal v, PReal *r, PReal *g, PReal *b)
 {
   if (s <= 0.0) {
     *r = *g = *b = v;
@@ -231,27 +243,27 @@ void drawquadrants(const PReal limits[], int pick)
   glPushName(111);
   glPushName(0);
   glBegin(GL_QUAD_STRIP);
-  glVertex2f(xlo,ylo);
-  glVertex2f(xlo,ymid);
-  glVertex2f(xmid,ylo);
-  glColor4fv(c1);
-  glVertex2f(xmid,ymid);
-  glVertex2f(xhi,ylo);
-  glColor4fv(c2);
-  glVertex2f(xhi,ymid);
+  glVertex2(xlo,ylo);
+  glVertex2(xlo,ymid);
+  glVertex2(xmid,ylo);
+  glColor4v(c1);
+  glVertex2(xmid,ymid);
+  glVertex2(xhi,ylo);
+  glColor4v(c2);
+  glVertex2(xhi,ymid);
   glEnd();
   //printf("strip error=%d\n",glGetError());
   
   glLoadName(3);
   glBegin(GL_QUAD_STRIP);
-  glVertex2f(xlo,ymid);
-  glVertex2f(xlo,yhi);
-  glVertex2f(xmid,ymid);
-  glColor4fv(c3);
-  glVertex2f(xmid,yhi);
-  glVertex2f(xhi,ymid);
-  glColor4fv(c4);
-  glVertex2f(xhi,yhi);
+  glVertex2(xlo,ymid);
+  glVertex2(xlo,yhi);
+  glVertex2(xmid,ymid);
+  glColor4v(c3);
+  glVertex2(xmid,yhi);
+  glVertex2(xhi,ymid);
+  glColor4v(c4);
+  glVertex2(xhi,yhi);
   glEnd();
   //printf("strip error=%d\n",glGetError());
   
@@ -279,7 +291,7 @@ void plot_lines(int k, int n, const PReal x[],
   glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
   glEnable(GL_LINE_SMOOTH);
   glLineWidth(width*DPI/72.);
-  glColor4fv(color);
+  glColor4v(color);
   glPushName(-1);
   for (i=0; i < n; i++) {
     double x1=x[4*i],   y1=x[4*i+1];
@@ -287,9 +299,9 @@ void plot_lines(int k, int n, const PReal x[],
     glLoadName(i);
     if (x1==x2) {
       glBegin(GL_LINE_STRIP);
-      glVertex4f(0.,-1.,z,0.);
-      glVertex4f(x1,0.,z,1.);
-      glVertex4f(0.,1.,z,0.);
+      glVertex4(0.,-1.,z,0.);
+      glVertex4(x1,0.,z,1.);
+      glVertex4(0.,1.,z,0.);
       glEnd();
     } else {
       double slope = (double)(y1-y2)/(double)(x1-x2);
@@ -302,9 +314,9 @@ void plot_lines(int k, int n, const PReal x[],
        * line segments are drawn after clipping, and for sloped lines, half
        * the line width will not reach the edge of the box. */
       glBegin(GL_LINE_STRIP);
-      glVertex4f(-1.,-slope,z,0.);
-      glVertex4f(0.,intercept,z,1.);
-      glVertex4f(1.,slope,z,0.);
+      glVertex4(-1.,-slope,z,0.);
+      glVertex4(0.,intercept,z,1.);
+      glVertex4(1.,slope,z,0.);
       glEnd();
     }
   }
@@ -330,12 +342,12 @@ void plot_mesh(int k, int m, int n,
   for (i = 0; i < m; i++) {
     glLoadName(i);
     glBegin(GL_QUAD_STRIP);
-    glVertex2f(x[0],y[0]);
-    glVertex2f(x[n+1],y[n+1]);
+    glVertex2(x[0],y[0]);
+    glVertex2(x[n+1],y[n+1]);
     for (j = 1; j <= n; j++) {
-      glVertex2f(x[j],y[j]);
-      glColor4fv(mapcolor(v[j-1]));
-      glVertex2f(x[j+n+1],y[j+n+1]);
+      glVertex2(x[j],y[j]);
+      glColor4v(mapcolor(v[j-1]));
+      glVertex2(x[j+n+1],y[j+n+1]);
     }
     glEnd();
     x+=n+1; y+=n+1; v+=n;
@@ -365,11 +377,11 @@ void plot_mesh(int k, int m, int n,
     for (j = 1; j < n; j++) {
       glLoadName(j);
       glBegin(GL_QUADS);
-      glColor4fv(mapcolor(v[j]));
-      glVertex2f(x[j-1],y[j-1]);
-      glVertex2f(x[j+n-1],y[j+n-1]);
-      glVertex2f(x[j],y[j]);
-      glVertex2f(x[j+n],y[j+n]);
+      glColor4v(mapcolor(v[j]));
+      glVertex2(x[j-1],y[j-1]);
+      glVertex2(x[j+n-1],y[j+n-1]);
+      glVertex2(x[j],y[j]);
+      glVertex2(x[j+n],y[j+n]);
       glEnd();
     }
     glPopName();
@@ -416,7 +428,7 @@ void plot_grid_object(int k, const PReal limits[],
 
   glNewList(k,GL_COMPILE);
 
-  glColor4fv(grid_color);
+  glColor4v(grid_color);
 
   /* Minor tics */
   glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
@@ -427,13 +439,13 @@ void plot_grid_object(int k, const PReal limits[],
   glBegin(GL_LINES);
   start = Mx; stop = Mx+mx;
   for (i = start; i < stop; i++) {
-    glVertex3f(v[i],limits[2],0.);
-    glVertex3f(v[i],limits[3],0.);
+    glVertex3(v[i],limits[2],0.);
+    glVertex3(v[i],limits[3],0.);
   }
   start = Mx+mx+My; stop = Mx+mx+My+my;
   for (i = start; i < stop; i++) {
-    glVertex3f(limits[0],v[i],0.);
-    glVertex3f(limits[1],v[i],0.);
+    glVertex3(limits[0],v[i],0.);
+    glVertex3(limits[1],v[i],0.);
   }
   glEnd();
   glDisable(GL_LINE_STIPPLE);
@@ -442,13 +454,13 @@ void plot_grid_object(int k, const PReal limits[],
   glBegin(GL_LINES);
   start = 0; stop = Mx;
   for (i = start; i < stop; i++) {
-    glVertex3f(v[i],limits[2],0.);
-    glVertex3f(v[i],limits[3],0.);
+    glVertex3(v[i],limits[2],0.);
+    glVertex3(v[i],limits[3],0.);
   }
   start = Mx+mx; stop = Mx+mx+My;
   for (i = start; i < stop; i++) {
-    glVertex3f(limits[0],v[i],0.);
-    glVertex3f(limits[1],v[i],0.);
+    glVertex3(limits[0],v[i],0.);
+    glVertex3(limits[1],v[i],0.);
   }    
   glEnd();
 
@@ -463,7 +475,7 @@ void plot_grid(const PReal limits[], const PReal grid[])
   glPushMatrix();
   glOrtho(limits[0],limits[1],limits[2],limits[3],-1.,1.);
 
-  glColor4fv(grid_color);
+  glColor4v(grid_color);
 
   if (grid[1]>0. || grid[3]>0.) {
     /* Minor tics */
@@ -480,8 +492,8 @@ void plot_grid(const PReal limits[], const PReal grid[])
       stop = floor(limits[1]/d);
       for (i = start; i <= stop; i++) {
 	if (i%sub != 0) {
-	  glVertex3f(i*d,limits[2],0.);
-	  glVertex3f(i*d,limits[3],0.);
+	  glVertex3(i*d,limits[2],0.);
+	  glVertex3(i*d,limits[3],0.);
 	}
       }
     }
@@ -492,8 +504,8 @@ void plot_grid(const PReal limits[], const PReal grid[])
       stop = floor(limits[3]/d);
       for (i = start; i <= stop; i++) {
 	if (i%sub != 0) {
-	  glVertex3f(limits[0],i*d,0.);
-	  glVertex3f(limits[1],i*d,0.);
+	  glVertex3(limits[0],i*d,0.);
+	  glVertex3(limits[1],i*d,0.);
 	}
       }
     }
@@ -511,8 +523,8 @@ void plot_grid(const PReal limits[], const PReal grid[])
       start = ceil(limits[0]/d);
       stop = floor(limits[1]/d);
       for (i = start; i <= stop; i++) {
-	glVertex3f(i*d,limits[2],0.);
-	glVertex3f(i*d,limits[3],0.);
+	glVertex3(i*d,limits[2],0.);
+	glVertex3(i*d,limits[3],0.);
       }
     }
     if (grid[2] > 0.) {
@@ -520,8 +532,8 @@ void plot_grid(const PReal limits[], const PReal grid[])
       start = ceil(limits[2]/d);
       stop = floor(limits[3]/d);
       for (i = start; i <= stop; i++) {
-	glVertex3f(limits[0],i*d,0.);
-	glVertex3f(limits[1],i*d,0.);
+	glVertex3(limits[0],i*d,0.);
+	glVertex3(limits[1],i*d,0.);
       }    
       glEnd();
     }
@@ -560,19 +572,19 @@ void plot_display(const PReal limits[], const int stack[])
 #endif
 
 #if 0
-  glColor3f(1.0,1.0,0.0);
+  glColor3(1.0,1.0,0.0);
   glPointSize(5.0);
   glBegin(GL_POINTS);
-  glVertex2f( 1., 1.);
-  glVertex2f(-1., 1.);
-  glVertex2f( 1.,-1.);
-  glVertex2f(-1.,-1.);
-  glVertex2f( 0., 0.);
-  glColor3f(1.0,0.0,1.0);
-  glVertex2f( 1.1, 1.1);
-  glVertex2f(-1.1, 1.1);
-  glVertex2f( 1.1,-1.1);
-  glVertex2f(-1.1,-1.1);
+  glVertex2( 1., 1.);
+  glVertex2(-1., 1.);
+  glVertex2( 1.,-1.);
+  glVertex2(-1.,-1.);
+  glVertex2( 0., 0.);
+  glColor3(1.0,0.0,1.0);
+  glVertex2( 1.1, 1.1);
+  glVertex2(-1.1, 1.1);
+  glVertex2( 1.1,-1.1);
+  glVertex2(-1.1,-1.1);
   glEnd();
 #endif
 }
@@ -599,10 +611,10 @@ void plot_reshape (int w, int h)
 {
 #ifdef PLOT_AXES
   /* Translate borders from inches to pixels */
-  PReal R = PLOT_RBORDER*DPI;
-  PReal T = PLOT_TBORDER*DPI;
-  PReal B = PLOT_BBORDER*DPI;
-  PReal L = PLOT_LBORDER*DPI;
+  double R = PLOT_RBORDER*DPI;
+  double T = PLOT_TBORDER*DPI;
+  double B = PLOT_BBORDER*DPI;
+  double L = PLOT_LBORDER*DPI;
 #endif
 
   /* Size of viewport in pixels */
@@ -1030,7 +1042,9 @@ void display(void)
 
 #if 0
   glPushMatrix();
-  glOrtho(limits[0],limits[1],limits[2],limits[3],-1.,1.);
+  glOrtho((GLdouble)limits[0],(GLdouble)limits[1],
+	  (GLdouble)limits[2],(GLdouble)limits[3],
+	  (GLdouble)-1.,(GLdouble)1.);
   drawquadrants(limits,0);
   glPopMatrix();
 #endif

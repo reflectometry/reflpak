@@ -1,15 +1,23 @@
-
-proc fvector {name args} { 
+proc fvector {name args} {
+    if {[fprecision] == 8} { set pattern d* } else { set pattern f* }
     upvar $name vec
     set nargin [llength $args]
     if {$nargin == 0} {
-	binary scan $vec f* h
+	binary scan $vec $pattern h
 	return $h
     } elseif {$nargin == 1} {
-        set vec [binary format f* [lindex $args 0]]
+	set vec [binary format $pattern [lindex $args 0]]
     } else {
 	error "wrong # args: should be \"fvector name ?value_list\""
     }
+}
+
+proc flength {name} {
+    # XXX FIXME XXX vector length could be wrong if the byte sequences 
+    # happens to code to UTF multi-byte patterns.  Need something better
+    # than [string length x] to handle this properly.
+    upvar $name vec
+    return [expr {[string length $vec]/[fprecision]}]
 }
 
 proc flimits {name} {

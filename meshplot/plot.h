@@ -1,5 +1,11 @@
+/* #define USE_DOUBLE 1 */
+#undef USE_DOUBLE
 
+#ifdef USE_DOUBLE
+typedef double PReal;
+#else
 typedef float PReal;
+#endif
 extern const PReal 
 plot_black[4], plot_white[4], plot_shadow[4], plot_invisible[4];
 

@@ -11,14 +11,6 @@ if {![namespace exists reflplot]} {
     package require meshplot
     package require keystate
 
-    namespace eval reflplot {
-       variable root .plot
-       toplevel $root -width 400 -height 500
-       meshplot $root.c
-       grid $root.c -sticky news
-       grid rowconfigure $root 0 -w 1
-       grid columnconfigure $root 0 -w 1
-    }
 }
 
 namespace eval reflplot {
@@ -119,11 +111,23 @@ proc vlimits {{path {}}} {
     }
 }
 
+proc make_root {} {
+    set root .plot
+    if {![winfo exists $root]} {
+	toplevel $root -width 400 -height 500
+	meshplot $root.c
+	grid $root.c -sticky news
+	grid rowconfigure $root 0 -w 1
+	grid columnconfigure $root 0 -w 1
+    }
+    return $root
+}
+
 proc sample {{f $::REFLPLOT_HOME/joh00916.cg1}} { 
     upvar rec rec
     ice::read_data $f
     Qmesh
-    variable root
+    set root [make_root]
     $root.c colormap [colormap_bright 64]
     $root.c configure -logdata on -grid on
     $root.c configure -vrange [vlimits]
@@ -132,7 +136,7 @@ proc sample {{f $::REFLPLOT_HOME/joh00916.cg1}} {
 
 proc demo {{mesh_style Qmesh}} {
     upvar rec rec
-    variable root
+    set root [make_root]
     $root.c delete
     $root.c colormap [colormap_bright 64]
     $root.c configure -logdata on -grid on -vrange {0.00002 2}
@@ -159,7 +163,7 @@ proc demo {{mesh_style Qmesh}} {
 
 }
 
-if {![llength [info command Qmesh]]} { namespace import reflplot::* }
+catch { namespace import reflplot::* }
 
 namespace eval ice {
 
@@ -222,13 +226,10 @@ proc read_data {file} {
     set n [expr {$rec(pixels)+$rec(Ncolumns)}]
     # Try to guess the number of points stored in the file.
     # This won't match the #Npoints value if the scan was aborted.
-    # XXX FIXME XXX vector length could be wrong if the byte sequences 
-    # happens to code to UTF multi-byte patterns.  Need something better
-    # than [string length x] to handle this properly.
-    set m [expr {([string length $d]/4+$n-1)/$n}]
+    set m [expr {[flength d]/$n}]
     if {$m != $rec(points)} {
 	# XXX FIXME XXX better error reporting
-	puts "Expected $rec(points) scan points but found $m (columns=$rec(Ncolumns) pixels=$rec(pixels) values=[expr {[string length $d]/4.}])"
+	puts "Expected $rec(points) scan points but found $m (columns=$rec(Ncolumns) pixels=$rec(pixels) values=[flength d])"
 	set rec(points) $m
     }
 

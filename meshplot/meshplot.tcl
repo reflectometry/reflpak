@@ -304,12 +304,9 @@ catch { package require snit }
 	incr num_demos
 	set x {}
 	foreach i {1 2 3 2 3 4 3 4 5} { lappend x [expr {$i+$num_demos}] }
-	set y {1 2 3 1 2 3 1 2 3}
-	set v {.1 .2 .3 .4}
-
-	set x [binary format f* $x]
-	set y [binary format f* $y]
-	set v [binary format f* $v]
+	fvector x $x
+	fvector y {1 2 3 1 2 3 1 2 3}
+	fvector v {.1 .2 .3 .4}
 
 	set hue [expr {($num_demos%9)/10.}]
 	$self hue $hue

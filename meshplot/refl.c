@@ -334,6 +334,14 @@ ftranspose(ClientData junk, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+static int 
+fprecision(ClientData junk, Tcl_Interp *interp, 
+	   int argc, Tcl_Obj *CONST argv[])
+{
+  Tcl_SetObjResult(interp,Tcl_NewIntObj(sizeof(PReal)));
+  return TCL_OK;
+}
+
 /* wrap mesh function */
 static int 
 buildmesh(ClientData junk, Tcl_Interp *interp, int argc, 
@@ -441,5 +449,6 @@ static void refl_init(Tcl_Interp *interp)
   Tcl_CreateObjCommand( interp, "ftranspose", ftranspose, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fextract", fextract, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fdivide", fdivide, NULL, NULL );
+  Tcl_CreateObjCommand( interp, "fprecision", fprecision, NULL, NULL );
   Tcl_CreateObjCommand( interp, "buildmesh", buildmesh, NULL, NULL );
 }
