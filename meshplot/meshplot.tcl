@@ -131,14 +131,23 @@ catch { package require snit }
     }
     method navigate { which {n 5} {x {}} {y {}} } {
 	variable afterid
-	if {$KeyState::Shift} { set step -$n } else { set step $n }
-        switch -- $which {
-	    x { $self xzoom $step $x }
-            y { $self yzoom $step $y }
-            xy { $self zoom $step $x $y }
-	    halt { after cancel $afterid; return }
-        }
-	set afterid [after 5 [subst {$self navigate $which $n $x $y}]]
+	if { [string equal $which "halt"] } {
+	    catch { after cancel $afterid }
+	} else {
+	    if {$KeyState::Shift} { 
+		set step -$n 
+	    } elseif {$KeyState::Control} { 
+		set step $n 
+	    } else {
+		return
+	    }
+	    switch -- $which {
+		x { $self xzoom $step $x }
+		y { $self yzoom $step $y }
+		xy { $self zoom $step $x $y }
+	    }
+	    set afterid [after 5 [subst {$self navigate $which $n $x $y}]]
+	}
     }
 	  
     method zoom { n {x {}} {y {}}} {
