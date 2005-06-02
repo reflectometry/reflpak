@@ -21,16 +21,22 @@
 #define DEMO
 #include "plot.h"
 
+/* XXX FIXME XXX hopefully this won't be too confusing, but until
+ * we have figured out the consequences we would like to delay
+ * deciding on the representation for things like colors.
+ */
 #ifdef USE_DOUBLE
 #define glVertex2 glVertex2d
 #define glVertex3 glVertex3d
 #define glVertex4 glVertex4d
 #define glColor4v glColor4dv
+#define FLOAT_TYPE GL_DOUBLE
 #else
 #define glVertex2 glVertex2f
 #define glVertex3 glVertex3f
 #define glVertex4 glVertex4f
 #define glColor4v glColor4fv
+#define FLOAT_TYPE GL_FLOAT
 #endif
 
 static double DPI = 80.;
@@ -307,12 +313,22 @@ void plot_lines(int k, int n, const PReal x[],
       double slope = (double)(y1-y2)/(double)(x1-x2);
       double intercept = (double)y1 - (double)x1*slope;
 
-      /* XXX FIXME XXX without overlap, there are artifacts at the joint, but
-       * they are only significant for thick lines. With overlap, there are 
-       * artifacts at the joint for translucent colors. */
-      /* XXX FIXME XXX there are artifacts at edge of the clip box because 
-       * line segments are drawn after clipping, and for sloped lines, half
-       * the line width will not reach the edge of the box. */
+      /* Draw two semi-infinite lines joined at x=0.
+       * 
+       * Note: line width should be small.  Thick lines are not supported
+       * on all implementations, and those that do support them render them
+       * poorly.  In particular, the joint between the lines becomes visible,
+       * and the edges are not handled correctly.  Apparently the line is 
+       * clipped before drawing and so it does not extend all the way to the
+       * edge of the clipping region across the width of the line.  Perhaps
+       * another clipping technique such as scissor regions or stencil buffers
+       * will render it properly.
+       */
+      /* XXX FIXME XXX this technique only works for limits in the range
+       * [-1e5,1e5]; the only workable solution may be to handle this like
+       * grid, and set the line limits explicitly when needed according to
+       * the available window. This will also solve the problem of keeping
+       * the lines on top of the meshes. */
       glBegin(GL_LINE_STRIP);
       glVertex4(-1.,-slope,z,0.);
       glVertex4(0.,intercept,z,1.);
@@ -546,6 +562,7 @@ void plot_grid(const PReal limits[], const PReal grid[])
 void plot_display(const PReal limits[], const int stack[])
 {
   int i;
+  void qsdrawlist(void);
 
   glShadeModel(GL_FLAT);
   glEnable (GL_BLEND);
@@ -565,6 +582,7 @@ void plot_display(const PReal limits[], const int stack[])
     // printf("stack[%d]=%d\n",i,stack[i]);
     if (stack[i] > 0) glCallList(stack[i]);
   }
+  qsdrawlist();
   glPopMatrix();
 #ifdef PLOT_AXES
   glDisable(GL_SCISSOR_TEST);
@@ -932,9 +950,9 @@ void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
   int i,j;
   PReal p = 0.;
   for (i=0; i <= m; i++) {
+    PReal angle = (i * M_PI)/m;
     for (j=0; j <= n; j++) {
-      PReal angle = (i * M_PI)/(m-1);
-      PReal distance = 1. + (9.*j)/(n-1);
+      PReal distance = 1. + (9.*j)/n;
       *x++ = sin(angle)*distance;
       *y++ = cos(angle)*distance;
     }
@@ -945,13 +963,126 @@ void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
   }
 }
 
+/* We start with measurements v at the centers of the pixels on
+ * an m x n grid.  The corners of the pixels form an (m+1) x (n+1)
+ * grid with the measurements still in the centers.
+ *
+ * To render this (m+1) x (n+1) mesh of x,y points it is converted
+ * to a vertex array containing quad strips. Each strip has 2(n+1) 
+ * vertices and there are m strips for a total of 2m(n+1) vertices.
+ * To draw strip k use:
+ *     glDrawArrays(GL_QUAD_STRIP,2*k*(n+1),2*(n+1))
+ *
+ * meshvertices(int m, int n)
+ * mesh2vertex fills the array of vertex positions.  Each vertex
+ * has 2 components so the total array size is:
+ *     2*sizeof(PReal)*2*m*(n+1)
+ *
+ * mesh2color fills the array of colors.  Because we are using
+ * flat colors, only the second
+ */
+#define QSVERTICES (2*m*(n+1))
+int qsbytes(int m, int n) { return 6*sizeof(PReal)*QSVERTICES; }
+PReal *qsnew(int m, int n) { return (PReal *)malloc(qsbytes(m,n)); }
+void qsdelete(PReal *qs) { free(qs); }
+void qscoords(int m, int n, const PReal *x, const PReal *y, PReal *qs)
+{
+  int i,j;
+  
+  if (qs == NULL) return;
+  for (i=1; i <= m; i++) {
+    for (j=0; j <= n; j++) {
+      qs[0] = x[j];
+      qs[1] = y[j];
+      qs[2] = x[j+n];
+      qs[3] = y[j+n];
+      qs += 4;
+    }
+    x += n;
+    y += n;
+  }
+}
+void qscolor(int m, int n, const PReal *v, PReal *qs)
+{
+  PReal *c = qs + 2*QSVERTICES;
+  int i, j;
+
+  if (qs == NULL) return;
+  for (i=0; i < 4*QSVERTICES; i++) c[i] = 0.5;
+  for (i=0; i < m; i++) {
+    /* Color of the first two vertices is ignored for GL_FLAT */
+    c += 8;
+    for (j=0; j < n; j++) {
+      const PReal *color = mapcolor(v[j]);
+      /* Only fill color for 1-origin index v[2*i+2] for GL_FLAT 
+       * in GL_QUAD_STRIP */
+      c[4] = color[0];
+      c[5] = color[1];
+      c[6] = color[2];
+      c[7] = color[3];
+      c += 8;
+    }
+    v += n;
+  }
+}
+void qsdraw(int m, int n, const PReal *qs)
+{
+  int i;
+
+  if (qs == NULL) return;
+  glVertexPointer(2,FLOAT_TYPE,0,qs);
+  glColorPointer(4,FLOAT_TYPE,0,qs+2*QSVERTICES);
+  glEnableClientState (GL_VERTEX_ARRAY);
+  glEnableClientState (GL_COLOR_ARRAY);
+  glPushName(-1);
+  for (i = 0; i < m; i++) {
+    glLoadName(i);
+    glDrawArrays(GL_QUAD_STRIP, 2*i*(n+1), 2*(n+1));
+  }
+  glPopName();
+  glDisableClientState (GL_VERTEX_ARRAY);
+  glDisableClientState (GL_COLOR_ARRAY);
+}
+int qsnext=0;
+struct QSLIST {
+  int m, n;
+  const PReal *qs;
+} qslist[10];
+
+void qsadd(int m, int n, const PReal *qs)
+{
+  qslist[qsnext].m = m;
+  qslist[qsnext].n = n;
+  qslist[qsnext].qs = qs;
+  qsnext++;
+}
+void qsdrawlist(void)
+{
+  int i;
+  for (i=0; i < qsnext; i++) qsdraw(qslist[i].m, qslist[i].n, qslist[i].qs);
+}
+void plot_qs(int k, int m, int n, const PReal *qs)
+{
+
+  /* XXX FIXME XXX what to do when out of lists? */
+  if (k < 0 || qs == NULL) return;
+
+  glNewList(k,GL_COMPILE);
+  glPushName(k);
+  qsdraw(m,n,qs);
+  glPopName();
+  glEndList();
+
+}
+
+
 #define WARP_M 140
-#define WARP_N 51
+#define WARP_N 512
 #define Q (WARP_M*WARP_N)
 #define QM ((WARP_M+1)*(WARP_N+1))
 void drawwarp(int stack[])
 {
-  static PReal Wx[QM], Wy[QM], Wv[Q];
+  static PReal Wx[QM], Wy[QM], Wv[Q], *qs;
   static PReal Wmap[4*PLOT_COLORMAP_LEN];
   static int iter=-1;
   int i,k;
@@ -962,7 +1093,20 @@ void drawwarp(int stack[])
   k = plot_add(stack);
   plot_valmap(PLOT_COLORMAP_LEN,Wmap,iter/10.);
   plot_colors(PLOT_COLORMAP_LEN,Wmap);
+
+#if 1  /* Use vertex arrays */
+  qs = qsnew(WARP_M,WARP_N);
+  qscoords(WARP_M,WARP_N,Wx,Wy,qs);
+  qscolor(WARP_M,WARP_N,Wv,qs);
+# if 0 /* Use vertex arrays with display lists */
+  plot_qs(k,WARP_M,WARP_N,qs);
+  qsdelete(qs);
+# else /* Use vertex arrays without display lists */
+  qsadd(WARP_M,WARP_N,qs);
+# endif
+#else  /* Don't use vertex arrays */
   plot_mesh(k,WARP_M,WARP_N,Wx,Wy,Wv);
+#endif
 }
 
 void drawline(int stack[])
@@ -1103,6 +1247,12 @@ void click(int button, int state, int x, int y)
   }
 }
 
+int unscheduled_exit = 0;
+void idle(void)
+{
+  if (unscheduled_exit) exit(1);
+}
+
 int main(int argc, char** argv)
 {
    glutInit(&argc, argv);
@@ -1121,6 +1271,8 @@ int main(int argc, char** argv)
    glutMotionFunc(drag);
    glutPassiveMotionFunc(move);
    init ();
+   glutIdleFunc(idle);
+   unscheduled_exit = 1;
    glutMainLoop();
    return 0;
 }
