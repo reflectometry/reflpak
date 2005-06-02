@@ -74,7 +74,7 @@ plot$(LDEXT): togl_plot.o plot.o togl.o
 	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
-togl_plot.o: plot.h togl.h refl.c
+togl_plot.o: plot.h togl.h refl.c fvector.c
 togl.o: togl.h
 
 clean:

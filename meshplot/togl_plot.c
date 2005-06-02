@@ -595,6 +595,7 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
 }
 
 #include "refl.c"
+#include "fvector.c"
 
 
 /*
@@ -661,6 +662,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "list", tp_list );
   Togl_CreateCommand( "pick", tp_pick );
 
+  fvector_init(interp);
   refl_init(interp);
 
   return TCL_OK;
