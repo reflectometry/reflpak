@@ -30,13 +30,13 @@
 #define glVertex3 glVertex3d
 #define glVertex4 glVertex4d
 #define glColor4v glColor4dv
-#define FLOAT_TYPE GL_DOUBLE
+#define REAL_TYPE GL_DOUBLE
 #else
 #define glVertex2 glVertex2f
 #define glVertex3 glVertex3f
 #define glVertex4 glVertex4f
 #define glColor4v glColor4fv
-#define FLOAT_TYPE GL_FLOAT
+#define REAL_TYPE GL_FLOAT
 #endif
 
 static double DPI = 80.;
@@ -582,7 +582,7 @@ void plot_display(const PReal limits[], const int stack[])
     // printf("stack[%d]=%d\n",i,stack[i]);
     if (stack[i] > 0) glCallList(stack[i]);
   }
-  qsdrawlist();
+  qsdrawlist(); /* XXX FIXME XXX vertex array experiment */
   glPopMatrix();
 #ifdef PLOT_AXES
   glDisable(GL_SCISSOR_TEST);
@@ -778,21 +778,32 @@ static void show_hits(GLint hits, GLuint select[])
 
 
 
-/* XXX FIXME XXX this function reports a hit even if the thing it is
- * hitting is invisible.  My solution is to make out of bounds values
- * into shadows. */
+/* XXX FIXME XXX This function:
+ *  - reports a hit even if the thing it is hitting is invisible.
+ *  - reports a hit even if the thing it is hitting is covered.
+ *  - is not sensitive to line width.
+ *  - cannot report individual array elements.
+ * Rather than using the GL_SELECT mechanism, we can rerender the
+ * scene using a unique color for each item drawn, then from the
+ * color of the pixel we can determine which item was under the mouse.
+ */
+int pick_debug = 0;
 void plot_pick(const PReal limits[], const int stack[], int x, int y)
 {
   GLuint select[SELECT_BUFFER_LENGTH];
   GLint hits;
   GLint viewport[4];
+  double size=5.;
   int i;
 
   /* Prepare for selection mode */
-  glGetIntegerv(GL_VIEWPORT, viewport);
-  glSelectBuffer(SELECT_BUFFER_LENGTH, select);
-  glRenderMode(GL_SELECT);
-  glInitNames();
+  if (!pick_debug) {
+    glInitNames();
+    glSelectBuffer(SELECT_BUFFER_LENGTH, select);
+    glRenderMode(GL_SELECT);
+  } else {
+    glClear(GL_COLOR_BUFFER_BIT);
+  }
 
   /* Specify selection point and draw pick stack. The drawing needs to be in 
    * the same matrix as the pick matrix otherwise I get reports of -1 hits.
@@ -800,8 +811,10 @@ void plot_pick(const PReal limits[], const int stack[], int x, int y)
    * box to look for intercepts.
    */
   glPushMatrix();
+  glGetIntegerv(GL_VIEWPORT, viewport);
+  if (0 && pick_debug) size *= 10;
   gluPickMatrix((GLdouble)x+0.5, (GLdouble)(viewport[3]-y)-0.5, 
-		1e-5, 1e-5, viewport);
+		size, size, viewport);
   glOrtho(limits[0],limits[1],limits[2],limits[3],-1.,1.);
   //drawquadrants(limits,1);
   for (i=PLOT_STACKOVERHEAD; i < stack[1]; i++) {
@@ -809,16 +822,12 @@ void plot_pick(const PReal limits[], const int stack[], int x, int y)
   }
   glPopMatrix();
 
-  glFlush();
-
   /* Render scene to find which quadrilaterals overlap the selection */
-  hits = glRenderMode (GL_RENDER);
-
-  // printf("g error=%d\n",glGetError());
-  /* Report hits */
-  show_hits(hits,select);
-
-  /* Maybe need to redraw full scene? */
+  if (!pick_debug) {
+    glFlush();
+    hits = glRenderMode (GL_RENDER);
+    show_hits(hits,select);
+  }
 }
 
 #if 0
@@ -928,40 +937,9 @@ int plot_add_mesh(PlotInfo *plot, int m, int n,
 #endif
 
 
-/* ===================================================== */
-/* Demo code */ 
-#if defined(DEMO) || defined(TEST)
-
-void drawsquares(int stack[])
-{
-  static PReal x[] = {0., 1., 2., 0., 1., 2., 0., 1., 2.};
-  static PReal y[] = {0., 0., 0., 1., 1., 1., 2., 2., 2.};
-  static PReal v[] = {.1, .2, .3, .4};
-  static PReal map[4*PLOT_COLORMAP_LEN];
-  int k = plot_add(stack);
-
-  plot_valmap(PLOT_COLORMAP_LEN,map,0.);
-  plot_colors(PLOT_COLORMAP_LEN,map);
-  plot_mesh(k,2,2,x,y,v);
-}
-
-void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
-{
-  int i,j;
-  PReal p = 0.;
-  for (i=0; i <= m; i++) {
-    PReal angle = (i * M_PI)/m;
-    for (j=0; j <= n; j++) {
-      PReal distance = 1. + (9.*j)/n;
-      *x++ = sin(angle)*distance;
-      *y++ = cos(angle)*distance;
-    }
-  }
-  for (i=0; i < m*n; i++) {
-    *v++ = p; 
-    p += (1./m)/n;
-  }
-}
+/* Support for mesh via vertex arrays.  This is now dead code since
+ * vertex arrays don't save memory or make things faster.
+ */ 
 
 /* We start with measurements v at the centers of the pixels on
  * an m x n grid.  The corners of the pixels form an (m+1) x (n+1)
@@ -1030,8 +1008,8 @@ void qsdraw(int m, int n, const PReal *qs)
   int i;
 
   if (qs == NULL) return;
-  glVertexPointer(2,FLOAT_TYPE,0,qs);
-  glColorPointer(4,FLOAT_TYPE,0,qs+2*QSVERTICES);
+  glVertexPointer(2,REAL_TYPE,0,qs);
+  glColorPointer(4,REAL_TYPE,0,qs+2*QSVERTICES);
   glEnableClientState (GL_VERTEX_ARRAY);
   glEnableClientState (GL_COLOR_ARRAY);
   glPushName(-1);
@@ -1076,6 +1054,43 @@ void plot_qs(int k, int m, int n, const PReal *qs)
 }
 
 
+
+
+/* ===================================================== */
+/* Demo code */ 
+#if defined(DEMO) || defined(TEST)
+
+void drawsquares(int stack[])
+{
+  static PReal x[] = {0., 1., 2., 0., 1., 2., 0., 1., 2.};
+  static PReal y[] = {0., 0., 0., 1., 1., 1., 2., 2., 2.};
+  static PReal v[] = {.1, .2, .3, .4};
+  static PReal map[4*PLOT_COLORMAP_LEN];
+  int k = plot_add(stack);
+
+  plot_valmap(PLOT_COLORMAP_LEN,map,0.);
+  plot_colors(PLOT_COLORMAP_LEN,map);
+  plot_mesh(k,2,2,x,y,v);
+}
+
+void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
+{
+  int i,j;
+  PReal p = 0.;
+  for (i=0; i <= m; i++) {
+    PReal angle = (i * M_PI)/m;
+    for (j=0; j <= n; j++) {
+      PReal distance = 1. + (9.*j)/n;
+      *x++ = sin(angle)*distance;
+      *y++ = cos(angle)*distance;
+    }
+  }
+  for (i=0; i < m*n; i++) {
+    *v++ = p; 
+    p += (1./m)/n;
+  }
+}
+
 #define WARP_M 140
 #define WARP_N 512
 #define Q (WARP_M*WARP_N)
@@ -1094,7 +1109,7 @@ void drawwarp(int stack[])
   plot_valmap(PLOT_COLORMAP_LEN,Wmap,iter/10.);
   plot_colors(PLOT_COLORMAP_LEN,Wmap);
 
-#if 1  /* Use vertex arrays */
+#if 0  /* Use vertex arrays */
   qs = qsnew(WARP_M,WARP_N);
   qscoords(WARP_M,WARP_N,Wx,Wy,qs);
   qscolor(WARP_M,WARP_N,Wv,qs);
@@ -1168,6 +1183,7 @@ void plot_demo(PReal limits[6], int stack[])
 int stack[20];
 PReal limits[6];
 PReal tics[4];
+int force_redraw = 0;
 
 void init(void) 
 {
@@ -1178,6 +1194,7 @@ void init(void)
 
 void display(void)
 {
+  force_redraw = 0;
   //printf("display 1: error=%d\n",glGetError());
   plot_display(limits,stack);
   //printf("display 2: error=%d\n",glGetError());
@@ -1213,6 +1230,7 @@ void reshape(int w, int h)
 
 void keyboard(unsigned char key, int x, int y)
 {
+  if (force_redraw) display();
    switch (key) {
       case 27:
          exit(0);
@@ -1222,13 +1240,15 @@ void keyboard(unsigned char key, int x, int y)
 
 void drag(int x, int y)
 {
+  if (force_redraw) display();
   // printf("drag to %d %d\n", x, y);
 }
 
 void move(int x, int y)
 {
+  if (force_redraw) display();
   // printf("mouse at %d %d\n", x, y);
-  //plot_pick(limits,stack,x,y);
+  //plot_pick(limits,stack,x,y,0);
 }
 
 void click(int button, int state, int x, int y)
@@ -1244,6 +1264,15 @@ void click(int button, int state, int x, int y)
     /* pick */
     printf("picking at %d,%d\n",x,y);
     plot_pick(limits,stack,x,y);
+    pick_debug = 1;
+    plot_pick(limits,stack,x,y);
+    pick_debug = 0;
+    force_redraw = 1;
+#if PLOT_DOUBLE_BUFFER
+    glutSwapBuffers();
+#else
+    glFlush();
+#endif
   }
 }
 
@@ -1271,7 +1300,7 @@ int main(int argc, char** argv)
    glutMotionFunc(drag);
    glutPassiveMotionFunc(move);
    init ();
-   glutIdleFunc(idle);
+   /* glutIdleFunc(idle); */
    unscheduled_exit = 1;
    glutMainLoop();
    return 0;
