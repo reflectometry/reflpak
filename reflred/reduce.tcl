@@ -745,6 +745,10 @@ proc reduce_filename {} {
 	    if { [string equal $ans cancel] } { return }
 	}
     }
+
+    if { $polarized && [string match {*.*[ABCDabcd]} $filename] } {
+	set filename [string range $filename 0 end-1]
+    }
 }
 
 # reduce_save [-query all|existing|none] [-record id] [-vector id]
