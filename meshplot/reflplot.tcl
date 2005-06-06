@@ -1,4 +1,4 @@
-package provide reflplot 0.1
+package provide reflplot 0.2
 
 # first time through
 if {![namespace exists reflplot]} {
@@ -7,6 +7,7 @@ if {![namespace exists reflplot]} {
 	package require tkcon
 	tkcon show
     }
+    catch { package require BLT }
     package require ncnrlib
     package require meshplot
     package require keystate
@@ -15,8 +16,20 @@ if {![namespace exists reflplot]} {
 
 namespace eval reflplot {
 
-namespace export Qmesh dmesh fmesh mesh plot sample limits vlimits center demo
+namespace export plot2d
+variable actions {add delete transform center showall}
+proc plot2d {action path args} {
+    variable actions
+    if {[lsearch $actions $action] < 0} {
+	error "plot ?: should be one of $actions"
+    } else {
+	# XXX FIXME XXX may need an uplevel in here eventually
+	findplot $path
+	eval [linsert $args 0 $action $path]
+    }
+}
 
+# ===== Helper functions which don't depend on plot =====
 proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   set edges {}
   for {set p 0} {$p <= $pixels} {incr p} {
@@ -25,15 +38,17 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   return $edges
 }
 
-proc set_center_pixel {c} {
-    upvar rec rec
+proc set_center_pixel {id c} {
+    upvar \#0 $id rec
     set rec(centerpixel) $c
     fvector rec(dtheta) \
 	[dtheta_edges $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
 }
 
-proc Qmesh {} {
-    upvar rec rec
+# XXX FIXME XXX don't store mesh with the record otherwise we can't
+# plot the same record in multiple plots with different axes.
+proc mesh_QxQz {id} {
+    upvar \#0 $id rec
     foreach {rec(x) rec(y)} [buildmesh -Q $rec(wavelength) \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -41,8 +56,8 @@ proc Qmesh {} {
     set rec(ylabel) "Qy (inv Angstroms)"
 }
 
-proc dmesh {} {
-    upvar rec rec
+proc mesh_TiTd {id} {
+    upvar \#0 $id rec
     foreach {rec(x) rec(y)} [buildmesh -d \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -50,8 +65,8 @@ proc dmesh {} {
     set rec(ylabel) "theta_i (degrees)"
 }
 
-proc fmesh {} {
-    upvar rec rec
+proc mesh_TiTf {id} {
+    upvar \#0 $id rec
     foreach {rec(x) rec(y)} [buildmesh -f \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -59,10 +74,10 @@ proc fmesh {} {
     set rec(ylabel) "theta_i (degrees)"
 }
 
-proc mesh {} {
-    upvar rec rec
+proc mesh_pixel {id {base 0}} {
+    upvar \#0 $id rec
     fvector xv [integer_edges $rec(pixels)]
-    fvector yv [integer_edges $rec(points)]
+    fvector yv [integer_edges $rec(points) $base]
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(pixels) $rec(points) \
 				 xv yv] {}
@@ -70,95 +85,180 @@ proc mesh {} {
     set rec(ylabel) "scan points"
 }
 
-proc plot {path {center {}}} {
-    upvar rec rec
-    if {[llength $center]} { 
-	set_center_pixel $center 
-	dmesh
+proc limits {records} {
+    set xlim {}
+    set ylim {}
+    foreach id $records {
+	upvar \#0 $id rec
+	set xlim [flimits rec(x) $xlim]
+	set ylim [flimits rec(y) $ylim]
     }
-    if {[info exists rec(plothandle)]} { 
-	$path delete $rec(plothandle) 
-	array unset rec plothandle
+    return [concat $xlim $ylim]	
+}
+
+proc vlimits {records} {
+    set vlim {}
+    foreach id $records {
+	upvar \#0 $id rec
+	set vlim [flimits rec(psd) $vlim]
     }
-    $path configure -limits [limits]
-    set rec(plothandle) \
-	[$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+    return $vlim
+}
+
+# ==== Plotting helpers ====
+proc findplot {path} {
+    
+    set plotid "P$path"
+    if {![info exists [namespace current]::$plotid]} {
+	error "Plot $path does not exist"
+    }
+    uplevel [subst {
+	variable $plotid
+	upvar 0 [namespace current]::P$path plot
+    }]
+}
+
+proc auto_vrange {path} {
+    upvar plot plot
+    foreach {vlo vhi} [vlimits $plot(records)] {}
+    # XXX FIXME XXX should we automatically select decades?
+    if {$vlo < $vhi*1e-5} { set vlo [expr {$vhi*1e-5}]}
+    set plot(vlim) [list $vlo $vhi]
+    $path configure -vrange $plot(vlim)
+}
+
+proc auto_axes {path} {
+    upvar plot plot
+    set plot(limits) [limits $plot(records)]
+    $path configure -limits $plot(limits)
+}
+
+# ==== Plotting operations ====
+proc showall {path} {
+    upvar plot plot
+    auto_axes $path
     $path draw
 }
 
-proc limits {{path {}}} {
-    upvar rec rec
-    set lim [concat [flimits rec(x)] [flimits rec(y)]]
-    if {[llength $path]} {
-	$path configure -limits $lim
-	$path draw
+proc redraw {path} {
+    upvar plot plot
+    transform $path $plot(mesh)
+}
+
+proc center {path center} {
+    upvar plot plot
+    foreach id $plot(records) {
+	set_center_pixel $id $center
+    }
+    redraw $path
+}
+
+proc transform {path type} {
+    upvar plot plot
+    set redraw [expr {$plot(mesh) == $type}]
+    if { [lsearch {QxQz TiTf TiTd pixel} $type] < 0 } {
+	error "transform $path $type: expected QxQz TiTf TiTd or pixel"
+    }
+    set plot(mesh) $type
+    set plot(points) 0
+    foreach id $plot(records) {
+	upvar \#0 $id rec
+	if { $type == "pixel" } {
+	    mesh_$type $id $plot(points)
+	    incr plot(points) $rec(points)
+	} else {
+	    mesh_$type $id
+	}
+	$path delete $plot($id)
+	set plot($id) \
+	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+    }
+    if {!$redraw} { auto_axes $path }
+    $path draw
+}
+
+proc add {path records} {
+    upvar plot plot
+
+    foreach id $records {
+	upvar \#0 $id rec
+	lappend plot(records) $id
+
+	if { $plot(mesh) == "pixel" } {
+	    mesh_$plot(mesh) $id $plot(points)
+	    incr points $rec(points)
+	} else {
+	    mesh_$plot(mesh) $id
+	}
+	set plot($id) \
+	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+    }
+    auto_axes $path
+    auto_vrange $path
+    $path draw
+}
+
+proc delete {path records} {
+    upvar plot plot
+
+    foreach id $records {
+	upvar \#0 $id rec
+	
+	# check if record is plotted
+	set n [lsearch $plot(records) $id]
+	if { $n < 0 } { return }
+	set $plot(records) [lreplace $plot(records) $n $n]
+	
+	# remove record from the plot
+	$path delete $plot($id)
+	array unset plot $id
+    }
+
+    # reset axes
+    auto_axes $path
+    auto_vrange $path
+    $path draw
+}
+
+proc new {w} {
+    meshplot $w
+    $w delete
+    $w colormap [colormap_bright 64]
+    $w configure -logdata on -grid on -vrange {0.00002 2}
+    variable P$w
+    array set P$w {mesh mesh_QxQz records {}}
+    bind <Destroy> $w [namespace code [list unset P$w]]
+}
+
+# ===== demo functions =====
+proc demo_window {{w .plot}} {
+    if {![winfo exists $w]} {
+	toplevel $w -width 400 -height 500
+	wm protocol $w WM_DELETE_WINDOW [list wm withdraw $w]
+
     } else {
-	return $lim
+	wm deiconify $w
+	raise $w
     }
+    new $w.c
+    grid $w.c -sticky news
+    grid rowconfigure $w 0 -w 1
+    grid columnconfigure $w 0 -w 1
+    return $w.c
 }
 
-proc vlimits {{path {}}} {
-    upvar rec rec
-    foreach {vmin vmax} [flimits rec(psd)] {}
-    # XXX FIXME XXX log should automatically select decades?
-    #set vmin [expr {$vmax*1e-7}]
-    set lim [list $vmin $vmax]
-    if {[llength $path]} {
-	$path configure -vrange $lim
-	$path draw
-    } else {
-	return $lim
-    }
-}
+proc demo {{mesh_style QxQz}} {
+    set w [demo_window]
+    findplot $w
+    set plot(mesh) $mesh_style
 
-proc make_root {} {
-    set root .plot
-    if {![winfo exists $root]} {
-	toplevel $root -width 400 -height 500
-	meshplot $root.c
-	grid $root.c -sticky news
-	grid rowconfigure $root 0 -w 1
-	grid columnconfigure $root 0 -w 1
-    }
-    return $root
-}
+    ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
+    set_center_pixel rec1 467
 
-proc sample {{f $::REFLPLOT_HOME/joh00916.cg1}} { 
-    upvar rec rec
-    ice::read_data $f
-    Qmesh
-    set root [make_root]
-    $root.c colormap [colormap_bright 64]
-    $root.c configure -logdata on -grid on
-    $root.c configure -vrange [vlimits]
-    plot $root.c
-}
+    ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2
+    set_center_pixel rec2 467
 
-proc demo {{mesh_style Qmesh}} {
-    upvar rec rec
-    set root [make_root]
-    $root.c delete
-    $root.c colormap [colormap_bright 64]
-    $root.c configure -logdata on -grid on -vrange {0.00002 2}
-
-    ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1]
-    set_center_pixel 466
-    $mesh_style
-    plot $root.c
-    foreach {xmin xmax ymin ymax} [limits] {}
-
-    ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1]
-    set_center_pixel 466
-    $mesh_style
-    plot $root.c
-    foreach {xmin2 xmax2 ymin2 ymax2} [limits] {}
-
-    if {$xmin2 < $xmin} { set xmin $xmin2 }
-    if {$ymin2 < $ymin} { set ymin $xmin2 }
-    if {$xmax2 > $xmax} { set xmax $xmax2 }
-    if {$ymax2 > $ymax} { set ymax $ymax2 }
-    $root.c configure -limits [list $xmin $xmax $ymin $ymax]
-    $root.c draw
+    add $w { rec1 rec2 }
 }
 
 }
@@ -184,8 +284,8 @@ proc read_header {fid chunk} {
     return $header
 }
 
-proc read_data {file} {
-    upvar rec rec
+proc read_data {file id} {
+    upvar \#0 $id rec
     if {[array exists rec]} { unset rec }
     
     # read file
@@ -217,7 +317,7 @@ proc read_data {file} {
     set rec(wavelength) 5.
     set rec(pixelwidth) [expr {10.*25.4/608}] 
     set rec(distance) [expr {48*25.4}]
-    reflplot::set_center_pixel 302
+    reflplot::set_center_pixel $id 304
     
     # convert data block to psd data
     fvector d $data
