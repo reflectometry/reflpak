@@ -111,7 +111,10 @@ proc parseheader {head} {
 	    Comment { set rec(comment) $value }
 	    Npoints { set rec(points) $value }
 	    Ncolumns { set rec(Ncolumns) $value }
-	    DetectorDims { set rec(dims) $value }
+	    DetectorDims { 
+		set rec(dims) $value 
+		set rec(pixels) [lindex $value 0]
+	    }
 	    Signal { set rec(signal) [lindex $value 1] }
 	    Scan { set rec(scan) [lindex $value 1] }
 	    ScanRange { 
@@ -145,7 +148,7 @@ proc parseheader {head} {
 	    }
 	    ScanDescr { set rec(description) $value }
 	    Wavelength { set rec(L) $value }
-	    Columns { set rec(col) $value }
+	    Columns { set rec(columns) $value }
 	    default { 
 		# puts "ICE load ignoring $label $value" 
 	    }
@@ -154,9 +157,6 @@ proc parseheader {head} {
 
     set rec(psd) [expr {"$rec(signal)" == "Area"}]
     if { $rec(psd) } { 
-	# XXX FIXME XXX Hardcode the detector dimensions for now since
-	# short term I don't know how to distinguish between linear and
-	# area detectors.  Change this when we have real files to work with.
 	append rec(instrument) "PSD"
     } elseif {"$rec(dims)" != "0"} {
 	# If we are not a psd and we still have detector channels to
@@ -164,7 +164,7 @@ proc parseheader {head} {
 	set n 1
 	foreach i $rec(dims) {set n [expr {$n*$i}]}
 	for {set i 1} { $i <= $n } { incr i } {
-	    lappend rec(col) "$rec(signal)Channel$i"
+	    lappend rec(columns) "$rec(signal)Channel$i"
 	}
     }
     if { ![info exist rec(scan)] } { set rec(scan) S1 }
@@ -237,6 +237,31 @@ proc parseheader {head} {
 }
 
 
+proc parsepsd {id data} {
+    upvar #0 $id rec
+
+    # Strip the commas and newlines so that sscanf can handle it
+    set data [ string map {"," " " "\n" " "} $data ]
+    octave eval "x=sscanf('$data', '%f ',Inf)"
+    octave eval "nc=prod(\[$rec(dims)])+$rec(Ncolumns);"
+    octave eval "x=reshape(x,nc,length(x)/nc)';"
+    set i 0
+    foreach c $rec(columns) {
+	vector create ::${c}_$id
+	octave recv ${c}_$id x(:,[incr i])
+	if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i)" }
+    }
+    # XXX FIXME XXX need dead-time correction
+    # XXX FIXME XXX better correction for 0 signal
+    octave eval "psd_$id = x(:,[incr i]:columns(x))"
+    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
+    octave eval "mon = mon * ones(1,columns(psd_$id))"
+    octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon"
+    octave eval "psd_$id = psd_$id ./ mon"
+    octave sync
+}
+
+
 proc parsedata {id} {
     # ptrace
 
@@ -248,27 +273,9 @@ proc parsedata {id} {
     close $fid
 
     if { $rec(psd) } {
-	# Strip the commas and newlines so that sscanf can handle it
-	set data [ string map {"," " " "\n" " "} $data ]
-	octave eval "x=sscanf('$data', '%f ',Inf)"
-	octave eval "nc=prod(\[$rec(dims)])+$rec(Ncolumns);"
-	octave eval "x=reshape(x,nc,length(x)/nc)';"
-	set i 0
-	foreach c $rec(col) {
-	    vector create ::${c}_$id
-	    octave recv ${c}_$id x(:,[incr i])
-	    if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i)" }
-	}
-	# XXX FIXME XXX need dead-time correction
-	# XXX FIXME XXX better correction for 0 signal
-	octave eval "psd_$id = x(:,[incr i]:columns(x))"
-	octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
-	octave eval "mon = mon * ones(1,columns(psd_$id))"
-	octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon"
-	octave eval "psd_$id = psd_$id ./ mon"
-	octave sync
+	parsepsd $id $data
     } else {
-	if {![get_columns $id $rec(col) $data]} { return 0 }
+	if {![get_columns $id $rec(columns) $data]} { return 0 }
     }
 
     vector create ::y_$id ::dy_$id
@@ -279,8 +286,8 @@ proc parsedata {id} {
     catch { ::dy_$id expr "sqrt($signal+!$signal + $signal^2/$monitor)/$monitor" }
     catch { ::y_$id expr "$signal/$monitor" }
 
-    set haveA3 [expr {[lsearch $rec(col) "Theta"]>=0}]
-    set haveA4 [expr {[lsearch $rec(col) "TwoTheta"]>=0}]
+    set haveA3 [expr {[lsearch $rec(columns) "Theta"]>=0}]
+    set haveA4 [expr {[lsearch $rec(columns) "TwoTheta"]>=0}]
     set A3 ::Theta_$id
     set A4 ::TwoTheta_$id
 

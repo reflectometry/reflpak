@@ -98,7 +98,7 @@ proc reducedheader {r head} {
 	    wavelength { set rec(L) $value }
 	    field { set rec(H) $value }
 	    temperature { set rec(T) $value }
-	    columns { set rec(col) $value }
+	    columns { set rec(columns) $value }
 	    subtracted { set rec(subtracted) [string is true $value] }
 	    instrument { set rec(instrument) $value }
 	    date { catch { set rec(date) [clock_scan $value] } }
@@ -123,12 +123,12 @@ proc loadreduced {id} {
     set data $rec(data)
 
     # interpret the data
-    if {![get_columns $id $rec(col) $data]} { return 0 }
-    if {[llength $rec(col)] > 4} {
-	if { [lsearch [string tolower $rec(col)] slit] > -1 } {
+    if {![get_columns $id $rec(columns) $data]} { return 0 }
+    if {[llength $rec(columns)] > 4} {
+	if { [lsearch [string tolower $rec(columns)] slit] > -1 } {
 	    set rec(slits) [list slit1_$id slit2_$id]
 	} else {
-	    message "$rec(file): did not find slits in { $rec(col) }"
+	    message "$rec(file): did not find slits in { $rec(columns) }"
 	}
     }
 
@@ -241,7 +241,7 @@ proc loadother {id} {
     textkey $head (?:title|comment) rec(comment)
     textkey $head (?:field|H) rec(H)
     textkey $head t(?:emp(?:erature)?)? rec(T)
-    textkey $head col(?:umn)?s? rec(col)
+    textkey $head col(?:umn)?s? rec(columns)
     textkey $head "slits fixed until" rec(fixed)
     textkey $head polarization rec(polarization)
     textkey $head subtracted rec(subtracted)
@@ -328,13 +328,13 @@ proc loadother {id} {
     # no block comments allowed.  This will prepend a \n.
     regsub -all -line {(?:[[:blank:]]*(?:[#/!%].*$)?\n)+[[:blank:]]*} \n$data\n \n data
 
-    if {[info exists rec(col)]} {
-	if {![get_columns $id $rec(col) $data]} { return 0 }
-	if {[llength $rec(col)] > 3} {
-	    if { [lsearch [string tolower $rec(col)] slit] > -1 } {
+    if {[info exists rec(columns)]} {
+	if {![get_columns $id $rec(columns) $data]} { return 0 }
+	if {[llength $rec(columns)] > 3} {
+	    if { [lsearch [string tolower $rec(columns)] slit] > -1 } {
 		set rec(slit) slit_$id
 	    } else {
-		message "$rec(file): did not find slit in { $rec(col) }"
+		message "$rec(file): did not find slit in { $rec(columns) }"
 	    }
 	}
     } else {
@@ -344,16 +344,16 @@ proc loadother {id} {
 	set T {\s*\n}
 
 	if {[regexp "^\n(?:$D$S$D$T)+$" $data]} {
-	    set rec(col) [list x y]
-	    if {![get_columns $id $rec(col) $data]} { return 0 }
+	    set rec(columns) [list x y]
+	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	    vector create ::dy_$id
 	    ::dy_$id expr "sqrt(::y_$id)"
 	} elseif { [regexp "^\n(?:$D$S$D$S$D$T)+$" $data]} {
-	    set rec(col) [list x y dy]
-	    if {![get_columns $id $rec(col) $data]} { return 0 }
+	    set rec(columns) [list x y dy]
+	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	} elseif { [regexp "^\n(?:$D$S$D$S$D$S$D$T)+$" $data]} {
-	    set rec(col) [list x y dy s]
-	    if {![get_columns $id $rec(col) $data]} { return 0 }
+	    set rec(columns) [list x y dy s]
+	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	    set rec(slit) s_$id
 	} else {
 	    message "$rec(file) is not a Q,R, a Q,R,dR or a Q,R,dR,S data file"

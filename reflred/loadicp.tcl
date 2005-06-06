@@ -123,6 +123,44 @@ proc icp_date_comment { file } {
     return [list date $date comment $comment]
 }
 
+proc icp_parse_psd {id data} {
+    upvar #0 $id rec
+
+    # Data contains position sensitive detector info.
+    #   c1 c2 ... c_k\np1, p2, ..., p_i,\n..., p_n\n
+    #   ...
+    #   c1 c2 ... c_k\np1, p2, ..., p_j,\n..., p_n\n
+    # Count the number of lines as the number times we see
+    #   c_k \n p1,
+    # Note that we cannot count the number of lines without
+    # commas, since p_n might be on a line by itself.
+    set lines [regexp -all {[0-9] *\n *[0-9]+,} $data]
+    
+    # Strip the commas so that sscanf can handle it
+    set data [ string map {"," " " "\n" " "} $data ]
+    octave eval "x=sscanf('$data', '%f ',Inf)"
+    
+    # Reshape into a matrix of the appropriate number of lines
+    octave eval "x=reshape(x,length(x)/$lines,$lines)'"
+    
+    # Return the first k columns into $rec_$col, and put the
+    # rest into psd. I'll leave it to the data interpreter to
+    # decide what to do with the psd table.
+    # XXX FIXME XXX it seems a little silly to send the string
+    # from tcl to octave, send the columns back to tcl as vectors,
+    # then send the vectors back to octave --- I'm doing this because
+    # in the non-psd case, I do not use octave to interpret the
+    # columns, but maybe I should be.
+    set i 0
+    foreach c $rec(columns) { 
+	vector create ::${c}_$id 
+	octave recv ${c}_$id x(:,[incr i])
+    }
+    octave eval "psd_$id = x(:,[incr i]:columns(x))"
+    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
+    octave sync
+}
+
 proc icp_load {id} {
     upvar #0 $id rec
 
@@ -145,47 +183,15 @@ proc icp_load {id} {
     set col [string range $data 0 [incr offset -1]]
     set col [string map { "#1 " "" "#2 " N2 } $col]
     set col [string map { COUNTS y } $col]
-    set rec(col) [eval list $col ]
+    set rec(columns) [eval list $col ]
     set data [string range $data [incr offset] end]
 
     # load the data columns into ::<column>_<id>
     if { [string first , $data] >= 0 } {
-	# Data contains position sensitive detector info.
-	#   c1 c2 ... c_k\np1, p2, ..., p_i,\n..., p_n\n
-	#   ...
-	#   c1 c2 ... c_k\np1, p2, ..., p_j,\n..., p_n\n
-	# Count the number of lines as the number times we see
-	#   c_k \n p1,
-	# Note that we cannot count the number of lines without
-	# commas, since p_n might be on a line by itself.
-	set lines [regexp -all {[0-9] *\n *[0-9]+,} $data]
-
-	# Strip the commas so that sscanf can handle it
-	set data [ string map {"," " " "\n" " "} $data ]
-	octave eval "x=sscanf('$data', '%f ',Inf)"
-
-	# Reshape into a matrix of the appropriate number of lines
-	octave eval "x=reshape(x,length(x)/$lines,$lines)'"
-
-	# Return the first k columns into $rec_$col, and put the
-	# rest into psd. I'll leave it to the data interpreter to
-	# decide what to do with the psd table.
-	# XXX FIXME XXX it seems a little silly to send the string
-	# from tcl to octave, send the columns back to tcl as vectors,
-	# then send the vectors back to octave --- I'm doing this because
-	# in the non-psd case, I do not use octave to interpret the
-	# columns, but maybe I should be.
-	set i 0
-	foreach c $rec(col) { 
-	    vector create ::${c}_$id 
-	    octave recv ${c}_$id x(:,[incr i])
-	}
-	octave eval "psd_$id = x(:,[incr i]:columns(x))"
-	octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
-	octave sync
 	set rec(psd) 1
+	icp_parse_psd $id $data
     } else {
-	if ![get_columns $id $rec(col) $data] { return 0 }
+	if ![get_columns $id $rec(columns) $data] { return 0 }
 	set rec(psd) 0
     }
 
@@ -223,7 +229,7 @@ proc exclude_specular_ridge {id} {
 proc default_x {id} {
     upvar #0 $id rec
     
-    set col [lindex $rec(col) 0]
+    set col [lindex $rec(columns) 0]
     switch -- $col {
 	MON { 
 	    ::MON_$id dup ::x_$id
@@ -316,7 +322,7 @@ proc NG1load {id} {
     # of motor 1.  
     # XXX FIXME XXX Similarly for A2, but do we need A2?
     if { ![vector_exists ::A1_$id] } {
-	lappend rec(col) A1
+	lappend rec(columns) A1
 	vector create ::A1_${id}([::y_$id length])
 	set ::A1_${id}(:) $rec(start,1)
     }
@@ -528,7 +534,7 @@ proc NG7load {id} {
     #    high Q but can fall somewhat at low Q.
 
     if { ![vector_exists ::S1_$id] } {
-	lappend rec(col) S1
+	lappend rec(columns) S1
 	vector create ::S1_${id}([::y_$id length])
 	set ::S1_${id}(:) $rec(start,S1)
     }
