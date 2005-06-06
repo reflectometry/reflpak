@@ -20,11 +20,16 @@ proc flength {name} {
     return [expr {[string length $vec]/[fprecision]}]
 }
 
-proc flimits {name} {
+proc flimits {name {limits {}}} {
     upvar $name vec
     set s [fvector vec]
-    set min [lindex $s 0]
-    set max [lindex $s 0]
+    if {[llength $limits] == 0} {
+	set min [lindex $s 0]
+	set max $min
+    } else {
+	set min [lindex $limits 0]
+	set max [lindex $limits 1]
+    }
     foreach v $s {
 	if {$v < $min} {
 	    set min $v
@@ -32,6 +37,8 @@ proc flimits {name} {
 	    set max $v
 	}
     }
+
+	
     return [list $min $max]
 }
 
@@ -58,10 +65,10 @@ proc edges {centers} {
   return $e
 }
 
-proc integer_edges {n} {
+proc integer_edges {n {base 0}} {
   set edges {}
   for {set p 0} {$p <= $n} {incr p} {
-    lappend edges [expr {$p+0.5}]
+    lappend edges [expr {$base+$p+0.5}]
   }
   return $edges
 }
