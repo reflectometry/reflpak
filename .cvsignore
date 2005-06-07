@@ -1,4 +1,4 @@
 html kit release diskimage
 Makeconf Makeconf.tcltk
-ncnrpack
+ncnrpack ChangeLog
 snit* tkcon*
