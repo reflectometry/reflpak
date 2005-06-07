@@ -123,7 +123,7 @@ proc icp_date_comment { file } {
     return [list date $date comment $comment]
 }
 
-proc icp_parse_psd {id data} {
+proc icp_parse_psd_octave {id data} {
     upvar #0 $id rec
 
     # Data contains position sensitive detector info.
@@ -133,7 +133,7 @@ proc icp_parse_psd {id data} {
     # Count the number of lines as the number times we see
     #   c_k \n p1,
     # Note that we cannot count the number of lines without
-    # commas, since p_n might be on a line by itself.
+    # commas since p_n might be on a line by itself.
     set lines [regexp -all {[0-9] *\n *[0-9]+,} $data]
     
     # Strip the commas so that sscanf can handle it
@@ -161,6 +161,45 @@ proc icp_parse_psd {id data} {
     octave sync
 }
 
+proc icp_parse_psd_fvector {id data} {
+    upvar #0 $id rec
+
+    # Data contains position sensitive detector info.
+    #   c1 c2 ... c_k\np1, p2, ..., p_i,\n..., p_n\n
+    #   ...
+    #   c1 c2 ... c_k\np1, p2, ..., p_j,\n..., p_n\n
+    # Count the number of lines as the number times we see
+    #   c_k \n p1,
+    # Note that we cannot count the number of lines without
+    # commas since p_n might be on a line by itself.
+    set rec(points) [regexp -all {[0-9] *\n *[0-9]+,} $data]
+    
+    # Strip the commas so that binary scan can handle it
+    set data [ string map {"," " "} $data ]
+
+    # convert data block to psd data
+    fvector d $data
+
+    # Try to guess the number of pixels per record.
+    set rec(pixels) [expr {[flength d]/$rec(points) - $rec(Ncolumns)}]
+
+    # Get data block dimensions
+    set m $rec(points)
+    set n [expr {$rec(pixels)+$rec(Ncolumns)}]
+
+    # Grab the columns
+    set idx 0
+    foreach c $rec(columns) {
+	set rec(column,$c) [fextract $m $n d $idx]
+	incr idx
+    }
+    set rec(psd) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+}
+
+# Call the function we are working with
+#rename icp_parse_psd_fvector icp_parse_psd
+rename icp_parse_psd_octave icp_parse_psd
+
 proc icp_load {id} {
     upvar #0 $id rec
 
@@ -184,6 +223,7 @@ proc icp_load {id} {
     set col [string map { "#1 " "" "#2 " N2 } $col]
     set col [string map { COUNTS y } $col]
     set rec(columns) [eval list $col ]
+    set rec(Ncolumns) [llength $col]
     set data [string range $data [incr offset] end]
 
     # load the data columns into ::<column>_<id>
@@ -264,7 +304,7 @@ proc monitor_norm {id} {
 
     set mon $rec(monitor)
     set dmon [vector expr sqrt($mon)]
-    if { ![string equal -nocase $rec(base) NEUT]} { set dmon 0.0 }
+    if {![string equal -nocase $rec(base) NEUT]} { set dmon 0.0 }
     ::dy_$id expr "sqrt((::dy_$id/$mon)^2 + (::y_$id*$dmon/$mon^2)^2)"
     ::y_$id expr "::y_$id/$mon"
 }
@@ -577,7 +617,7 @@ proc NG7load {id} {
 	    set rec(detector,maxbin)    246 ;# => 0.42mm spacing
 	    set rec(detector,distance)  200 ;# detector bank is 2m away
 	    # set rec(detector,A4slope)     2 ;# XXX FIXME XXX these depend on
-	    # set rec(detector,A4intercept) 0 ;# motor 13 and motor Qx, but how?
+	    # set rec(detector,A4intercept) 0 ;# motor 13 and motor Qx but how?
 	    # octave eval "A3_$id = asin(($rec(L)/(4*pi))*Qz)"
             octave eval "
                 monitors = monitors * ones(1,columns(psd_$id));
