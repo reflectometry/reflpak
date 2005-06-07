@@ -24,6 +24,10 @@ ifeq ($(OS),IRIX64)
   GLUTLIBS = -L/usr/freeware/lib32 -lglut
 endif
 ifeq ($(OS),WINDOWS)
+  # You will need to find glut.h and glut32.dll to run the
+  # simple plot test which does not use Togl or Tcl/Tk.  I
+  # put glut32.dll in the current directory and glut.h in
+  # the /mingw/include/GL directory.
   GLDEF = -DTOGL_WGL
   GLINC = 
   GLLIBS = -lglu32 -lopengl32 -lgdi32
