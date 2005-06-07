@@ -1,0 +1,151 @@
+# Makefile.vc
+#
+# This makefile builds winlink.dll, an a dynamically loadable Tcl extension
+# that implements the win32::shortcut command.  This makefile is suitable for use with
+# Microsoft Visual C++ 2.x and 4.0.
+#
+# Copyright (c) 1997-1999 Sensus Consulting Ltd.
+# $Header$
+#
+PROJECT = winlink
+VERSION = 12
+#
+# Project directories -- these may need to be customized for your site
+#
+# ROOT --               location of the example files.
+# TMPDIR --             location for .obj files.
+# TOOLS32 --			location of VC++ compiler installation.
+# TCL --                location where Tcl is installed.
+#
+ROOT    	= .
+TMPDIR  	= .
+TOOLS32 	= $(SYSTEMDRIVE)\progra~1\devstudio\vc
+# Tcl version to compile against.
+TCL_VERSION	= 80
+TCL     	= $(SYSTEMDRIVE)\progra~1\tcl
+TCL     	= $(SYSTEMDRIVE)\tcl$(TCL_VERSION)
+INSTALL_PATH	= $(TCL)\lib\$(PROJECT)$(VERSION)
+
+# comment the following line to compile with symbols
+NODEBUG=1
+
+# Set this to the appropriate value of /MACHINE: for your platform
+MACHINE = IX86
+
+##################
+# Project settings
+##################
+
+DLLOBJS = \
+	$(TMPDIR)\$(PROJECT).obj
+
+cc32            = $(TOOLS32)\bin\cl.exe
+link32          = $(TOOLS32)\bin\link.exe
+
+CP              = copy
+RM              = del
+MKDIR           = mkdir
+
+include         = -I$(TOOLS32)\include -I$(TCL)\include
+DLL_CFLAGS      = $(cdebug) $(cflags) $(include)
+DLL_LIBS        = $(TCL)\lib\tcl$(TCL_VERSION).lib $(conlibsdll)
+
+######################################################################
+# Link flags
+######################################################################
+
+!IFDEF NODEBUG
+ldebug = /RELEASE
+!ELSE
+ldebug = -debug:full -debugtype:cv
+!ENDIF
+
+# declarations common to all linker options
+lcommon = /NODEFAULTLIB /RELEASE /NOLOGO
+
+# declarations for use on Intel i386, i486, and Pentium systems
+!IF "$(MACHINE)" == "IX86"
+DLLENTRY = @12
+lflags   = $(lcommon) -align:0x1000 /MACHINE:$(MACHINE)
+!ELSE
+lflags   = $(lcommon) /MACHINE:$(MACHINE)
+!ENDIF
+
+dlllflags = $(lflags) -entry:_DllMainCRTStartup$(DLLENTRY) -dll
+
+!IF "$(MACHINE)" == "PPC"
+libcdll = crtdll.lib
+!ELSE
+libcdll = msvcrt.lib
+!ENDIF
+
+shelllibs	= shell32.lib ole32.lib oleaut32.lib uuid.lib
+#conlibsdll = $(libcdll) rpcrt4.lib kernel32.lib
+conlibsdll = kernel32.lib user32.lib $(libcdll) $(shelllibs)
+
+######################################################################
+# Compile flags
+######################################################################
+
+!IFDEF NODEBUG
+cdebug = -Ox -GD
+!ELSE
+cdebug = -Z7 -Od -WX
+!ENDIF
+
+# declarations common to all compiler options
+ccommon = -c -W3 -nologo -DWIN32 -D_WIN32 -D_DLL
+
+!IF "$(MACHINE)" == "IX86"
+cflags = $(ccommon) -D_X86_=1
+!ELSE
+!IF "$(MACHINE)" == "MIPS"
+cflags = $(ccommon) -D_MIPS_=1
+!ELSE
+!IF "$(MACHINE)" == "PPC"
+cflags = $(ccommon) -D_PPC_=1
+!ELSE
+!IF "$(MACHINE)" == "ALPHA"
+cflags = $(ccommon) -D_ALPHA_=1
+!ENDIF
+!ENDIF
+!ENDIF
+!ENDIF
+
+######################################################################
+# Project specific targets
+######################################################################
+
+all:  $(PROJECT).dll
+
+test: $(PROJECT).dll
+	@$(TCL)\bin\tclsh$(TCL_VERSION) $(PROJECT)test.tcl
+
+install: $(PROJECT).dll
+	@if not exist $(INSTALL_PATH) $(MKDIR) $(INSTALL_PATH)
+	@$(CP) $(PROJECT).htm $(INSTALL_PATH)
+	@$(CP) $(PROJECT)test.tcl $(INSTALL_PATH)
+	@$(CP) $(PROJECT).dll $(INSTALL_PATH)
+	@$(CP) pkgIndex.tcl $(INSTALL_PATH)
+
+$(PROJECT).dll: $(DLLOBJS)
+	$(link32) $(ldebug) $(dlllflags) -out:$@ $(DLL_LIBS) @<<
+		$(DLLOBJS)
+<<
+
+#######################################################################
+# Implicit Targets
+#######################################################################
+
+
+# Implicit Targets
+
+.c.obj:
+	$(cc32) $(DLL_CFLAGS) $<
+
+clean:
+	-$(RM) $(TMPDIR)\*.obj
+	-$(RM) foo.lnk
+	-$(RM) *.dll
+	-$(RM) *.lib
+	-$(RM) *.exp
