@@ -52,6 +52,10 @@ ifeq ($(OS),Darwin)
     else
       LIBS = -L$(TCL_F) -ltclstub8.4 -L$(TK_F) -ltkstub8.4 -lm
     endif
+  else
+    # Needed the following link in the current directory to find GL/glut.h
+    #   ln -s /System/Library/Frameworks/GLUT.framework/Versions/Current/Headers/ GL
+    GLUTINC = -I.
   endif # !USE_X11
 endif # Darwin
 
