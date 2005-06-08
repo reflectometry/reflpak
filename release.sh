@@ -21,7 +21,7 @@ builddir="~/cvs/reflfit"
 # The results are stored and shared in the following directories.
 # These may be local or remote since scp doesn't care:
 STORE=jazz:release
-SHARE=jazz:samba
+SHARE=webster:release
 
 # The following directory will contain reflpak$VERSION and 
 # reflpak-latest symlinked to relfpak$VERSION.
@@ -62,7 +62,7 @@ for machine in $BUILD; do
     echo; echo "== build on $machine ========================"
     # if make$machine is a defined variable use it, otherwise use 'make'
     par=make$machine
-    ssh $machine "cd $builddir && ${!par:-make} dist"
+    ssh $machine "cd $builddir && ${!par:-make} && ${!par:-make} dist"
 done
 
 mkdir reflpak$VERSION
