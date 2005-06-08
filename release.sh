@@ -21,7 +21,7 @@ builddir="~/cvs/reflfit"
 # The results are stored and shared in the following directories.
 # These may be local or remote since scp doesn't care:
 STORE=jazz:release
-SHARE=webster:release
+SHARE=webster:software/release
 
 # The following directory will contain reflpak$VERSION and 
 # reflpak-latest symlinked to relfpak$VERSION.
