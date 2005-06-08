@@ -133,7 +133,7 @@ proc reduce_init {} {
 
     # show coordinates
     bind .reduce.graph <Leave> { message "" }
-    bind .reduce.graph <Motion> { graph_motion %W %x %y }
+    bind .reduce.graph <Motion> { reduce_graph_motion %W %x %y }
 
     # crosshairs if the users wishes
     # XXX FIXME XXX do we really need to process this resource by hand?
@@ -205,6 +205,21 @@ proc reduce_init {} {
     grid rowconf .reduce 0 -weight 1
     grid columnconf .reduce 0 -weight 1
 
+}
+
+# XXX FIXME XXX make this generic
+# show the coordinates of the nearest point
+proc reduce_graph_motion { w x y } {
+    $w crosshairs conf -position @$x,$y
+    $w element closest $x $y where -halo 1i
+    if { [info exists where(x)] } {
+	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
+	set ptx [fix $where(x)]
+	set pty [fix $where(y) {} {} 5]
+	message "$ptid  $ptx, $pty"
+    } else {
+	message
+    }
 }
 
 # This function is called with set/clear when a particular vector
@@ -637,8 +652,8 @@ proc write_reduce { pol } {
     if {$::footprint_correction} {
         puts $fid "#footprint [footprint::desc]"
     }
-
-    write_data $fid ::$data $pol
+    
+    write_data $fid ::$data -pol $pol
 }
 
 proc reduce_ext {} {

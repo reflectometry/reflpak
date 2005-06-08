@@ -127,7 +127,9 @@ proc init_selector { } {
     .menu.options add radiobutton -label "Background Q(A4)" \
 	-variable ::background_default -value A4 \
 	-command reset_backgrounds
+    .menu.options add separator
     .menu.options add command -label "Monitor..." -command { set_monitor }
+    .menu.options add separator
     # XXX FIXME XXX This needs to be an option on the y-axis for the graph
     .menu.options add radiobutton -label "Show Temperature" \
 	-variable ::graph_scaling -value "Temperature" \
@@ -146,6 +148,14 @@ proc init_selector { } {
     # From Alan Munter's Neutron SLD calculator for Si at 2.33 g/cm^3
     set ::Fresnel_rho Si
     set ::Fresnel_Qcsq [expr {$::pitimes16*2.07e-6}]
+
+    # XXX FIXME XXX This should be a property of the fitting program,
+    # but our fitting programs don't yet handle it.
+    .menu.options add separator
+    .menu.options add checkbutton -label "Clip zeros in files" \
+	-variable ::clip_data
+    set ::clip_data 0
+
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { tkcon show }
@@ -582,7 +592,16 @@ proc disp x {
     return [string range $::ans 0 end-1]
 }
 
-proc write_data { fid data {pol {}} {log 0} } {
+proc write_data { fid data args} {
+
+    set log 0
+    set pol {}
+    foreach {option value} $args {
+	switch -- $option {
+	    -log { set log [string is true $value] }
+	    -pol { set pol $value }
+	}
+    }
 
     if { $log } {
 	puts $fid "# columns x logy dlogy"
@@ -600,20 +619,28 @@ proc write_data { fid data {pol {}} {log 0} } {
 		}
 		message "truncating counts below dy/1000 to log_10(dy)-3 $::symbol(plusminus) dy/(ln(10)*|y|)"
 		set newdy [expr $dy / ($::log10*abs($y)) ]
-		set y [expr log($dy) / $::log10 - 3 ]
-		set dy $newdy
+		set logy [expr log($dy) / $::log10 - 3 ]
+		set logdy $newdy
 	    } else {
-		set dy [expr $dy / ($::log10*$y)]
-		set y [expr log($y) / $::log10 ]
+		set logdy [expr $dy / ($::log10*$y)]
+		set logy [expr log($y) / $::log10 ]
 	    }
-	    puts $fid "$x $y $dy"
+	    if { $::clip_data && $y <= 0. } {
+		puts $fid "# $x $logy $logdy"
+	    } else {
+		puts $fid "$x $logy $logdy"
+	    }
 	}
     } else {
 	puts $fid "# columns x y dy"
 	foreach x [set ${data}_x${pol}(:)] \
-		y [set ${data}_y${pol}(:)] \
-		dy [set ${data}_dy${pol}(:)] {
-	    puts $fid "$x $y $dy"
+	        y [set ${data}_y${pol}(:)] \
+	        dy [set ${data}_dy${pol}(:)] {
+	    if { $::clip_data && $y <= 0. } {
+		puts $fid "# $x $y $dy"
+	    } else {
+		puts $fid "$x $y $dy"
+	    }
 	}
     }
 }
