@@ -1,7 +1,41 @@
-2005-03-01
-
 Unofficial release.  This is still alpha software 
 with known bugs and limitations.  Particularly, 
 intermediate file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
+
+2005-06-08
+* RED: Allow saving without zero and negative data.
+* RED: Fix background A3/A4 toggle.
+
+2005-06-07
+* RED: Fix .reflAA problem
+* RED: Fix polarization correction for fixed slits.
+
+2005-05-19
+* RED: Fix pan operation.
+* RED: Fix calculation of Qx-Qz.
+* RED: Add reflbin.c for area->linear conversion.
+
+2005-03-10
+* RED: Provide Q->|Q| transform.
+
+2005-03-01
+* RED: New footprint correction window
+* RED: Combine reflred and polred into one program.
+* RED: Support ICE data format
+* RED: Add ABCD toggle to polarized data plots
+* RED: Allow Q^4 scaling on data plots
+* RED: Fewer complaints about incorrect wavelength
+* FIT: Fix tanh profile so roughness is FWHM
+* FIT: Default to erf roughness
+* FIT: Support fitting real reflectivity
+
+2004-07-08
+* RED: Improve UXD support
+* RED: Fix NG7 reduction
+
+2004-05-25
+* RED: Fix Windows data selection
+* FIT: C-Style constraints fitting
+
