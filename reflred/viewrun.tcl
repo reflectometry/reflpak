@@ -61,6 +61,7 @@ if { $argc == 0 } {
 
 # useful constants
 set ::log10 [expr {log(10.)}]
+set ::pitimes16 [expr {64*atan(1.)}]
 set ::pitimes4 [expr {16.*atan(1.)}]
 set ::pitimes2 [expr {8.*atan(1.)}]
 set ::piover360 [ expr {atan(1.)/90.}]
@@ -128,12 +129,23 @@ proc init_selector { } {
 	-command reset_backgrounds
     .menu.options add command -label "Monitor..." -command { set_monitor }
     # XXX FIXME XXX This needs to be an option on the y-axis for the graph
-    .menu.options add checkbutton -label "Show Temperature" \
-	-variable ::show_temperature \
+    .menu.options add radiobutton -label "Show Temperature" \
+	-variable ::graph_scaling -value "Temperature" \
 	-command { atten_set $::addrun }
-    .menu.options add checkbutton -label "Q^4 scaling" \
-	-variable ::Q4_scaling \
+    .menu.options add radiobutton -label "Q^4 scaling" \
+	-variable ::graph_scaling -value "Q4" \
 	-command { atten_set $::addrun }
+    .menu.options add radiobutton -label "Fresnel scaling" \
+	-variable ::graph_scaling -value "Fresnel" \
+	-command { atten_set $::addrun }
+    .menu.options add radiobutton -label "Unscaled" \
+	-variable ::graph_scaling -value "none" \
+	-command { atten_set $::addrun }
+    set ::graph_scaling none
+    set ::Q4_cutoff 1e-2
+    # From Alan Munter's Neutron SLD calculator for Si at 2.33 g/cm^3
+    set ::Fresnel_rho Si
+    set ::Fresnel_Qcsq [expr {$::pitimes16*2.07e-6}]
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { tkcon show }
@@ -381,10 +393,10 @@ proc graph_motion { w x y } {
 	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
 	set ptx [fix $where(x)]
 	# XXX FIXME XXX eliminate temperature/Q^4 hacks
-	if { $::Q4_scaling && !$::show_temperature} {
-	    set y [expr {$where(y)/pow(10.*$where(x),4)}]
-	} else {
-	    set y $where(y)
+	switch -- $::graph_scaling {
+	    Q4 { set y [Q4_unscale_point $where(x) $where(y)] }
+	    Fresnel { set y [Fresnel_unscale_point $where(x) $where(y)] }
+	    default { set y $where(y) }
 	}
 	set pty [fix $y {} {} 5]
 	if { [info exists ::xth_$where(name)] } {
@@ -1091,6 +1103,61 @@ proc valid_monitor { } {
     }
 }
 
+proc Q4_scale_vector { x y dy } {
+    vector create S
+    S expr "(abs($x)<=$::Q4_cutoff)*$::Q4_cutoff + (abs($x)>$::Q4_cutoff)*$x"
+    S expr "(S/$::Q4_cutoff)^4"
+    $y expr "$y*S"
+    $dy expr "$dy*S"
+}
+
+proc Q4_unscale_point {x args} {
+    if {abs($x) <= $::Q4_cutoff} { set x $::Q4_cutoff }
+    set S [expr {pow(abs($x)/$::Q4_cutoff,4)}]
+    set ret {}
+    foreach y $args { lappend ret [expr {$y / $S}] }
+    return $ret
+}
+
+proc Fresnel {Q} {
+    set Qsq [expr {$Q*$Q}]
+    if { $Q < 0. } {
+	if { $Qsq <= -$::Fresnel_Qcsq } {
+	    set F 1.
+	} else {
+	    set F [expr {sqrt($::Fresnel_Qcsq - $Qsq)}]
+	    set F [expr {($Q + $F)/($Q - $F)}]
+	}
+    } else { 
+	if { $Qsq <= $::Fresnel_Qcsq } {
+	    set F 1.
+	} else {
+	    set F [expr {sqrt($Qsq - $::Fresnel_Qcsq)}]
+	    set F [expr {($Q - $F)/($Q + $F)}]
+	}
+    }
+    return [expr {$F*$F}]
+}
+
+proc Fresnel_scale_vector { Qvec y dy } {
+    set Flist {}
+    foreach Q [set ${Qvec}(:)] { lappend Flist [Fresnel $Q] }
+	
+    vector create Fvec
+    Fvec set $Flist
+    $y expr "$y/Fvec"
+    $dy expr "$dy/Fvec"
+    vector destroy Fvec
+}
+
+proc Fresnel_unscale_point {Q args} {
+    set F [Fresnel $Q]
+    set ret {}
+    foreach y $args { lappend ret [expr {$y * $F}] }
+    return $ret
+}
+
+
 proc atten_set { runs }  {
 
     # Ghost scans we have to deal with in addition to runs
@@ -1124,21 +1191,6 @@ proc atten_set { runs }  {
     }
 
 
-    # Ugly hack to show temperature
-    if { $::show_temperature } {
-	.graph axis conf y -title "Temperature"
-	foreach id $runs {
-	    ::ky_$id delete :
-	    ::kdy_$id delete :
-	    if { [vector_exists ::TEMP_$id] } { ::ky_$id expr "::TEMP_$id" }
-	}
-	foreach id $scans {
-	    ::${id}_ghosty delete :
-	    ::${id}_ghostdy delete :
-	}
-	return
-    }
-
     # scale runs by monitor and attenuation
     foreach id $runs {
 	upvar #0 $id rec
@@ -1167,19 +1219,42 @@ proc atten_set { runs }  {
 	::${id}_ghostdy expr "$monitor/$scanrec(monitor)*::${id}_dy"
     }
 
-    # scale runs by Q^4
-    if { $::Q4_scaling } {
-	.graph axis conf y -title "[.graph axis cget y -title] x (10 Q)^4"
-	foreach id $runs {
-	    ::ky_$id expr "::ky_$id*::x_$id^4*1e4"
-	    ::kdy_$id expr "::kdy_$id*::x_$id^4*1e4"
+    # scale runs by Q^4 or by Fresnel reflectivity
+    switch -- $::graph_scaling {
+	Temperature {
+	    # Ugly hack to show temperature
+	    .graph axis conf y -title "Temperature"
+	    foreach id $runs {
+		::ky_$id delete :
+		::kdy_$id delete :
+		if { [vector_exists ::TEMP_$id] } { ::ky_$id expr "::TEMP_$id" }
+	    }
+	    foreach id $scans {
+		::${id}_ghosty delete :
+		::${id}_ghostdy delete :
+	    }
 	}
-	foreach id $scans {
-	    ::${id}_ghosty expr "::${id}_ghosty*::${id}_x^4*1e4"
-	    ::${id}_ghostdy expr "::${id}_ghostdy*::${id}_x^4*1e4"
+
+	Q4 {
+	    .graph axis conf y -title "[.graph axis cget y -title] x Q^4"
+	    foreach id $runs {
+		Q4_scale_vector ::x_$id ::ky_$id ::kdy_$id 
+	    }
+	    foreach id $scans {
+		Q4_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy 
+	    }
+	}
+
+	Fresnel {
+	    .graph axis conf y -title "[.graph axis cget y -title] / Fresnel($::Fresnel_rho)"
+	    foreach id $runs { 
+		Fresnel_scale_vector ::x_$id ::ky_$id ::kdy_$id 
+	    }
+	    foreach id $scans { 
+		Fresnel_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy 
+	    }	
 	}
     }
-
 }
 
 proc atten_revert { runs } {
