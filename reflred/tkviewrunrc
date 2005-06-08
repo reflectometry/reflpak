@@ -59,6 +59,7 @@
 *Graph.Crosshairs.Dashes: 1 1
 *Graph.Element.Outline: darkblue
 *Graph.Element.Pixels: 2
+*Graph.Pen.Pixels: 2
 *Graph.Grid.Hide: 0
 tkviewrun.geometry: 700x500
 testviewrun.geometry: 700x500
