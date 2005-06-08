@@ -2265,7 +2265,7 @@ proc setdirectory { pattern_set } {
 	    if {[string equal $type back]} {
 		if {[info exists ::background_basis($dataset,$instrument)]} {
 		    set bgbasis " Q($::background_basis($dataset,$instrument))"
-		    set ::background_basis_nodes($gid) $dataset,$instrument
+		    set ::background_basis_nodes($group_branch) $dataset,$instrument
 		}
 	    }
 	    .tree insert end $dataset_branch $group_branch -data $gid\
