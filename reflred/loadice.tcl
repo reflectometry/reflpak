@@ -155,6 +155,10 @@ proc parseheader {head} {
 	}
     }
 
+    if { $rec(Ncolumns) != [llength $rec(columns)] } {
+	message "Ncolumns not equal to \# of column headings in $rec(file)"
+    }
+    set rec(Ncolumns) [llength $rec(columns)]
     set rec(psd) [expr {"$rec(signal)" == "Area"}]
     if { $rec(psd) } { 
 	append rec(instrument) "PSD"
@@ -179,7 +183,7 @@ proc parseheader {head} {
     set S1 [info exists rec(start,S1)]
     set pol $rec(polarization)
     if { $fixed } {
-	if 0 { 
+	if 1 { 
 	switch -- $rec(scan) {
 	    Theta { marktype spec 0 0 $pol }
 	    TwoTheta { marktype rock 0 0 $pol }
