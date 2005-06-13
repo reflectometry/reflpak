@@ -10,7 +10,7 @@ function ret=load_gfit(file)
 
   figure(1);
   title(file);
-  __gnuplot_set__ lmargin 10;
+  try __gnuplot_set__ lmargin 10; catch gset lmargin 10; end
   subplot(211);
   plot(r.step,r.width,'-+;width;');
   subplot(212);
