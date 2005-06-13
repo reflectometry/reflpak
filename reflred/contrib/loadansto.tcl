@@ -1,4 +1,8 @@
-# See README.load
+# Add the line "source path/loadansto.tcl" to the top of you .reflred.tcl
+# file.  This will load the new file format definition for recognizing and
+# loading csv data sets from ANSTO.
+
+# See README.load for a description of the reflred data model.
 
 namespace eval ANSTO {
 

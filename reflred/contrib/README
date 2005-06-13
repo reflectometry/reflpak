@@ -1,0 +1,16 @@
+Gfit.tcl Gfitpkg.m load_gfit.m
+
+  Do gaussian fits of the specified lines of the currently displayed PSD.
+
+loadansto.tcl
+
+  Support for ANSTO data format
+
+peakint.tcl
+
+  Add peak integrator to run window.
+
+iceintegrate.tcl
+
+  Reintegrate data frames which were incorrectly integrated by ICE 
+  early in 2005.
