@@ -1731,7 +1731,8 @@ proc toggle_background { node } {
 	    [string map { A3 A4 A4 A3 } $::background_basis($dataset)]
 
     # Clear the cumulative range from the cache
-    array unset ::grouprange $node
+    set gid [.tree itemcget $node -data]
+    array unset ::grouprange $gid
 
     # Update existing records to use the new Q range (including records
     # currently displayed on the graph).
