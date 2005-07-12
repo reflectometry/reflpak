@@ -466,14 +466,14 @@ int main(int argc, char *argv[])
 {
   int i;
 
-  height=xstart=xstop=1;
-  width=ystart=ystop=1000000; 
+  height=xstart=xstop=1000000;
+  width=ystart=ystop=1; 
   output=ICP;
 
   if (argc <= 1) {
     fprintf(stderr,"usage: %s [-vtk|-icp] [-w##] [-h##] f1 f2 ...\n\n",argv[0]);
-    fprintf(stderr," -w##  accumulate across ## Qy bins (default 1000000)\n");
-    fprintf(stderr," -h##  accumulate across ## Qx bins (default 1)\n");
+    fprintf(stderr," -w##  accumulate across ## Qy bins (default 1)\n");
+    fprintf(stderr," -h##  accumulate across ## Qx bins (default 1000000)\n");
 #if 0
     /* Hide this feature until it is implemented */
     fprintf(stderr," -x#LO-#HI integrate Qx bins between #LO and #HI (1-origin)\n");
