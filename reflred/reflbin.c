@@ -46,7 +46,9 @@ int nnz = 0;
 #endif
 int do_transpose;
 int width, height, output;
+#ifdef USE_RANGE
 int xstart, xstop, ystart, ystop;
+#endif
 int rows, columns, points;
 unsigned int bins[MAX_BIN];
 char line[MAX_LINE];
@@ -466,15 +468,15 @@ int main(int argc, char *argv[])
 {
   int i;
 
-  height=xstart=xstop=1000000;
-  width=ystart=ystop=1; 
+  height=1000000;
+  width=1; 
   output=ICP;
 
   if (argc <= 1) {
     fprintf(stderr,"usage: %s [-vtk|-icp] [-w##] [-h##] f1 f2 ...\n\n",argv[0]);
-    fprintf(stderr," -w##  accumulate across ## Qy bins (default 1)\n");
-    fprintf(stderr," -h##  accumulate across ## Qx bins (default 1000000)\n");
-#if 0
+    fprintf(stderr," -w##  accumulate across ## Qx bins (default 1)\n");
+    fprintf(stderr," -h##  accumulate across ## Qy bins (default 1000000)\n");
+#ifdef USE_RANGE
     /* Hide this feature until it is implemented */
     fprintf(stderr," -x#LO-#HI integrate Qx bins between #LO and #HI (1-origin)\n");
     fprintf(stderr," -y#LO-#HI integrate Qy bins between #LO and #HI (1-origin)\n");
@@ -493,8 +495,10 @@ int main(int argc, char *argv[])
       switch (argv[i][1]) {
       case 'w': width = atoi(argv[i]+2); break;
       case 'h': height = atoi(argv[i]+2); break;
+#ifdef USE_RANGE
       case 'x': range(argv[i]+2,&xstart,&xstop); break;
       case 'y': range(argv[i]+2,&ystart,&ystop); break;
+#endif
       case 'v': output = VTK; break;
       case 'i': output = ICP; break;
       default: fprintf(stderr,"unknown option %s\n",argv[i]); exit(1);
