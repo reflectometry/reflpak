@@ -16,7 +16,8 @@ function run = run_interp(run,run2,method)
     run.D = run_interp(run.D,run2.D);
     return
   end
-    
+
+  if isempty(run), return; endif
   if length(run.x) < 2
     error("run_interp requires at least two points to interpolate");
   endif
