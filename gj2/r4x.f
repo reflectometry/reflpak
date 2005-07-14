@@ -198,6 +198,12 @@ C         B = I
           B43=(0.0,0.0)
           B44=(1.0,0.0)
 
+C          IF (ABS(Q(NQ)-0.15).LT.1e-6) THEN
+C             WRITE (*,*), "list with Q=",Q(NQ)
+C             OPEN (1,file='gj2.A',status='NEW')
+C          ELSE
+C             WRITE (*,*), "skip with Q=",Q(NQ)
+C          ENDIF
 #ifdef MINUSQ
           DO 300 L=TOP,BOTTOM
 #else
@@ -246,6 +252,11 @@ C           2*cosh and 2*sinh rather than cosh and sinh
             A24=A13
             A42=A31
 
+C            IF (ABS(Q(NQ)-0.15).LT.1e-6) THEN
+C               WRITE (1,*), L,GD(L),GQCSQ(L)/(16.*PI),GMU(L),
+C     &              GQMSQ(L)/(16.*PI),EXPPTH(L),A11,A12,A13,A14
+C            ENDIF
+
 C           Matrix update B=A*B
             C1=A11*B11+A12*B21+A13*B31+A14*B41
             C2=A21*B11+A22*B21+A23*B31+A24*B41
@@ -284,6 +295,9 @@ C           Matrix update B=A*B
             B44=C4
 
  300      CONTINUE
+C          IF (ABS(Q(NQ)-0.15).LT.1e-6) THEN
+C             CLOSE (1)
+C          ENDIF
 C         Done computing B = A(NGLAY)*...*A(2)*A(1)*I
 
 C         Rotate polarization axis to lab frame
