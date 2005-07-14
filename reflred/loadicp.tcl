@@ -7,9 +7,12 @@ set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
 
 proc atoQx {a3 a4 lambda} {
-    return "(cos($::piover180*$a3) - cos($::piover180*$a4/2))*$::pitimes2/$lambda"
+    return "(cos($::piover180*($a4-$a3)) - cos($::piover180*$a3))*$::pitimes2/$lambda"
 }
 
+proc atoQz {a3 a4 lambda} {
+    return "(sin($::piover180*($a4-$a3)) + sin($::piover180*$a3))*$::pitimes2/$lambda"
+}
 
 proc register_icp {} {
     # add addition scan types not in the basic set
@@ -159,6 +162,7 @@ proc icp_parse_psd_octave {id data} {
     octave eval "psd_$id = x(:,[incr i]:columns(x))"
     octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
     octave sync
+    set rec(psd) 1
 }
 
 proc icp_parse_psd_fvector {id data} {
@@ -194,11 +198,16 @@ proc icp_parse_psd_fvector {id data} {
 	incr idx
     }
     set rec(psd) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+
+    vector create ::y_$id
+    ::y_$id set [fvector rec(column,y)]
+    set rec(psdplot) 1
 }
 
 # Call the function we are working with
-#rename icp_parse_psd_fvector icp_parse_psd
-rename icp_parse_psd_octave icp_parse_psd
+catch { rename icp_parse_psd {} }
+rename icp_parse_psd_fvector icp_parse_psd
+#rename icp_parse_psd_octave icp_parse_psd
 
 proc icp_load {id} {
     upvar #0 $id rec
@@ -228,7 +237,6 @@ proc icp_load {id} {
 
     # load the data columns into ::<column>_<id>
     if { [string first , $data] >= 0 } {
-	set rec(psd) 1
 	icp_parse_psd $id $data
     } else {
 	if ![get_columns $id $rec(columns) $data] { return 0 }
@@ -342,6 +350,64 @@ proc check_wavelength { id wavelength } {
     }
 }
 
+proc NG1_psd_octave {id} {
+    upvar \#0 $id rec
+
+    set rec(detector,width)      4 ;# 4" detector
+    set rec(detector,minbin)     1 ;# assume it is using all bins
+    set rec(detector,maxbin)   256 ;# 
+    set rec(detector,distance)  48 ;# detector bank is 48" away
+    # set rec(detector,A4slope)     [expr {double($rec(stop,4)-$rec(start,4))/($rec(stop,3)-$rec(start,3))}]
+    # set rec(detector,A4intercept) [expr {$rec(start,4)-$rec(detector,A4slope)*$rec(start,3)}]
+    # octave send ::A3_$id A3_$id
+    vector create ::psd_$id ::psderr_$id
+    octave recv psd_$id psd_$id
+    octave recv psderr_$id psderr_$id
+}
+
+proc NG1_psd_fvector {id} {
+#    reflplot::normalize $id
+#    set_center_pixel $id 250
+    upvar #0 $id rec
+
+    if {![info exists rec(column,A3)]} {
+	set v {}
+	for {set i 0} {$i < $rec(points)} {incr i} {
+	    lappend v [expr {$rec(start,3) + $i * $rec(step,3)}]
+	}
+	fvector rec(column,A3) $v
+    }
+
+    if {![info exists rec(column,A4)]} {
+	set v {}
+	for {set i 0} {$i < $rec(points)} {incr i} {
+	    lappend v [expr {$rec(start,4) + $i * $rec(step,4)}]
+	}
+	fvector rec(column,A4) $v
+    }
+
+    vector create ::A3_$id ::A4_$id
+    ::A3_$id set [fvector rec(column,A3)]
+    ::A4_$id set [fvector rec(column,A4)]
+
+    reflplot::set_axes $id A3 A4
+
+    set rec(detector,width)        4 ;# 4" detector
+    set rec(detector,minbin)       1 ;# doesn't use all the bins
+    set rec(detector,maxbin)     256 ;# => 0.42mm spacing
+    set rec(detector,distance)    48 ;# detector bank is 4' away
+
+    set rec(pixels)     256
+    set rec(distance) [expr {48.*25.4}]
+    set rec(pixelwidth) [expr {4.*25.4/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
+    reflplot::set_center_pixel $id 128
+
+    set v {}
+    foreach el [fvector rec(column,A3)] { lappend v $rec(monitor) }
+    fvector rec(column,monitor) $v
+    reflplot::normalize $id monitor
+}
+
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
 proc NG1load {id} {
@@ -350,6 +416,7 @@ proc NG1load {id} {
     if ![icp_load $id] { return 0 }
     set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
     monitor_norm $id
+    if { [info exists rec(psdplot)] } { NG1_psd_fvector $id }
 
     if { [string match "CG*" $rec(instrument)] } { 
 	check_wavelength $id $::cg1wavelength 
@@ -397,6 +464,15 @@ proc NG1load {id} {
     }
 
     switch $rec(type) {
+	psd {
+	    vector create ::x_$id
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	}
+	psdstep {
+	    vector create ::x_$id
+	    ::x_$id seq 1 $rec(points)
+	    set rec(xlab) "frame"
+	}
 	rock {
 	    vector create ::x_$id
 	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
@@ -423,7 +499,7 @@ proc NG1load {id} {
 	    ::xth_$id expr ::A4_$id/2.
 	    set rec(slit) A1_$id
 	}
-	slit {
+	slit - psdslit {
 	    # XXX FIXME XXX if slit 1 is fixed, should we use slit 2?
 	    set rec(xlab) "slit 1 opening"
 	    ::A1_$id dup ::x_$id
@@ -450,19 +526,6 @@ proc NG1load {id} {
 	default { default_x $id }
     }
     set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
-
-    if { $rec(psd) } {
-	set rec(detector,width)      4 ;# 4" detector
-	set rec(detector,minbin)     1 ;# assume it is using all bins
-	set rec(detector,maxbin)   256 ;# 
-	set rec(detector,distance)  48 ;# detector bank is 48" away
-	# set rec(detector,A4slope)     [expr {double($rec(stop,4)-$rec(start,4))/($rec(stop,3)-$rec(start,3))}]
-	# set rec(detector,A4intercept) [expr {$rec(start,4)-$rec(detector,A4slope)*$rec(start,3)}]
-	# octave send ::A3_$id A3_$id
-	vector create ::psd_$id ::psderr_$id
-	octave recv psd_$id psd_$id
-	octave recv psderr_$id psderr_$id
-    }
 
     return 1
 }
@@ -555,12 +618,37 @@ proc load_NG7_monitor_calibration {} {
     set ::NG7_monitor_calibration_loaded 1
 }
 
+proc NG7_psd_fvector {id} {
+    upvar #0 $id rec
+    vector create ::QZ_$id theta twotheta
+    ::QZ_$id set [fvector rec(column,QZ)]
+    theta expr asin(::QZ_$id*$rec(L)/$::pitimes4)/$::piover180
+    twotheta expr 2*theta
+    fvector rec(column,Theta) $theta(:)
+    fvector rec(column,TwoTheta) $twotheta(:)
+    vector destroy theta twotheta
+    reflplot::set_axes $id Theta TwoTheta
+
+    set rec(detector,width)       10 ;# 10cm detector
+    set rec(detector,minbin)       9 ;# doesn't use all the bins
+    set rec(detector,maxbin)     246 ;# => 0.42mm spacing
+    set rec(detector,distance)   200 ;# detector bank is 2m away
+
+    set rec(pixels)     256
+    set rec(distance)  2000
+    set rec(pixelwidth) [expr {100./($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
+    reflplot::set_center_pixel $id 128
+
+    reflplot::normalize $id MON
+}
+
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
 proc NG7load {id} {
     upvar #0 $id rec
 
     if ![icp_load $id] { return 0 }
+    if {$rec(psdplot)} { NG7_psd_fvector $id }
     check_wavelength $id $::ng7wavelength
 
     # If column S1 is not stored in the datafile because the slits
@@ -644,6 +732,15 @@ proc NG7load {id} {
     }
 
     switch $rec(type) {
+	psd {
+	    vector create ::x_$id
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	}
+	psdstep {
+	    vector create ::x_$id
+	    ::x_$id seq 1 $rec(points)
+	    set rec(xlab) "frame"
+	}
 	rock {
 	    ::13_$id dup ::x_$id
 	    set rec(Qrockbar) $rec(start,Qz)
@@ -654,7 +751,7 @@ proc NG7load {id} {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    set rec(slit) S1_$id
 	}
-	slit {
+	slit - psdslit {
 	    ::S1_$id dup ::x_$id
 	    set rec(xlab) "slit opening (motor S1 units)"
 	}
@@ -887,12 +984,23 @@ proc NG1mark {file} {
 	    error "expected internal file name of *.C?1 or *.N?1"
 	}
     }
-    if { $rec(psd) } { append rec(instrument) "PSD" }
+    #if { $rec(psd) } { append rec(instrument) "PSD" }
 
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,1)] || ![info exists rec(start,3)] \
 	    || ![info exists rec(start,4)] } {
 	marktype ? 0 0 $rec(polarization)
+    } elseif { $rec(psd) } { 
+	if { $rec(step,3) != 0.0 } {
+	    marktype psd \
+		[expr [a3toQz $rec(start,3) $rec(L)]] \
+		[expr [a3toQz $rec(stop,3) $rec(L)]] \
+		$rec(polarization)
+	} elseif { !$fixed } {
+	    marktype psdslit $rec(start,1) $rec(stop,1) $rec(polarization)
+	} else {
+	    marktype psdstep 1 $rec(pts) $rec(polarization)
+	}
     } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
 		   && ($fixed || $rec(step,1) != 0.0) } {
 	# direct beam with no motors moving => slit measurement
@@ -964,11 +1072,13 @@ proc NG7mark {file} {
 
     # instrument specific initialization
     set rec(instrument) [NG7info instrument]
-    if { $rec(psd) } { append rec(instrument) "PSD" }
+#    if { $rec(psd) } { append rec(instrument) "PSD" }
 
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,Qz)] || ![info exists rec(start,S1)] } {
 	marktype ?
+    } elseif { $rec(psd) } {
+	marktype psd $rec(start,Qz) $rec(stop,Qz)
     } elseif { $fixed } {
 	marktype time 0 [runtime $id]
     } elseif { [info exists rec(start,13)] && $rec(step,13) != 0. } {
