@@ -594,9 +594,8 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
   return TCL_OK;
 }
 
-#include "refl.c"
-#include "fvector.c"
-
+#include "mx_tcl.c"
+#include "refl_tcl.c"
 
 /*
  * Called by Tk_Main() to let me initialize the modules (Togl) I will need.
@@ -662,7 +661,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "list", tp_list );
   Togl_CreateCommand( "pick", tp_pick );
 
-  fvector_init(interp);
+  mx_init(interp);
   refl_init(interp);
 
   return TCL_OK;

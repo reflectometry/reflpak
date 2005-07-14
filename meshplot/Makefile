@@ -67,8 +67,12 @@ ifdef USE_STUBS
   CFLAGS += -DUSE_TCL_STUBS -DUSE_TK_STUBS
 endif
 
+CFLAGS += -DPRECISION=float
+
 # font support is needed for demos (recommend ftgl instead)
 #DEFS	+= -DTOGL_USE_FONTS
+
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o
 
 %.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
 
@@ -78,12 +82,14 @@ plot$(EXE): plot.c
 	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
-plot$(LDEXT): togl_plot.o plot.o togl.o
-	$(LD) $(LDFLAGS) -o $@ togl_plot.o plot.o togl.o $(GLLIBS) $(LIBS)
+plot$(LDEXT): $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
-togl_plot.o: plot.h togl.h refl.c fvector.c
+togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h
 togl.o: togl.h
+mx.o: mx.c mx.h
+refl.o: refl.c refl.h mx.h
 
 clean:
 	rm -f $(TOGL) *.o plot$(LDEXT) plot$(EXE) *~

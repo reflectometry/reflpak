@@ -414,9 +414,9 @@ linear_tics(const PReal limits[2], PReal tics[2], int steps)
 {
   PReal range, d;
 
-  assert(limits[0] < limits[1]);
-  
-  range = limits[1]-limits[0];
+  /* XXX FIXME XXX what to do with invalid limits? */
+  if (limits[0] >= limits[1]) range = 1.;
+  else range = limits[1]-limits[0];
   d = pow(10.,ceil(log10(range/steps)));
   if (5.*range / d <= steps) {
     tics[0] = d/5.;

@@ -1,4 +1,5 @@
 #include <math.h>
+#include "refl.h"
 
 /* Build a mesh from the scan of linear detector readings.
  *
@@ -84,8 +85,8 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
  */
 
 void 
-build_mesh(int m, int n, const PReal xin[], const PReal yin[],
-	   PReal x[], PReal y[])
+build_mesh(int m, int n, const mxtype xin[], const mxtype yin[],
+	   mxtype x[], mxtype y[])
 {
   int idx = 0;
   int j, k;
@@ -100,8 +101,8 @@ build_mesh(int m, int n, const PReal xin[], const PReal yin[],
 
 void 
 build_fmesh(int n, int m, 
-	    const PReal alpha[], const PReal beta[], const PReal dtheta[],
-	    PReal x[], PReal y[])
+	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	    mxtype x[], mxtype y[])
 {
   int idx = 0;
   int j, k;
@@ -116,8 +117,8 @@ build_fmesh(int n, int m,
 
 void 
 build_dmesh(int n, int m,
-	    const PReal alpha[], const PReal beta[], const PReal dtheta[],
-	    PReal x[], PReal y[])
+	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	    mxtype x[], mxtype y[])
 {
   int idx = 0;
   int j, k;
@@ -131,130 +132,21 @@ build_dmesh(int n, int m,
 }
 
 void
-build_Qmesh(int n, int m, PReal lambda,
-	    const PReal alpha[], const PReal beta[], const PReal dtheta[],
-	    PReal Qx[], PReal Qz[])
+build_Qmesh(int n, int m, mxtype lambda,
+	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	    mxtype Qx[], mxtype Qz[])
 {
-  const PReal two_pi_over_lambda = 2.*M_PI/lambda;
+  const mxtype two_pi_over_lambda = 2.*M_PI/lambda;
+  const mxtype pi_over_180 = M_PI/180.;
   int idx = 0;
   int j,k;
   for (j=0; j <= n; j++) {
-    const PReal in = alpha[j]*(M_PI/180.);
+    const mxtype in = alpha[j]*pi_over_180;
     for (k=0; k <= m; k++) {
-      const PReal out = (0.5*beta[j]+dtheta[k])*(M_PI/180.);
-      Qz[idx] = two_pi_over_lambda*(sin(in)+sin(out));
-      Qx[idx] = two_pi_over_lambda*(cos(in)-cos(out));
+      const mxtype out = (beta[j]+dtheta[k])*pi_over_180 - in;
+      Qz[idx] = two_pi_over_lambda*(sin(out)+sin(in));
+      Qx[idx] = two_pi_over_lambda*(cos(out)-cos(in));
       idx++;
     }
   }
-}
-
-
-/* ================================================================ */
-/* wrap mesh function */
-static int 
-buildmesh(ClientData junk, Tcl_Interp *interp, int argc, 
-	  Tcl_Obj *CONST argv[])
-{
-  int m,n;
-  Tcl_Obj *xobj, *yobj, *result;
-  PReal *x, *y;
-  const char *name, *style = "  ";
-  double lambda;
-  int idx;
-
-  /* Determine mesh type and size, and for -Q, find lambda */
-  if (argc > 5) {
-    style = Tcl_GetString(argv[1]);
-    if (!style || (style[1]!='Q' && style[1]!='f' && style[1]!='d')) {
-      Tcl_SetResult( interp,
-		     "buildmesh: expected style -Q lambda, -f, or -d",
-		     TCL_STATIC);
-      return TCL_ERROR;
-    }
-    if (style[1] == 'Q') {
-      if (Tcl_GetDoubleFromObj(interp,argv[2],&lambda) != TCL_OK) 
-	return TCL_ERROR;
-      idx = 2;
-    } else {
-      idx = 1;
-    }
-  } else {
-    idx = 0;
-  }
-
-  /* Interpret args */
-  if (! (argc==5 || (argc==7 && style[1]!='Q') || (argc==8 && style[1]=='Q'))){
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"buildmesh -Q lambda|-f|-d m n alpha beta dtheta\"",
-		   TCL_STATIC);
-    return TCL_ERROR;
-  }
-
-  if (Tcl_GetIntFromObj(interp,argv[idx+1],&m) != TCL_OK 
-      || Tcl_GetIntFromObj(interp,argv[idx+2],&n) != TCL_OK) {
-    return TCL_ERROR;
-  }
-
-  /* Construct return list. */
-  result = Tcl_NewListObj(0,NULL);
-  if (!result) return TCL_ERROR;
-  Tcl_SetObjResult(interp,result);
-
-  xobj = Tcl_NewByteArrayObj(NULL,0);
-  if (!xobj) return TCL_ERROR;
-  Tcl_ListObjAppendElement(interp,result,xobj);
-  x = (PReal *)Tcl_SetByteArrayLength(xobj,(m+1)*(n+1)*sizeof(PReal));
-  if (!x) return TCL_ERROR;
-
-  yobj = Tcl_NewByteArrayObj(NULL,0);
-  if (!yobj) return TCL_ERROR;
-  Tcl_ListObjAppendElement(interp,result,yobj);
-  y = (PReal *)Tcl_SetByteArrayLength(yobj,(m+1)*(n+1)*sizeof(PReal));
-  if (!y) return TCL_ERROR;
-
-  /* Fill in the x and y arrays for the return list */
-  if (argc >= 7) {
-    const PReal *alpha, *beta, *dtheta;
-  
-    /* Get data vectors */
-    name = Tcl_GetString(argv[idx+3]);
-    alpha = get_tcl_vector(interp,name,"buildmesh","alpha",m+1);
-    if (alpha == NULL) return TCL_ERROR;
-
-    name = Tcl_GetString(argv[idx+4]);
-    beta = get_tcl_vector(interp,name,"buildmesh","beta",m+1);
-    if (beta == NULL) return TCL_ERROR;
-
-    name = Tcl_GetString(argv[idx+5]);
-    dtheta = get_tcl_vector(interp,name,"buildmesh","dtheta",n+1);
-    if (dtheta == NULL) return TCL_ERROR;
-
-    switch (style[1]) {
-    case 'Q': build_Qmesh(m,n,lambda,alpha,beta,dtheta,x,y); break;
-    case 'd': build_dmesh(m,n,alpha,beta,dtheta,x,y); break;
-    case 'f': build_fmesh(m,n,alpha,beta,dtheta,x,y); break;
-    }
-  } else {
-    const PReal *xin, *yin;
-
-    /* Get data vectors */
-    name = Tcl_GetString(argv[idx+3]);
-    xin = get_tcl_vector(interp,name,"buildmesh","xin",m+1);
-    if (xin == NULL) return TCL_ERROR;
-
-    name = Tcl_GetString(argv[idx+4]);
-    yin = get_tcl_vector(interp,name,"buildmesh","yin",n+1);
-    if (yin == NULL) return TCL_ERROR;
-
-    build_mesh(m,n,xin,yin,x,y);
-  }
-
-  return TCL_OK;
-}
-
-
-static void refl_init(Tcl_Interp *interp)
-{
-  Tcl_CreateObjCommand( interp, "buildmesh", buildmesh, NULL, NULL );
 }
