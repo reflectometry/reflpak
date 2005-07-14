@@ -285,7 +285,7 @@ STATIC int selectFilename(char *filnam, char *outfile, char *infile,
    if (l == 0) l = copyBasename(filnam, infile);
    strcat(filnam, extension);
    l += strlen(extension);
-   filnam[l] = ' ';
+   filnam[l] = 0;
    filnam[l + 1] = 0;
    return l;
 }
@@ -306,12 +306,28 @@ int genProfile(char *command)
    gmagpro4();
    switch (command[3]) {
       case 0:
-         puts("  Layer       QCNSQ        QCMSQ        MU"
-              "         D           THE");
-         for (n = 0; n <= nglay; n ++)
-            printf("%5i      %#10.3G  %#10.3G  %#10.3G  %#10.3G  %#10.3G\n",
-                     n + 1, gqcsq[n], gqmsq[n], gmu[n], gd[n], gthe[n]);
+	 if (!save) {
+            puts("  Layer       QCNSQ        QCMSQ        MU"
+		 "         D           THE");
+	    for (n = 0; n <= nglay; n ++)
+	       printf("%5i      %#10.3G  %#10.3G  %#10.3G  %#10.3G  %#10.3G\n",
+		      n + 1, gqcsq[n], gqmsq[n], gmu[n], gd[n], gthe[n]);
+	 }
          if (save) {
+            /* Save layer profiles to OUTFILEs */
+            l = selectFilename(filnam, outfile, infile, ".lay");
+            unit1 = fopen(filnam, "w");
+	    if (unit1 != NULL) {
+	      fputs("#  Layer       QCNSQ        QCMSQ        MU"
+		    "         D           THE\n",unit1);
+	      for (n = 0; n <= nglay; n ++)
+		fprintf(unit1,
+			"%5i      %#.15G  %#.15G  %#.15G  %#.15G  %#.15G\n",
+			n + 1, gd[n], gqcsq[n]/(16.*M_PI), gmu[n], 
+			gqmsq[n]/(16.*M_PI), gthe[n]);
+	    }
+	    fclose(unit1);
+
             /* Save layer profiles to OUTFILEs */
             l = selectFilename(filnam, outfile, infile, ".pro");
             /* Open output files for nuclear Qc, magnetic Qc, Theta angle, */
