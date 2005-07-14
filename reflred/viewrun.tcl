@@ -1,11 +1,12 @@
 package require Tk
 package require BLT
-namespace import blt::graph blt::vector blt::hiertable
+catch { namespace import blt::graph blt::vector blt::hiertable }
 package require Tktable
 package require BWidget
 package require tkcon
 package require ncnrlib
 package require octave
+package require reflplot
 
 if { ![info exists ::app_version] } {
     set ::app_version "[clock format [clock seconds] -format %Y%m%d]-CVS"
@@ -1504,7 +1505,14 @@ proc addrun_add { id } {
     # properties of the first element as the properties for the entire list.
     lappend ::addrun $id
 
-    catch { if { [set ::${id}(psd)] } { psd $id } }
+    #catch { if { [set ::${id}(psd)] } { psd $id } }
+
+    catch { 
+	if { [info exists ::${id}(psdplot)] } { 
+	    catch { reflplot::demo_window .psd }
+	    reflplot::plot2d add .psd.c $id
+	}
+    }
 
     set ::${id}(legend) "[set ::${id}(run)][set ::${id}(index)]"
     if { [llength $::addrun] == 1 } {
@@ -1582,6 +1590,12 @@ proc addrun_remove { id } {
 
     # remove it from the list
     set ::addrun [ldelete $::addrun $id]
+
+    catch { 
+	if { [info exists ::${id}(psdplot)] } { 
+	    reflplot::plot2d delete .psd.c $id
+	}
+    }
 
     # remove the vectors from memory
     clear_run $id
