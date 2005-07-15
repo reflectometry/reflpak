@@ -109,7 +109,7 @@ build_fmesh(int n, int m,
   for (j=0; j <= n; j++) {
     for (k=0; k <= m; k++) {
       y[idx] = alpha[j];
-      x[idx] = 0.5*beta[j] + dtheta[k];
+      x[idx] = beta[j] - alpha[j] + dtheta[k];
       idx++;
     }
   }
@@ -125,7 +125,7 @@ build_dmesh(int n, int m,
   for (j=0; j <= n; j++) {
     for (k=0; k <= m; k++) {
       y[idx] = alpha[j];
-      x[idx] = 0.5*beta[j] - alpha[j] + dtheta[k];
+      x[idx] = beta[j] - 2*alpha[j] + dtheta[k];
       idx++;
     }
   }

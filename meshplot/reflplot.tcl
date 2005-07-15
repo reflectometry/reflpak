@@ -16,6 +16,8 @@ if {![namespace exists reflplot]} {
 
 namespace eval reflplot {
 
+    variable pi_over_180 [expr {atan(1.)/45.}]
+
 namespace export plot2d
 variable actions {new add delete transform center showall names}
 proc plot2d {action path args} {
@@ -30,18 +32,19 @@ proc plot2d {action path args} {
 
 # ===== Helper functions which don't depend on plot =====
 proc dtheta_edges {pixels pixelwidth distance centerpixel} {
+  variable pi_over_180
   set edges {}
   for {set p 0} {$p <= $pixels} {incr p} {
-    lappend edges [expr {atan2(($centerpixel-$p)*$pixelwidth, $distance)}]
+    lappend edges [expr {atan2(($centerpixel-$p)*$pixelwidth, $distance) \
+			     / $pi_over_180}]
   }
   return $edges
 }
 
 proc set_center_pixel {id {c {}}} {
     upvar \#0 $id rec
-    if {[llength $c] == 0} {
-	set c [expr {int(($rec(pixels)+1)/2)}]
-    }
+    # default to center of the detector
+    if {[llength $c] == 0} { set c [expr {($rec(pixels)+1.)/2.}] }
     set rec(centerpixel) $c
     fvector rec(dtheta) \
 	[dtheta_edges $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
@@ -198,6 +201,7 @@ proc redraw {path} {
 
 proc center {path center} {
     upvar plot plot
+    set plot(center) $center
     foreach id $plot(records) {
 	set_center_pixel $id $center
     }
@@ -238,6 +242,12 @@ proc add {path records} {
 	set n [lsearch $plot(records) $id]
 	if { $n >= 0 } { continue }
 	lappend plot(records) $id
+
+	# adjust the center pixel if necessary
+	if {![info exists plot(center)]} { 
+	    set plot(center) [expr {$rec(pixels)/2.}] 
+	}
+	set_center_pixel $id $plot(center)
 
 	if { $plot(mesh) == "pixel" } {
 	    mesh_$plot(mesh) $id $plot(points)
