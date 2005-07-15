@@ -54,6 +54,24 @@ function data = polcor(fit,FRratio,sub)
     plot(s,F,'r-;F;',s,R,'g-;R;',s,(1-x)/2,'b-;f;',s,(1-y)/2,'m-;r;');
   endif
 
+  if isempty(sub.B) || isempty(sub.C) 
+    ## XXX FIXME XXX  What if we don't have all four cross-sections?
+    warning('B and/or C missing from polarization correction');
+    rbeta.x = q;
+    rbeta.y = beta;
+    rbeta.dy = zeros(size(beta));
+    A = run_div(sub.A, run_interp(rbeta,sub.A));
+    D = run_div(sub.D, run_interp(rbeta,sub.D));
+    if isempty(sub.B), B = [];
+    else B = run_div(sub.B, run_interp(rbeta,sub.B));
+    end
+    if isempty(sub.C), C = [];
+    else C = run_div(sub.C, run_interp(rbeta,sub.C));
+    end
+    data = struct('A',A,'B',B,'C',C,'D',D);
+    return
+  end
+
   %# Construct a set of matrices for 
   %# each row of H is a matrix to solve
   Fx = F.*x;
@@ -62,7 +80,7 @@ function data = polcor(fit,FRratio,sub)
        (1-F).*(1+R), (1-Fx).*(1+R), (1-F).*(1+Ry), (1-Fx).*(1+Ry), ...
        (1+F).*(1-R), (1+Fx).*(1-R), (1+F).*(1-Ry), (1+Fx).*(1-Ry), ...
        (1-F).*(1-R), (1-Fx).*(1-R), (1-F).*(1-Ry), (1-Fx).*(1-Ry) ];
-
+  
   %# find the corresponding
   [A,dA] = interp1err(sub.A.x,sub.A.y,sub.A.dy,q);
   [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
