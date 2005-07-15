@@ -163,6 +163,7 @@ proc findplot {path} {
 	variable $plotid
 	upvar 0 [namespace current]::P$path plot
     }]
+    return [namespace current]::P$path
 }
 
 proc auto_vrange {path} {
@@ -194,27 +195,27 @@ proc names {path} {
     return $plot(records)
 }
 
-proc redraw {path} {
-    upvar plot plot
-    transform $path $plot(mesh)
-}
-
 proc center {path center} {
     upvar plot plot
-    set plot(center) $center
-    foreach id $plot(records) {
-	set_center_pixel $id $center
+    if {[string is double $center]} {
+	set plot(center) $center
+	foreach id $plot(records) {
+	    set_center_pixel $id $center
+	}
+	transform $path $plot(mesh)
     }
-    redraw $path
+    # XXX FIXME XXX center shouldn't know about center_entry
+    set plot(center_entry) $center
 }
 
 proc transform {path type} {
     upvar plot plot
-    set redraw [expr {$plot(mesh) == $type}]
+    set newtype [expr {$plot(mesh) != $type}]
     if { [lsearch {QxQz TiTf TiTd pixel} $type] < 0 } {
 	error "transform $path $type: expected QxQz TiTf TiTd or pixel"
     }
     set plot(mesh) $type
+    set plot(mesh_entry) $type
     set plot(points) 0
     foreach id $plot(records) {
 	upvar \#0 $id rec
@@ -228,7 +229,7 @@ proc transform {path type} {
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
     }
-    if {!$redraw} { auto_axes $path }
+    if {$newtype} { auto_axes $path }
     $path draw
 }
 
@@ -291,11 +292,26 @@ proc new {w} {
     $w colormap [colormap_bright 64]
     $w configure -logdata on -grid on -vrange {0.00002 2}
     variable P$w
-    array set P$w {mesh QxQz records {}}
+    array set P$w {mesh TiTd records {} center 100}
     bind <Destroy> $w [namespace code [list unset P$w]]
 }
 
 # ===== demo functions =====
+proc UpdateCenter {w} {
+    findplot $w
+    if { $plot(center_entry) != $plot(center) } {
+	plot2d center $w $plot(center_entry)
+    }
+}
+
+proc UpdateMesh {w} {
+    findplot $w
+    if { $plot(mesh_entry) != $plot(mesh) } {
+	plot2d transform $w $plot(mesh_entry)
+    }
+}
+
+
 proc demo_window {{w .plot}} {
     if {![winfo exists $w]} {
 	toplevel $w -width 400 -height 500
@@ -305,7 +321,28 @@ proc demo_window {{w .plot}} {
 	raise $w
     }
     plot2d new $w.c
+    findplot $w.c
+    set pid [namespace current]::P$w.c
+
+    set f $w.controls
+    frame $f
+
+    set plot(center_entry) $plot(center)
+    label $f.lcenter -text "Center"
+    entry $f.center -textvariable ${pid}(center_entry) -width 4
+    bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
+    bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
+
+    set plot(mesh_entry) $plot(mesh)
+    label $f.ltransform -text "Transform"
+    spinbox $f.transform  -values {TiTf QxQz TiTd pixel} -width 5 \
+	-textvariable ${pid}(mesh_entry) \
+	-command [namespace code [list UpdateMesh $w.c]]
+    grid $f.lcenter $f.center $f.ltransform $f.transform
+
+
     grid $w.c -sticky news
+    grid $w.controls -sticky w
     grid rowconfigure $w 0 -w 1
     grid columnconfigure $w 0 -w 1
     return $w.c
@@ -315,11 +352,9 @@ proc demo {{mesh_style QxQz}} {
     set w [demo_window]
 
     ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
-    set_center_pixel rec1 467
-
     ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2
-    set_center_pixel rec2 467
 
+    plot2d center $w 467
     plot2d add $w { rec1 rec2 }
 }
 
@@ -376,10 +411,10 @@ proc read_data {file id} {
     }
     set rec(Ncolumns) [llength $rec(columns)]
 
-    # instrument constants
+    # instrument parameters
     set rec(L) 5.
-    set rec(pixelwidth) [expr {10.*25.4/608}] 
-    set rec(distance) [expr {48*25.4}]
+    set rec(pixelwidth) 0.34727 
+    set rec(distance)  1600.
 
     reflplot::parse_data $id $data
     reflplot::normalize $id Monitor
