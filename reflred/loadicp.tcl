@@ -392,15 +392,23 @@ proc NG1_psd_fvector {id} {
 
     reflplot::set_axes $id A3 A4
 
-    set rec(detector,width)        4 ;# 4" detector
-    set rec(detector,minbin)       1 ;# doesn't use all the bins
-    set rec(detector,maxbin)     256 ;# => 0.42mm spacing
-    set rec(detector,distance)    48 ;# detector bank is 4' away
+    if {[string match CG* $rec(instrument)]} {
+	set rec(detector,minbin)      1 ;# doesn't use all the bins
+	set rec(detector,maxbin)    608 ;# => 0.42mm spacing
+	set rec(detector,width)     211.;# KOD says 0.34727 mm/pixel
+	set rec(detector,distance) 1600.;# KOD says detector bank is 1.6m away
+    } else {
+	set rec(detector,minbin)      1 ;# doesn't use all the bins
+	set rec(detector,maxbin)    256 ;# => 0.42mm spacing
+	set rec(detector,width)    [expr {4*25.4}] ;# 4" detector
+	set rec(detector,distance) [expr {48*25.4}] ;# detector bank is 4' away
+    }
 
-    set rec(pixels)     256
-    set rec(distance) [expr {48.*25.4}]
-    set rec(pixelwidth) [expr {4.*25.4/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
-    reflplot::set_center_pixel $id 128
+    set rec(pixels) [expr {$rec(detector,maxbin)-$rec(detector,minbin)+1}]
+    set rec(distance) $rec(detector,distance)
+    set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]
+
+    reflplot::set_center_pixel $id [expr {$rec(pixels)/2.}]
 
     set v {}
     foreach el [fvector rec(column,A3)] { lappend v $rec(monitor) }
@@ -623,6 +631,7 @@ proc NG7_psd_fvector {id} {
     vector create ::QZ_$id theta twotheta
     ::QZ_$id set [fvector rec(column,QZ)]
     theta expr asin(::QZ_$id*$rec(L)/$::pitimes4)/$::piover180
+    # XXX FIXME XXX can NG7 have Qx!=0 with PSD?
     twotheta expr 2*theta
     fvector rec(column,Theta) $theta(:)
     fvector rec(column,TwoTheta) $twotheta(:)
