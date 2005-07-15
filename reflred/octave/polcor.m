@@ -54,11 +54,11 @@ function data = polcor(fit,FRratio,sub)
     plot(s,F,'r-;F;',s,R,'g-;R;',s,(1-x)/2,'b-;f;',s,(1-y)/2,'m-;r;');
   endif
 
-  if isempty(sub.B) || isempty(sub.C) 
+  if 0 && (isempty(sub.B) || isempty(sub.C))
     ## XXX FIXME XXX  What if we don't have all four cross-sections?
     warning('B and/or C missing from polarization correction');
     rbeta.x = q;
-    rbeta.y = beta;
+    rbeta.y = 2*beta;
     rbeta.dy = zeros(size(beta));
     A = run_div(sub.A, run_interp(rbeta,sub.A));
     D = run_div(sub.D, run_interp(rbeta,sub.D));
@@ -83,9 +83,19 @@ function data = polcor(fit,FRratio,sub)
   
   %# find the corresponding
   [A,dA] = interp1err(sub.A.x,sub.A.y,sub.A.dy,q);
-  [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
-  [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
   [D,dD] = interp1err(sub.D.x,sub.D.y,sub.D.dy,q);
+  if isempty(sub.B) && isempty(sub.C)
+    B = dB = C = dC = zeros(size(q));
+  elseif isempty(sub.B)
+    [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
+    B = C; dB = dC;
+  elseif isempty(sub.C)
+    [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
+    C = B; dC = dB;
+  else
+    [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
+    [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
+  endif
 
   %# each column of Y is a 
   Y = [ A./beta,B./beta,C./beta,D./beta ];
