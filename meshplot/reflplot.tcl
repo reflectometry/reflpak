@@ -35,7 +35,7 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   variable pi_over_180
   set edges {}
   for {set p 0} {$p <= $pixels} {incr p} {
-    lappend edges [expr {-atan2(($centerpixel-$p)*$pixelwidth, $distance) \
+    lappend edges [expr {atan2(($centerpixel-$p)*$pixelwidth, $distance) \
 			     / $pi_over_180}]
   }
   return $edges
