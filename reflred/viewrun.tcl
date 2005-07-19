@@ -1509,7 +1509,7 @@ proc addrun_add { id } {
 
     catch { 
 	if { [info exists ::${id}(psdplot)] } { 
-	    catch { reflplot::demo_window .psd }
+	    reflplot::plot_window .psd
 	    reflplot::plot2d add .psd.c $id
 	}
     }

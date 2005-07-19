@@ -116,6 +116,22 @@ build_fmesh(int n, int m,
 }
 
 void 
+build_abmesh(int n, int m, 
+	     const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	     mxtype x[], mxtype y[])
+{
+  int idx = 0;
+  int j, k;
+  for (j=0; j <= n; j++) {
+    for (k=0; k <= m; k++) {
+      y[idx] = alpha[j];
+      x[idx] = beta[j] + dtheta[k];
+      idx++;
+    }
+  }
+}
+
+void 
 build_dmesh(int n, int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    mxtype x[], mxtype y[])

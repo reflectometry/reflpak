@@ -11,6 +11,10 @@ void
 build_dmesh(int n, int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    mxtype x[], mxtype y[]);
+void 
+build_abmesh(int n, int m,
+	     const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	     mxtype x[], mxtype y[]);
 void
 build_Qmesh(int n, int m, mxtype lambda,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],

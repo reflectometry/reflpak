@@ -18,9 +18,10 @@ buildmesh(ClientData junk, Tcl_Interp *interp, int argc,
   /* Determine mesh type and size, and for -Q, find lambda */
   if (argc > 5) {
     style = Tcl_GetString(argv[1]);
-    if (!style || (style[1]!='Q' && style[1]!='f' && style[1]!='d')) {
+    if (!style || (style[1]!='Q' && style[1]!='f' && 
+		   style[1]!='d' && style[1]!='b')) {
       Tcl_SetResult( interp,
-		     "buildmesh: expected style -Q lambda, -f, or -d",
+		     "buildmesh: expected style -Q lambda, -f, -b or -d",
 		     TCL_STATIC);
       return TCL_ERROR;
     }
@@ -86,6 +87,7 @@ buildmesh(ClientData junk, Tcl_Interp *interp, int argc,
     case 'Q': build_Qmesh(m,n,lambda,alpha,beta,dtheta,x,y); break;
     case 'd': build_dmesh(m,n,alpha,beta,dtheta,x,y); break;
     case 'f': build_fmesh(m,n,alpha,beta,dtheta,x,y); break;
+    case 'b': build_abmesh(m,n,alpha,beta,dtheta,x,y); break;
     }
   } else {
     const mxtype *xin, *yin;

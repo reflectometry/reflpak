@@ -35,7 +35,7 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   variable pi_over_180
   set edges {}
   for {set p 0} {$p <= $pixels} {incr p} {
-    lappend edges [expr {atan2(($centerpixel-$p)*$pixelwidth, $distance) \
+    lappend edges [expr {-atan2(($centerpixel-$p)*$pixelwidth, $distance) \
 			     / $pi_over_180}]
   }
   return $edges
@@ -88,8 +88,15 @@ proc set_axes {id theta twotheta} {
 
     # XXX FIXME XXX edges doesn't work for single pixel scans
     # need to set theta/twotheta range based on resolution
-    fvector rec(alpha) [edges [fvector rec(column,$theta)]]
-    fvector rec(beta) [edges [fvector rec(column,$twotheta)]]
+    if {[flength rec(column,$theta)] == 1} {
+	set a [fvector rec(column,$theta)]
+	set b [fvector rec(column,$twotheta)]
+	fvector rec(alpha) [list [expr {$a-0.01}] [expr {$a+0.01}]]
+	fvector rec(beta) [list $b $b]
+    } else {
+	fvector rec(alpha) [edges [fvector rec(column,$theta)]]
+	fvector rec(beta) [edges [fvector rec(column,$twotheta)]]
+    }
 }
 
 # XXX FIXME XXX don't store mesh with the record otherwise we can't
@@ -118,6 +125,15 @@ proc mesh_TiTf {id} {
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
     set rec(xlabel) "theta_f (degrees)"
+    set rec(ylabel) "theta_i (degrees)"
+}
+
+proc mesh_AB {id} {
+    upvar \#0 $id rec
+    foreach {rec(x) rec(y)} [buildmesh -b \
+				 $rec(points) $rec(pixels) \
+				 rec(alpha) rec(beta) rec(dtheta)] {}
+    set rec(xlabel) "theta_i+theta_f (degrees)"
     set rec(ylabel) "theta_i (degrees)"
 }
 
@@ -211,8 +227,8 @@ proc center {path center} {
 proc transform {path type} {
     upvar plot plot
     set newtype [expr {$plot(mesh) != $type}]
-    if { [lsearch {QxQz TiTf TiTd pixel} $type] < 0 } {
-	error "transform $path $type: expected QxQz TiTf TiTd or pixel"
+    if { [lsearch {QxQz TiTf TiTd AB pixel} $type] < 0 } {
+	error "transform $path $type: expected QxQz TiTf TiTd AB or pixel"
     }
     set plot(mesh) $type
     set plot(mesh_entry) $type
@@ -296,7 +312,7 @@ proc new {w} {
     bind <Destroy> $w [namespace code [list unset P$w]]
 }
 
-# ===== demo functions =====
+# ===== plot window functions =====
 proc UpdateCenter {w} {
     findplot $w
     if { $plot(center_entry) != $plot(center) } {
@@ -312,18 +328,22 @@ proc UpdateMesh {w} {
 }
 
 
-proc demo_window {{w .plot}} {
+proc plot_window {{w .plot}} {
     if {![winfo exists $w]} {
 	toplevel $w -width 400 -height 500
 	wm protocol $w WM_DELETE_WINDOW [list wm withdraw $w]
     } else {
 	wm deiconify $w
 	raise $w
+	return
     }
+
+    # Create a plot window
     plot2d new $w.c
     findplot $w.c
     set pid [namespace current]::P$w.c
 
+    # Create a control panel
     set f $w.controls
     frame $f
 
@@ -335,7 +355,7 @@ proc demo_window {{w .plot}} {
 
     set plot(mesh_entry) $plot(mesh)
     label $f.ltransform -text "Transform"
-    spinbox $f.transform  -values {TiTf QxQz TiTd pixel} -width 5 \
+    spinbox $f.transform  -values {TiTf QxQz TiTd AB pixel} -width 5 \
 	-textvariable ${pid}(mesh_entry) \
 	-command [namespace code [list UpdateMesh $w.c]]
     grid $f.lcenter $f.center $f.ltransform $f.transform
@@ -349,7 +369,7 @@ proc demo_window {{w .plot}} {
 }
 
 proc demo {{mesh_style QxQz}} {
-    set w [demo_window]
+    set w [plot_window]
 
     ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
     ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2
