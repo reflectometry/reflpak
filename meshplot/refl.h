@@ -1,21 +1,25 @@
 #include "mx.h"
 
 void 
-build_mesh(int m, int n, const mxtype xin[], const mxtype yin[],
+build_mesh(const int m, const int n, const mxtype xin[], const mxtype yin[],
 	   mxtype x[], mxtype y[]);
 void 
-build_fmesh(int n, int m, 
+build_fmesh(const int n, const int m, 
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    mxtype x[], mxtype y[]);
 void 
-build_dmesh(int n, int m,
+build_dmesh(const int n, const int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    mxtype x[], mxtype y[]);
 void 
-build_abmesh(int n, int m,
+build_abmesh(const int n, const int m,
 	     const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	     mxtype x[], mxtype y[]);
 void
-build_Qmesh(int n, int m, mxtype lambda,
+build_Qmesh(const int n, const int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
-	    mxtype Qx[], mxtype Qz[]);
+	    const mxtype lambda, mxtype Qx[], mxtype Qz[]);
+void
+build_Lmesh(const int n, const int m,
+	    const mxtype alpha, const mxtype beta, const mxtype dtheta[],
+	    const mxtype lambda[], mxtype Qx[], mxtype Qz[]);

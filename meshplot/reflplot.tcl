@@ -31,6 +31,11 @@ proc plot2d {action path args} {
 }
 
 # ===== Helper functions which don't depend on plot =====
+proc isTOF {} {
+    upvar rec rec
+    return [info exists rec(TOF)]
+}
+
 proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   variable pi_over_180
   set edges {}
@@ -103,9 +108,15 @@ proc set_axes {id theta twotheta} {
 # plot the same record in multiple plots with different axes.
 proc mesh_QxQz {id} {
     upvar \#0 $id rec
-    foreach {rec(x) rec(y)} [buildmesh -Q $rec(L) \
-				 $rec(points) $rec(pixels) \
-				 rec(alpha) rec(beta) rec(dtheta)] {}
+    if {[isTOF]} {
+	foreach {rec(x) rec(y)} [buildmesh -L rec(lambda) \
+				     $rec(points) $rec(pixels) \
+				     $rec(A) $rec(B) rec(dtheta)] {}
+    } else {
+	foreach {rec(x) rec(y)} [buildmesh -Q $rec(L) \
+				     $rec(points) $rec(pixels) \
+				     rec(alpha) rec(beta) rec(dtheta)] {}
+    }
     set rec(xlabel) "Qx (inv Angstroms)"
     set rec(ylabel) "Qy (inv Angstroms)"
 }
@@ -200,6 +211,26 @@ proc auto_axes {path} {
 }
 
 # ==== Plotting operations ====
+proc calc_transform {path type} {
+    upvar plot plot
+    set plot(mesh) $type
+    set plot(mesh_entry) $type
+    set plot(points) 0
+    foreach id $plot(records) {
+	upvar \#0 $id rec
+	if { $type == "pixel" } {
+	    mesh_$type $id $plot(points)
+	    incr plot(points) $rec(points)
+	} else {
+	    mesh_$type $id
+	}
+	$path delete $plot($id)
+	set plot($id) \
+	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+    }
+}
+
+
 proc showall {path} {
     upvar plot plot
     auto_axes $path
@@ -218,10 +249,11 @@ proc center {path center} {
 	foreach id $plot(records) {
 	    set_center_pixel $id $center
 	}
-	transform $path $plot(mesh)
+	calc_transform $path $plot(mesh)
     }
     # XXX FIXME XXX center shouldn't know about center_entry
     set plot(center_entry) $center
+    $path draw
 }
 
 proc transform {path type} {
@@ -230,21 +262,7 @@ proc transform {path type} {
     if { [lsearch {QxQz TiTf TiTd AB pixel} $type] < 0 } {
 	error "transform $path $type: expected QxQz TiTf TiTd AB or pixel"
     }
-    set plot(mesh) $type
-    set plot(mesh_entry) $type
-    set plot(points) 0
-    foreach id $plot(records) {
-	upvar \#0 $id rec
-	if { $type == "pixel" } {
-	    mesh_$type $id $plot(points)
-	    incr plot(points) $rec(points)
-	} else {
-	    mesh_$type $id
-	}
-	$path delete $plot($id)
-	set plot($id) \
-	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
-    }
+    calc_transform $path $type
     if {$newtype} { auto_axes $path }
     $path draw
 }
@@ -295,6 +313,9 @@ proc delete {path records} {
 	$path delete $plot($id)
 	array unset plot $id
     }
+
+    # reset point number
+    if { $plot(mesh) == "pixel" } { calc_transform $path $plot(mesh)}
 
     # reset axes
     auto_axes $path
@@ -348,7 +369,7 @@ proc plot_window {{w .plot}} {
     frame $f
 
     set plot(center_entry) $plot(center)
-    label $f.lcenter -text "Center"
+    label $f.lcenter -text "Qz=0 pixel"
     entry $f.center -textvariable ${pid}(center_entry) -width 4
     bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
     bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
@@ -358,6 +379,8 @@ proc plot_window {{w .plot}} {
     spinbox $f.transform  -values {TiTf QxQz TiTd AB pixel} -width 5 \
 	-textvariable ${pid}(mesh_entry) \
 	-command [namespace code [list UpdateMesh $w.c]]
+    bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
+    bind $f.transform <Leave> [namespace code [list UpdateMesh $w.c]]
     grid $f.lcenter $f.center $f.ltransform $f.transform
 
 
