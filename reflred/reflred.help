@@ -727,3 +727,65 @@ Click "Cancel" to close the choose window.
 
 2002-09-13}
 
+# ----------------------------------------------------------------------
+hpage {NG7 PSD} {Here's the current code for psd reduction on NG-7:
+
+ # measured monitor M
+ # pixel intensity  I
+
+ # Look up the dead time correction for the monitor from a calibration
+ # file by computing the rate and performing a linear interpolation
+ # on that rate.
+ t = prf*(mon + Mon1*abs(Qz)^Exp)
+ rate = M/t
+ c = interp(calibration,rate)
+
+ # corrected monitor for rate (make sure it is at least 1)
+ dM = sqrt(m)*c
+ M = m*c
+ M(M==0) = 1
+
+ # Normalize intensity by monitor
+ dI = sqrt ( (sqrt(I)/M)^2 + (I dM/M^2)^2 )
+ I = I/M
+
+ # Point k has lines of integration crossing at pixel M and N
+ # Find corresponding background lines of equal area.
+ # Note the clipping; background may be underestimated at high Q
+ # if the integration region goes to the outer quarter of the detector
+ w = (M-N+1)/2
+ m = max(1, M-floor(w))
+ n = min(pixels, N+ceil(w))
+
+ # Integrate specular
+ S = sum_{i=M}^N  I_i
+ dS = sqrt( sum_{i=M}^N dI_i^2 )
+ 
+ # Integrate specular + background
+ T = sum_{i=m}^n I_i
+ dT = sqrt( sum_{i=m}^n dI_i^2 )
+ 
+ # Background is (specular + background) - specular
+ B = T - S
+ dB = sqrt(dT^2 - dS^2)
+
+ # Reduced value is (specular - background)
+ R = S - B
+ dR = dT
+
+ # In the reduce screen there will be a detector to monitor
+ # ratio correction.
+ 
+calibration:
+ 
+   304    1.
+  1788    1.0074
+  6812    1.0672
+ 13536    1.1399
+ 19426    1.2151
+ 24022    1.2944
+ 27771    1.370
+ 31174    1.429
+
+2005-07-19}
+
