@@ -790,6 +790,11 @@ static void show_hits(GLint hits, GLuint select[])
 int pick_debug = 0;
 void plot_pick(const PReal limits[], const int stack[], int x, int y)
 {
+#if 0  
+	
+  /* libGLU requires libstdc++ which is presently having versioning 
+   * problems on some machines.  Suppress it for now.
+   */
   GLuint select[SELECT_BUFFER_LENGTH];
   GLint hits;
   GLint viewport[4];
@@ -828,6 +833,7 @@ void plot_pick(const PReal limits[], const int stack[], int x, int y)
     hits = glRenderMode (GL_RENDER);
     show_hits(hits,select);
   }
+#endif
 }
 
 #if 0

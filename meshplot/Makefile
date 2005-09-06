@@ -5,7 +5,7 @@ USE_X11 = 1
 
 GLDEF    = -DTOGL_X11
 GLINC    = -I/usr/X11R6/include
-GLLIBS   = -L/usr/X11R6/lib -lGLU -lGL -lXmu -lXt -lX11
+GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
 GLUTINC  = 
 GLUTLIBS = -lglut
 
