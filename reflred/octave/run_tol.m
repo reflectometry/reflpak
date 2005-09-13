@@ -9,5 +9,5 @@
 ## points, but that doesn't work very well if points are repeated
 ## or if there is only one point.
 function tol = run_tol(x1, x2, fuzz)
-    tol = 1e-4;
+    tol = 100*eps;
 endfunction
