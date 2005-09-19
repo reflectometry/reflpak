@@ -33,9 +33,9 @@
 
 typedef void (*fitFunc)(double [], double [], double [], double [], int, int);
 
-FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
+double mrqmin(double x[], double y[], double sig[], int ndata, double a[],
    int ma, int lista[], int mfit, dynarray covar, dynarray alpha,
-   double beta[], int nca, double *chisq, fitFunc funcs, double *alamda,
+   double beta[], int nca, double old_chisq, fitFunc funcs, double *alamda,
    FILE *unit99);
 
 #endif /* _MRQMIN_H */

@@ -31,26 +31,32 @@
 /* Local function prototypes */
 #include <static.h>
 
-STATIC void mrqcof(double x[], double y[], double sig[], int ndata, double a[],
+STATIC double 
+mrqcof(double x[], double y[], double sig[], int ndata, double a[],
    int ma, int lista[], int mfit, dynarray alpha, double beta[], int nalp,
-   double *chisq, fitFunc funcs);
-STATIC void gaussj(dynarray a, int n, int np, double b[], int m, int mp);
+   fitFunc funcs);
+STATIC void 
+gaussj(dynarray a, int n, int np, double b[], int m, int mp);
 
 
-FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
+/* Return chisq; stop if new chisq is not significantly different
+   from old chisq.
+ */
+double mrqmin(double x[], double y[], double sig[], int ndata, double a[],
    int ma, int lista[], int mfit, dynarray covar, dynarray alpha,
-   double beta[], int nca, double *chisq, fitFunc funcs, double *alamda,
+   double beta[], int nca, double old_chisq, fitFunc funcs, double *alamda,
    FILE *unit99)
 {
 /* Set to largest number of fit parameters */
 #define NMAX NA
 
    static double atry[NMAX], da[NMAX];
-   double ochisq;
+   double chisq = -1.;
    register int kk, j, k;
    int ihit;
 
 
+   /* printf("try\n"); */
    /* Initialization of fit matrices */
    if (*alamda < 0.) {
       kk = mfit;
@@ -66,21 +72,14 @@ FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
             puts("/** Improper permutation in LISTA **/");
       }
       if (kk != ma) puts("/** Improper permutation in LISTA **/");
-      *alamda = 1.;
-      mrqcof(x, y, sig, ndata, a, ma, lista, mfit, alpha, beta, nca, chisq, funcs);
-      ochisq = *chisq;
+      *alamda = 0.001;
+      chisq = mrqcof(x, y, sig, ndata, a, ma, lista, mfit, alpha, beta, nca, funcs);
       for (j = 0; j < ma; j++)
          atry[j] = a[j];
 
-#if 0 /* Let the caller decide if they want a fort.99 file */
-      unit99 = (
-         (unit99) ?
-         freopen("fort.99", "a", unit99) :
-         fopen("fort.99", "a")
-      );
-#endif
       if (unit99)
          fputs("# Begin fit\n", unit99);
+      return chisq;
    }
 
    /* Alter linearized fitting matrix by augmenting diagonal elements */
@@ -95,7 +94,7 @@ FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
    gaussj(covar, mfit, nca, da, 1, 1);
 
    /* Exit if simply evaluating the COVAR matrix */
-   if (*alamda == 0.) return unit99;
+   if (*alamda == 0.) return old_chisq;
 
    /* Did the trial succeed? */
    for (j = 0; j < ma; j++)
@@ -106,13 +105,12 @@ FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
       if (unit99)
 	fprintf(unit99, " ATRY%3d: %#15.7G\n", lista[j] + 1, atry[lista[j]]);
    }
-   ochisq = *chisq;
-   mrqcof(x, y, sig, ndata, atry, ma, lista, mfit, covar, da, nca, chisq, funcs);
+   chisq = mrqcof(x, y, sig, ndata, atry, ma, lista, mfit, covar, da, nca, funcs);
 
-   /* Success, accept the new solution */
-   if (*chisq < ochisq) {
+   /* Success, accept the new solution and decrease ALAMDA */
+   if (chisq < old_chisq) {
+      /* printf("success --- decrease ALAMDA to %g\n",*alamda); */
       *alamda *= 0.1;
-      ochisq = *chisq;
       for (j = 0; j < mfit; j++) {
          for (k = 0; k < mfit; k++)
             refray(alpha,j,k) = refray(covar,j,k);
@@ -123,12 +121,13 @@ FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
 	   fprintf(unit99, " A(%3d): %#15.7G\n", lista[j] + 1, atry[lista[j]]);
       }
 
-   /* Failure, increase ALAMDA and return */
+   /* Failure, ignore the new solution and increase ALAMDA */
    } else {
+      /* printf("fail --- increase ALAMDA to %g\n",*alamda); */
       *alamda *= 10.;
-      *chisq = ochisq;
    }
-   return unit99;
+
+   return chisq;
 }
 
 
@@ -136,11 +135,13 @@ FILE *mrqmin(double x[], double y[], double sig[], int ndata, double a[],
    and vector BETA as in (14.4.8)
    John Ankner 24-April-1989 */
 
-STATIC void mrqcof(double x[], double y[], double sig[], int ndata, double a[],
+STATIC double 
+mrqcof(double x[], double y[], double sig[], int ndata, double a[],
    int ma, int lista[], int mfit, dynarray alpha, double beta[], int nalp,
-   double *chisq, fitFunc funcs)
+   fitFunc funcs)
 {
    register int i, j, k;
+   double chisq;
 
    /* Initialize symmetric ALPHA,BETA */
    for (j = 0; j < mfit; j++) {
@@ -148,7 +149,7 @@ STATIC void mrqcof(double x[], double y[], double sig[], int ndata, double a[],
          refray(alpha,j,k) = 0.;
       beta[j] = 0.;
    }
-   *chisq = 0.;
+   chisq = 0.;
 
    /* Summation loop over all data */
    (*funcs)(x, a, ymod, dyda, ndata, ma);
@@ -164,13 +165,15 @@ STATIC void mrqcof(double x[], double y[], double sig[], int ndata, double a[],
          beta[j] += dy * wt;
       }
       /* And find CHISQ */
-      *chisq += dy * dy * sig2i;
+      chisq += dy * dy * sig2i;
    }
 
    /* Fill in the symmetric side */
    for (j = 1; j < mfit; j++)
       for (k = 0; k < j; k++)
          refray(alpha,k,j) = refray(alpha,j,k);
+
+   return chisq;
 }
 
 
