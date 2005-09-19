@@ -82,7 +82,10 @@ icons=$(fiticons) $(pakicons) $(redicons)
 
 .PHONY: $(SUBDIRS) ChangeLog
 
-all: $(SUBDIRS) kit/reflpak$(EXE)
+all: $(SUBDIRS) kit kit/reflpak$(EXE)
+
+kit:
+	mkdir kit
 
 kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
