@@ -363,6 +363,7 @@ debug_message("sendprofile nglay=%d, gd=%p,gmu=%p\n",nglay,gd,gmu);
 static void sendfit (Tcl_Interp *interp)
 {
   int j;
+  Tcl_ResetResult(interp);
   for (j=0; j < mfit; j++) {
     char result[150], varName[10];
     genva(listA + j, 1, varName);
