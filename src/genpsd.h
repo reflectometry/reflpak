@@ -8,11 +8,13 @@
 
 struct layerparams {double qcsq[MAXLAY], qcmsq[MAXLAY], mu[MAXLAY], d[MAXLAY], rough[MAXLAY];};
 
+struct fitparameters {
+  struct layerparams top, mid, bot;
+  double dbki, dbmintns;
+};
+
 COMMON union {
-   struct {
-      struct layerparams top, mid, bot;
-      double dbki, dbmintns;
-   } layers;
+   struct fitparameters layers;
    double a[NA];
 } fitvars, fitunc;
 

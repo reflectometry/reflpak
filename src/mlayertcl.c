@@ -204,11 +204,34 @@ int ipc_fitupdate(void)
   }
   return TCL_OK;
 }
+
+static void clipdepth(int del, double a[], int nt, int nm, int nr, int nb)
+{
+  struct fitparameters *p = (struct fitparameters *)a;
+  int i;
+
+  for (i=0; i < nt; i++) {
+    if (p->top.d[i] < 0.) p->top.d[i] = 0.;
+    if (p->top.rough[i] < 1e-10) p->top.rough[i] = 1e-10;
+  }
+  for (i=0; i < nm; i++) {
+    if (p->mid.d[i] < 0.) p->mid.d[i] = 0.;
+    if (p->mid.rough[i] < 1e-10) p->mid.rough[i] = 1e-10;
+  }
+  for (i=0; i < nb; i++) {
+    if (p->bot.d[i] < 0.) p->bot.d[i] = 0.;
+    if (p->bot.rough[i] < 1e-10) p->bot.rough[i] = 1e-10;
+  }
+}
+
 static void tclconstraints(int del, double a[], int nt, int nm, int nr, int nb)
 {
   int ret;
 
-  if (fit_constraints && !abortFit) {
+  if (abortFit) return;
+
+  clipdepth(del,a,nt,nm,nr,nb);
+  if (fit_constraints) {
     genshift(a,FALSE);
     ret = Tcl_Eval(fit_interp, fit_constraints);
     if (ret == TCL_OK) {
@@ -377,6 +400,7 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
 
   } else if (strcmp(argv[1], "fit") == 0) {
     /* XXX FIXME XXX shouldn't need 'fitting' */
+    Constrain = tclconstraints;
     fitting = 1;
     fit_callback = what;
     fitReflec("FRG ");
@@ -387,11 +411,9 @@ gmlayer_TclCmd(ClientData data, Tcl_Interp *interp,
   } else if (strcmp(argv[1], "constraints") == 0) {
     if (fit_constraints != NULL) Tcl_Free(fit_constraints);
     if (*what != '\0') {
-	Constrain = tclconstraints;
 	fit_constraints = Tcl_Alloc(strlen(what)+1);
 	strcpy(fit_constraints, what);
     } else {
-	Constrain = noconstraints;
 	fit_constraints = NULL;
     }
 
