@@ -15,7 +15,7 @@ TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.so
 WISH=$(TCL_PREFIX)/bin/bltwish
 
-NCNRKIT=~/bin/ncnrkit5
+NCNRKIT=~/bin/ncnrpack4
 
 # Fortran compiler
 #F77=g77
