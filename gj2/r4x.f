@@ -348,7 +348,7 @@ C         W below is U and V is -V of printed versions
           DETW=W22*W11-W12*W21
 
 C         Calculate reflectivity coefficients specified by POLSTAT
-          if (isnull(YA)) then
+          if (.not.isnull(YA)) then
              X = (V21*W12-V11*W22)/DETW
 #ifdef AMPLITUDE
              YA(NQ) = X
@@ -356,7 +356,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YA(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (isnull(YB)) then
+          if (.not.isnull(YB)) then
              X = (V11*W21-V21*W11)/DETW
 #ifdef AMPLITUDE
              YB(NQ) = X
@@ -364,7 +364,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YB(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (isnull(YC)) then
+          if (.not.isnull(YC)) then
              X = (V22*W12-V12*W22)/DETW
 #ifdef AMPLITUDE
              YC(NQ) = X
@@ -372,7 +372,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YC(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (isnull(YD)) then
+          if (.not.isnull(YD)) then
              X = (V12*W21-V22*W11)/DETW
 #ifdef AMPLITUDE
              YD(NQ) = X
