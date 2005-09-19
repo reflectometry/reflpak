@@ -98,7 +98,7 @@ the closest configuration file as a starting point.
 
 Make sure you have ncnrkit and sdx.kit for your computer architecture.
 Both are available from the reflpak web pages, or you may build
-your own according to the instructions in mkncnrkit.  
+your own (type ./mkncnrkit for instructions).
 
 Note that you can run without ncnrkit if you have the appropriate tcl 
 environment already setup.  Just change 'ncnrkit' to 'wish' in 
