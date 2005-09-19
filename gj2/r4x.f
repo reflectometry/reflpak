@@ -73,6 +73,8 @@ c       constants
         double complex CR,CI
         parameter (PI=3.14159265358979)
         parameter (CI=(0.0,1.0),CR=(1.0,0.0))
+	external isnull
+	logical isnull
 
 #ifdef MINUSQ
         integer TOP,BOTTOM,FRONT,BACK
@@ -346,7 +348,7 @@ C         W below is U and V is -V of printed versions
           DETW=W22*W11-W12*W21
 
 C         Calculate reflectivity coefficients specified by POLSTAT
-          if (loc(YA) .NE. 0) then
+          if (isnull(YA)) then
              X = (V21*W12-V11*W22)/DETW
 #ifdef AMPLITUDE
              YA(NQ) = X
@@ -354,7 +356,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YA(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (loc(YB) .NE. 0) then
+          if (isnull(YB)) then
              X = (V11*W21-V21*W11)/DETW
 #ifdef AMPLITUDE
              YB(NQ) = X
@@ -362,7 +364,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YB(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (loc(YC) .NE. 0) then
+          if (isnull(YC)) then
              X = (V22*W12-V12*W22)/DETW
 #ifdef AMPLITUDE
              YC(NQ) = X
@@ -370,7 +372,7 @@ C         Calculate reflectivity coefficients specified by POLSTAT
              YC(NQ) = (DREAL(X))**2+(DIMAG(X))**2
 #endif
           endif
-          if (loc(YD) .NE. 0) then
+          if (isnull(YD)) then
              X = (V12*W21-V22*W11)/DETW
 #ifdef AMPLITUDE
              YD(NQ) = X

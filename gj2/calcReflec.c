@@ -14,6 +14,13 @@
 #include <genpsi.h>
 #include <genpsd.h>
 
+/* gfortran doesn't define loc(), so provide fortran with
+ * the function isnull to test if the pointer is null.
+ */
+
+#define isnull isnull_
+int isnull(double q[]) { return q == NULL; }
+
 #ifdef MINUSQ
 /* Local function prototypes */
 
@@ -36,7 +43,6 @@ double tic(void)
   return delta;
 }
 #endif
-
 
 
 void calcReflec(double qtemp[], void *y, int npnts, int intens)
