@@ -443,9 +443,9 @@ proc layer { number field {value {}} } {
     # roughnesses if they are too large.  If you are modifying roughness,
     # it will be limited to the surrounding depths.
     if { $update } {
-	# force depth/roughness >= 1
+	# force depth/roughness >= 0
 	switch $field {
-	    depth - ro - mdepth - mro { if { $value < 1 } { set value 1 } }
+	    depth - ro - mdepth - mro { if { $value < 0 } { set value 0 } }
 	}
 
 	# the code to handle nuclear and magnetic depths is identical
