@@ -1582,7 +1582,7 @@ proc try_fit {} {
     # Need to catch any errors in do_fit since this thread must run to
     # completion before the fit button is re-enabled.
     push_pars
-     if { [catch { do_fit } msg ] } {
+    if { [catch { do_fit } msg ] } {
 	tk_messageBox -message "Internal error - do_fit\n$msg" -type ok
     }
 
@@ -2513,8 +2513,9 @@ proc rescale {} {
 
 
     # set reasonable limits on the x-axis
-    .layers axis conf x -min 0 \
-	    -max [expr 1.5 * [ layer [expr $::num_layers - 1 ] offset ] ]
+    set max [expr {1.5 * [layer [expr {$::num_layers - 1}] offset]}]
+    if { $max <= 0 } { set max 1e-4 }
+    .layers axis conf x -min 0 -max $max
 
     if {0} {
 	# move the rescale button to the correct place
