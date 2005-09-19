@@ -90,6 +90,7 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
          parmFileError(parfile, line);
          return BADPARMDATA;
       } else line++;
+      if (*nrepeat < 1) *nrepeat = 1;
       fgets(filebuf, FBUFFLEN, unit1);
       if (sscanf(filebuf, "%lf %lf %lf", lambda, lamdel, thedel) != 3) {
          parmFileError(parfile, line);
