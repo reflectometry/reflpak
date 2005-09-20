@@ -146,6 +146,8 @@ int fitReflec(char *command)
    int failed = FALSE;
    int ndata;
    register int j;
+   double sumsq, old_sumsq;
+   void icp_fitupdate(void);
 
    /* Read in data */
    loadData(infile, xspin);
@@ -202,32 +204,34 @@ int fitReflec(char *command)
 
             /* Initialize fit routine */
             alamda = -1.;
-            unit99 = mrqmin(xdat, ydat, srvar, ndata, a, NA, listA, mfit,
-                   Covar, Alpha, beta, NA, &chisq, fgenm4, &alamda, NULL);
+            sumsq = mrqmin(xdat, ydat, srvar, ndata, a, NA, listA, mfit,
+                   Covar, Alpha, beta, NA, 0., fgenm4, &alamda, NULL);
 	    if (sendgui) { ipc_fitupdate(); }
-            else printf("\n Chi-squared: %#15.7G\n", chisq / (double) (ndata - mfit));
+            else printf("\n Chi-squared: %#15.7G\n", sumsq / (double) (ndata - mfit));
             if (gnuPipe)
-               preFitFrame(command, gnuPipe, xspin, chisq / (double) (ndata - mfit));
+               preFitFrame(command, gnuPipe, xspin, sumsq / (double) (ndata - mfit));
 
-            /* Apply MRQMIN until CHISQ changes by less than 5.e-3 */
+            /* Apply MRQMIN until CHISQ changes by less than 5.e-4 */
             /* on successive iterations */
-            ochisq = 1.e20;
-            while (!abortFit && fabs((chisq - ochisq) / chisq) > 5.e-3) {
-               ochisq = chisq;
-               mrqmin(xdat, ydat, srvar, ndata, a, NA, listA, mfit,
-                      Covar, Alpha, beta, NA, &chisq, fgenm4, &alamda, unit99);
-	       if (sendgui) { ipc_fitupdate(); }
-               else printf("\n Chi-squared: %#15.7G\n", chisq / (double) (ndata - mfit));
+            old_sumsq = 2*sumsq; /* force the first step */
+            while (!abortFit && fabs(sumsq - old_sumsq) > 5.e-4*sumsq) {
+               old_sumsq = sumsq;
+               sumsq = mrqmin(xdat, ydat, srvar, ndata, a, NA, listA, mfit,
+                      Covar, Alpha, beta, NA, old_sumsq, fgenm4, &alamda, unit99);
+	       if (sumsq<old_sumsq) { /* Improvement */
+		 chisq = sumsq; /* update assumes global variable */
+	         if (sendgui) ipc_fitupdate();
+                 else printf("\n Chi-squared: %#15.7G\n", sumsq / (double) (ndata - mfit));
+	       }
                if (gnuPipe)
-                  fitFrame(gnuPipe, xspin, chisq / (double) (ndata - mfit));
-               if (chisq < 1.e-10) chisq = 1.e-10;
+                  fitFrame(gnuPipe, xspin, sumsq / (double) (ndata - mfit));
             }
             if (abortFit && !sendgui) puts("\nAborting the fit.");
 
             /* Finished--calculate covariance matrix */
             alamda = 0.;
             mrqmin(xdat, ydat, srvar, ndata, a, NA, listA, mfit,
-                   Covar, Alpha, beta, NA, &chisq, fgenm4, &alamda, unit99);
+                   Covar, Alpha, beta, NA, old_sumsq, fgenm4, &alamda, unit99);
 
             /* Restore signal handlers */
             signal(SIGINT, oldhandler);
