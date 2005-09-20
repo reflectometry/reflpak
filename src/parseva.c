@@ -25,6 +25,12 @@ int parseva(char *command)
    else if (strncmp(command, "BI", 2) == 0)
       nc = NA;
 
+   /* Check for vacuum layer */
+   else if (strncmp(command, "VQC", 3) == 0)
+      nc = 1;
+   else if (strncmp(command, "VMU", 3) == 0)
+      nc = 2*MAXLAY + 1;
+
    /* Check for numbered variables (note the ordering in the large
       group of equivalence statements in subroutine GENSHIFT and
       compare to that in main program) */
