@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 #include "refl.h"
 
 
@@ -52,8 +53,8 @@ particularly near Qx,Qy = 0.
 */
 
 void
-QxQz_to_AlphaBeta(const mxtype Qx, const mxtype Qz, const mxtype lambda,
-		  mxtype *alpha, mxtype *beta)
+QxQz_to_AlphaBeta(const double Qx, const double Qz, const double lambda,
+		  double *alpha, double *beta)
 {
   mxtype T,B,A;
 
@@ -70,8 +71,8 @@ QxQz_to_AlphaBeta(const mxtype Qx, const mxtype Qz, const mxtype lambda,
 
 
 void
-QxQz_to_BetaLambda(const mxtype Qx, const mxtype Qz, const mxtype alpha,
-		   mxtype *beta, mxtype *lambda)
+QxQz_to_BetaLambda(const double Qx, const double Qz, const double alpha,
+		   double *beta, double *lambda)
 {
   mxtype T,B,L;
 
@@ -83,6 +84,77 @@ QxQz_to_BetaLambda(const mxtype Qx, const mxtype Qz, const mxtype alpha,
 
   *beta = B;
   *lambda = L;
+}
+
+/* Search for a value in a particular interval.  Return the interval.
+ *
+ * The list of values is assumed to be strictly monotonic increasing.
+ * The value is in the semiopen interval [x_i,x_{i+1}) where i is the
+ * returned index.  The returned value is -1 if the value is not in
+ * any interval.
+
+ * Developed and tested in Octave using the following code:
+
+function lo=interval(x,v)
+  if length(x) < 2 || v < x(1) || v >= x(end)
+    lo = -1;
+  else
+    lo = 0;
+    hi = length(x)-1;
+    while (lo < hi-1)
+      mid = floor((lo+hi)/2);
+      if (v < x(mid+1)) hi=mid;
+      else lo=mid;
+      end
+    end
+  end
+
+%!assert(interval(1:5,0),-1)
+%!assert(interval(1:5,1),0)
+%!assert(interval(1:5,1.5),0)
+%!assert(interval(1:5,2),1)
+%!assert(interval(1:5,3),2)
+%!assert(interval(1:5,4),3)
+%!assert(interval(1:5,5),-1)
+%!assert(interval([],5),-1)
+%!assert(interval(1,0),-1)
+%!assert(interval(1,1),-1)
+%!assert(interval(1:2,0),-1)
+%!assert(interval(1:2,1),0)
+%!assert(interval(1:2,2),-1)
+
+ */
+static int
+interval(const int n, const mxtype x[], const mxtype v)
+{
+  int lo = 0, hi=n-1;
+  if (n < 2) return -1;
+  if (x[0] < x[n-1]) {
+    /* Ascending */
+    if (v < x[0] || v >= x[n-1]) return -1;
+    while (lo < hi-1) {
+      const int mid = (lo+hi)/2;
+      if (v < x[mid]) hi=mid;
+      else lo=mid;
+    }
+  } else {
+    /* Descending */
+    if (v >= x[0] || v < x[n-1]) return -1;
+    while (lo < hi-1) {
+      const int mid = (lo+hi)/2;
+      if (v >= x[mid]) hi=mid;
+      else lo=mid;
+    }
+  }
+  return lo;
+}
+
+/* Calculate skew for a point between the lines in a skewed grid so that 
+ * we can lookup the x-coordinate grid x-spacing. */
+static mxtype skew(const mxtype y, const mxtype ybelow, const mxtype yabove,
+		   const mxtype skewbelow, const mxtype skewabove)
+{
+  return (y-ybelow)*(skewabove-skewbelow)/(yabove-ybelow) + skewbelow;
 }
 
 
@@ -129,6 +201,11 @@ QxQz_to_BetaLambda(const mxtype Qx, const mxtype Qz, const mxtype alpha,
  *     Constructs point vs. bin.  Using alpha instead of points and
  *     dtheta instead of bins we can construct theta_i vs. bin and
  *     theta_i vs. dtheta.
+ *
+ * Each build_?mesh function has a corresponding find_in_?mesh function
+ * which takes the same parameters, with x,y being a scalar value to look
+ * up in the mesh.  The returned integer is an index into the (n-1)x(m-1)
+ * array of points at the center of the mesh quad j,k, formed by j*(n-1)+k.
  * 
  * Creating the set of bin edges is an easy enough problem that it
  * can be done in a script.
@@ -174,9 +251,10 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
 
  */
 
+/* ==== Rectilinear mesh ==== */
 void 
-build_mesh(const int m, const int n, 
-	   const mxtype xin[], const mxtype yin[],
+build_mesh(const int n, const int m, 
+	   const mxtype yin[], const mxtype xin[],
 	   mxtype x[], mxtype y[])
 {
   int idx = 0;
@@ -190,6 +268,21 @@ build_mesh(const int m, const int n,
   }
 }
 
+int
+find_in_mesh(const int n, const int m, 
+	     const mxtype yin[], const mxtype xin[],
+	     const mxtype x, const mxtype y)
+{
+  int j,k;
+
+  j = interval(n+1,yin,y);
+  if (j < 0) return -1;
+  k = interval(m+1,xin,x);
+  if (k < 0) return -1;
+  return m*j + k;
+}
+
+/* ==== Skewed mesh: beta-alpha vs dtheta ==== */
 void 
 build_fmesh(const int n, const int m, 
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
@@ -198,14 +291,32 @@ build_fmesh(const int n, const int m,
   int idx = 0;
   int j, k;
   for (j=0; j <= n; j++) {
+    const mxtype theta = beta[j] - alpha[j];
     for (k=0; k <= m; k++) {
       y[idx] = alpha[j];
-      x[idx] = beta[j] - alpha[j] + dtheta[k];
+      x[idx] = theta + dtheta[k];
       idx++;
     }
   }
 }
 
+int
+find_in_fmesh(const int n, const int m,
+	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	      const mxtype x, const mxtype y)
+{
+  int j, k;
+  mxtype dx;
+
+  j = interval(n+1,alpha,y);
+  if (j < 0) return -1;
+  dx = x-skew(y,alpha[j],alpha[j+1],beta[j]-alpha[j],beta[j+1]-alpha[j+1]);
+  k = interval(m+1,dtheta,dx);
+  if (k < 0) return -1;
+  return m*j + k;
+}
+
+/* == skewed mesh, alpha vs beta == */
 void 
 build_abmesh(const int n, const int m, 
 	     const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
@@ -214,14 +325,32 @@ build_abmesh(const int n, const int m,
   int idx = 0;
   int j, k;
   for (j=0; j <= n; j++) {
+    const mxtype theta = beta[j];
     for (k=0; k <= m; k++) {
       y[idx] = alpha[j];
-      x[idx] = beta[j] + dtheta[k];
+      x[idx] = theta + dtheta[k];
       idx++;
     }
   }
 }
 
+int
+find_in_abmesh(const int n, const int m,
+	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	      const mxtype x, const mxtype y)
+{
+  int j, k;
+  mxtype dx;
+
+  j = interval(n+1,alpha,y);
+  if (j < 0) return -1;
+  dx = x-skew(y,alpha[j],alpha[j+1],beta[j],beta[j+1]);
+  k = interval(m+1,dtheta,dx);
+  if (k < 0) return -1;
+  return m*j + k;
+}
+
+/* == skewed mesh, alpha vs. beta - 2*alpha == */
 void 
 build_dmesh(const int n, const int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
@@ -230,14 +359,32 @@ build_dmesh(const int n, const int m,
   int idx = 0;
   int j, k;
   for (j=0; j <= n; j++) {
+    const mxtype theta = beta[j]-2*alpha[j];
     for (k=0; k <= m; k++) {
       y[idx] = alpha[j];
-      x[idx] = beta[j] - 2*alpha[j] + dtheta[k];
+      x[idx] = theta + dtheta[k];
       idx++;
     }
   }
 }
 
+int
+find_in_dmesh(const int n, const int m,
+	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	      const mxtype x, const mxtype y)
+{
+  int j, k;
+  mxtype dx;
+
+  j = interval(n+1,alpha,y);
+  if (j < 0) return -1;
+  dx = x-skew(y,alpha[j],alpha[j+1],beta[j]-2*alpha[j],beta[j+1]-2*alpha[j+1]);
+  k = interval(m+1,dtheta,dx);
+  if (k < 0) return -1;
+  return m*j + k;
+}
+
+/* == warped mesh, Qx vs Qz from beta-alpha, delta theta == */
 void
 build_Qmesh(const int n, const int m, 
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
@@ -259,6 +406,28 @@ build_Qmesh(const int n, const int m,
     }
   }
 }
+
+int
+find_in_Qmesh(const int n, const int m, 
+	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	      const mxtype lambda, const mxtype Qx, const mxtype Qz)
+{
+  double A,B;
+  mxtype dx;
+  int j,k;
+
+  if (fabs(Qz) < 1.e-10) return -1; /* Ignore main beam for now */
+
+  QxQz_to_AlphaBeta(Qx,Qz,lambda,&A,&B);
+  j = interval(n+1,alpha,A);
+  if (j < 0) return -1;
+  dx = B-skew(A,alpha[j],alpha[j+1],beta[j],beta[j+1]);
+  k = interval(m+1,dtheta,dx);
+  if (k < 0) return -1;
+  return m*j + k;
+}
+
+/* == warped mesh, Qx vs. Qz from delta-theta, lambda == */
 
 void
 build_Lmesh(const int n, const int m, 
@@ -282,72 +451,23 @@ build_Lmesh(const int n, const int m,
   }
 }
 
-/* Search for a value in a particular interval.  Return the interval.
- *
- * The list of values is assumed to be strictly monotonic increasing.
- * The value is in the semiopen interval [x_i,x_{i+1}) where i is the
- * returned index.  The returned value is -1 if the value is not in
- * any interval.
- */
-static int
-interval(const int n, const mxtype x[], const mxtype v)
-{
-  int lo = 0, hi=n-1;
-  if (n < 2 || v < x[0] || v >= x[n-1]) return -1;
-  while (lo < hi-1) {
-    const int mid = (lo+hi)/2;
-    if (v < x[mid]) hi = mid;
-    else lo=mid;
-  }
-  return lo;
-}
-
 int
-find_in_Lmesh(const int n, const int m, const mxtype lambda[],
+find_in_Lmesh(const int n, const int m, 
 	      const mxtype alpha, const mxtype beta, const mxtype dtheta[],
-	      const mxtype Qx, const mxtype Qz)
+	      const mxtype lambda[], const mxtype Qx, const mxtype Qz)
 {
-  mxtype x,y;
+  double B,L;
+  mxtype dx;
   int j,k;
 
   if (fabs(Qz) < 1.e-6) return -1; /* Ignore main beam for now */
 
-  QxQz_to_BetaLambda(Qx,Qz,alpha,&x,&y);
-  j = interval(n,lambda,x);
+  QxQz_to_BetaLambda(Qx,Qz,alpha,&B,&L);
+  j = interval(n+1,lambda,L);
   if (j < 0) return -1;
-  k = interval(m,dtheta,y-beta);
+  dx = B-skew(L,lambda[j],lambda[j+1],beta,beta);
+  k = interval(m+1,dtheta,dx);
   if (k < 0) return -1;
-  return n*j + k;
+  return m*j + k;
 }
 
-int
-find_in_Qmesh(const int n, const int m, const mxtype lambda,
-	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
-	      const mxtype Qx, const mxtype Qz)
-{
-  mxtype x,y;
-  int j,k;
-
-  if (fabs(Qz) < 1.e-6) return -1; /* Ignore main beam for now */
-
-  QxQz_to_AlphaBeta(Qx,Qz,lambda,&x,&y);
-  j = interval(n,alpha,x);
-  if (j < 0) return -1;
-  k = interval(m,dtheta,y-beta[j]);
-  if (k < 0) return -1;
-  return n*j + k;
-}
-
-int
-find_in_dmesh(const int n, const int m,
-	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
-	      const mxtype x, const mxtype y)
-{
-  int j, k;
-
-  j = interval(n,alpha,x);
-  if (j < 0) return -1;
-  k = interval(m,dtheta,y-beta[j]);
-  if (k < -1) return -1;
-  return n*j + k;
-}
