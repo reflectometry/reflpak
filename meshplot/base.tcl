@@ -1,3 +1,17 @@
+proc findex {name idxstr} {
+    if {[fprecision] == 8} { set pattern d } else { set pattern f }
+    upvar $name vec
+    set len [flength vec]
+    set idx [expr [string map [list end "$len-1"] $idxstr]]
+    if {$idx<0 || $idx>=$len} { 
+	error "$idxstr out of range of 0..[expr {$len-1}] in vector $name" 
+    }
+    set start [expr {$idx*[fprecision]}]
+    set stop [expr {($idx+1)*[fprecision]-1}]
+    binary scan [string range $vec $start $stop] $pattern val
+    return $val
+}
+
 proc fvector {name args} {
     if {[fprecision] == 8} { set pattern d* } else { set pattern f* }
     upvar $name vec
@@ -11,6 +25,15 @@ proc fvector {name args} {
 	error "wrong # args: should be \"fvector name ?value_list\""
     }
 }
+
+proc ferr {val err} {
+    upvar $val v
+    upvar $err dv
+    set res {}
+    foreach x [fvector v] { lappend res [expr {sqrt($x) + ($x!=0)}] }
+    fvector dv $res
+}
+
 
 proc flength {name} {
     # XXX FIXME XXX vector length could be wrong if the byte sequences 
