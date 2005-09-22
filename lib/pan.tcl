@@ -11,8 +11,10 @@
  #    * add package commands
  # 2004-04-06 Paul Kienzle <pkienzle at users sf net>
  #    * use bindtags pan_widget for binding
+ # 2005-09-22 Kevin O'Donovan <odonovan at nist gov>
+ #    * change graph_xview and graph_yview to base pan units on screen pixels
 
- package provide pan 0.2
+ package provide pan 0.3
 
  # Usage:  
  #
@@ -93,37 +95,61 @@
     }
 
     # internal: improved xview and yview for BLT graphs which
-    # scroll as a percentage of visible area rather than a
+    # scroll as a number of screen pixels rather than a
     # percentage of the entire visible range.
     proc graph_xview { w scroll n units } {
+	foreach slimit {min max} limit [$w xaxis limits] {
+	    set $slimit [$w xaxis transform $limit]
+	}
+	if {$max < $min} {
+	    foreach {min max} [list $max $min] break
+	}
+	set step [expr {$n*4}]
+	foreach limit {min max} value [list $min $max] {
+	    set $limit [expr {int($value + $step)}]
+	}
         foreach side { xaxis x2axis } {
 	    foreach axis [$w $side use] {
 		# find current limits
-		set min [$w axis cget $axis -min]
-		set max [$w axis cget $axis -max]
+		set omin [$w axis cget $axis -min]
+		set omax [$w axis cget $axis -max]
 		# don't scroll if not zoomed
-		if { "$min" eq "" || "$max" eq "" } break
-		# calculate scroll step
-		set step [expr {($max-$min)*$n/20.}]
+		if { "$omin" eq "" || "$omax" eq "" } break
 		# move limits according to step
-		$w axis configure $axis -min [expr {$min+$step}] \
-		    -max [expr {$max+$step}]
+		set nmin [$w axis invtransform $axis $min]
+		set nmax [$w axis invtransform $axis $max]
+		if {$nmax < $nmin} {
+		    foreach {nmin nmax} [list $nmax $nmin] break
+		}
+		$w axis configure $axis -min $nmin -max $nmax
 	    }
         }
     }
     proc graph_yview { w scroll n units } {
+	foreach slimit {min max} limit [$w yaxis limits] {
+	    set $slimit [$w yaxis transform $limit]
+	}
+	if {$max < $min} {
+	    foreach {min max} [list $max $min] break
+	}
+	set step [expr {$n*4}]
+	foreach limit {min max} value [list $min $max] {
+	    set $limit [expr {int($value + $step)}]
+	}
         foreach side { yaxis y2axis } {
 	    foreach axis [$w $side use] {
 		# find current limits
-		set min [$w axis cget $axis -min]
-		set max [$w axis cget $axis -max]
+		set omin [$w axis cget $axis -min]
+		set omax [$w axis cget $axis -max]
 		# don't scroll if not zoomed
-		if { "$min" eq "" || "$max" eq "" } break
-		# calculate scroll step (backwards because this is y)
-		set step [expr {($min-$max)*$n/20.}]
+		if { "$omin" eq "" || "$omax" eq "" } break
 		# move limits according to step
-		$w axis configure $axis -min [expr {$min+$step}] \
-		    -max [expr {$max+$step}]
+		set nmin [$w axis invtransform $axis $min]
+		set nmax [$w axis invtransform $axis $max]
+		if {$nmax < $nmin} {
+		    foreach {nmin nmax} [list $nmax $nmin] break
+		}
+		$w axis configure $axis -min $nmin -max $nmax
 	    }
         }
     }
@@ -214,12 +240,10 @@
 		# compute new step size
 		set v [expr {$y - $pan($w,y)}]
 		set h [expr {$x - $pan($w,x)}]
-		set vstep [expr {abs($v)/$accel}]
-		set hstep [expr {abs($h)/$accel}]
-		if {$v>=0} { set vsign 1 } { set vsign -1 }
-		if {$h>=0} { set hsign 1 } { set hsign -1 }
-		set pan($w,v) [expr {$vstep*$vsign}]
-		set pan($w,h) [expr {$hstep*$hsign}]
+		set pan($w,v) [expr {$v/$accel}]
+		set pan($w,h) [expr {$h/$accel}]
+		if {$v < 0} {incr pan($w,v)}
+		if {$h < 0} {incr pan($w,h)}
 		# puts "$v $vstep $vsign $h $hstep $hsign"
 		# set new cursor
 		$w configure -cursor $cursor([dir $pan($w,v)][dir $pan($w,h)])
@@ -302,3 +326,4 @@
      grid .v -row 1 -column 1 -sticky ns
      grid columnconfigure . 0 -weight 1
  }
+
