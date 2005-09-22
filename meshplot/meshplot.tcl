@@ -149,7 +149,16 @@ catch { package require snit }
 	    set afterid [after 5 [subst {$self navigate $which $n $x $y}]]
 	}
     }
-	  
+
+    # Bind an action to a sequence in the graph window
+    method bind { sequence action } {
+        # Since the Tk binding is happening in the subwidget, we need to
+        # explicitly replace the name of the widget in the action
+        # with the name of the composite widget.
+	# FIXME: how can we allow the usual "bind .g ..." syntax?
+	bind $win.c $sequence [string map [list %W $win] $action]
+    }
+	
     method zoom { n {x {}} {y {}}} {
 	set w [winfo width $win.c]
 	set h [winfo height $win.c]
@@ -305,6 +314,20 @@ catch { package require snit }
 	foreach axis {-xmin -xmax -ymin -ymax} value $v { 
 	    $self configure $axis $value
 	}
+    }
+
+    method coords {x y} {
+	set w [winfo width $win.c]
+	set h [winfo height $win.c]
+	set worldx [expr {($x+0.5)/$w}]
+	set worldy [expr {($h-$y+0.5)/$h}]
+	set xmin $options(-xmin)
+	set xmax $options(-xmax)
+	set ymin $options(-ymin)
+	set ymax $options(-ymax)
+	set graphx [expr {$worldx*($xmax-$xmin)+$xmin}]
+	set graphy [expr {$worldy*($ymax-$ymin)+$ymin}]
+	return [list $graphx $graphy]
     }
 
     variable num_demos 0
