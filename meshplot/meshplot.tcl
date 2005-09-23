@@ -76,16 +76,17 @@ catch { package require snit }
     option -vmax
     option -limits -configuremethod Limits
     option -vrange -configuremethod Vrange
-    option -grid -configuremethod Grid
+    option -grid
     option -logdata -configuremethod Logdata
-    option -cursor
     option -legend -default {}
 
     component XAxis
     component YAxis
     component Mesh
+    component Menu
     delegate option -xborder to XAxis as -height
     delegate option -yborder to YAxis as -width
+    delegate option -cursor to hull
     delegate option -width to hull
 
     hulltype frame
@@ -93,6 +94,7 @@ catch { package require snit }
 	install XAxis using axis $win.x -side bottom -height 1c
 	install YAxis using axis $win.y -side left -width 2c
 	install Mesh using togl $win.c -rgba true -double true
+	install Menu using menu $win.menu -title "Image controls"
 	grid $win.y  $win.c -sticky news
 	grid   x    $win.x -sticky news
 	grid columnconfigure $win 0 -minsize 2c
@@ -106,6 +108,7 @@ catch { package require snit }
 	event add <<Navigate>> <ButtonPress-1>
         event add <<NavigateEnd>> <ButtonRelease-1>
 	event add <<Pan>> <Control-Button-1>
+	event add <<ContextMenu>> <Button-3>
 	event add <<ZoomIn>> <Button-4>
 	event add <<ZoomOut>> <Button-5>
 	bind $win.c <<Navigate>> [subst {$win navigate xy 5 %x %y}]
@@ -128,7 +131,24 @@ catch { package require snit }
 	bind $win.c <<Pan>> [subst {pan start $win %X %Y; break }]
 	#bind $win.c <ButtonRelease-2> [subst {pan stop $win; break }]
 	#bind $win.c <B2-Motion> [subst {pan move $win %X %Y; break }]
+
+	bind $win.c <<ContextMenu>> [subst {$win contextmenu %X %Y}]
+
+	if 0 {
+	    # Don't know how to manage data limits yet
+	    $Menu add command -label "Show all" \
+		-command "$win autoaxes; $win.c draw"
+	}
+	$Menu add command -label "Pan" \
+	    -command "pan start $win"
+	$Menu add command -label "Grid" \
+	    -command "$win.c grid toggle; $win.c draw"
     }
+
+    method contextmenu {X Y} {
+	tk_popup $Menu $X $Y
+    }
+
     method navigate { which {n 5} {x {}} {y {}} } {
 	variable afterid
 	if { [string equal $which "halt"] } {
@@ -158,7 +178,7 @@ catch { package require snit }
 	# FIXME: how can we allow the usual "bind .g ..." syntax?
 	bind $win.c $sequence [string map [list %W $win] $action]
     }
-	
+
     method zoom { n {x {}} {y {}}} {
 	set w [winfo width $win.c]
 	set h [winfo height $win.c]
@@ -217,6 +237,7 @@ catch { package require snit }
     method draw {args} {
 	$XAxis configure -min $options(-xmin) -max $options(-xmax)
 	$YAxis configure -min $options(-ymin) -max $options(-ymax)
+	$Mesh grid $options(-grid)
 
 	$Mesh limits $options(-xmin) $options(-xmax) $options(-ymin) $options(-ymax)
 	$Mesh draw
@@ -296,8 +317,12 @@ catch { package require snit }
 	$self configure -limits {0 10 -3 3}
     }
 
-    method Grid {op v} {
-	$Mesh grid $v
+    method grid {state} {
+	if { $state == "toggle" } {
+	    $self configure -grid [string is false $options(-grid)]
+	} else {
+	    $self configure -grid $state
+	}
     }
 
     method Logdata {op v} {
