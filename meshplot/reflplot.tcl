@@ -79,6 +79,7 @@ proc parse_data {id data} {
 	incr idx
     }
     set rec(psd) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+    ferr rec(psd) rec(psderr)
 }
 
 proc normalize {id monitor} {
@@ -86,6 +87,7 @@ proc normalize {id monitor} {
 
     # normalize by monitor counts
     fdivide $rec(points) $rec(pixels) rec(psd) rec(column,$monitor)
+    fdivide $rec(points) $rec(pixels) rec(psderr) rec(column,$monitor)
 }
 
 proc set_axes {id theta twotheta} {
@@ -118,7 +120,22 @@ proc mesh_QxQz {id} {
 				     rec(alpha) rec(beta) rec(dtheta)] {}
     }
     set rec(xlabel) "Qx (inv Angstroms)"
-    set rec(ylabel) "Qy (inv Angstroms)"
+    set rec(ylabel) "Qz (inv Angstroms)"
+    set rec(xcoord) "Qx"
+    set rec(ycoord) "Qz"
+}
+
+proc find_QxQz {id x y} {
+    upvar \#0 $id rec
+    if {[isTOF]} {
+	return [findmesh -L rec(lambda) \
+		    $rec(points) $rec(pixels) \
+		    $rec(A) $rec(B) rec(dtheta) $x $y]
+    } else {
+	return [findmesh -Q $rec(L) \
+		    $rec(points) $rec(pixels) \
+		    rec(alpha) rec(beta) rec(dtheta) $x $y]
+    }
 }
 
 proc mesh_TiTd {id} {
@@ -128,6 +145,15 @@ proc mesh_TiTd {id} {
 				 rec(alpha) rec(beta) rec(dtheta)] {}
     set rec(xlabel) "theta_f - theta_i (degrees)"
     set rec(ylabel) "theta_i (degrees)"
+    set rec(ycoord) "Ti"
+    set rec(xcoord) "Td"
+}
+
+proc find_TiTd {id x y} {
+    upvar \#0 $id rec
+    return [findmesh -d \
+		$rec(points) $rec(pixels) \
+		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
 proc mesh_TiTf {id} {
@@ -137,6 +163,15 @@ proc mesh_TiTf {id} {
 				 rec(alpha) rec(beta) rec(dtheta)] {}
     set rec(xlabel) "theta_f (degrees)"
     set rec(ylabel) "theta_i (degrees)"
+    set rec(ycoord) "Ti"
+    set rec(xcoord) "Tf"
+}
+
+proc find_TiTf {id x y} {
+    upvar \#0 $id rec
+    return [findmesh -f \
+		$rec(points) $rec(pixels) \
+		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
 proc mesh_AB {id} {
@@ -146,17 +181,35 @@ proc mesh_AB {id} {
 				 rec(alpha) rec(beta) rec(dtheta)] {}
     set rec(xlabel) "theta_i+theta_f (degrees)"
     set rec(ylabel) "theta_i (degrees)"
+    set rec(ycoord) "A"
+    set rec(xcoord) "B"
+}
+
+proc find_AB {id x y} {
+    upvar \#0 $id rec
+    return [findmesh -b \
+		$rec(points) $rec(pixels) \
+		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
 proc mesh_pixel {id {base 0}} {
     upvar \#0 $id rec
-    fvector xv [integer_edges $rec(pixels)]
-    fvector yv [integer_edges $rec(points) $base]
+    fvector rec(xv) [integer_edges $rec(pixels)]
+    fvector rec(yv) [integer_edges $rec(points) $base]
     foreach {rec(x) rec(y)} [buildmesh \
-				 $rec(pixels) $rec(points) \
-				 xv yv] {}
+				 $rec(points) $rec(pixels) \
+				 rec(yv) rec(xv)] {}
     set rec(xlabel) "detector pixels"
     set rec(ylabel) "scan points"
+    set rec(xcoord) "pixel"
+    set rec(ycoord) "point"
+}
+
+proc find_pixel {id x y} {
+    upvar \#0 $id rec
+    return [findmesh \
+		$rec(points) $rec(pixels) \
+		rec(yv) rec(xv) $x $y]
 }
 
 proc limits {records} {
@@ -221,12 +274,14 @@ proc calc_transform {path type} {
 	if { $type == "pixel" } {
 	    mesh_$type $id $plot(points)
 	    incr plot(points) $rec(points)
+	    incr plot(points)
 	} else {
 	    mesh_$type $id
 	}
 	$path delete $plot($id)
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+	set plot(title) "$rec(ylabel) vs. $rec(xlabel)"
     }
 }
 
@@ -329,7 +384,7 @@ proc new {w} {
     $w colormap [colormap_bright 64]
     $w configure -logdata on -grid on -vrange {0.00002 2}
     variable P$w
-    array set P$w {mesh TiTd records {} center 100}
+    array set P$w {mesh TiTd records {} center 100 title {}}
     bind <Destroy> $w [namespace code [list unset P$w]]
 }
 
@@ -349,6 +404,39 @@ proc UpdateMesh {w} {
 }
 
 
+proc uncertainty { val err } {
+    return "${val}($err)"
+}
+
+proc ShowCoordinates { w x y } {
+    findplot $w
+
+    foreach {X Y} [$w coords $x $y] break
+    # puts "Coordinates for $x $y -> $X $Y"
+
+    set plot(coords) ""
+    # FIXME: traverse the plots in stack order, stopping at
+    # the first one which matches
+    foreach id $plot(records) {
+	upvar \#0 $id rec
+
+	set idx [find_$plot(mesh) $id $X $Y]
+	if { $idx >= 0 } { 
+	    set counts [findex rec(psdraw) $idx]
+	    set val [findex rec(psd) $idx]
+	    if { [info exists rec(psderr)] } {
+		set err [findex rec(psderr) $idx]
+	    } else {
+		set err {}
+	    }
+	    set j [expr {$idx/$rec(pixels)}]
+	    set k [expr {$idx%$rec(pixels)}]
+	    set plot(coords) "[file tail $rec(file)]($j,$k)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
+	}
+    }
+
+}
+
 proc plot_window {{w .plot}} {
     if {![winfo exists $w]} {
 	toplevel $w -width 400 -height 500
@@ -363,6 +451,7 @@ proc plot_window {{w .plot}} {
     plot2d new $w.c
     findplot $w.c
     set pid [namespace current]::P$w.c
+    $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
 
     # Create a control panel
     set f $w.controls
@@ -376,16 +465,29 @@ proc plot_window {{w .plot}} {
 
     set plot(mesh_entry) $plot(mesh)
     label $f.ltransform -text "Transform"
-    spinbox $f.transform  -values {TiTf QxQz TiTd AB pixel} -width 5 \
-	-textvariable ${pid}(mesh_entry) \
-	-command [namespace code [list UpdateMesh $w.c]]
-    bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
-    bind $f.transform <Leave> [namespace code [list UpdateMesh $w.c]]
+    if 1 {
+	menubutton $f.transform -textvariable ${pid}(mesh) \
+	    -menu $f.transform.menu -indicatoron true -relief raised \
+	    -padx 1 -pady 1 -width 5
+	set m [menu $f.transform.menu -tearoff 1]
+	foreach v {TiTf QxQz TiTd AB pixel} {
+	    $m add radio -label $v -variable ${pid}(mesh_entry) -value $v \
+		-command [namespace code [list UpdateMesh $w.c]]
+	}	
+    } else {
+	spinbox $f.transform  -values {TiTf QxQz TiTd AB pixel} -width 5 \
+	    -textvariable ${pid}(mesh_entry) \
+	    -command [namespace code [list UpdateMesh $w.c]]
+	bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
+	bind $f.transform <Leave> [namespace code [list UpdateMesh $w.c]]
+    }
     grid $f.lcenter $f.center $f.ltransform $f.transform
 
-
+    label $w.coords -textvariable ${pid}(coords) -relief ridge -anchor w
+ 
     grid $w.c -sticky news
     grid $w.controls -sticky w
+    grid $w.coords -sticky ew
     grid rowconfigure $w 0 -w 1
     grid columnconfigure $w 0 -w 1
     return $w.c
@@ -460,6 +562,7 @@ proc read_data {file id} {
     set rec(distance)  1600.
 
     reflplot::parse_data $id $data
+    set rec(psdraw) $rec(psd)
     reflplot::normalize $id Monitor
     reflplot::set_axes $id Theta TwoTheta
     reflplot::set_center_pixel $id
