@@ -216,11 +216,15 @@ int tp_grid(Togl *togl, int argc, CONST84 char *argv[] )
 
   if (argc != 3) {
     Tcl_SetResult( interp,
-		   "wrong # args: should be \"pathName grid on|off\"",
+		   "wrong # args: should be \"pathName grid on|off|toggle\"",
 		   TCL_STATIC );
     return TCL_ERROR;
   }
-  plot->grid = (strcmp(argv[2],"on")==0);
+  if (strcmp(argv[2],"toggle")==0) {
+    plot->grid = !plot->grid;
+  } else {
+    plot->grid = (strcmp(argv[2],"on")==0 || strcmp(argv[2],"1")==0);
+  }
 
   return TCL_OK;
 }
