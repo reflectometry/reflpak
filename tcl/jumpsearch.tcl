@@ -57,7 +57,7 @@ proc jumpinit {par} {
     .js.graph element create chisq -xdata ::jsx -ydata ::jsy \
 	-pixels 4 -linewidth 0 -fill {}
     button .js.stop -text Stop -command { jumphalt "user abort" }
-    label .js.message -relief ridge -anchor w -textvariable ::jsmessage
+    label .js.message -relief ridge -anchor w
     grid .js.graph -sticky news
     grid .js.stop -sticky e
     grid .js.message -sticky ew
@@ -78,7 +78,7 @@ proc jumphalt {msg} {
   set ::jshalt 1
   gmlayer halt
   .js.stop conf -state disabled
-  set ::jsmessage $msg
+  message $msg
 }
 
 # macro to take a step, update the graph, etc.
@@ -94,7 +94,7 @@ proc jumpstep { start msg } {
   send_layout
   read_reflectivity
   set chisq_start [gmlayer send chisq]
-  set ::jsmessage "$msg at $start"
+  message "$msg at $start"
   do_fit                              ;# find nearest local minimum
   if {$::jshalt} {                    ;# check for user abort
     return -code return

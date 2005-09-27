@@ -574,21 +574,21 @@ proc layer_index { id section number offset type } {
 	set s "L"
 	set n $id
 	if { ![ string is integer $id ] } {
-	    tk_messageBox -message "Layer <$id> is not an integer" -type ok
+	    message "Layer <$id> is not an integer"
 	    return 0
 	}
     } else {
 	set s [ string toupper [ string index $id 0]]
 	set n [ string range $id 1 end ]
 	if { ![ string match "\[tTmMbB]\[123456789]" $id ] } {
-	    tk_messageBox -message "Layer <$id> is not T#, M# or B#" -type ok
+	    message "Layer <$id> is not T#, M# or B#"
 	    return 0
 	}
     }
     set limit $n
     if { $type == "destination" } { incr limit -1 }
     if { ![layer_in_section $s $limit] } {
-	tk_messageBox -message "Layer <$id> is not present" -type ok
+	message "Layer <$id> is not present"
 	return 0
     }
     switch $s {
@@ -607,7 +607,7 @@ proc layer_index { id section number offset type } {
 proc section_decr { s } {
     if { $::MAGNETIC } {
 	if { $::num_layers <= 2 } {
-	    tk_messageBox -message "Need at least one layer" -type ok
+	    message "Need at least one layer"
 	    return 0
 	}
     } else {
@@ -617,7 +617,7 @@ proc section_decr { s } {
 	    B { set pars_idx 3; set var ::nbl }
 	}
 	if { [set $var] <= 1 } {
-	    tk_messageBox -message "Section $s would be empty" -type ok
+	    message "Section $s would be empty"
 	    return 0
 	}
 	set ::pars($pars_idx) [ incr $var -1 ]
@@ -634,7 +634,7 @@ proc section_decr { s } {
 proc section_incr { s } {
     if { $::MAGNETIC } {
 	if { $::num_layers >= $::MAX_LAYERS } {
-	    tk_messageBox -message "Too many layers" -type ok
+	    message "Too many layers"
 	}
     } else {
 	switch $s {
@@ -643,7 +643,7 @@ proc section_incr { s } {
 	    B { set pars_idx 3; set var ::nbl }
 	}
 	if { [set $var] >= 9 } {
-	    tk_messageBox -message "Section $s is full" -type ok
+	    message "Section $s is full"
 	    return 0
 	}
 	set ::pars($pars_idx) [ incr $var ]
@@ -687,8 +687,7 @@ proc layer_move { id dest } {
 	if { [ layer_in_section $t $m] } {
 	    if { $tidx > $sidx } { incr tidx $::num_fields }
 	} else {
-	    tk_messageBox -type ok \
-		    -message "Cannot move $id beyond the end of the section"
+	    message "Cannot move $id beyond the end of the section"
 	    return 0;
 	}
     }
@@ -767,19 +766,19 @@ proc layer_delete { id } {
 # the new layer make sense.
 proc layer_check { depth mu qcsq ro } {
     if { ![ string is double $depth ] } {
-	tk_messageBox -message "Depth <$depth> is not a number" -type ok
+	message "Depth <$depth> is not a number"
     } elseif { ![ string is double $mu ] } {
-	tk_messageBox -message "Mu <$mu> is not a number"
+	message "Mu <$mu> is not a number"
     } elseif { ![ string is double $qcsq ] } {
-	tk_messageBox -message "Qcsq <$qcsq> is not a number"
+	message "Qcsq <$qcsq> is not a number"
     } elseif { ![ string is double $ro ] } {
-	tk_messageBox -message "Roughness <$ro> is not a number"
+	message "Roughness <$ro> is not a number"
     } elseif { $depth < 1 } {
-	tk_messageBox -message "Depth $depth must be more than 1" -type ok
+	message "Depth $depth must be more than 1"
     } elseif { $ro < 1 || $ro > $depth } {
-	tk_messageBox -message "Roughness must be between 1 and depth" -type ok
+	message "Roughness must be between 1 and depth"
     } elseif { $qcsq < 0 } {
-	tk_messageBox -message "Qc^2 must be greater than 0" -type ok
+	message "Qc^2 must be greater than 0"
     } else {
 	return 1
     }
@@ -791,21 +790,21 @@ proc layer_check { depth mu qcsq ro } {
 # the new magnetic layer make sense.
 proc layer_magnetic { mdepth theta mqcsq mro } {
     if { ![ string is double $mdepth ] } {
-	tk_messageBox -message "Magnetic depth <$mdepth> is not a number" -type ok
+	message "Magnetic depth <$mdepth> is not a number"
     } elseif { ![ string is double $theta ] } {
-	tk_messageBox -message "Theta <$theta> is not a number"
+	message "Theta <$theta> is not a number"
     } elseif { ![ string is double $mqcsq ] } {
-	tk_messageBox -message "Magnetic Qc^2 <$mqcsq> is not a number"
+	message "Magnetic Qc^2 <$mqcsq> is not a number"
     } elseif { ![ string is double $mro ] } {
-	tk_messageBox -message "Magnetic roughness <$mro> is not a number"
+	message "Magnetic roughness <$mro> is not a number"
     } elseif { $mdepth < 1 } {
-	tk_messageBox -message "Magnetic depth $mdepth must be more than 1" -type ok
+	message "Magnetic depth $mdepth must be more than 1"
     } elseif { $mro < 1 || $mro > $mdepth } {
-	tk_messageBox -message "Magnetic roughness must be between 1 and magnetic depth" -type ok
+	message "Magnetic roughness must be between 1 and magnetic depth"
     } elseif { $mqcsq < 0 } {
-	tk_messageBox -message "Qm^2 must be greater than 0" -type ok
+	message "Qm^2 must be greater than 0"
     } elseif { $theta <= -360 || $theta >= 360 } {
-	tk_messageBox -message "Theta must be in [-360,360]" -type ok
+	message "Theta must be in [-360,360]"
     } else {
 	return 1
     }
@@ -818,11 +817,11 @@ proc layer_lattice { start end copies } {
     if { ![ layer_index $start s n sidx source ] } { return 0 }
     if { ![ layer_index $end st m tidx source ] } { return 0 }
     if { $sidx > $tidx } {
-	tk_messageBox -message "Must have start <= end" -type ok
+	message "Must have start <= end"
 	return 0
     }
     if { $::num_layers + ($end - $start + 1)*($copies-1) >= $::MAX_LAYERS } {
-	tk_messageBox -message "Too many layers" -type ok
+	message "Too many layers"
 	return 0
     }
 
@@ -1301,9 +1300,8 @@ proc constraints_error {msg} {
     gmlayer send constraints {}
     
     if 0 {
-	tk_messageBox -type ok -icon error -parent . \
-	    -title "Error in constraints" \
-	    -message "The constraints did not parse correctly.  Check for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
+	message -error \
+	    "The constraints did not parse correctly.  Check for unbalanced {} and \[] in the text.  Make sure those which should be escaped with \\ are.  Escaped versions do not balance unescaped versions.  Pay close attention to \"comments.\"  Comments are not parsed as comments at this stage, and they must also respect balancing of {} and \[\].  Review the help topic \"Guidelines for Constraints\" if you are stuck."
     }
     
 }
@@ -1562,13 +1560,12 @@ proc stop_fit {} {
 proc try_fit {} {
     # don't do anything if no fit parameters are selected
     if { [send_varying] == 0 } {
-	set ::message "Select fit parameters first"
-	bell
+	message -bell "Select fit parameters first"
 	return
     }
 
     # clear any error notification from the previous fit
-    set ::message {}
+    message
 
     # We want immediate feedback that the fit button was pressed, so
     # we change its text to "Stop fit".  Since the fit has not really
@@ -1583,7 +1580,7 @@ proc try_fit {} {
     # completion before the fit button is re-enabled.
     push_pars
     if { [catch { do_fit } msg ] } {
-	tk_messageBox -message "Internal error - do_fit\n$msg" -type ok
+	message "Internal error - do_fit\n$msg"
     }
 
     # reset the fit button
@@ -2924,10 +2921,10 @@ proc set_entry { row col val } {
 	depth -
 	ro {
 	    if {![string is double $val]} {
-		set ::message "number expected"
+		message -bell "number expected"
 		return 0
 	    } elseif {$val < 0} {
-		set ::message "must be non-negative"
+		message -bell "must be non-negative"
 		return 0
 	    }
 	}
@@ -2935,12 +2932,12 @@ proc set_entry { row col val } {
 	qcsq -
 	mu {
 	    if {![string is double $val]} {
-		set ::message "number expected"
+		message -bell "number expected"
 		return 0
 	    }
 	}
 	default {
-	    set ::message "trying to edit a non-existant field"
+	    message -box "trying to edit a non-existant field"
 	    return 0
 	}
     }
@@ -2950,7 +2947,7 @@ proc set_entry { row col val } {
     update_widgets $row $field
     update_gmlayer
 
-    set ::message {}
+    message
     return 1
 }
 
@@ -2987,7 +2984,7 @@ if { 0 } {
 	set start [ selection_start ]
 	set count [ expr [ selection_end ] - $start + 1 ]
 	if { $start == 0 } {
-	    set ::message "Select a layer first"
+	    message "Select a layer first"
 	} else {
 	    ## insert after substrate
 	    if { $start == 1 } { incr start }
@@ -3017,11 +3014,11 @@ if { 0 } {
 	set start [ selection_start ]
 	set stop [ selection_end ]
 	if { $start == 0 } {
-	    set ::message "Select a layer first"
+	    message "Select a layer first"
 	} elseif { $start == 1 } {
-	    set ::message "Cannot delete substrate"
+	    message "Cannot delete substrate"
 	} elseif { $stop == [expr [ $table.t cget -rows ] - 1 ] } {
-	    set ::message "Cannot delete vacuum"
+	    message "Cannot delete vacuum"
 	} else {
 	    $table.t delete rows $start [expr $stop - $start + 1]
 	    renumber_layers
@@ -3032,7 +3029,7 @@ if { 0 } {
 
     # copy/move the selected rows to another row
     proc move_layers {action} {
-	set ::message "$action not yet implemented"
+	message "$action not yet implemented"
 	return
 
 	global table
@@ -3043,11 +3040,11 @@ if { 0 } {
 	set last [ expr [ $table.t cget -rows ] - 1 ]
 	set cols [ expr [ $table.t cget -cols ] - 1 ]
 	if { $start == 0 } {
-	    set ::message "Select a layer first"
+	    message "Select a layer first"
 	} elseif { $start == 1 } {
-	    set ::message "Cannot $action substrate"
+	    message "Cannot $action substrate"
 	} elseif { $stop == $last } {
-	    set ::message "Cannot $action vacuum"
+	    message "Cannot $action vacuum"
 	} else {
 	    set target [ Dialog_Prompt \
 		    "Destination layer number (use 0 for substrate)" ]
@@ -3082,7 +3079,7 @@ if { 0 } {
 
 proc export_profile {file} {
     if { [catch [list open $file w] fid] } {
-	tk_messageBox -type ok -icon error -message $fid
+	message -error $fid
     } else {
 	puts "# Depth"
     }
@@ -3124,7 +3121,7 @@ proc open_parfile {filename} {
 	cd $directory
 	gmlayer pf $parfile
 	catch { gmlayer lp }
-	tk_messageBox -type ok -icon error -message $msg
+	message -error $msg
 	return 0
     }
 
@@ -3237,8 +3234,8 @@ proc new_parfile {filename} {
     reset_all
 
     if { [ file exists $::parfile ] } {
-	tk_messageBox -type ok -icon warning -message \
-		"File $::parfile exists; use Save as... to choose a different name"
+	message -box \
+	    "File $::parfile exists; use Save as... to choose a different name"
     }
     return 1
 }
@@ -3247,9 +3244,7 @@ proc new_parfile {filename} {
 proc save_parfile {} {
     if {0} {
 	if { [constraints_modified] } {
-	    set answer [tk_messageBox -type yesno -icon question \
-		    -message "Constraints not saved. Continue?" ]
-	    if { $answer == "no" } { return 0 }
+	    if {![question "Constraints not saved. Continue?"]} { return 0 }
 	}
     }
 
@@ -3286,8 +3281,8 @@ proc set_datafile {filename} {
 		if { [llength $files] == 0 } {
 		    set files [glob -nocomplain "$base$tail\[ABCD]"]
 		    if { [llength $files] == 0 } {
-			tk_messageBox -type ok -icon error -message \
-				"Could not open $filename for [abcd] or [ABCD]"
+			message -error \
+			    "Could not open $filename for [abcd] or [ABCD]"
 			return 0
 		    }
 		}
@@ -3305,7 +3300,7 @@ proc set_datafile {filename} {
 	cd $::directory
 	gmlayer if $oldfile
 	if { $oldfile ne "" } { gmlayer gd }
-	tk_messageBox -type ok -icon error -message $msg
+	message -error $msg
 	return 0
     }
 
@@ -3465,7 +3460,7 @@ proc request_data {} {
 }
 
 proc request_export_profile {} {
-    tk_messageBox -type ok -icon error -message "Not yet implemented --- use the SLP command directly"
+    message -error "Not yet implemented --- use the SLP command directly"
     return
     set filename [ tk_getSaveFile -defaultextension .pro \
 	    -title "Export layer profile"]
@@ -3473,7 +3468,7 @@ proc request_export_profile {} {
 }
 
 proc request_export_refl {} {
-    tk_messageBox -type ok -icon error -message "Not yet implemented --- use the SRF command directly"
+    message -error "Not yet implemented --- use the SRF command directly"
     return
     set filename [ tk_getSaveFile -defaultextension .fit \
 	    -title "Export reflectivity"]
@@ -3500,7 +3495,7 @@ proc layer_roughness { v } {
     if { [ string is integer $v ] } {
 	if { $v > 2 && $v%2 == 1} { set ::nrough $v; return 1 }
     }
-    tk_messageBox -message "Roughness steps must be an odd number > 1" -type ok
+    message "Roughness steps must be an odd number > 1"
     return 0
 }
 
@@ -3509,7 +3504,7 @@ proc layer_repeat { v } {
     if { [ string is integer $v ] } {
 	if { $v > 0 } { set ::nmr $v; return 1 }
     }
-    tk_messageBox -message "Repeats must be a positive integer" -type ok
+    message "Repeats must be a positive integer"
     return 0
 }
 
@@ -3615,8 +3610,7 @@ $notebook raise [$notebook page 0]
 pack $notebook -fill both -expand yes
 
 # status message dialog
-set ::message {}
-label .message -relief ridge -anchor w -textvariable ::message
+label .message -relief ridge -anchor w
 
 # Can't register the geometry in the resource database
 # directly so use a fake resource instead.  I'm sure
@@ -3734,7 +3728,7 @@ proc drop_file { file } {
     ## Try to guess if it is a staj file.  To be a staj file, it must
     ## exist and it must contain something other than numbers and comments.
     if { [catch [list open $file r] fid] } { 
-	tk_messageBox -type ok -icon error -message $fid
+	message -error $fid
 	return
     }
 
@@ -3793,7 +3787,7 @@ proc start_file {} {
         } else {
             # We could fail here, or we can let guess_init take care of it.
             set initfile $arg
-            # app_fail "file $argv does not exist"
+            # message -fail "file $argv does not exist"
         }
     } elseif { $::argc == 0 } {
 	return {} ;# For now, lets try starting empty
