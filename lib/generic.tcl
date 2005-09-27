@@ -285,6 +285,64 @@ proc app_fail { msg } {
 }
 
 
+# Usage: message ?[--|-bell|-box|-error|-fail] ?"text"
+# Warn the user about something.  Works without GUI.  Uses the
+# message widget of the window containing the focus or opens a
+# warning dialog if not message widget is present.
+# FIXME: need to support several warnings from the same action
+# FIXME: need function to add status bar to toplevel
+proc message { args } {
+    if { [string match "-*" [lindex $args 0]] } {
+	set opts [lindex $args 0]
+	set msg [lindex $args 1]
+    } else {
+	set opts "--"
+	set msg [lindex $args 0]
+    }
+    if {![info exists ::tk_version]} {
+	# running without GUI, so output message to terminal
+	switch -- $opts {
+	    -- { set tag "" }
+	    -bell { set tag "!" }
+	    -box { set tag "warning: " }
+	    -error { set tag "error: " }
+	    -fail { set tag "fatal: " }
+	}
+	puts "$tag$msg"
+    } else {
+	# If no message widget, force use of a warning box
+	set top [winfo toplevel [focus]]
+	if { $top == "." } { 
+	    set msgbox .message 
+	} else {
+	    set msgbox $top.message
+	}
+	if {![winfo exists $msgbox] && ($opts=="--" || $opts=="-bell")} {
+	    set opts -box
+	}
+
+	switch -- $opts {
+	    -- { $msgbox conf -text $msg }
+	    -bell { $msgbox conf -text $msg; bell }
+	    -box {
+		tk_messageBox -title "$::argv0 Warning" -type ok \
+		    -icon warning -message $msg -parent $top
+	    }
+	    -error - -fail {
+		tk_messageBox -title "$::argv0 Error" -type ok \
+		    -icon error -message $msg -parent $top
+	    }
+	}
+    }
+
+    if { $opts == "-fail" } { exit 1 }
+}
+
+proc question {msg} {
+    set answer [tk_messageBox -type yesno -icon question -message $msg]
+    return [expr {$answer == "yes"}]
+}
+
 # ==================== debugging =========================
 # XXX FIXME XXX send automatic bug reports
 
@@ -730,7 +788,6 @@ proc ldelete { list value } {
 	return $list
     }
 }
-
 
 #========================= BLT graph functions =====================
 # HELP developer
