@@ -3,10 +3,6 @@ package provide reflplot 0.2
 # first time through
 if {![namespace exists reflplot]} {
     package require snit
-    catch {
-	package require tkcon
-	tkcon show
-    }
     catch { package require BLT }
     package require ncnrlib
     package require meshplot
