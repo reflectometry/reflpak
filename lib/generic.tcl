@@ -308,7 +308,7 @@ proc message { args } {
 	    -error { set tag "error: " }
 	    -fail { set tag "fatal: " }
 	}
-	puts "$tag$msg"
+	if {$msg != ""} { puts "$tag$msg" }
     } else {
 	# If no message widget, force use of a warning box
 	set top [winfo toplevel [focus]]
@@ -325,12 +325,16 @@ proc message { args } {
 	    -- { $msgbox conf -text $msg }
 	    -bell { $msgbox conf -text $msg; bell }
 	    -box {
-		tk_messageBox -title "$::argv0 Warning" -type ok \
-		    -icon warning -message $msg -parent $top
+		if {$msg != "" } {
+		    tk_messageBox -title "$::argv0 Warning" -type ok \
+			-icon warning -message $msg -parent $top
+		}
 	    }
 	    -error - -fail {
-		tk_messageBox -title "$::argv0 Error" -type ok \
-		    -icon error -message $msg -parent $top
+		if {$msg != "" } {
+		    tk_messageBox -title "$::argv0 Error" -type ok \
+			-icon error -message $msg -parent $top
+		}
 	    }
 	}
     }
