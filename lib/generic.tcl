@@ -957,9 +957,13 @@ proc axis_toggle {w} {
 # selects an x-range and stores it in ::x_min, ::x_max.
 #    graph_select .graph {x y}
 # selects a single point and stores it in ::x, ::y
-#    graph_select .graph {x y name}
+#    graph_select .graph {x y name idx}
 # selects a single point and stores it in ::x, ::y.  The name of the line
-# element containing the point is stored in ::name.
+# element containing the point is stored in ::name and the index is stored
+# in ::idx
+#    graph_select_list .graph var
+# selects a set of points; when complete var is set to {{x1 y1 name1 idx1}
+# ... {xk yk namek idxk}}.  Use vwait $var to synchronize.
 
 # XXX FIXME XXX should have a way to select a list of points of unknown
 # length.
@@ -987,6 +991,20 @@ proc graph_select { w args } {
     raise [winfo toplevel $w]
     $w marker create text -name selectPointText \
 	    -text "Click to select [lindex $args 0]\nRight-Click to cancel"
+    grab set $w
+}
+
+proc graph_select_list { w var {n 0}} {
+    set ::graph_select(focus,$w) [focus]
+    set ::graph_select(listname,$w) $var
+    set ::graph_select(list,$w) {}
+    set ::graph_select(listn,$w) $n
+    # ptrace "adding tag to [bindtags $w] for $w"
+    bindtags $w [concat graph_select [bindtags $w]]
+    # XXX FIXME XXX is there a way to save and restore stacking order?
+    raise [winfo toplevel $w]
+    $w marker create text -name selectPointText \
+	    -text "Click to select the next $var\nRight-Click to cancel"
     grab set $w
 }
 
@@ -1018,22 +1036,32 @@ proc graph_select_motion {w x y} {
 }
 
 proc graph_select_press {w x y} {
-    $w element closest $x $y where -halo 1i ;#\
+    $w element closest $x $y where -halo 1i ;# \
 	    -interpolate [option get $w.Interpolate]
-    if { [info exists where(x)] } {
+    if { ![info exists where(x)] } { return }
+    if { [info exists ::graph_select(points,$w)] } {
 	#ptrace "setting [lindex $::graph_select(points,$w) 0] $where(x)"
-	foreach {x y el} [lindex $::graph_select(points,$w) 0] break
+	foreach {x y el i} [lindex $::graph_select(points,$w) 0] break
 	set ::graph_select(points,$w) [lrange $::graph_select(points,$w) 1 end]
-	if {![string equal $x {}]} { uplevel #0 [list set $x $where(x)] }
-	if {![string equal $y {}]} { uplevel #0 [list set $y $where(y)] }
-	if {![string equal $el {}]} { uplevel #0 [list set $el $where(name)] }
+	if {![string equal $x {}]}  { uplevel \#0 [list set $x $where(x)] }
+	if {![string equal $y {}]}  { uplevel \#0 [list set $y $where(y)] }
+	if {![string equal $el {}]} { uplevel \#0 [list set $el $where(name)] }
+	if {![string equal $i {}]}  { uplevel \#0 [list set $i $where(index)] }
 	lappend ::graph_select(active$where(name),$w) [expr $where(index)]
+    } else {
+	lappend ::graph_select(list,$w) \
+	    [list $where(x) $where(y) $where(name) $where(index)]
     }
 }
 
 proc graph_select_release {w x y} {
      #ptrace "with $::graph_select(points,$w)"
-    if {[llength $::graph_select(points,$w)] == 0} {
+    if {[info exists ::graph_select(list,$w)]} {
+	set n $::graph_select(listn,$w)
+	if {$n > 0 && [llength $::graph_select(list,$w)] >= $n} {
+	    graph_select_cancel $w
+	}
+    } elseif {[llength $::graph_select(points,$w)] == 0} {
 	graph_select_cancel $w
     } else {
 	$w marker conf selectPointText \
@@ -1051,6 +1079,11 @@ proc graph_select_cancel {w} {
     catch {
 	raise [winfo toplevel $::graph_select(focus,$w)]
 	focus $::graph_select(focus,$w)
+    }
+    # If getting a set of points, return the set
+    if {[info exists ::graph_select(list,$w)]} {
+	uplevel \#0 \
+	    [list set $::graph_select(listname,$w) $::graph_select(list,$w)]
     }
     array unset ::graph_select *,$w
 }
