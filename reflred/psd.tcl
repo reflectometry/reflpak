@@ -43,11 +43,7 @@ proc psd {id} {
     wm title .psd "PSD [set ::${id}(file)] ($id)"
 
     # send Qz index
-    if { [vector_exists ::xth_$id] } {
-	octave send ::xth_$id Qz	    
-    } else {
-	octave send ::x_$id Qz
-    }
+    octave send ::x_$id Qz
 
     # correct matrix if presented in reverse order
     octave eval "
