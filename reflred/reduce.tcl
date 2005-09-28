@@ -197,7 +197,7 @@ proc reduce_init {} {
     grid columnconf $graphbox 0 -weight 1
 
     # messagebox is outside all the panes
-    label .reduce.message -relief ridge -anchor w -textvariable ::message
+    label .reduce.message -relief ridge -anchor w
 
     grid .reduce.panes -sticky news
     grid .reduce.message -sticky ew
@@ -216,9 +216,9 @@ proc reduce_graph_motion { w x y } {
 	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
 	set ptx [fix $where(x)]
 	set pty [fix $where(y) {} {} 5]
-	message "$ptid  $ptx, $pty"
+	.reduce.message conf -text "$ptid  $ptx, $pty"
     } else {
-	message
+	.reduce.message conf -text ""
     }
 }
 
@@ -788,10 +788,10 @@ proc reduce_save { args } {
     if {$polarized} { set l {A B C D} } { set l {{}} }
     foreach pol $l {
         if { [catch { open $filename$pol w } fid] } {
-            message $fid; bell;
+            message -bell $fid
         } else {
             if { [catch { write_reduce $pol } msg] } {
-                message $msg; bell
+                message -bell $msg
             } else {
                 message "Saving data in $filename"
             }

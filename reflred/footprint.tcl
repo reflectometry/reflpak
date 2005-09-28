@@ -175,8 +175,7 @@ proc draw {} {
     grid $fpcr - - - - - -sticky sew
     grid $fpone - - - $fp.calc $fp.apply -sticky sew
 
-    #set ::message {}
-    #label $fp.message -relief ridge -anchor w -textvariable ::footprint_message
+    #label $fp.message -relief ridge -anchor w
     #grid $fp.message - - - - - -sticky we
 
     # resizable graph
@@ -282,7 +281,7 @@ proc calc {{div div} {foot foot}} {
 	fit {
 	    if { ![string_is_double $::fit_footprint_Qmin] || \
 		    ![string_is_double $::fit_footprint_Qmax] } {
-		set ::message "Invalid footprint fit Q range"
+		message "Invalid footprint fit Q range"
 		return
 	    }
 	    octave eval [subst -nocommand {
@@ -302,7 +301,7 @@ proc calc {{div div} {foot foot}} {
 		    ![string_is_double $::footprint_dm] || \
 		    ![string_is_double $::footprint_b] || \
 		    ![string_is_double $::footprint_db] } {
-		set ::message "Invalid footprint slope/intercept"
+		message "Invalid footprint slope/intercept"
 		return
 	    }
 	    octave eval "p = \[$::footprint_m $::footprint_b]"
@@ -317,7 +316,7 @@ proc calc {{div div} {foot foot}} {
 	fix {
 	    if { ![string_is_double $::footprint_Qmin] || \
 		    ![string_is_double $::footprint_Qmax] } {
-		set ::message "Invalid footprint application Q range"
+		message "Invalid footprint application Q range"
 		return
 	    }
 
@@ -333,7 +332,7 @@ proc calc {{div div} {foot foot}} {
 	}
 	div {
 	    if { ![llength $::footprint_line]} {
-		set ::message "No footprint line selected"
+		message "No footprint line selected"
 		return
 	    }
 	    set ::footprint_Q_at_one {}
