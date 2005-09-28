@@ -82,6 +82,7 @@ To rebuild dqkit, do the following:
 	edit gen/buildkit
 	* comment out the line containing upx
 	* search for the string '[conf::x g++] -static' and remove '-static'
+	* include "IRIX64 { array set X {make gmake} }" near NetBSD
         rm -rf bin
 	gen/buildkit build -tk -tcl -blt -tktable
         cp bin/*/* dqkit$EXE
