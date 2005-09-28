@@ -1,4 +1,12 @@
+OS = $(shell uname -s)
+ifeq ($(OS), IRIX64) 
+  DEFS=-DNEED_BASENAME
+  LDFLAGS=-L/usr/freeware/lib32
+endif
+CFLAGS=-O2 
+LIBS=-lz -lm
 all: reflbin
 
 reflbin: reflbin.c
-	$(CC) -O2 reflbin.c -o reflbin -lz -lm
+	$(CC) $(CFLAGS) $(DEFS) reflbin.c -o reflbin $(LDFLAGS) $(LIBS)
+
