@@ -80,7 +80,7 @@ echo; echo -n "Update server? [y for yes]: "
 read ans
 test "$ans" != "y" && exit
 
-echo; echo "== updating $STORE, $SHARE and $SHAREBIN ================="
+echo; echo "== updating $STORE, $SHARE and $SHAREBIN =="
 sed -e"s,@VERSION@,$VERSION,g" < INSTALL >reflpak$VERSION/index.html
 cp RELEASE-NOTES reflpak$VERSION
 tar cjf reflpak$VERSION.tar.bz2 reflpak$VERSION
@@ -90,6 +90,12 @@ ssh ${SHARE%:*} "cd ${SHARE#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
 ssh ${SHAREBIN%:*} "cd ${SHAREBIN#*:} && cp $builddir/kit/reflpak reflpak$VERSION && rm reflpak && ln -s reflpak$VERSION reflpak"
 rm -rf reflpak$VERSION
 echo; echo "Please check that $STORE and $SHARE contain what you want"
+
+# Update the windows share with the current version
+# XXX FIXME XXX MSYS cp to shared is broken for versions before 1.0.11
+# We are using cygwin's cp instead.
+echo; echo "Copying to //charlotte/public/Reflpak"
+/c/cygdrive/bin/cp release/reflpak$VERSION.exe //charlotte/public/Reflpak
 
 echo; echo -n "Tag the release? [y for yes]: "
 read ans
