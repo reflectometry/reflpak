@@ -353,13 +353,10 @@ proc load {id} {
 		A3 {
 		    vector create ::x_$id
 		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ] 
-		    $rec(A3) dup ::xth_$id
 		}
 		A4 {
 		    vector create ::x_$id
 		    ::x_$id expr [ a4toQz $rec(A4) $rec(L) ]
-		    vector create ::xth_$id
-		    ::xth_$id expr $rec(A4)/2.
 		}
 	    }
 	}

@@ -248,8 +248,6 @@ proc UXDload {id} {
 	THETA { set rec(xlab) "Incident angle (THETA degrees)" }
 	COUPLED { 
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    vector create ::xth_$id
-	    ::xth_$id expr ::x_$id/2
 	    ::x_$id expr [ a4toQz ::x_$id $rec(L) ]
 	}
     }
