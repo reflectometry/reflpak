@@ -103,7 +103,7 @@ proc atten { id1 id2 args} {
 
     set rec(k) 1.0
     set rec(dk) 0.0
-    monitor_norm $id
+    monitor_norm $id2
     set y1  [vector expr "sum(::y_${id1}($range1))"]
     set dy1 [vector expr "sqrt(sum(::dy_${id1}($range1)^2))"]
     set y2  [vector expr "sum(::y_${id2}($range2))"]
@@ -111,7 +111,7 @@ proc atten { id1 id2 args} {
 
     set k   [vector expr "$y1/$y2"]
     set dk  [vector expr "sqrt( ($dy1/$y2)^2 + ($y1*$dy2/$y2^2)^2 )"]
-    atten_from_ratio $id $k $dk
+    atten_from_ratio $id2 $k $dk
 }
 
 proc _atten_sum_points {points Iname dIname} {
