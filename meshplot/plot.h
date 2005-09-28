@@ -1,3 +1,6 @@
+#ifndef _PLOT_H
+#define _PLOT_H
+
 #ifndef PRECISION
 #define PRECISION float
 #endif
@@ -75,3 +78,5 @@ void meshredraw(void);
 #ifdef DEMO
 void plot_demo(PReal limits[6], int stack[]);
 #endif
+
+#endif _PLOT_H
