@@ -125,19 +125,54 @@ local contact regarding the names and locations of the various printers.
 # ----------------------------------------------------------------------
 hpage attenuator .attenuator {See also [attenuator controls].
 
-This window contains the attenuator scale factors for each segment of 
-the run.  Enter attenuator values into the table.  You can also enter
-expressions.
+Enter attenuator values.  Use Ctrl-C and Ctrl-V to copy and paste
+values from one row to the next.
 
-At present the "align" button on the [compose] window doesn't work very well.
-It only works if the curves overlap at a single point.  It
-aligns every curve in the sequence, even if two curves are
-about equal, so the estimated error is very large.  It does
-not find the best attenuator value to use for all overlapping
-curves.  Do not use it for correct reduction, but you can use
-it to get a quick view of your aligned curves.
+There are commands available from the [Tcl console] to adjust the
+attenuators.
 
-2003-03-03}
+Calculate attenuation between two records with one overlapping point:
+
+  atten R1 R2
+
+Calculate attenuation between two records with n overlapping points:
+
+  atten R1 R2 n
+
+Skip k points from the end of the overlap region:
+
+  atten R1 R2 end-n+1:end-k 0:k-1
+
+Copy attenuator values from R1 to R2, R3, ... and Rk
+
+  atten_copy R1 R2 R3 ... Rk
+
+Set attenuator from ratio
+
+  atten_from_ratio R1 k dk
+
+Set attenuator from sums for numerator and denominator
+
+  atten_from_counts R1 n1 n2
+
+Get sums from the screen with n corresponding points
+
+  atten_from_screen n
+
+2005-09-27}
+
+#This window contains the attenuator scale factors for each segment of 
+#the run.  Enter attenuator values into the table.  You can also enter
+#expressions.
+
+#At present the "align" button on the [compose] window doesn't work very well.
+#It only works if the curves overlap at a single point.  It
+#aligns every curve in the sequence, even if two curves are
+#about equal, so the estimated error is very large.  It does
+#not find the best attenuator value to use for all overlapping
+#curves.  Do not use it for correct reduction, but you can use
+#it to get a quick view of your aligned curves.
+
 # It is possible to align a pair of overlapping curves using
 # shift-right-click.  This will give a list of overlapping
 # curves and you can select one to align with.  *This is work
@@ -229,7 +264,7 @@ so will change the Q range on the selected files as well, but not on
 the previously composed scans.
 
 All runs are displayed with the same monitor count, which is the
-monitor of the first run selected.  You can scale each run
+monitor of the first run selected (see [monitor]).  You can scale each run
 independently using the [attenuator] window (Attenuator... in the
 menu), or click "align" to calculate the attenuators automatically.
 WARNING: the attenuator calculator does not work reliably.  Read 
@@ -310,6 +345,69 @@ graph controls
 	   right-click on graph unzoom
 
 2002-09-03}
+
+
+# ----------------------------------------------------------------------
+hpage monitor .monitor {Since 
+the reflectivity curve changes by orders of magnitude in intensity
+as a function of Q, different scan points must be measured for different
+amounts of time.  Before lines can be combined in the reflectivity
+calculation, they must be normalized to the same counting time.  Once
+they are normalized, the data can be scaled arbitrarily for display
+purposes.  The monitor window lets you select how the data is displayed.
+
+Because different data is taken with different monitors, and because
+the default display scale uses the monitor value of the first record
+displayed the actual counts displayed for a particular point may vary
+depending on which other records are displayed.  To keep a consistent
+value no matter what the display, use a fixed scale.  Fields are
+provided for fixed monitor counts and fixed seconds separately since
+some data is normalized by time and other by monitor.  
+
+The choice of normalization is inherent in the record.  Ideally all
+records will contain a monitor column giving an estimate of the
+number of neutrons available.  Sometimes the monitor is not available
+or not reliable and the record should be normalized against seconds
+rather than monitors.  To do so it is necessary to leave the graphical 
+user interface.  First select the record that should be changed so 
+that its contents are visible in the text window.  Next type the 
+following in the [Tcl console]:
+
+  monitor_set $rec(id) seconds
+
+The data will now be normalized by the ::seconds_$rec(id) column. To 
+restore the original behavior type:
+
+  monitor_set $rec(id) auto
+
+You can change all visible records with a single command:
+
+  foreach id $::addrun { monitor_set $id seconds }
+
+Normalizing against time assumes the variation in beam rate is
+small, which is not necessarily the case (e.g., power bumps due to
+weather conditions affecting the electrical supply), so use with
+caution.
+
+Be careful when mixing monitor and time data in the graph. You can view them 
+on the same scale by fixing the scale and entering the counts per second 
+in counts and 1 in seconds.  This does not change the value stored in the
+file, but it does allow you to view the data together.  As of this writing
+the data for time and monitor will not be correctly combined.  Instead,
+reduce time and monitor data separately and combine the resulting reflectivity
+curves.
+
+In certain rare cases mixing monitor and time data will be unavoidable, but 
+handling them is beyond the scope of the graphical user interface. Instead, 
+use the Tcl console to construct specific monitor or seconds vectors.  The
+function monitor_gen can generate either monitor or seconds given a monitor
+rate. For example, to generate a time column from a monitor column in the 
+current record assuming the monitor measures 5132 counts measured over 3 
+seconds, use:
+
+  monitor_gen $rec(id) seconds 5132 3
+
+2005-09-27}
 
 
 # ----------------------------------------------------------------------
@@ -643,7 +741,7 @@ namespace.  The name of the array is visible in parentheses beside the
 name of the file when the file is selected.  You can see what information
 is being stored for each file using "array get".  E.g.,
 
-	array get recR1
+	array get R1
 
 To find the record associated with a particular file name, use
 the function rec which searches through all categorized files for a file
@@ -655,39 +753,22 @@ This maps the array rec to the record found, so you can see the fields
 using, e.g., puts $rec(file).
 
 Records can be added to or removed from the current scan using 
-toggle_section.  The following command adds recR3 to the current
+toggle_section.  The following command adds R3 to the current
 scan.  The keep option makes sure that it is an add, since otherwise
 it will be a toggle.
 
-	toggle_section -keep 1 -node recR3
+	toggle_section -keep 1 -node R3
 
-Once the file is selected and displayed in the graph, the data is stored
-in a suite of BLT vectors.  For example, to see the vectors associated with
-recR1 use:
+You can manipulate the data directly by accessing the [data record].
+For example, you can set an attenuator factor using:
 
-	vector names *_recR1
+	set R2(k) 23.
+	set R2(dk) 0.1
 
-Some comments on the vectors are in order:
+If you change the attenuator by hand, be sure to call the following to 
+update the display:
 
-  x_recR1	Qz value for data
-  xth_recR1	theta corresponding to the Qz stored in x
-  y_recR1	counts in the file normalized by monitor*prefactor
-  dy_recR1	standard error on y
-  ky_recR1	counts*attenuator scaled to current monitor
-  kdy_recR1	standard error on ky
-  idx_recR1	index of included points
-  XXX_recR1	data for column XXX as stored in the ICP file
-
-Note that not all records will exist for all files at all times.
-x and xth may change if the user changes the background basis for a dataset.
-ky and kdy will change whenever attenuators change or runs are added.
-idx will change whenever a point is included or excluded.
-
-Attenuators are stored for each record as rec(k) and rec(dk).  If you
-change the attenuator by hand, be sure to call the following to update
-the ky and kdy vectors:
-
-	atten_set $::addrun
+	monitor_reset
 
 Once all the records are selected and the attenuators are set, you can
 accept the scan with a call to addrun accept.  A table of all accepted 
@@ -705,7 +786,48 @@ listbox_ordered_insert in generic.tcl for clues how to do this), then
 you will need to force that index to be selected (see the listbox manual
 page for clues).  Footprint correction is more awkward still.
 
-2002-09-18}
+2005-09-27}
+
+hpage {data record} {Once 
+a file is selected and displayed in the graph, the data is easily
+accessed from the [Tcl console].  Individual columns are stored as BLT 
+vectors. To see the vectors associated with e.g., R1 use:
+
+	vector names *_R1
+
+The following vector names will be created for each record (if possible).  
+It may be that the value is the same for all points, in which case it 
+will be a vector of constants.
+
+  monitor,dmonitor  Monitor counts for each point
+  seconds,dseconds  Measurement duration (seconds)
+  counts,dcounts    Raw counts from the file
+  y,dy              Intensity as normalized counts scaled by attenuator
+  temp              Temperature during measurement (C)
+  idx	            Index of included points
+
+  rec(norm)         Normalization basis for I (monitor or second)
+  rec(monitor)      Default monitor 
+  rec(k),rec(dk)    Attenuator value
+
+  alpha             Incident angle (degrees)
+  beta              Detector angle (degrees)
+  Qx,Qz             Q value (inv Angstroms)
+  slit1,slit2       Pre-sample slit values (mm)
+  slit3,slit4       Post-sample slit values (mm)
+
+  XXX               data for column XXX as stored in the file
+
+  x                 x data (probably a copy of Qz)
+  ky	            y data scaled to display monitor
+  kdy	            dy uncertainty scaled to display monitor
+
+
+Note that not all records will exist for all files at all times.
+y and dy will change whenever attenuators or normalization basis changes.
+idx will change whenever a point is included or excluded.
+
+2005-09-27}
 
 # ----------------------------------------------------------------------
 hpage choose .choose {
