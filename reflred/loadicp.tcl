@@ -5,6 +5,9 @@ set ::xraywavelength 1.5416
 set ::cg1wavelength 5.0
 set ::ng1wavelength 4.75
 set ::ng7wavelength 4.768
+# exclude points whose count rate exceeds this
+set ::cg1saturation 15000
+set ::ng1saturation 15000
 
 proc atoQx {a3 a4 lambda} {
     return "(cos($::piover180*($a4-$a3)) - cos($::piover180*$a3))*$::pitimes2/$lambda"
@@ -128,7 +131,7 @@ proc icp_date_comment { file } {
 
 proc icp_parse_psd_octave {id data} {
     upvar #0 $id rec
-
+    
     # Data contains position sensitive detector info.
     #   c1 c2 ... c_k\np1, p2, ..., p_i,\n..., p_n\n
     #   ...
@@ -204,6 +207,7 @@ proc icp_parse_psd_fvector {id data} {
     set rec(psdplot) 1
 }
 
+
 # Call the function we are working with
 catch { rename icp_parse_psd {} }
 rename icp_parse_psd_fvector icp_parse_psd
@@ -211,7 +215,7 @@ rename icp_parse_psd_fvector icp_parse_psd
 
 proc icp_load {id} {
     upvar #0 $id rec
-
+    
     # suck in the data file
     if {[ catch { open $rec(file) r } fid ] } { 
 	message $fid
@@ -229,10 +233,10 @@ proc icp_load {id} {
     # convert the column headers into a list (with special code for #1,#2)
     set offset [string first "\n" $data]
     set col [string range $data 0 [incr offset -1]]
-    set col [string map { "#1 " "" "#2 " N2 } $col]
-    set col [string map { COUNTS y } $col]
-    set rec(columns) [eval list $col ]
-    set rec(Ncolumns) [llength $col]
+    set col [string map { "COUNTS" "counts" "#1 " "" "#2 " N2 } $col]
+    set rec(columns) {}
+    foreach c $col { lappend rec(columns) "$c" }
+    set rec(Ncolumns) [llength $rec(columns)]
     set data [string range $data [incr offset] end]
 
     # load the data columns into ::<column>_<id>
@@ -243,34 +247,47 @@ proc icp_load {id} {
 	set rec(psd) 0
     }
 
-    # Define error bars.
-    # When y == 0, dy = sqrt(y) + !y -> 1
-    # When y != 0, dy = sqrt(y) + !y -> sqrt(y)
-    vector create ::dy_$id
-    ::dy_$id expr "sqrt(::y_$id) + !::y_$id"
-
     # average temperature
     if { [vector_exists ::TEMP_$id] } {
 	set rec(Tavg) "[vector expr mean(::TEMP_$id)]([vector expr sdev(::TEMP_$id)])"
     }
 
+    # activate points with non-negative counts
+    set rec(points) [::counts_$id length]
+    vector create ::idx_$id
+    ::idx_$id expr "::counts_$id>=0"
     return 1
 }
 
-
-# set ::idx_$id to 0 for all points in the record $id for which 2*A3 != A4
+# exclude all points in the record $id for which 2*A3 != A4
 proc exclude_specular_ridge {id} {
     upvar #0 $id rec
-    vector create off_specular_ridge
-    off_specular_ridge expr "2*::A3_$id != ::A4_$id"
-    if {[vector expr prod(off_specular_ridge)] == 0.0} {
-	if { ![vector_exists ::idx_$id] } {
-	    off_specular_ridge dup ::idx_$id
+    ::idx_$id expr "::idx_$id && (2*::A3_$id != ::A4_$id)"
+}
+
+# exclude points above a saturation value in counts per second
+proc exclude_saturated {id rate} {
+    upvar \#0 $id rec
+    if {[vector_exists ::seconds_$id]} {
+	# Find good points, which are those for which rate >= counts/seconds
+	# To protect against seconds==0, use seconds*rate >= counts instead.
+	# If there is uncertainty in time use least restrictive value rate,
+	# which is counts/(seconds+dseconds).
+	set good [vector create \#auto]
+	if {[vector_exists ::dseconds_$id]} {
+	    $good expr "(::seconds_$id+::dseconds_$id)*$rate >= ::counts_$id"
 	} else {
-	    ::idx_$id expr "::idx_$id * off_specular_ridge"
+	    $good expr "::seconds_$id*$rate >= ::counts_$id"
 	}
+
+	# If there are any points that are excluded by this test, warn the
+	# user and remove them from the list of valid points.
+	if {[vector expr "prod($good)"] == 0} {
+	    message "excluding points which exceed $rate counts/second"
+	    ::idx_$id expr "::idx_$id && $good"
+	}
+	vector destroy $good
     }
-    vector destroy off_specular_ridge
 }
 
 
@@ -296,28 +313,6 @@ proc default_x {id} {
     }
 }
 
-# normalize by monitor count, or by time if counting by time.
-# Note: you can combine runs counted against monitor and time in 
-# the same scan,  but you need to enter the monitor rate for the 
-# particular slit settings as the attenuator for the runs counted
-# against time.  For continuously opening slits, this is not a
-# constant factor for the run since the monitor for NG1 is between
-# slit 1 an slit 2, and receives more counts as slit 1 opens, which
-# corresponds to shorter counting times as slit 1 opens.  The
-# correct way to handle this is to divide by the slit
-# scan counted the same way as the data for each run, then combine
-# the runs.
-proc monitor_norm {id} {
-    upvar #0 $id rec
-
-    set mon $rec(monitor)
-    set dmon [vector expr sqrt($mon)]
-    if {![string equal -nocase $rec(base) NEUT]} { set dmon 0.0 }
-    ::dy_$id expr "sqrt((::dy_$id/$mon)^2 + (::y_$id*$dmon/$mon^2)^2)"
-    ::y_$id expr "::y_$id/$mon"
-}
-
-
 # ICP sometimes records the incorrect wavelength in the file.  Make
 # sure the right value is being used.  Be annoying about it so that
 # if the wavelength was changed for a legitimate reason the user can
@@ -339,12 +334,8 @@ proc check_wavelength { id wavelength } {
 	# mouse selection of the Tcl override command), but the number of
 	# datasets affected is going to be small enough that it doesn't
 	# matter.
-	set answer [tk_messageBox -type yesno -default yes -icon info \
-			-title "$::title: Inconsistent wavelength" \
-			-message "ICP recorded a wavelength of $rec(L) in $rec(file).  Do you want to use the default wavelength $wavelength instead?"]
-	switch -- $answer {
-	    yes { set rec(L) $wavelength }
-	    no {}
+	if { [question "ICP recorded a wavelength of $rec(L) in $rec(file).  Do you want to use the default wavelength $wavelength instead?"] } {
+	    set rec(L) $wavelength
 	}
 	set $key $rec(L)
     }
@@ -400,8 +391,8 @@ proc NG1_psd_fvector {id} {
     } else {
 	set rec(detector,minbin)      1 ;# doesn't use all the bins
 	set rec(detector,maxbin)    256 ;# => 0.42mm spacing
-	set rec(detector,width)    [expr {4*25.4}] ;# 4" detector
-	set rec(detector,distance) [expr {48*25.4}] ;# detector bank is 4' away
+	set rec(detector,width)    [expr {-4*25.4}] ;# reversed 4" detector
+	set rec(detector,distance) [expr {36*25.4}] ;# detector bank is 3' away
     }
 
     set rec(pixels) [expr {$rec(detector,maxbin)-$rec(detector,minbin)+1}]
@@ -416,59 +407,98 @@ proc NG1_psd_fvector {id} {
     reflplot::normalize $id monitor
 }
 
+# Generate a column from a motor specification if no column is recorded
+# in the file.
+proc motor_column { id motor column_name } {
+    upvar \#0 $id rec
+    set column ::${column_name}_${id}
+    if {![vector_exists $column] && [info exists rec(start,$motor)]} { 
+	vector create $column
+	$column seq 1 $rec(points)
+	$column expr "$rec(start,$motor) + ($column-1)*$rec(step,$motor)"
+    }
+}
+
+# Convert slits from data columns or motor specifications measured in 20ths 
+# of an inch into the standard slit columns measured in millimeters.
+proc build_slit { id num motor column } {
+    set slit "::slit${num}_${id}"
+    motor_column $id $motor $column
+    if { [vector_exists ::${column}_${id}] } {
+	vector create $slit
+	$slit expr "${column}_${id} * 25.4/20"
+    }
+}
+
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
 proc NG1load {id} {
     upvar #0 $id rec
 
     if ![icp_load $id] { return 0 }
-    set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
-    monitor_norm $id
     if { [info exists rec(psdplot)] } { NG1_psd_fvector $id }
 
     if { [string match "CG*" $rec(instrument)] } { 
-	check_wavelength $id $::cg1wavelength 
+	set inst cg1
     } else {
-	check_wavelength $id $::ng1wavelength
+	set inst ng1
     }
 
-    # If column A1 is not stored in the datafile because the slits
-    # are fixed, we need to set it to a column which is the value
-    # of motor 1.  
-    # XXX FIXME XXX Similarly for A2, but do we need A2?
-    if { ![vector_exists ::A1_$id] } {
-	lappend rec(columns) A1
-	vector create ::A1_${id}([::y_$id length])
-	set ::A1_${id}(:) $rec(start,1)
+    check_wavelength $id [set ::${inst}wavelength]
+
+    # Create slit1 and slit2 columns using the stored values if available
+    # otherwise generating them from the motor movement specs in the header
+    build_slit $id 1 1 A1
+    build_slit $id 2 2 A2
+    build_slit $id 3 5 A5
+    build_slit $id 4 6 A6
+
+    # Generate alpha, beta, Qx and Qz
+    motor_column $id 3 A3
+    motor_column $id 4 A4
+    ::A3_$id dup ::alpha_$id
+    ::A4_$id dup ::beta_$id
+    AB_to_QxQz $id
+
+    # Convert MIN column to time in seconds if available
+    # FIXME do we need a time uncertainty vector as well?
+    if { [vector_exists ::MIN_$id] } {
+	vector create ::seconds_$id
+	# time measured in seconds but recorded in hundredths of a minute
+	::seconds_$id expr "round(::MIN_$id*60)"
+	if { $rec(base) != "TIME" } {
+	    # assume no uncertainty if counting against time.  If counting
+	    # against monitor, the uncertainty is +/- a half second uniformly
+	    # distributed, which can be approximated by a gaussian of width
+	    # 1/sqrt(12)
+	    vector create ::dseconds_$id
+	    ::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
+	}
+    } elseif { $rec(base) == "TIME" } {
+	vector create ::seconds_$id
+	::seconds_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
+    } else {
+	# No time information
+	catch { vector destroy ::seconds_$id ::dseconds_$id }
     }
 
-    # Exclude all points exceeding 10000 counts/sec since 
+    # Exclude all points exceeding the saturation rate since 
     # the dead-time correction factor for the NG1 detector 
     # has not been measured.
-    #
-    # Time is rounded to the nearest hundredth of a minute, 
-    # so for times greater than 0.005 minutes, the value of
-    # the MIN column is at the center of the range of possible
-    # values for MIN.  However, since time is always positive,
-    # a value of 0.00 represents all times from 0 to 0.005 min
-    # inclusive, so the center of the range is 0.0025 min.  We
-    # will use 0.0025 rather than 0.00 when calculating
-    # counts/sec for 0.00 minutes.
-    #
-    # Note also that we need to negate the condition because idx 
-    # marks the points to include rather than the points to exclude.
-    #
-    # XXX FIXME XXX Should we be using y=COUNTS/monitor rather than COUNTS?
-    # XXX FIXME XXX 1/x is not linear!  Perhaps we want the geometric
-    # mean of the range?
-    if { [vector_exists ::MIN_$id] } {
-	vector create ::idx_$id
-	::idx_$id expr "(::MIN_$id+(0.0025*(::MIN_$id==0.0)))*600000.0>::y_$id"
-	if { [vector expr prod(::idx_$id)] == 1.0 } {
-	    vector destroy ::idx_$id
-	} else {
-	    message "excluding points which exceed 10000 counts/second"
-	}
+    exclude_saturated $id [set ::${inst}saturation]
+
+
+    # Create a monitor column if necessary
+    if {[vector_exists ::MON_$id] } {
+	::MON_$id dup ::monitor_$id
+    } elseif {$rec(base) == "NEUT"} {
+	vector create ::monitor_$id
+	::monitor_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
+    }
+
+    if {[vector_exists ::monitor_$id]} {
+	vector create ::dmonitor_$id
+	::dmonitor_$id expr "sqrt(::monitor_$id)"
     }
 
     switch $rec(type) {
@@ -482,52 +512,40 @@ proc NG1load {id} {
 	    set rec(xlab) "frame"
 	}
 	rock {
-	    vector create ::x_$id
-	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
-	    ::A3_$id dup ::xth_$id 
+	    ::Qx_$id dup ::x_$id
 	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
 	    set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
 	absorption {
-	    ::A3_$id dup ::x_$id
+	    ::alpha_$id dup ::x_$id
 	    set rec(xlab) "A3 ($::symbol(degree))"
 	}
 	rock3 {
-            vector create ::x_$id
-            ::x_$id expr [ atoQx [expr {-$rec(rockbar)/2.}] ::A4_$id $rec(L) ]
-            ::A4_$id dup ::xth_$id
+	    ::Qx_$id dup ::x_$id
             set rec(Qrockbar) [expr [a4toQz -$rec(rockbar) $rec(L)]]
             set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
 	spec {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    vector create ::x_$id
-	    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-	    vector create ::xth_$id
-	    ::xth_$id expr ::A4_$id/2.
-	    set rec(slit) A1_$id
+	    ::Qz_$id dup ::x_$id
 	}
 	slit - psdslit {
 	    # XXX FIXME XXX if slit 1 is fixed, should we use slit 2?
-	    set rec(xlab) "slit 1 opening"
-	    ::A1_$id dup ::x_$id
+	    set rec(xlab) "slit 1 opening (mm)"
+	    ::slit1_$id dup ::x_$id
 	}
 	back {
-	    set rec(slit) A1_$id
 	    exclude_specular_ridge $id
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    set col $::background_basis($rec(dataset),$rec(instrument))
 	    switch $col {
 		A3 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ] 
-		    $rec(A3) dup ::xth_$id
+		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ]
 		}
 		A4 {
 		    vector create ::x_$id
 		    ::x_$id expr [ a4toQz $rec(A4) $rec(L) ]
-		    vector create ::xth_$id
-		    ::xth_$id expr $rec(A4)/2.
 		}
 	    }
 	}
@@ -545,14 +563,12 @@ proc XRAYload {id} {
 
     if ![icp_load $id] { return 0 }
     # set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
-    monitor_norm $id
     check_wavelength $id $::xraywavelength
 
     switch $rec(type) {
 	rock {
 	    vector create ::x_$id
 	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
-	    ::A3_$id dup ::xth_$id 
 	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
 	    set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
@@ -564,8 +580,6 @@ proc XRAYload {id} {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    vector create ::x_$id
 	    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-	    vector create ::xth_$id
-	    ::xth_$id expr ::A4_$id/2.
 	}
 	back {
 	    exclude_specular_ridge $id
@@ -575,13 +589,10 @@ proc XRAYload {id} {
 		A3 { 
 		    vector create ::x_$id
 		    ::x_$id expr [ a3toQz ::A3_$id $rec(L) ] 
-		    ::A3_$id dup ::xth_$id
 		}
 		A4 {
 		    vector create ::x_$id
 		    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
-		    vector create ::xth_$id
-		    ::xth_$id expr ::A4_$id/2.
 		}
 	    }
 	}
@@ -626,6 +637,35 @@ proc load_NG7_monitor_calibration {} {
     set ::NG7_monitor_calibration_loaded 1
 }
 
+proc NG7monitor_calibration {id} {
+    if { [vector_exists ::monitor_$id]} {
+	# XXX FIXME XXX if there are 0 monitor counts in a bin for some 
+	# reason then this section will fail.  Find some way to make it
+	# fail cleanly.
+
+	load_NG7_monitor_calibration
+
+	# convert monitor counts and monitor time to monitor rate
+	# XXX FIXME XXX what to do with 0 monitor counts
+	octave send ::seconds_$id seconds
+ 	octave send ::monitor_$id monitor
+	octave eval {
+	    dmonitor = sqrt(monitor);
+	    rate = monitor./seconds;
+            # XXX FIXME XXX what's the uncertainty on the monnl interpolation?
+	    correction = interp1(NG7monitor(:,1), NG7monitor(:,2), rate);
+	    monitor = monitor .* correction;
+	    dmonitor = dmonitor .* correction;
+	    monitor(monitor==0) = 1;
+	}
+	vector create ::monitor_$id ::dmonitor_$id
+	octave recv monitor_$id monitor
+	octave recv dmonitor_$id dmonitor
+	octave sync
+    }
+}
+
+
 proc NG7_psd_fvector {id} {
     upvar #0 $id rec
     vector create ::QZ_$id theta twotheta
@@ -638,14 +678,14 @@ proc NG7_psd_fvector {id} {
     vector destroy theta twotheta
     reflplot::set_axes $id Theta TwoTheta
 
-    set rec(detector,width)       10 ;# 10cm detector
-    set rec(detector,minbin)       9 ;# doesn't use all the bins
-    set rec(detector,maxbin)     246 ;# => 0.42mm spacing
-    set rec(detector,distance)   200 ;# detector bank is 2m away
+    set rec(detector,width)       -100.;# 10cm detector, reverse pixel order
+    set rec(detector,minbin)         9 ;# doesn't use all the bins
+    set rec(detector,maxbin)       246 ;# => 0.42mm spacing
+    set rec(detector,distance)    2000.;# detector bank is 2m away
 
     set rec(pixels)     256
-    set rec(distance)  2000
-    set rec(pixelwidth) [expr {100./($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
+    set rec(distance)   $rec(detector,distance)
+    set rec(pixelwidth) [expr {$rec(detector,width)/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
     reflplot::set_center_pixel $id 128
 
     reflplot::normalize $id MON
@@ -659,55 +699,41 @@ proc NG7load {id} {
     if ![icp_load $id] { return 0 }
     if {$rec(psdplot)} { NG7_psd_fvector $id }
     check_wavelength $id $::ng7wavelength
+    
+    # Build standard vectors S1,S2,S3
+    build_slit $id 1 S1 S1
+    build_slit $id 2 S2 S2
+    build_slit $id 3 S3 S3
+    build_slit $id 4 S4 S4
+    
+    # Build Qx,Qz,alpha,beta
+    motor_column $id Qx QX
+    motor_column $id Qz QZ
+    if {[vector_exists ::QX_${id}]} { ::QX_${id} dup ::Qx_$id }
+    if {[vector_exists ::QZ_${id}]} { ::QZ_${id} dup ::Qz_$id }
+    QxQz_to_AB $id
 
-    # If column S1 is not stored in the datafile because the slits
-    # are fixed, we need to set it to a column which is the value
-    # of motor 1.  
-    # XXX FIXME XXX Similarly for S2, S3, S4.
-    # XXX FIXME XXX Sushil says no slit scans for NG7
-    # XXX FIXME XXX correction: slit scans rarely used on NG7
-    #    what happens instead is that you need to measure a
-    #    detector-to-monitor ratio which is mostly constant at
-    #    high Q but can fall somewhat at low Q.
-
-    if { ![vector_exists ::S1_$id] } {
-	lappend rec(columns) S1
-	vector create ::S1_${id}([::y_$id length])
-	set ::S1_${id}(:) $rec(start,S1)
+    # Build time vector from header specification
+    if { [vector_exists ::Qz_$id] } {
+	vector create ::seconds_${id}
+	::seconds_${id} expr "$rec(prf)*($rec(mon)+$rec(Mon1)*abs(::Qz_$id)^$rec(Exp))"
     }
 
+    if { [vector_exists ::MON_$id] } {
+	::MON_$id dup ::monitor_$id
+    } else {
+	message "$rec(file) has no monitor counts"
+    }
+
+    if { [vector_exists ::Qz_$id] } {
+	octave send ::Qz_$id Qz
+	octave send ::seconds_$id seconds
+    }
+    
     # monitor calibration
-    if { [vector_exists ::MON_$id]} {
-	# XXX FIXME XXX if there are 0 monitor counts in a bin for some 
-	# reason then this section will fail.  Find some way to make it
-	# fail cleanly.
+    NG7monitor_calibration $id
 
-	load_NG7_monitor_calibration
-	# for fixed Qz, use the Qz motor start position
-	# for moving Qz
-	if { ![vector_exists ::QZ_$id] } {
-	    octave eval Qz=$rec(start,Qz)
-	} else {
-	    octave send ::QZ_$id Qz
-	}
-
-	# from Qz and file header, compute monitor time
-	# XXX FIXME XXX verify that this is correct
-	octave eval "seconds = $rec(prf)*($rec(mon)+$rec(Mon1)*abs(Qz).^$rec(Exp))"
-
-	# convert monitor counts and monitor time to monitor rate
-	# XXX FIXME XXX what to do with 0 monitor counts
- 	octave send ::MON_$id monitors
-	octave eval {
-	    dmonitors = sqrt(monitors);
-	    rate = monitors./seconds;
-            # XXX FIXME XXX what's the uncertainty on the monnl interpolation?
-	    correction = interp1(NG7monitor(:,1), NG7monitor(:,2), rate);
-	    monitors = monitors .* correction;
-	    dmonitors = dmonitors .* correction;
-	    monitors(monitors==0) = 1;
-	}
-
+    if { [vector_exists ::monitor_$id] } {
         if { $rec(psd) } {
 	    set rec(detector,width)      10 ;# 10cm detector
 	    set rec(detector,minbin)      9 ;# doesn't use all the bins
@@ -717,27 +743,21 @@ proc NG7load {id} {
 	    # set rec(detector,A4intercept) 0 ;# motor 13 and motor Qx but how?
 	    # octave eval "A3_$id = asin(($rec(L)/(4*pi))*Qz)"
             octave eval "
-                monitors = monitors * ones(1,columns(psd_$id));
-                dmonitors = dmonitors * ones(1,columns(psd_$id));
-                psderr_$id = sqrt ( (psderr_$id./monitors) .^ 2 + ...
-                                (psd_$id.*dmonitors./monitors.^2) .^ 2 );
-                psd_$id = psd_$id ./ monitors;
+                monitor = monitor * ones(1,columns(psd_$id));
+                dmonitor = dmonitor * ones(1,columns(psd_$id));
+                psderr_$id = sqrt ( (psderr_$id./monitor) .^ 2 + ...
+                                (psd_$id.*dmonitor./monitor.^2) .^ 2 );
+                psd_$id = psd_$id ./ monitor;
             "
 
             vector create ::psd_$id ::psderr_$id
             octave recv psd_$id psd_$id
             octave recv psderr_$id psderr_$id
         } else {
-            vector create ::monitors_$id ::dmonitors_$id
-            octave recv monitors_$id monitors
-            octave recv dmonitors_$id dmonitors
-            octave sync
-            ::dy_$id expr "sqrt((::dy_$id/::monitors_$id)^2 + \
-                (::y_$id*::dmonitors_$id/::monitors_$id^2)^2)"
-            ::y_$id expr "::y_$id/::monitors_$id"
-        }
-    } else {
-	message "$rec(file) has no monitor counts"
+	    ::dy_$id expr "sqrt((::dy_$id/::monitor_$id)^2 + \
+                (::y_$id*::dmonitor_$id/::monitor_$id^2)^2)"
+	    ::y_$id expr "::y_$id/::monitor_$id"
+	}
     }
 
     switch $rec(type) {
@@ -762,7 +782,7 @@ proc NG7load {id} {
 	}
 	slit - psdslit {
 	    ::S1_$id dup ::x_$id
-	    set rec(xlab) "slit opening (motor S1 units)"
+	    set rec(xlab) "slit 1 opening (mm)"
 	}
 	height {
 	    ::12_$id dup ::x_$id
@@ -849,7 +869,7 @@ proc loadhead {file} {
     upvar #0 [new_rec $file] rec
 
     # assign run# and dataset
-    foreach {rec(dataset) rec(run)} [splitname $file] { break }
+    foreach {rec(dataset) rec(run)} [splitname [file tail $file]] { break }
 
     # parse the header1 line putting the fields into "rec"
     parse1 [lindex $lines 0] ;# grab record variables from line 1
