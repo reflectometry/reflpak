@@ -342,7 +342,7 @@ proc reduce_graph {spec back slit} {
     # XXX FIXME XXX do we really want to rely on the fact that scanids start
     # with the word 'scan'?
     set lines [concat $lspec $lback $lslit]
-    foreach elem [.reduce.graph elem names scan*] {
+    foreach elem [.reduce.graph elem names $::scanpattern] {
 	if { [lsearch $lines $elem] < 0 } {
 	    .reduce.graph elem delete $elem
 	}
