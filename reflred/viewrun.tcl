@@ -40,6 +40,9 @@ if { [string equal $::tcl_version 8.4] } {
     proc blt::busy {args} {}
 }
 
+set ::scanpattern "S\[0-9]*"
+set ::recpattern "R\[0-9]*"
+
 # Delay starting octave as long as possible
 rename octave octave_orig
 proc octave {args} {
@@ -74,7 +77,35 @@ proc a4toQz {a4 lambda} {
     return "$::pitimes4*sin($a4*$::piover360) / $lambda"
 }
 
+proc AB_to_QxQz {id} {
+    upvar \#0 $id rec
+
+    vector create ::Qx_$id ::Qz_$id
+    ::Qz_${id} expr "$::pitimes2/$rec(L)*(sin($::piover180*(::beta_$id-::alpha_$id))+sin($::piover180*::alpha_$id))"
+    ::Qx_${id} expr \
+	"$::pitimes2/$rec(L)*(cos($::piover180*(::beta_$id-::alpha_$id))-cos($::piover180*::alpha_$id))"
+}
+
+proc QxQz_to_AB {id} {
+    # Algorithm for converting Qx-Qz to alpha-beta:
+    #   beta = 2 asin(L/(2 pi) sqrt(Qx^2+Qz^2)/2) * 180/pi 
+    #        = asin(L sqrt(Qx^2+Qz^2) /(4 pi)) / (pi/360)
+    #   if Qz < 0, negate beta
+    #   theta = atan2(Qx,Qz) * 180/pi
+    #   if theta > 90, theta -= 360
+    #   alpha = theta + beta/2
+    #   if Qz < 0, add 180 to alpha
+    vector create ::alpha_$id ::beta_$id
+    ::beta_$id expr "asin($rec(L)*sqrt(::Qx_$id^2-::Qz_$id^2)/$::pitimes4)/$::piover360"
+    ::beta_$id expr "::beta_$id*(::Qz_$id>=0) - ::beta_$id*(::Qz_$id<0)"
+    ::alpha_$id expr "atan2(::Qx_$id,::Qz_$id)/$::piover360)"
+    ::alpha_$id expr "::alpha_$id - 360*(::alpha_$id>90) + $::beta_$id/2"
+    ::alpha_$id expr "::alpha_$id + 180*(::Qz_$id<0)"
+}
+
 load_resources $::VIEWRUN_HOME tkviewrun
+
+monitor_init
 
 # XXX FIXME XXX turn these into resources
 set ::logaddrun 0
@@ -129,7 +160,7 @@ proc init_selector { } {
 	-variable ::background_default -value A4 \
 	-command reset_backgrounds
     .menu.options add separator
-    .menu.options add command -label "Monitor..." -command { set_monitor }
+    .menu.options add command -label "Monitor..." -command { monitor_dialog }
     .menu.options add separator
     # XXX FIXME XXX This needs to be an option on the y-axis for the graph
     .menu.options add radiobutton -label "Show Temperature" \
@@ -270,8 +301,7 @@ proc init_selector { } {
     pack .b.accept .b.clear .b.print -side left -anchor w
 
     # status message dialog
-    set ::message {}
-    label .message -relief ridge -anchor w -textvariable ::message
+    label .message -relief ridge -anchor w
     pack .message -side bottom -expand no -fill x
 
     pack .b -fill x -expand no -in $graphpane -side bottom
@@ -295,37 +325,6 @@ proc init_selector { } {
     # so that the wm doesn't think these came direct from the user.
     wm positionfrom . program
     wm sizefrom . program
-}
-
-# XXX FIXME XXX incomplete untested code which is never called
-# This is more difficult than it ought to be.  In order to change the
-# monitor we have to change the ylabel on the graphs which use that
-# monitor.  Also, it is nonsensical to use a neutron counts monitor for
-# time data and vice versa, so we need to support two different monitors.
-# So much for this being a Quick Fix.
-set ::monitor_inuse 0
-set ::monitor_value {}
-proc set_monitor {} {
-    set top .monitor
-    if { [winfo exists $top] } { raise $top; return }
-
-    toplevel $top
-    wm title $top "Monitor value"
-    checkbutton $top.inuse -text "Fixed monitor" \
-	    -indicatoron 1 -variable ::monitor_inuse \
-	    -command { atten_set $::addrun}
-    label $top.label -text "Monitor value"
-    entry $top.value -textvariable ::monitor_value
-    frame $top.b
-    button $top.b.accept -text Accept \
-	    -command { atten_set $::addrun }
-    button $top.b.reset -text Close \
-	    -command "atten_set \$::addrun; destroy $top"
-    pack $top.b.accept $top.b.reset -side left
-    grid $top.inuse - -sticky w
-    grid $top.label $top.value
-    grid $top.b - -sticky e
-    bind $top.value <Return> { set ::monitor_inuse 1; atten_set $::addrun }
 }
 
 # Polarization cross-section toggling
@@ -384,9 +383,6 @@ proc pol_toggle {w n} {
     }
 }
 
-# XXX FIXME XXX do we really want the message to show up in all the windows?
-proc message { {msg "" } } { set ::message $msg }
-
 # show the coordinates of the nearest point
 proc graph_motion { w x y } {
     $w crosshairs conf -position @$x,$y
@@ -401,7 +397,9 @@ proc graph_motion { w x y } {
 	#    upvar #0 $where(name) rec
 	#    set elid "Run $rec(legend)
 	#}
-	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
+	set id $where(name)
+	set idx $where(index)
+	set ptid "[$w elem cget $id -label]:[expr $idx+1]"
 	set ptx [fix $where(x)]
 	# XXX FIXME XXX eliminate temperature/Q^4 hacks
 	switch -- $::graph_scaling {
@@ -410,14 +408,19 @@ proc graph_motion { w x y } {
 	    default { set y $where(y) }
 	}
 	set pty [fix $y {} {} 5]
-	if { [info exists ::xth_$where(name)] } {
-	    set theta [fix [set ::xth_$where(name)($where(index))]]
-	    message "$ptid  ($theta $::symbol(degree), $ptx A$::symbol(inverse)) $pty"
-	} else {
-	    message "$ptid  $ptx, $pty"
+	set msg "$ptid $ptx, $pty"
+	if { [vector_exists ::counts_$id]} {
+	    append msg "  counts: [expr int([set ::counts_${id}($idx)])]"
 	}
+	if { [vector_exists ::alpha_$id]} {
+	    append msg "  A: [fix [set ::alpha_${id}($idx)]]$::symbol(degree)"
+	}
+	if { [vector_exists ::beta_$id]} {
+	    append msg "  B: [fix [set ::beta_${id}($idx)]]$::symbol(degree)"
+	}
+        .message conf -text $msg
     } else {
-	message
+	.message conf -text ""
     }
 }
 
@@ -443,8 +446,7 @@ proc graph_exclude { w x y } {
     if { [info exists where(x)] } {
         exclude_point $where(name) $where(index)
     } else {
-        message "No points under mouse"
-        bell
+        message -bell "No points under mouse"
     }
 }
 
@@ -508,7 +510,7 @@ proc savescan { args } {
     # because of things like monitor count corrections, error bars and
     # log scaling.
     if { [string equal $::addrun ""] } {
-	message "No runs selected"; bell;
+	message -bell "No runs selected"
 	return
     }
 
@@ -547,11 +549,9 @@ proc savescan { args } {
 		-filetypes [list [list Log $logext] [list Linear $linext]]]
 	if { [string equal $filename ""] } { return }
     } elseif { [string equal $opt "verify"] && [file exists $filename] } {
-	set ans [tk_messageBox -type yesno -default yes \
-		-icon warning \
-		-message "$filename exists. Do you want to overwrite it?" \
-		-title "Save scan data" -parent .]
-	if { [string equal $ans no] } { return }
+	if {![question "$filename exists. Do you want to overwrite it?"]} { 
+	    return 
+	}
     }
 
     # Linear or log?
@@ -559,10 +559,10 @@ proc savescan { args } {
 
     # Write the file
     if { [catch { open $filename w } fid] } {
-	message $fid; bell;
+	message -bell $fid
     } else {
 	if { [catch { write_scan } msg] } {
-	    message $msg; bell
+	    message -bell $msg
 	}
 	close $fid
     }
@@ -579,7 +579,7 @@ proc restart_octave {} {
 	octave mfile [file join $::VIEWRUN_HOME octave $file.m]
     }
     foreach ext { x y dy m } {
-	foreach id [vector names ::scan*_$ext] {
+	foreach id [vector names ::${::scanpattern}_$ext] {
 	    octave send $id [string map { : {} _ . } $id]
 	}
     }
@@ -594,7 +594,7 @@ proc disp x {
 }
 
 proc write_data { fid data args} {
-
+    
     set log 0
     set pol {}
     foreach {option value} $args {
@@ -613,9 +613,7 @@ proc write_data { fid data args} {
 	    if { $y <= $dy/1000. } {
 		# XXX FIXME XXX can dy be <= 0?
 		if { abs($y) <= $dy/1000. } {
-		    tk_messageBox -parent . \
-			    -message "excluding (x,y,dy)=($x,$y,$dy)" \
-			    -type ok
+		    message -box "excluding (x,y,dy)=($x,$y,$dy)"
 		    continue
 		}
 		message "truncating counts below dy/1000 to log_10(dy)-3 $::symbol(plusminus) dy/(ln(10)*|y|)"
@@ -635,14 +633,14 @@ proc write_data { fid data args} {
     } else {
 	puts $fid "# columns x y dy"
 	foreach x [set ${data}_x${pol}(:)] \
-	        y [set ${data}_y${pol}(:)] \
-	        dy [set ${data}_dy${pol}(:)] {
-	    if { $::clip_data && $y <= 0. } {
-		puts $fid "# $x $y $dy"
-	    } else {
-		puts $fid "$x $y $dy"
+	    y [set ${data}_y${pol}(:)] \
+	    dy [set ${data}_dy${pol}(:)] {
+		if { $::clip_data && $y <= 0. } {
+		    puts $fid "# $x $y $dy"
+		} else {
+		    puts $fid "$x $y $dy"
+		}
 	    }
-	}
     }
 }
 
@@ -667,19 +665,16 @@ proc write_scan { fid scanid } {
 proc savescan { scanid } {
     upvar #0 ::$scanid rec
     set filename [file rootname $rec(file)].$rec(type)$rec(index)
-    if [file exists $filename] {
-	set ans [tk_messageBox -type yesno -default yes \
-		    -icon warning -parent . \
-		    -message "$filename exists. Do you want to overwrite it?" \
-		    -title "Save scan data" ]
-	switch $ans { no { return }	}
+    if { [file exists $filename] &&
+	 ![question "$filename exists. Do you want to overwrite it?"] } {
+	return
     }
-
+    
     if { [catch { open $filename w } fid] } {
-	message $fid; bell;
+	message -bell $fid
     } else {
 	if { [catch { write_scan $fid $scanid } msg] } {
-	    message $msg; bell
+	    message -bell $msg
 	} else {
 	    message "Saving data in $filename"
 	}
@@ -689,10 +684,6 @@ proc savescan { scanid } {
 
 # XXX FIXME XXX what do we do when we are running without reduce?
 # should setscan call reduce_newscan directly or what?
-#
-# assumes atten_set has been called so that the triple:
-#     x_$id, ky_$id, kdy_$id
-# are the runs to be averaged
 set ::scancount 0
 proc setscan { runs } {
     # XXX FIXME XXX do we need an error message here?
@@ -705,7 +696,7 @@ proc setscan { runs } {
     # so users will have to be sure to override the names if that is
     # the case.
     set runs [lsort -dictionary $runs]
-
+    
     upvar #0 [lindex $runs 0] rec
     set name "$rec(dataset)-$rec(run)$rec(index)"
     if [info exists ::scanindex($name)] {
@@ -715,7 +706,7 @@ proc setscan { runs } {
 	# the scan in the reduce box lists.
     } else {
 	# scanid must be a valid octave name and blt vector name
-	set scanid scan[incr ::scancount]
+	set scanid S[incr ::scancount]
 	# XXX FIXME XXX this should be the user editted comment for the
 	# scan. It should maybe be a property of addrun rather than the
 	# record since it is conceivable that a new scan would be
@@ -724,54 +715,51 @@ proc setscan { runs } {
 	# in the reduce box lists.
 	array set ::$scanid [array get rec]
 	array set ::$scanid [list \
-	    id $scanid name $name \
-	    runs $runs \
-	]
+				 id $scanid name $name \
+				 runs $runs \
+				]
 	set ::scanindex($name) $scanid
-
+	
 	# XXX FIXME XXX need a better way to change scan types
 	if [string equal $rec(type) "other"] {
 	    array set ::$scanid { type spec }
 	}
-
+	
     }
     upvar #0 $scanid scanrec
-
-    # if {$::monitor_inuse} { set $scanrec(monitor) $::monitor_value }
-
+    
     # need to recalculate since the run list may have changed
-    octave eval $scanrec(id)=\[]
+    octave eval "$scanrec(id)=\[]"
     set scanrec(files) {}
     foreach id $runs {
 	upvar #0 $id rec
-	octave eval r=\[]
-
-	# data
+	octave eval "r=\[]"
+	
+	# data (already includes attenuator)
 	octave send ::x_${id} r.x
 	octave send ::y_${id} r.y
 	octave send ::dy_${id} r.dy
-
-	# monitor and attenuator
+	
+	# monitor
 	octave eval "r = run_scale(r,$scanrec(monitor))"
-	octave eval "r = run_scale(r,$rec(k),$rec(dk))"
-
-	# slit motor position if required
-	if {[info exists rec(slit)]} { 
-	    octave send ::$rec(slit) r.m
+	
+	# slit motor position if available
+	if {[vector_exists ::slit1_$id] && !($rec(type) == "slit")} { 
+	    octave send ::slit1_$id r.m
 	}
-
+	
 	# remove exclusions (and generate note for the log)
-	if [vector_exists ::idx_$id] {
+	if {[vector_exists ::idx_$id] && [vector expr "prod(::idx_$id)"]==0} {
 	    octave send ::idx_${id} idx
 	    octave eval { r = run_include(r,idx) }
 	    set exclude " \[excluding 0-origin [::idx_$id search 0]]"
 	} else {
 	    set exclude ""
 	}
-
+	
 	# append run
 	octave eval "$scanid = run_poisson_avg($scanid,r)"
-
+	
 	# pretty scale
 	if { $rec(k) == 1 && $rec(dk) == 0 } {
 	    set scale {}
@@ -780,7 +768,7 @@ proc setscan { runs } {
 	} else {
 	    set scale "*$rec(k)($rec(dk))"
 	}
-
+	
 	# list file with scale and exclusions in the log
 	lappend scanrec(files) "[file tail $rec(file)]$scale$exclude"
     }
@@ -811,8 +799,8 @@ proc clearscan { scanid } {
     # remove the scan from memory
     if { [string equal $scanid -all] } {
 	catch { unset ::scanindex }
-	foreach var [info vars ::scan*] { array unset $var }
-	set var [vector names ::scan*]
+	foreach var [info vars ::$::scanpattern] { array unset $var }
+	set var [vector names ::$::scanpattern]
 	if [llength $var] { eval vector destroy $var }
     } else {	
 	array unset ::scanindex [set ::${scanid}(name)]
@@ -820,7 +808,7 @@ proc clearscan { scanid } {
 	set var [vector names ::${scanid}_*]
 	if [llength $var] { eval vector destroy $var }
     }
-
+    
     # notify application that graph elements have changed
     event generate .graph <<Elements>>
 }
@@ -831,16 +819,16 @@ proc editscan { scanid } {
 	message "File selection has changed --- cannot edit"
 	return
     }
-
+    
     if [llength $::addrun] {
 	set msg [addrun matches [lindex $runs 0]]
 	if ![string length $msg] {
 	    set msg "You already have some files selected."
 	}
 	set ans [tk_messageBox -type yesnocancel -default yes \
-		-icon warning -parent . \
-		-message "$msg\nClear existing selection?" \
-		-title "Edit scan" ]
+		     -icon warning -parent . \
+		     -message "$msg\nClear existing selection?" \
+		     -title "Edit scan" ]
 	switch $ans {
 	    cancel { return }
 	    yes { addrun clear }
@@ -849,286 +837,6 @@ proc editscan { scanid } {
     addrun add $runs
     atten_set $::addrun
     raise .
-}
-
-# ======================================================
-
-## XXX FIXME XXX need to be able to choose ratio from a list
-## XXX FIXME XXX need to be able to calc ratio relative to
-## another
-proc atten_table_reset {} {
-    if { ![winfo exists .attenuator] } { return }
-    unset ::atten_table
-    array set ::atten_table { -1,0 Run -1,1 attenuator -1,2 "std. error" }
-    set row -1
-    foreach id $::addrun {
-	upvar #0 $id rec
-	incr row
-	array set ::atten_table [list $row,0 "$rec(run)$rec(index)" $row,1 $rec(k) $row,2 $rec(dk)]
-    }
-    .attenuator.t conf -rows [expr 1 + [llength $::addrun]]
-    tableentry::reset .attenuator.t
-}
-
-proc atten_table {} {
-    if { [winfo exists .attenuator] } {
-	raise .attenuator
-	focus .attenuator
-	return
-    }
-
-    toplevel .attenuator
-    wm geometry .attenuator 300x150
-    table .attenuator.t -cols 3 -resizeborders col -colstr unset \
-	    -titlerows 1 -titlecols 1 -roworigin -1 -variable ::atten_table
-    .attenuator.t width 0 4
-    pack [vscroll .attenuator.t] -fill both -expand yes
-
-    if 0 { # suppress Align until it is robust
-	frame .attenuator.b
-	button .attenuator.b.align -text "Align" -command { addrun align }
-	button .attenuator.b.unalign -text "Revert" -command { addrun unalign }
-	pack .attenuator.b.align .attenuator.b.unalign -side left -anchor w
-	grid .attenuator.b
-    }
-
-    # XXX FIXME XXX want a combo box here
-    tableentry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
-    atten_table_reset
-}
-
-proc atten_update { row col val } {
-#    ptrace
-    if {![string is double $val] || $val < 0} {
-        message "expected non-negative scale factor"
-        return 0
-    } elseif {$val < 0} {
-	message "must be non-negative"
-        return 0
-    }
-
-    # the new value is good so save it in the appropriate record
-    set ::atten_table($row,$col) $val
-    # attenuator.t clear cache
-    upvar #0 [lindex $::addrun $row] rec
-    if { $col == 1 } {
-	set rec(k) $val
-    } else {
-	set rec(dk) $val
-    }
-
-    # update the graph
-    # XXX FIXME XXX this is overkill; minimum is "[lindex $::addrun 0] $id"
-    atten_set $::addrun
-
-    # return the value to display in the table
-    return 1
-}
-
-# =====================================================
-
-# XXX FIXME XXX not using either of these but should be
-# will need to move entire scale calc algorithm to octave, so delay.
-proc average_seq {} {
-    octave send ::x_seq r.x
-    octave send ::y_seq r.y
-    octave send ::dy_seq r.dy
-    # XXX FIXME XXX what about excluded points?
-    octave eval "r = run_poisson_avg(r)"
-    octave recv x_seq r.x
-    octave recv y_seq r.y
-    octave recv dy_seq r.dy
-}
-proc average_seq_tcl {} {
-    # pure tcl version, gaussian statistics
-    set dups {}
-    for {set i 1; set j 0} { $i < [::x_seq length] } { incr i; incr j } {
-	if { abs($::x_seq($j) - $::x_seq($i)) < 1e-8 } {
-	    ## usual average of x1 and x2 -> x1
-	    set ::x_seq($j) [expr ($::x_seq($i)+$::x_seq($j))/2.];
-	    ## error-weighted average of y1 and y2 -> y1
-	    set si [expr 1./($::dy_seq($i)*$::dy_seq($i))]
-	    set sj [expr 1./($::dy_seq($j)*$::dy_seq($j))]
-	    set w [expr $si + $sj]
-	    set inerr "$::dy_seq($i) $::dy_seq($j)"
-	    if { $w == 0.0 } {
-		puts "dyi=$::dy_seq($i), dyj=$::dy_seq($j), w=$w"
-	    }
-	    set ::y_seq($j) [expr double($::y_seq($i)*$si + $::y_seq($j)*$sj)/$w]
-	    set ::dy_seq($j) [expr 1./sqrt($w)];
-	    puts "avg: $inerr -> $::dy_seq($j)"
-	    ## remove y2 from set
-	    lappend dups $i
-	}
-    }
-    if { ![string equal $dups ""] } {
-	eval ::x_seq delete $dups
-	eval ::y_seq delete $dups
-	eval ::dy_seq delete $dups
-    }
-}
-
-
-
-# calculate the amount of overlap between x_$id1 and x_$id2
-proc find_overlap { id1 id2 } {
-    upvar $id1 x1
-    upvar $id2 x2
-
-    # xrange is monotonic but not necessarily increasing
-    if { $x2(0) <= $x2(end) } {
-	set idx [ $id1 search $x2(0) $x2(end) ]
-    } else {
-	set idx [ $id1 search $x2(end) $x2(0) ]
-    }
-#   puts "overlap at idx $idx"
-    set n [llength $idx]
-    if { $n == 0 } {
-#	puts "none"
-	return -1;
-    } else {
-#	puts "range [expr $x1([lindex $idx end]) -  $x1([lindex $idx 0]) ]"
-	return [expr 1.0e-30 + $x1([lindex $idx end]) - $x1([lindex $idx 0]) ]
-    }
-}
-
-proc join_one {id seq} {
-    upvar ::x_$id x
-    upvar ::y_$id y
-    upvar ::dy_$id dy
-    # xrange is monotonic but not necessarily increasing
-    if { $x(0) <= $x(end) } {
-	set y1idx [ ::x_seq search $x(0) $x(end) ]
-    } else {
-	set y1idx [ ::x_seq search $x(end) $x(0) ]
-    }
-    if { $::x_seq(0) < $::x_seq(end) } {
-	set y2idx [ ::x_$id search $::x_seq(0) $::x_seq(end) ]
-    } else {
-	set y2idx [ ::x_$id search $::x_seq(end) $::x_seq(0) ]
-    }
-    ### XXX FIXME XXX need better estimate of scaling factor
-    ### for now only using one point
-    set y1 $::y_seq([lindex $y1idx 0])
-    set y2 $y([lindex $y2idx 0])
-    set dy1 $::dy_seq([lindex $y1idx 0])
-    set dy2 $dy([lindex $y2idx 0])
-    upvar #0 $id rec
-    if { $y2 == 0 } {
-	# XXX FIXME XXX need better handling of this, but it should
-	# come when we clean up the atten factor code
-	message "ignoring 0 when scaling"
-	set rec(k) 1.0
-	set rec(dk) 0.0
-#puts "appending ::x_$id to ::x_seq"
-	::x_seq append ::x_$id
-	::y_seq append ::y_$id
-	::dy_seq append ::dy_$id
-    } elseif { $y1 >= $y2 } {
-#	puts "scale new run against the old"
-	set rec(k) [expr double($y1)/$y2]
-	set p [expr double($dy1)/$y2]
-	set q [expr (double($y1)/$y2)*(double($dy2)/$y2)]
-	set rec(dk) [expr sqrt($p*$p + $q*$q)]
-	::ky_$id expr "$rec(k)*::y_$id"
-	::kdy_$id expr "sqrt($rec(k)^2*::dy_$id^2 + ::y_$id^2*$rec(dk)^2)"
-#puts "appending ::x_$id to ::x_seq"
-	::x_seq append ::x_$id
-	::y_seq append ::ky_$id
-	::dy_seq append ::kdy_$id
-    } else {
-#	puts "scale all old runs against the new"
-	set rec(k) 1.0
-	set rec(dk) 0.0
-	set k [expr double($y2)/$y1]
-	set p [expr double($dy2)/$y1]
-	set q [expr (double($y2)/$y1)*(double($dy1)/$y1)]
-	set dk [expr sqrt($p*$p + $q*$q)]
-	foreach oldid $seq {
-	    #puts "updating [set ::${oldid}(run)] by $k +/- $dk"
-	    set ::${oldid}(dk) [vector expr "sqrt($k^2*[set ::${oldid}(dk)]^2 + [set ::${oldid}(k)]^2*$dk^2)"]
-	    set ::${oldid}(k) [expr $k*[set ::${oldid}(k)]]
-	}
-	::dy_seq expr "sqrt( $k^2 * ::dy_seq^2 + ::y_seq^2 * $dk^2 )"
-	::y_seq expr "$k * ::y_seq"
-	#puts "appending [set ::${id}(run)] to ::x_seq"
-	::x_seq append ::x_$id
-	::y_seq append ::y_$id
-	::dy_seq append ::dy_$id
-    }
-    ::x_seq sort ::y_seq ::dy_seq
-
-}
-
-# Find a connected sequence of runs and join them together with
-# scaling relative to the peak
-proc get_seq {runs monitor} {
-    # start with the first run
-    set seq [lindex $runs 0]
-    set ::${seq}(k) 1.0
-    set ::${seq}(dk) 0.0
-    set runs [lrange $runs 1 end]
-    ::x_$seq dup ::x_seq
-    ::y_$seq dup ::y_seq
-    ::dy_$seq dup ::dy_seq
-
-    ## XXX FIXME XXX the following fails with unable to find peakid if
-    ## the first thing we do is double click on a file which is all zeros.
-    ## E.g., ~borchers/Neutron/G126a/g126a010.na1
-
-    # cycle through the remaining runs, extracting
-    # the maximally overlapping one. This is an n^2 algorithm,
-    # but we could easily make it nlogn by sorting the
-    # runs by ::x_$id(0) and using the first overlapping run.
-    set seqnum [set ::${seq}(run)]
-    while {1} {
-	# find the maximal overlap
-	set peak -1
-	foreach id $runs {
-#puts -nonewline "checking overlap between {$seqnum} ($::x_seq(0) ... $::x_seq(end)) and [set ::${id}(run)] ([set ::x_${id}(0)] ... [set ::x_${id}(end)]): "
-	    set v [find_overlap ::x_seq ::x_$id]
-	    if { $v > $peak } {
-		set peak $v
-		set peakid $id
-	    }
-	}
-
-	if { $peak >= 0 } {
-	    # overlap so add it to our sequence
-	    join_one $peakid $seq
-#puts "x_seq: $::x_seq(:)"
-	    lappend seq $peakid
-	    lappend seqnum [set ::${peakid}(run)]
-	    set runs [ldelete $runs $peakid]
-	} else {
-	    # no overlap so finished the current sequence
-	    break;
-	}
-    }
-    return $runs
-}
-
-# Given a set of run ids $runs, find k/dk which joins them.
-proc atten_calc {runs} {
-    if { [string equal $runs {}] } { return }
-    upvar #0 [lindex $runs 0] rec
-    set runs [get_seq $runs $rec(monitor)]
-    while { [llength $runs] > 0 } {
-puts "remaining runs: $runs"
-	# get the next connected sequence out of $runs, removing the elements
-	# it uses and constructing ::x_seq, ::y_seq, ::dy_seq
-	set runs [get_seq $runs $rec(monitor)]
-    }
-}
-
-proc valid_monitor { } {
-    if { !$::monitor_inuse } { 
-	return 0
-    } elseif [llength $::monitor_value] {
-	return [string is double $::monitor_value]
-    } else {
-	return 0
-    }
 }
 
 proc Q4_scale_vector { x y dy } {
@@ -1185,11 +893,10 @@ proc Fresnel_unscale_point {Q args} {
     return $ret
 }
 
-
 proc atten_set { runs }  {
 
     # Ghost scans we have to deal with in addition to runs
-    set scans [.graph elem names scan*]
+    set scans [.graph elem names $::scanpattern]
 
     # Determine which monitor to use
     # XXX FIXME XXX Have to set the y-axis, etc.  Atten_set is NOT the 
@@ -1198,33 +905,26 @@ proc atten_set { runs }  {
     # head so that the monitor scaling doesn't change, but then we need
     # a way of propogating the monitor to atten_set.
     if [llength $runs] {
-	if [valid_monitor] {
-	    set monitor $::monitor_value
-	} else {
-	    # scale by monitor/prefactor of the first run
-	    upvar #0 [lindex $runs 0] rec
-	    set monitor $rec(monitor)
-	}
+	foreach {norm monitor seconds} [monitor_value [lindex $runs 0]] break
 	decorate_graph [lindex $runs 0]
     } elseif [llength $scans] {
-	if [valid_monitor] {
-	    set monitor $::monitor_value
-	} else {
-	    upvar #0 [lindex $scans 0] scanid
-	    set monitor $scanid(monitor)
-	}
+	foreach {norm monitor seconds} [monitor_value [lindex $scans 0]] break
 	decorate_graph [lindex $scans 0]
     } else {
 	return
     }
 
 
-    # scale runs by monitor and attenuation
+    # scale runs by monitor
     foreach id $runs {
 	upvar #0 $id rec
-	::ky_$id expr "$monitor*$rec(k)*::y_$id"
-	::kdy_$id expr "$monitor*sqrt($rec(k)*$rec(k)*::dy_$id*::dy_$id \
-		+ ::y_$id*::y_$id*$rec(dk)*$rec(dk))"
+
+	monitor_norm $id
+	# use $monitor if $rec(norm) is monitor
+	# use $seconds if $rec(norm) is seconds
+	set scale [set $rec(norm)]
+	::kdy_$id expr "$scale*::dy_$id"
+	::ky_$id expr "$scale*::y_$id"
     }
 
     # XXX FIXME XXX do we really want to update the scan _every_ operation?
@@ -1243,8 +943,11 @@ proc atten_set { runs }  {
     # way?
     foreach id $scans {
 	upvar #0 $id scanrec
-	::${id}_ghosty expr "$monitor/$scanrec(monitor)*::${id}_y"
-	::${id}_ghostdy expr "$monitor/$scanrec(monitor)*::${id}_dy"
+	# use $monitor if $scanrec(norm) is monitor
+	# use $seconds if $scanrec(norm) is seconds
+	set scale [expr {[set $scanrec(norm)]/$scanrec(monitor)}]
+	::${id}_ghosty expr "$scale*::${id}_y"
+	::${id}_ghostdy expr "$scale*::${id}_dy"
     }
 
     # scale runs by Q^4 or by Fresnel reflectivity
@@ -1362,6 +1065,12 @@ proc run_matches { base_rec target_rec } {
 	return "different index: $base(index) != $this(index)"
     }
     if { ![string equal $this(base) $base(base)] } {
+	# XXX FIXME XXX Ideally we would know if the styles were
+	# commensurate; e.g. even though one section is counted
+	# against monitor and another is counted against time,
+	# so long as they share a monitor column with monitor normalization
+	# or a time column with time normalization, there is no conflict.
+	# For now we will just let the user sort it out.
 	return "different monitor counting style: $base(base) != $this(base)"
     }
     # the following should never be true since we just determined
@@ -1547,7 +1256,7 @@ proc addrun_addscan { id } {
     # If no scans displayed then reset the colour index.  Note that
     # scan colors count backward from the end of the list so that they
     # tend not to collide with the new scan part colours.
-    if { [llength [.graph element names scan*]] == 0 } {
+    if { [llength [.graph element names $::scanpattern]] == 0 } {
 	set ::addrun_scancolor [llength $::colorlist]
     }
     if { [incr ::addrun_scancolor -1] < 0 } {
@@ -1571,7 +1280,7 @@ proc addrun_addscan { id } {
 
 proc addrun_clearscan {idlist} {
     if {[string equal $idlist -all] } {
-	set idlist [.graph element names scan*]
+	set idlist [.graph element names $::scanpattern]
     }
     foreach id $idlist {
 	catch { .graph element delete $id }
@@ -1620,7 +1329,9 @@ proc addrun_accept {} {
 
     # sort run list by index
     foreach id $::addrun {
-	lappend runlist([set ::${id}(index)]) $id
+	upvar \#0 $id rec
+	# FIXME: need to index by $rec(norm) as well
+	lappend runlist($rec(index)) $id
     }
 
     # build indices as separate lines
@@ -1726,7 +1437,6 @@ proc addrun { command args } {
 
 proc set_absolute {id} {
     if {[info exists ::x_$id]} { ::x_$id expr abs(::x_$id) }
-    if {[info exists ::xth_$id]} { ::xth_$id expr abs(::xth_$id) }
 }
 
 proc set_absolute_all { } {
@@ -1757,7 +1467,6 @@ proc toggle_background { node } {
 		set ::${id}(stop) [set ::${id}(stop,3)]
 		set A3 [set ::${id}(A3)]
 		if {[vector_exists ::x_$id]} {
-		    $A3 dup ::xth_$id
 		    ::x_$id expr [ a3toQz $A3 [set ::${id}(L)] ]
 		}
 	    }
@@ -1768,7 +1477,6 @@ proc toggle_background { node } {
 		set ::${id}(stop) [set ::${id}(stop,4)]
 		set A4 [set ::${id}(A4)]
 		if {[vector_exists ::x_$id]} {
-		    ::xth_$id expr $A4/2.
 		    ::x_$id expr [ a4toQz $A4 [set ::${id}(L)] ]
 		}
 	    }
@@ -1846,10 +1554,8 @@ proc toggle_section { args } {
 	# add entire list
 	set message [addrun matches $node]
 	if { ![string equal $message ""] } {
-	    # .message conf -text $message
 	    if { $opt(-force) == 0 } {
-		message "$message --- use Shift-Click to override"
-		bell
+		message -bell "$message --- use Shift-Click to override"
 		return
 	    } else {
 		message $message
@@ -1874,14 +1580,7 @@ proc clear_run {id} {
 proc decorate_graph { id } {
     upvar #0 $id rec
     .graph axis conf x -title $rec(xlab)
-    # XXX FIXME XXX Ewww!  If the user controls the monitor and we
-    # are plotting something vs. the monitor, then we need to use that
-    # monitor in the graph.
-    if { [valid_monitor] && [string match "Counts per *" $rec(ylab)] } {
-	.graph axis conf y -title [monitor_label $rec(base) $::monitor_value]
-    } else {
-	.graph axis conf y -title $rec(ylab)
-    }
+    .graph axis conf y -title $rec(ylab)
     if { [info exists rec(Qrockbar)] } {
 	.graph marker conf rockbar -hide 0
 	# XXX FIXME XXX may have multiple Qz on same graph!
@@ -1932,59 +1631,6 @@ proc view_file {widget node} {
     }
 }
 
-# XXX FIXME XXX chop superfluous code
-# This is code for viewing a single file, which is something we don't
-# do anymore.  Everything we view now is part of the scan we are building
-# or a previous scan we have built.  There is probably no reason to keep
-# this code around except maybe to show how 
-if {0} {
-    ## get the data from the file
-    if { ![load_run $node] } {
-	error "Could not load $rec(file)"
-    }
-
-    ## copy it to x,y,dy
-    vector create ::x_data ::y_data ::dy_data
-    ::x_$node dup ::x_data
-    ::y_data expr "::y_$node * $rec(monitor)"
-    ::dy_data expr "::dy_$node * $rec(monitor)"
-    if { [info exists ::xth_$node] } {
-	::xth_$node dup ::xth_data
-    } else {
-	catch { unset ::xth_data }
-    }
-
-    ## free the data record
-    clear_run $node
-
-    ## decorate the graph
-    graph_error .graph data -yerror ::dy_data
-    .graph element conf data -hide 0
-    decorate_graph $node
-    .graph conf -title "\[$rec(dataset) $rec(run)] $rec(comment)"
-
-    ## show the direction of the rocking curve using white space
-    if { [info exists rec(Qrockbar)] } {
-	set Qbase $rec(Qrockbar)
-
-	# shift the graph x-axis if the rockbar isn't showing
-	set max $::x_data(max)
-	set min $::x_data(min)
-	set range [expr $max - $min]
-	.graph axis conf x -min "" -max ""
-	if { $Qbase <= $min - $range } {
-	    .graph axis conf x -min [expr $min - $range]
-	} elseif { $Qbase > $min - $range  && $Qbase <= $min } {
-	    .graph axis conf x -min [expr $Qbase - $range/10.]
-	}
-	if { $Qbase >= $max + $range } {
-	    .graph axis conf x -max [expr $max + $range]
-	} elseif { $Qbase < $max + $range && $Qbase >= $max } {
-	    .graph axis conf x -max [expr $Qbase + $range/10.]
-	}
-    }
-    update idletasks
-}
 
 ## Show what portion of the total data range is used by a particular node.
 ## This is called by my hacked version of the BWidget Tree widget, which
@@ -2068,8 +1714,8 @@ proc clear_set {} {
     catch { unset ::grouprange }
     catch { array unset ::background_basis_nodes }
     catch { array unset ::background_basis }
-    foreach var [info vars ::recR*] { array unset $var }
-    set var [vector names ::*_recR*]
+    foreach var [info vars ::$::recpattern] { array unset $var }
+    set var [vector names ::*_$::recpattern]
     if { [llength $var] > 0 } { eval vector destroy $var }
     catch { unset ::dataset }
     ## Don't reuse record numbers so that way we know whether or not
@@ -2087,7 +1733,7 @@ proc note_rec { id args } {
 }
 
 proc new_rec { file } {
-    set id recR[incr ::rec_count]
+    set id R[incr ::rec_count]
     set ::${id}(id) $id
     set ::${id}(file) $file
 
@@ -2197,6 +1843,18 @@ proc load_run {id} {
 	incr rec(loaded)
     }
 
+    # norm vectors
+    vector create ::y_$id ::dy_$id
+    if { ![vector_exists ::dcounts_$id] } {
+	vector create ::dcounts_$id
+	::dcounts_$id expr "sqrt(::counts_$id) + (::counts_$id == 0)"
+    }
+    if { [vector_exists ::monitor_$id] } {
+	set rec(norm) "monitor"
+    } else {
+	set rec(norm) "seconds"
+    }
+
     # okay to try load again now
     unset rec(loading)
 
@@ -2239,21 +1897,6 @@ proc get_columns { id columns data } {
 	return 0
     }
     return 1
-}
-
-proc monitor_label { base monitor } {
-    
-    # set ylabel according to count type
-    if { [string equal -nocase $base "TIME"] } {
-	set units "second"
-    } else {
-	set units "monitor count"
-    }
-    if { $monitor == 1 } {
-	return "Counts per $units"
-    } else {
-	return "Counts per $monitor ${units}s"
-    }
 }
 
 array set ::typelabel { \
@@ -2505,7 +2148,7 @@ proc rec { file } {
 	    return $r
 	}
     }
-    foreach r [info var ::recR*] {
+    foreach r [info var ::$::recpattern] {
 	if [string match $file [file tail [set ${r}(file)]]] {
 	    upvar #0 $r ::rec
 	    return [string range $r 2 end]
@@ -2518,7 +2161,7 @@ proc rec { file } {
 proc app_source { f } {
     if { [file exists $f] } {
         if { [catch { uplevel #0 [list source $f] } msg] } {
-           tk_messageBox -icon error -message "Error sourcing $f:\n$msg" -type ok
+	    message -error "Error sourcing $f:\n$msg"
         }
     }
 }
