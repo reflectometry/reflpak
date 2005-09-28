@@ -298,7 +298,7 @@ void plot_lines(int k, int n, const PReal x[],
   glEnable(GL_LINE_SMOOTH);
   glLineWidth(width*DPI/72.);
   glColor4v(color);
-  glPushName(-1);
+  glPushName(0);
   for (i=0; i < n; i++) {
     double x1=x[4*i],   y1=x[4*i+1];
     double x2=x[4*i+2], y2=x[4*i+3];
@@ -354,7 +354,7 @@ void plot_mesh(int k, int m, int n,
 
   glNewList(k,GL_COMPILE);
   glPushName(k);
-  glPushName(-1);
+  glPushName(0);
   for (i = 0; i < m; i++) {
     glLoadName(i);
     glBegin(GL_QUAD_STRIP);
@@ -386,10 +386,10 @@ void plot_mesh(int k, int m, int n,
   x-=m*n; y-=m*n; v-=m*n;
   glNewList(k+1,GL_COMPILE);
   glPushName(k);
-  glPushName(-1);
+  glPushName(0);
   for (i = 0; i < m-1; i++) {
     glLoadName(i);
-    glPushName(-1);
+    glPushName(0);
     for (j = 1; j < n; j++) {
       glLoadName(j);
       glBegin(GL_QUADS);
@@ -1018,7 +1018,7 @@ void qsdraw(int m, int n, const PReal *qs)
   glColorPointer(4,REAL_TYPE,0,qs+2*QSVERTICES);
   glEnableClientState (GL_VERTEX_ARRAY);
   glEnableClientState (GL_COLOR_ARRAY);
-  glPushName(-1);
+  glPushName(0);
   for (i = 0; i < m; i++) {
     glLoadName(i);
     glDrawArrays(GL_QUAD_STRIP, 2*i*(n+1), 2*(n+1));
