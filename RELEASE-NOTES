@@ -4,6 +4,14 @@ intermediate file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2005-09-28
+* RED: Allow normalization by time or by monitor (see monitor help)
+* RED: Add functions to help calculate attenuators (see attenuator help)
+* RED: Qx = 2pi/L (cos(A4-A3) - cos(A3)); Qz = 2pi/L (sin(A4-A3) - sin(A3))
+* RED: Many improvements in new PSD viewer; still not usable for reduction
+* RED: Partial TOF support (conversion between Alpha-Beta-Lambda and Q)
+* FIT: Use full Levenburg-Marquardt algorithm during fit.
+
 2005-06-08
 * RED: Allow saving without zero and negative data.
 * RED: Fix background A3/A4 toggle.
