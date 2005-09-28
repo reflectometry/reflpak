@@ -11,5 +11,7 @@ package ifneeded reflred 0.1 [subst {
 	{loaduxd.tcl source register_uxd}
 	{loadreduced.tcl source register_reduced}
     }
+    source [list [file join $dir monitor.tcl]]
+    source [list [file join $dir atten.tcl]]
     source [list [file join $dir viewrun.tcl]]
 }]
