@@ -409,24 +409,16 @@ proc NG1_psd_fvector {id} {
 
 # Generate a column from a motor specification if no column is recorded
 # in the file.
-proc motor_column { id motor column_name } {
+proc motor_column { id motor instrument_name standard_name} {
     upvar \#0 $id rec
-    set column ::${column_name}_${id}
-    if {![vector_exists $column] && [info exists rec(start,$motor)]} { 
-	vector create $column
-	$column seq 1 $rec(points)
-	$column expr "$rec(start,$motor) + ($column-1)*$rec(step,$motor)"
-    }
-}
-
-# Convert slits from data columns or motor specifications measured in 20ths 
-# of an inch into the standard slit columns measured in millimeters.
-proc build_slit { id num motor column } {
-    set slit "::slit${num}_${id}"
-    motor_column $id $motor $column
-    if { [vector_exists ::${column}_${id}] } {
-	vector create $slit
-	$slit expr "${column}_${id} * 25.4/20"
+    set column ::${instrument_name}_${id}
+    set target ::${standard_name}_${id}
+    if {[vector_exists $column]} {
+	$column dup $target
+    } elseif {[info exists rec(start,$motor)]} { 
+	vector create $target
+	$target seq 1 $rec(points)
+	$target expr "$rec(start,$motor) + ($target-1)*$rec(step,$motor)"
     }
 }
 
@@ -448,16 +440,14 @@ proc NG1load {id} {
 
     # Create slit1 and slit2 columns using the stored values if available
     # otherwise generating them from the motor movement specs in the header
-    build_slit $id 1 1 A1
-    build_slit $id 2 2 A2
-    build_slit $id 3 5 A5
-    build_slit $id 4 6 A6
+    motor_column $id 1 A1 slit1
+    motor_column $id 2 A2 slit2
+    motor_column $id 5 A5 slit3
+    motor_column $id 6 A6 slit4
 
     # Generate alpha, beta, Qx and Qz
-    motor_column $id 3 A3
-    motor_column $id 4 A4
-    ::A3_$id dup ::alpha_$id
-    ::A4_$id dup ::beta_$id
+    motor_column $id 3 A3 alpha
+    motor_column $id 4 A4 beta
     AB_to_QxQz $id
 
     # Convert MIN column to time in seconds if available
@@ -531,7 +521,7 @@ proc NG1load {id} {
 	}
 	slit - psdslit {
 	    # XXX FIXME XXX if slit 1 is fixed, should we use slit 2?
-	    set rec(xlab) "slit 1 opening (mm)"
+	    set rec(xlab) "slit 1 opening (motor units)"
 	    ::slit1_$id dup ::x_$id
 	}
 	back {
@@ -701,16 +691,14 @@ proc NG7load {id} {
     check_wavelength $id $::ng7wavelength
     
     # Build standard vectors S1,S2,S3
-    build_slit $id 1 S1 S1
-    build_slit $id 2 S2 S2
-    build_slit $id 3 S3 S3
-    build_slit $id 4 S4 S4
+    motor_column $id S1 S1 slit1
+    motor_column $id S2 S2 slit2
+    motor_column $id S3 S3 slit3
+    motor_column $id S4 S4 slit4
     
     # Build Qx,Qz,alpha,beta
-    motor_column $id Qx QX
-    motor_column $id Qz QZ
-    if {[vector_exists ::QX_${id}]} { ::QX_${id} dup ::Qx_$id }
-    if {[vector_exists ::QZ_${id}]} { ::QZ_${id} dup ::Qz_$id }
+    motor_column $id Qx QX Qx
+    motor_column $id Qz QZ Qz
     QxQz_to_AB $id
 
     # Build time vector from header specification
@@ -782,7 +770,7 @@ proc NG7load {id} {
 	}
 	slit - psdslit {
 	    ::S1_$id dup ::x_$id
-	    set rec(xlab) "slit 1 opening (mm)"
+	    set rec(xlab) "slit 1 opening (motor units)"
 	}
 	height {
 	    ::12_$id dup ::x_$id
