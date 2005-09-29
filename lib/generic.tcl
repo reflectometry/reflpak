@@ -311,7 +311,7 @@ proc message { args } {
 	if {$msg != ""} { puts "$tag$msg" }
     } else {
 	# If no message widget, force use of a warning box
-	set top [winfo toplevel [focus]]
+	if { [catch {set top [winfo toplevel [focus]]}] } { set top none }
 	if { $top == "." } { 
 	    set msgbox .message 
 	} else {
