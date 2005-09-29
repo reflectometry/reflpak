@@ -7,17 +7,20 @@
 DQKIT=dqkit/dqkit
 SDX="$DQKIT sdx.kit"
 VERSION=1p1
-REFLFIT="~/cvs/reflfit"
+REFLFIT=~/cvs/reflfit
 
-ARCH=`uname`
-host=`hostname`; host=${host%%.*}
-if test x$ARCH = xwindows; then
+ARCH=`uname -s`
+WINDOWS=MINGW32_NT-5.0
+if test x$ARCH = x$WINDOWS; then
     # windows things
     TCLLIB=/c/Tcl/lib
     EXE=.exe
-    BINDRES=$REFLFIT/bindres.sh
+    BINDRES=$REFLFIT/win/bindres.sh
     RC=windres
+    NEED_TKTABLE=1
+    NEED_TKDND=1
 else
+    host=`hostname`; host=${host%%.*}
     TCLLIB=dqkit/install/$host/lib
 fi
 
@@ -40,10 +43,9 @@ TKCON=tkcon.tcl
 TKCONVER=2.4
 
 
-#
-if test x$1 != xdoit ; then
-    more <<EOF
-ncnrkit is a starkit containing the following:
+# Show docs if no input
+test x$1 != xdoit && less <<EOF && exit
+ncnrpack is a starkit containing the following:
 
 	Tcl/Tk BLT Tktable BWidget Tkcon Tkdnd
 
@@ -79,12 +81,12 @@ To rebuild dqkit, do the following:
 
         tar xzf dqkit-sources-0.4.tar.gz
         cd dqkit
-	edit gen/buildkit
+	vi gen/buildkit
 	* comment out the line containing upx
 	* search for the string '[conf::x g++] -static' and remove '-static'
 	* include "IRIX64 { array set X {make gmake} }" near NetBSD
-        rm -rf bin
-	gen/buildkit build -tk -tcl -blt -tktable
+        [osx] (cd noarch/include && ln -s ../../src/tk-8.4.5/xlib/X11 .)
+        gen/buildkit build -tk -tcl -blt -tktable
         cp bin/*/* dqkit$EXE
         cd ..
 
@@ -102,47 +104,45 @@ Once everything is ready, build the kit:
 
 	$REFLFIT/mkncnrkit doit
 
-The resulting ncnrkit can now be used to wrap your own applications,
+The resulting ncnrpack can now be used to wrap your own applications,
 but you will have to make a copy before doing so.
 E.g.,
 
    mkdir myapp.vfs
    echo "package require starkit;starkit::startup;puts hi" > myapp.vfs/main.tcl
-   cp ncnrkit$VERSION$EXE ncnrkit$EXE
-   ncnrkit sdx.kit wrap myapp$EXE -runtime ncnrkit$VERSION$EXE
+   cp ncnrpack$VERSION$EXE ncnrpack$EXE
+   ncnrpack sdx.kit wrap myapp$EXE -runtime ncnrpack$VERSION$EXE
    ./myapp
 
-
 EOF
-    exit
 
-else
+set -x
 
-    set -x
+# clear out any old build kits
+rm -rf ncnrpack$VERSION.vfs
 
-    # clear out any old build kits
-    rm -rf ncnrkit$VERSION.vfs
+# expose the base package tree
+$SDX unwrap $DQKIT$EXE
+mv dqkit.vfs ncnrpack$VERSION.vfs
+kitlib=ncnrpack$VERSION.vfs/lib
 
-    # expose the base package tree
-    $SDX unwrap $DQKIT
-    mv dqkit.vfs ncnrkit$VERSION.vfs
-    kitlib=ncnrkit$VERSION.vfs/lib
+# add bwidget (without docs)
+mkdir $kitlib/$BWIDGET
+cp $BWIDGET/*.tcl $kitlib/$BWIDGET
+cp -r $BWIDGET/images $BWIDGET/lang $kitlib/$BWIDGET
+cp $BWIDGET/{README,LICENSE}.txt $kitlib/$BWIDGET
 
-    # add bwidget (without docs)
-    mkdir $kitlib/$BWIDGET
-    cp $BWIDGET/*.tcl $kitlib/$BWIDGET
-    cp -r $BWIDGET/images $BWIDGET/lang $kitlib/$BWIDGET
-    cp $BWIDGET/{README,LICENSE}.txt $kitlib/$BWIDGET
+# add TkTable (without docs or static lib)
+if test -n "$NEED_TKTABLE" ; then
+    cp -r $TCLLIB/$TKTABLE $kitlib
+    rm -rf $kitlib/$TKTABLE/html
+    rm $kitlib/$TKTABLE/*.{a,lib}
+fi
 
-    # add TkTable (without docs or static lib)
-    #cp -r $TCLLIB/$TKTABLE $kitlib
-    #rm -rf $kitlib/$TKTABLE/html
-    #rm $kitlib/$TKTABLE/*.{a,lib}
-
-    # add Tkcon (with pkgIndex.tcl)
-    mkdir $kitlib/tkcon$TKCONVER
-    cp $TKCON $kitlib/tkcon$TKCONVER
-    cat > $kitlib/tkcon$TKCONVER/pkgIndex.tcl <<EOF
+# add Tkcon (with pkgIndex.tcl)
+mkdir $kitlib/tkcon$TKCONVER
+cp $TKCON $kitlib/tkcon$TKCONVER
+cat > $kitlib/tkcon$TKCONVER/pkgIndex.tcl <<EOF
 package ifneeded tkcon $TKCONVER [subst {
     namespace eval ::tkcon {}
     set ::tkcon::PRIV(showOnStartup) 0
@@ -155,27 +155,26 @@ package ifneeded tkcon $TKCONVER [subst {
 }]
 EOF
 
-    # add tkdnd (if needed, without docs)
-    if test -d $TKDND; then
-        cp -r TKDND $kitlib
-        rm -rf $kitlib/$TKDND/html
-        rm -rf $kitlib/$TKDND/demo
-    fi
-
-## Now we need to recombine our kit into ncnrkit
-
-    # duplicate the kit so that you can use it to split itself
-    cp $DQKIT$EXE dqkitcopy$EXE
-    # split of the dqkit runtime
-    $SDX mksplit dqkitcopy$EXE
-    # recombine with the extended ncnrkit
-    $SDX wrap ncnrkit$VERSION$EXE -runtime dqkitcopy.head
-    rm dqkitcopy*
-
-## On windows we will want to rebrand this.
-    if test x$ARCH = xwindows ; then
-	$RC ncnrkit.rc ncnrkit.res
-	$BINDRES ncnrkit$VERSION.exe ncnrkit.res
-    fi
+# add tkdnd (if needed, without docs)
+if test -n "$NEED_TKDND" ; then
+    cp -r $TCLLIB/$TKDND $kitlib
+    rm -rf $kitlib/$TKDND/html
+    rm -rf $kitlib/$TKDND/demo
 fi
 
+## Now we need to recombine our kit into ncnrpack
+
+# duplicate the kit so that you can use it to split itself
+cp $DQKIT$EXE dqkitcopy$EXE
+# split of the dqkit runtime
+$SDX mksplit dqkitcopy$EXE
+# recombine with the extended ncnrpack
+$SDX wrap ncnrpack$VERSION$EXE -runtime dqkitcopy.head
+rm dqkitcopy$EXE
+
+## On windows we will want to rebrand this.
+if test x$ARCH = x$WINDOWS ; then
+    (cd $REFLFIT/win && $RC ncnrpack.rc ncnrpack.res)
+    mv $REFLFIT/win/ncnrpack.res .
+    $BINDRES ncnrpack$VERSION.exe ncnrpack.res
+fi
