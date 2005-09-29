@@ -352,7 +352,7 @@ hpage monitor .monitor {Since
 the reflectivity curve changes by orders of magnitude in intensity
 as a function of Q, different scan points must be measured for different
 amounts of time.  Before lines can be combined in the reflectivity
-calculation, they must be normalized to the same counting time.  Once
+calculation, they must be normalized to the same counting basis.  Once
 they are normalized, the data can be scaled arbitrarily for display
 purposes.  The monitor window lets you select how the data is displayed.
 
@@ -375,14 +375,15 @@ following in the [Tcl console]:
 
   monitor_set $rec(id) seconds
 
-The data will now be normalized by the ::seconds_$rec(id) column. To 
-restore the original behavior type:
+The data will now be normalized by the ::seconds_$rec(id) column. You 
+can change all visible records with a single command:
 
-  monitor_set $rec(id) auto
+  monitor_set $::addrun seconds
 
-You can change all visible records with a single command:
+These changes will last until you deselect and reselect the file.  You
+can also force normalization by monitor by calling the following:
 
-  foreach id $::addrun { monitor_set $id seconds }
+  monitor_set $::addrun monitor
 
 Normalizing against time assumes the variation in beam rate is
 small, which is not necessarily the case (e.g., power bumps due to

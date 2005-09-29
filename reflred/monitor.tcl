@@ -123,6 +123,7 @@ proc monitor_label { base monitor } {
     if { $monitor == 1 } {
 	return "Counts per $unit"
     } else {
+	if {$monitor == int($monitor)} { set monitor [expr {int($monitor)}] }
 	return "Counts per $monitor ${unit}s"
     }
 }
@@ -206,63 +207,67 @@ proc monitor_norm {id} {
 #
 # FIXME: add support for monitor after slit1 or slit2
 # FIXME: this code is unused
-proc monitor_gen {id norm counts seconds} {
-    upvar \#0 $id rec
+proc monitor_gen {idlist norm counts seconds} {
+    foreach id idlist {
+	upvar \#0 $id rec
     
-    # Counting unit correction
-    set M "::monitor_$id"
-    set dM "::dmonitor_$id"
-    set T "::seconds_$id"
-    set dT "::dseconds_$id"
-    set rate [expr {$counts/$seconds}]
-    set drate [expr {$counts>1?sqrt($counts)/$seconds:0.}]
-    if { $norm == "seconds"} {
-	vector create $T $dT
-	$dT expr "sqrt(($dM/$rate)^2 + ($M*$drate/$rate^2)^2)"
-	$T expr "$M/$rate"
-	note_rec $id "estimate time from monitor counts / ($counts counts/$seconds seconds)"
-    } elseif { $norm == "monitor"} {
-	vector create $M $dM
-	if { [vector_exists $dT] } {
-	    $dM expr "sqrt($rate^2*$dT^2 + $T^2*$drate^2)"
-	    $M expr "$T*$rate"
+	# Counting unit correction
+	set M "::monitor_$id"
+	set dM "::dmonitor_$id"
+	set T "::seconds_$id"
+	set dT "::dseconds_$id"
+	set rate [expr {$counts/$seconds}]
+	set drate [expr {$counts>1?sqrt($counts)/$seconds:0.}]
+	if { $norm == "seconds"} {
+	    vector create $T $dT
+	    $dT expr "sqrt(($dM/$rate)^2 + ($M*$drate/$rate^2)^2)"
+	    $T expr "$M/$rate"
+	    note_rec $id "estimate time from monitor counts / ($counts counts/$seconds seconds)"
+	} elseif { $norm == "monitor"} {
+	    vector create $M $dM
+	    if { [vector_exists $dT] } {
+		$dM expr "sqrt($rate^2*$dT^2 + $T^2*$drate^2)"
+		$M expr "$T*$rate"
+	    } else {
+		$dM expr "$T*$drate"
+		$M expr "$T*$rate"
+	    }
+	    note_rec $id "estimate monitor from seconds * ($counts counts/$seconds seconds)"
 	} else {
-	    $dM expr "$T*$drate"
-	    $M expr "$T*$rate"
+	    error "monitor_gen id \"monitor|seconds\" counts seconds"
 	}
-	note_rec $id "estimate monitor from seconds * ($counts counts/$seconds seconds)"
-    } else {
-	error "monitor_gen id \"monitor|seconds\" counts seconds"
     }
 
-    monitor_set $id $norm
+    monitor_set $idlist $norm
 }
 
 
-proc monitor_set { id base } {
+proc monitor_set { idlist norm } {
 # UI
-    upvar #0 $id rec
-
-    switch -- $base {
-	auto {
-	    if { [vector_exists ::monitor_$id] } {
-		set rec(norm) monitor
-	    } else {
-		set rec(norm) seconds
+    foreach id $idlist {
+	upvar #0 $id rec
+	
+	switch -- $norm {
+	    auto {
+		if { [vector_exists ::monitor_$id] } {
+		    set rec(norm) monitor
+		} else {
+		    set rec(norm) seconds
+		}
 	    }
-	}
-	monitor - seconds {
-	    if {![vector_exists ::${norm}_${id}]} {
-		error "Can't normalize $id by $norm"
+	    monitor - seconds {
+		if {![vector_exists ::${norm}_${id}]} {
+		    error "Can't normalize $id by $norm"
+		}
+		set rec(norm) $norm
 	    }
-	    set rec(norm) $norm
-	}
-	default {
-	    error "monitor_set_norm id auto|monitor|seconds"
+	    default {
+		error "monitor_set_norm id auto|monitor|seconds"
+	    }
 	}
     }
 
-    monitor_norm $id
+    monitor_reset
 }
 
 if {$argv0 eq [info script] && ![info exists running]} {
