@@ -230,10 +230,17 @@ proc icp_load {id} {
     set offset [string first "\n" $data [incr offset]]
     set data [string range $data [incr offset] end]
 
-    # convert the column headers into a list (with special code for #1,#2)
+    # Get a list of column names. Transform the names of certain
+    # columns to make our lives easier elsewhere.
+    #      COUNTS -> counts, MONITOR -> MON
+    #      #1 COUNTS -> counts, #2 COUNTS -> N2counts
     set offset [string first "\n" $data]
     set col [string range $data 0 [incr offset -1]]
-    set col [string map { "COUNTS" "counts" "#1 " "" "#2 " N2 } $col]
+    set col [string map { 
+	"COUNTS" "counts" 
+	"MONITOR" "MON" 
+	"#1 " "" "#2 " "N2" 
+    } $col]
     set rec(columns) {}
     foreach c $col { lappend rec(columns) "$c" }
     set rec(Ncolumns) [llength $rec(columns)]
