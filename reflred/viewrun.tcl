@@ -2168,4 +2168,11 @@ proc app_source { f } {
 app_source [file join [HOME] .reflred.tcl]
 
 # load the initial directory (as set by the command line arguments if any)
+if {[llength $pattern] == 1} {
+    if {[file isdir $pattern]} {
+	cd $pattern
+    } else {
+	cd [file dir $pattern]
+    }
+}
 setdirectory $pattern

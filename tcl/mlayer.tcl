@@ -3720,6 +3720,7 @@ proc reset_all {} {
 ## open the initial file
 proc drop_file { file } {
     if { $file == "" } { return }
+    if { [file isdir $file] } { cd $file; return }
 
     ## Trim uri indicator if any
     ## XXX FIXME XXX maybe allow drag/drop links from browser?
