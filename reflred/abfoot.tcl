@@ -60,9 +60,13 @@ namespace eval abfoot {
 	set g [graph $w.g]
 	active_graph $g
 	active_axis $g y
-	opt $g.data pixels 4 fill {} lineWidth 0 color blue symbol splus
-	$g element create data \
+	active_legend $g
+	opt $g.refl pixels 4 fill {} lineWidth 0 color green symbol box
+	$g element create refl \
 	    -xdata ::refl_x -ydata ::refl_y -yerror ::refl_dy
+	opt $g.div pixels 4 fill {} lineWidth 0 color blue symbol cross
+	$g element create div \
+	    -xdata ::div_x -ydata ::div_y -yerror ::div_dy
 	opt $g.foot pixels 0 fill {} lineWidth 1 color darkblue symbol {}
 	$g element create foot \
 	    -xdata ::refl_x -ydata ::abfoot_y
@@ -114,8 +118,8 @@ namespace eval abfoot {
     proc apply {} {
 	calc
 	# Scale refl by footprint, ignoring zeros
-	::refl_y expr "::refl_y / (::abfoot_y + !::abfoot_y)"
-	::refl_dy expr "::refl_dy / (::abfoot_y + !::abfoot_y)"
+	::refl_y expr "::div_y / (::abfoot_y + !::abfoot_y)"
+	::refl_dy expr "::div_dy / (::abfoot_y + !::abfoot_y)"
     }
 
     proc calc {} {
@@ -134,7 +138,7 @@ namespace eval abfoot {
 	set L1 [expr {$length/2.+$offset}]
 	set L2 [expr {$length/2.-$offset}]
 
-	set Qz ::refl_x
+	set Qz ::div_x
 	set slit ::spec_m
 
 	set wA [vector create \#auto] ;# Width of A
@@ -256,6 +260,7 @@ if {$argv0 eq [info script] && ![info exists running]} {
     ::refl_y expr ::refl_x*10.
     ::refl_dy expr sqrt(::refl_y)
     ::spec_m expr ::refl_x/10.
+    foreach dim {x y dy} { ::refl_$dim dup ::div_$dim }
     # Need to know lambda to find theta
     set R(L) 5.
     set ::reduce_head R
