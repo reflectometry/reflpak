@@ -6,6 +6,7 @@ package ifneeded reflred 0.1 [subst {
 	{choose.tcl source choose_dataset}
 	{psd.tcl source psd}
 	{reduce.tcl source {reduce_clearscan reduce_newscan reduce_show}}
+	{abfoot.tcl source {::abfoot::dialog}}
 	{loadicp.tcl source register_icp}
 	{loadice.tcl source ::icedata::mark}
 	{loaduxd.tcl source register_uxd}

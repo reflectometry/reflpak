@@ -184,7 +184,11 @@ proc reduce_init {} {
     checkbutton $fp.use -variable ::footprint_correction \
 	    -text "Footprint correction" -command reduce_selection
     button $fp.extra -text "Parameters..." -command footprint::draw
-    grid $fp.use $fp.extra
+    set ::abinitio_correction 0
+    checkbutton $fp.useab -variable ::abinitio_footprint \
+	-text "Ab initio correction" -command reduce_selection
+    button $fp.parab -text "Parameters..." -command ::abfoot::dialog
+    grid $fp.use $fp.extra $fp.useab $fp.parab
 
     # pack the graph pane
     grid $b -sticky w
@@ -543,7 +547,11 @@ proc reduce {spec back slit} {
 
     # XXX FIXME XXX - do we really need to sync?
     # puts "syncing"
-    # octave sync
+    if {$::abinitio_correction} {
+	octave sync
+	::abfoot::apply
+    }
+
 
     # XXX FIXME XXX don't forget to log the what we have done when we
     # save the results!  Do we want to display the log in a text window?
