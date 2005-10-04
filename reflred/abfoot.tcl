@@ -61,7 +61,7 @@ namespace eval abfoot {
 	active_graph $g
 	active_axis $g y
 	active_legend $g
-	opt $g.refl pixels 4 fill {} lineWidth 0 color green symbol box
+	opt $g.refl pixels 4 fill {} lineWidth 1 color green symbol square
 	$g element create refl \
 	    -xdata ::refl_x -ydata ::refl_y -yerror ::refl_dy
 	opt $g.div pixels 4 fill {} lineWidth 0 color blue symbol cross
