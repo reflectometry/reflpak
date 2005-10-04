@@ -135,6 +135,7 @@ proc loadreduced {id} {
     # correct for monitor
     ::y_$id expr "::y_$id/$rec(monitor)"
     ::dy_$id expr "::dy_$id/$rec(monitor)"
+    set rec(norm) "monitor"
     
     # We immediately convert preprocessed files into scans without
     # keeping them as records.  We display the ghost immediately
@@ -378,8 +379,11 @@ proc loadother {id} {
     }
 
     # correct for monitor
+    ::y_$id dup ::counts_$id
+    ::dy_$id dup ::dcounts_$id
     ::y_$id expr "::y_$id/$rec(monitor)"
     ::dy_$id expr "::dy_$id/$rec(monitor)"
+    set rec(norm) "monitor"
     
     # We immediately convert preprocessed files into scans without
     # keeping them as records.  We display the ghost immediately
