@@ -1173,6 +1173,12 @@ proc active_graph {w args} {
     if { "$::active_graph($w,errbar)" eq "" } {
 	set ::active_graph($w,errbar) both
     }
+
+    # crosshairs if the users wishes
+    # XXX FIXME XXX do we really need to process this resource by hand?
+    if { [string is true [option get $w crosshairs Crosshairs]] } {
+	$w crosshairs on
+    }
     
     # Define the standard menu
     menu $w.menu -tearoff 1 -title "$w controls"
