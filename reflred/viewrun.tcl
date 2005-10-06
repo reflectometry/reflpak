@@ -543,7 +543,7 @@ proc write_scan { fid scanid } {
     puts $fid "#wavelength $rec(L)"
     puts $fid "#$rec(type) $rec(files)"
     if { $rec(polarization) ne {} } {
-	puts $fid"#polarization $pol"
+	puts $fid "#polarization $rec(polarization)"
     }
     switch $rec(type) {
 	spec - back { 
@@ -1859,7 +1859,7 @@ proc setdirectory { pattern_set } {
         }
         set files [concat $files [glob -nocomplain $p]]
     }
-    set files [lsort -dictionary $files]
+    set files [lsort -dictionary -unique $files]
 
     # Display data path in the window header.
     set p [file dirname [lindex $files 0]]
