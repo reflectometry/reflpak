@@ -267,12 +267,8 @@ proc init_selector { } {
 
     set ::colorlist [option get .graph lineColors LineColors]
 
-    # put graph coordinates into message box
-    bind .graph <Leave> { message "" }
-    bind .graph <Motion> { graph_motion %W %x %y }
-
     # add graph controls
-    active_graph .graph
+    active_graph .graph -motion addrun_point_info
     active_axis .graph y
     active_legend .graph
     
@@ -384,44 +380,28 @@ proc pol_toggle {w n} {
 }
 
 # show the coordinates of the nearest point
-proc graph_motion { w x y } {
-    $w crosshairs conf -position @$x,$y
-    $w element closest $x $y where -halo 1i
-    if { [info exists where(x)] } {
-	## XXX FIXME XXX better way to get the currently viewed record?
-	## (moot since we no longer support viewfile, only addrun)
-	#if { [string equal $where(name) "data"] || [string } {
-	#    upvar #0 [.tree selection get] rec
-	#    set elid "Run $rec(legend)
-	#} elseif [string matches rec* ::$where(name)] {
-	#    upvar #0 $where(name) rec
-	#    set elid "Run $rec(legend)
-	#}
-	set id $where(name)
-	set idx $where(index)
-	set ptid "[$w elem cget $id -label]:[expr $idx+1]"
-	set ptx [fix $where(x)]
-	# XXX FIXME XXX eliminate temperature/Q^4 hacks
-	switch -- $::graph_scaling {
-	    Q4 { set y [Q4_unscale_point $where(x) $where(y)] }
-	    Fresnel { set y [Fresnel_unscale_point $where(x) $where(y)] }
-	    default { set y $where(y) }
-	}
-	set pty [fix $y {} {} 5]
-	set msg "$ptid $ptx, $pty"
-	if { [vector_exists ::counts_$id]} {
-	    append msg "  counts: [expr int([set ::counts_${id}($idx)])]"
-	}
-	if { [vector_exists ::alpha_$id]} {
-	    append msg "  A: [fix [set ::alpha_${id}($idx)]]$::symbol(degree)"
-	}
-	if { [vector_exists ::beta_$id]} {
-	    append msg "  B: [fix [set ::beta_${id}($idx)]]$::symbol(degree)"
-	}
-        .message conf -text $msg
-    } else {
-	.message conf -text ""
+proc addrun_point_info { w x y name idx msg } {
+    # To undo the effects of Q4 and Fresnel scaling, need to regenerate
+    # entire message from scratch
+    set msg "[$w elem cget $name -label]:[expr {$idx+1}]"
+    # XXX FIXME XXX eliminate temperature/Q^4 hacks
+    set x [set [$w elem cget $name -xdata]($idx)]
+    set y [set [$w elem cget $name -ydata]($idx)]
+    switch -- $::graph_scaling {
+	Q4 { set y [Q4_unscale_point $x $y] }
+	Fresnel { set y [Fresnel_unscale_point $x $y] }
     }
+    append msg " ([fix $x {} {} 5], [fix $y {} {} 5])"
+    if { [vector_exists ::counts_$name]} {
+	append msg "  counts: [expr int([set ::counts_${name}($idx)])]"
+    }
+    if { [vector_exists ::alpha_$name]} {
+	append msg "  A: [fix [set ::alpha_${name}($idx)]]$::symbol(degree)"
+    }
+    if { [vector_exists ::beta_$name]} {
+	append msg "  B: [fix [set ::beta_${name}($idx)]]$::symbol(degree)"
+    }
+    return $msg
 }
 
 proc exclude_point { id index } {
@@ -2173,6 +2153,7 @@ if {[llength $pattern] == 1} {
 	cd $pattern
     } else {
 	cd [file dir $pattern]
+	set pattern [file tail $pattern]
     }
 }
 setdirectory $pattern
