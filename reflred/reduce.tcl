@@ -127,7 +127,7 @@ proc reduce_init {} {
     # add a legend so that clicking on the legend entry toggles the display
     # of the corresponding line
     active_legend .reduce.graph
-    active_graph .reduce.graph -motion append_slit_value
+    active_graph .reduce.graph -motion motion_slit_value
 
     # add cross-section toggles
     pol_toggle_init .reduce.graph
@@ -191,19 +191,18 @@ proc reduce_init {} {
     grid rowconf $graphbox 1 -weight 1
     grid columnconf $graphbox 0 -weight 1
 
-    # messagebox is outside all the panes
-    label .reduce.message -relief ridge -anchor w
-
     grid .reduce.panes -sticky news
-    grid .reduce.message -sticky ew
     # resize the panes only
     grid rowconf .reduce 0 -weight 1
     grid columnconf .reduce 0 -weight 1
 
+    # messagebox is outside all the panes
+    label .reduce.message -relief ridge -anchor w
+    grid .reduce.message -sticky ew
 }
 
 # show the coordinates of the nearest point
-proc append_slit_value { w x y name idx msg } {
+proc motion_slit_value { w x y name idx msg } {
     if {[string match "*\[ABCD]" $name]} {
 	set slit "::[string range $name 0 end-1]_m[string index $name end]"
     } else {
@@ -251,7 +250,7 @@ proc reduce_listinfo { w x y } {
 # generate slit scan display window
 proc reduce_slits {} {
     set w .slits
-    if {[winfo exists $w]} { deiconify $w; raise $w; return }
+    if {[winfo exists $w]} { wm deiconify $w; raise $w; return }
     toplevel $w
     set colors [option get $w lineColors LineColors]
     opt $w.Graph leftMargin 50 rightMargin 60
@@ -465,7 +464,7 @@ proc reduce {spec back slit} {
 	run_send_pol('back_%s', back);
 	run_send_pol('slit_%s', slit);
 	# XXX FIXME XXX a better way of coordinating footprint screen?
-	send("::footprint::slits $::spec_x(:) $::spec_m(:)")
+	send("::footprint::slits")
     }
 
     # Combine the parts, creating sub if there is background subtraction
@@ -675,8 +674,9 @@ proc write_reduce { pol } {
 	    set names {Qz counts dcounts slit1}
 	}
 	refl {
-	    set columns {x y dy m}
-	    set names {Qz R dR slit1}
+	    # FIXME write slits as well (need _m vectors)
+	    set columns {x y dy}
+	    set names {Qz R dR}
 	}
 	slit {
 	    set columns {x y dy}
