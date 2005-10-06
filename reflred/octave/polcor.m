@@ -85,7 +85,8 @@ function data = polcor(fit,FRratio,sub)
   [A,dA] = interp1err(sub.A.x,sub.A.y,sub.A.dy,q);
   [D,dD] = interp1err(sub.D.x,sub.D.y,sub.D.dy,q);
   if isempty(sub.B) && isempty(sub.C)
-    B = dB = C = dC = zeros(size(q));
+    B = C = zeros(size(q));
+    dB = dC = ones(size(q));
   elseif isempty(sub.B)
     [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
     B = C; dB = dC;
@@ -100,6 +101,7 @@ function data = polcor(fit,FRratio,sub)
   %# each column of Y is a 
   Y = [ A./beta,B./beta,C./beta,D./beta ];
   dY = [ dA./beta,dB./beta,dC./beta,dD./beta ];
+
   %# XXX FIXME XXX  John's code has an extra factor of four here, 
   %# which roughly corresponds to the elements of sqrt(diag(inv(Y'Y))), 
   %# the latter giving values in the order of 3.9 for one example 
@@ -116,6 +118,8 @@ function data = polcor(fit,FRratio,sub)
     y = Y(i,:)';
     dy = dY(i,:)';
     [p,s] = wsolve(A,y,dy);
+%send(sprintf('puts "A=%s\ny=%s\ndy=%s\np=%s\n"',
+%     num2str(A(:)'),num2str(y'),num2str(dy'),num2str(p')));
 %cnd(i) = cond(A./(dy * ones (1, 4)));
 %cov += inv(s.R'*s.R);
     X(i,:) = p';
@@ -159,6 +163,7 @@ function data = polcor(fit,FRratio,sub)
   end
   end
 
+  if isempty(sub.B) && isempty(sub.C) r.B = r.C = []; end
   if nargout, data = r; end
 end
 
