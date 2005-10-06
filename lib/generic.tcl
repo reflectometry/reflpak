@@ -320,7 +320,7 @@ proc message { args } {
 	if {![winfo exists $msgbox] && ($opts=="--" || $opts=="-bell")} {
 	    set opts -box
 	}
-	if { $top eq "none" } { set parent . }
+	if { $top eq "none" } { set parent . } { set parent $top }
 
 	switch -- $opts {
 	    -- { $msgbox conf -text $msg }
