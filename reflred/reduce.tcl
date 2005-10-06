@@ -5,6 +5,7 @@ proc reduce_init {} {
     set ::errreduce y
     set ::reduce_coloridx 0
     set ::reduce_polratio 0.5
+    set ::reduce_dopolcor 1
 
     # Generate some dataset holders
     vector create ::polx ::polxraw
@@ -126,20 +127,10 @@ proc reduce_init {} {
     # add a legend so that clicking on the legend entry toggles the display
     # of the corresponding line
     active_legend .reduce.graph
-    active_graph .reduce.graph
+    active_graph .reduce.graph -motion append_slit_value
 
     # add cross-section toggles
     pol_toggle_init .reduce.graph
-
-    # show coordinates
-    bind .reduce.graph <Leave> { message "" }
-    bind .reduce.graph <Motion> { reduce_graph_motion %W %x %y }
-
-    # crosshairs if the users wishes
-    # XXX FIXME XXX do we really need to process this resource by hand?
-    if { [string is true [option get .reduce.graph crosshairs Crosshairs]] } {
-	.reduce.graph crosshairs on
-    }
 
     # actions on the reduction set
     set b [frame $graphbox.b]
@@ -213,17 +204,16 @@ proc reduce_init {} {
 
 # XXX FIXME XXX make this generic
 # show the coordinates of the nearest point
-proc reduce_graph_motion { w x y } {
-    $w crosshairs conf -position @$x,$y
-    $w element closest $x $y where -halo 1i
-    if { [info exists where(x)] } {
-	set ptid "[$w elem cget $where(name) -label]:[expr $where(index)+1]"
-	set ptx [fix $where(x)]
-	set pty [fix $where(y) {} {} 5]
-	.reduce.message conf -text "$ptid  $ptx, $pty"
+proc append_slit_value { w x y name idx msg } {
+    if {[string match "*\[ABCD]" $name]} {
+	set slit "::[string range $name 0 end-1]_m[string index $name end]"
     } else {
-	.reduce.message conf -text ""
+	set slit "::${name}_m"
     }
+    if {[vector_exists $slit] && [$slit length]>$idx } { 
+	append msg "     slit: [set ${slit}($idx)]"
+    }
+    return $msg
 }
 
 # This function is called with set/clear when a particular vector
@@ -260,7 +250,7 @@ proc reduce_listinfo { w x y } {
 # generate slit scan display window
 proc reduce_slits {} {
     set w .slits
-    if {[winfo exists $w]} { raise $w; return }
+    if {[winfo exists $w]} { deiconify $w; raise $w; return }
     toplevel $w
     set colors [option get $w lineColors LineColors]
     opt $w.Graph leftMargin 50 rightMargin 60
@@ -314,11 +304,24 @@ proc reduce_slits {} {
     $w.intensity marker create line -name z
     # Display current z if it is defined
     reduce_slit_z
-	
+
+    set f [frame $w.controls]
+    label $f.labelFRratio -text "Front-Back ratio"
+    entry $f.entryFRratio -textvariable ::reduce_polratio -width 5
+    checkbutton $f.checkpolcor -variable ::reduce_dopolcor \
+	-command "reduce_selection" -text "apply polarization correction"
+    pack $f.labelFRratio $f.entryFRratio $f.checkpolcor -side left
+    bind $f.entryFRratio <Return> reduce_selection
+
     grid $w.intensity -sticky news
     grid $w.efficiency -sticky news
+    grid $w.controls -sticky w
     grid columnconfigure $w 0 -weight 1
     grid rowconfigure $w {0 1} -weight 1
+
+    # status message dialog
+    label $w.message -relief ridge -anchor w
+    grid $w.message -sticky ew
 }
 
 # z is the crossover between quadratic and linear models in the slit fit.
@@ -469,7 +472,7 @@ proc reduce {spec back slit} {
     # XXX FIXME XXX older versions of octave fail to execute
     #   eval("\n  statement;\n   statement;");
     # the work-around belongs in listen, not here.
-    octave eval "\[sub, div, cor] = reduce(spec,back,slit,$::reduce_polratio);"
+    octave eval "\[sub, div, cor] = reduce(spec,back,slit,$::reduce_polratio,$::reduce_dopolcor);"
 
     # convert transmission coefficient to a scale factor
     if { $::calc_transmission } {
@@ -537,10 +540,14 @@ proc reduce {spec back slit} {
 	  run_send_pol('qslit_%s',[]);
         else
           r=slit;
-          r.A.x=interp1(sub.A.m,sub.A.x,slit.A.x,'linear','extrap');
-          r.B.x=interp1(sub.A.m,sub.B.x,slit.A.x,'linear','extrap');
-          r.C.x=interp1(sub.A.m,sub.C.x,slit.A.x,'linear','extrap');
-          r.D.x=interp1(sub.A.m,sub.D.x,slit.A.x,'linear','extrap');
+	  if !isempty(sub.A)
+	    r.A.x=interp1(sub.A.m,sub.A.x,slit.A.x,'linear','extrap'); end
+	  if !isempty(sub.B)
+            r.B.x=interp1(sub.A.m,sub.B.x,slit.A.x,'linear','extrap'); end
+	  if !isempty(sub.C)
+            r.C.x=interp1(sub.A.m,sub.C.x,slit.A.x,'linear','extrap'); end
+	  if !isempty(sub.D)
+            r.D.x=interp1(sub.A.m,sub.D.x,slit.A.x,'linear','extrap'); end
           run_send_pol('qslit_%s',r);
         end
     }
