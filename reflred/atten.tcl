@@ -4,7 +4,8 @@
 ## XXX FIXME XXX need to be able to calc ratio relative to
 ## another
 proc atten_table_reset {} {
-    if { ![winfo exists .attenuator] } { return }
+    set w .attenuator
+    if { ![winfo exists $w] } { return }
     unset ::atten_table
     array set ::atten_table { -1,0 Run -1,1 Attenuator -1,2 "Std. error" -1,3 "id"}
     set row -1
@@ -13,34 +14,38 @@ proc atten_table_reset {} {
 	incr row
 	array set ::atten_table [list $row,0 "$rec(run)$rec(index)" $row,1 $rec(k) $row,2 $rec(dk) $row,3 $id]
     }
-    .attenuator.t conf -rows [expr 1 + [llength $::addrun]]
-    tableentry::reset .attenuator.t
+    $w.table conf -rows [expr 1 + [llength $::addrun]]
+    tableentry::reset $w.table
 }
 
 proc atten_table {} {
-    if { [winfo exists .attenuator] } {
-	raise .attenuator
-	focus .attenuator
+    set w .attenuator
+    if { [winfo exists $w] } {
+	raise $w
+	focus $w
 	return
     }
 
-    toplevel .attenuator
-    wm geometry .attenuator 300x150
-    table .attenuator.t -cols 4 -resizeborders col -colstr unset \
+    toplevel $w
+    wm geometry $w 300x150
+    table $w.table -cols 4 -resizeborders col -colstr unset \
 	    -titlerows 1 -titlecols 1 -roworigin -1 -variable ::atten_table
-    .attenuator.t width 0 4
-    pack [vscroll .attenuator.t] -fill both -expand yes
+    $w.table width 0 4
+    pack [vscroll $w.table] -fill both -expand yes
+    $w.table tag col disabled 3
 
     if 0 { # suppress Align until it is robust
-	frame .attenuator.b
-	button .attenuator.b.align -text "Align" -command { addrun align }
-	button .attenuator.b.unalign -text "Revert" -command { addrun unalign }
-	pack .attenuator.b.align .attenuator.b.unalign -side left -anchor w
-	grid .attenuator.b
+	frame $w.b
+	button $w.b.align -text "Align" -command { addrun align }
+	button $w.b.unalign -text "Revert" -command { addrun unalign }
+	pack $w.b.align $w.b.unalign -side left -anchor w
+	grid $w.b
     }
 
     # XXX FIXME XXX want a combo box here
-    tableentry .attenuator.t { if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } }
+    tableentry $w.table { 
+	if { %i } { atten_update %r %c %S } else { set ::atten_table(%r,%c) } 
+    }
     atten_table_reset
 }
 
