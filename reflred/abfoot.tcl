@@ -12,7 +12,7 @@ namespace eval abfoot {
     proc initialize {} {
 	# Check if already initialized
 	if {[vector_exists ::abfoot_y]} { return }
-	vector create ::abfoot_y
+	vector create ::abfoot_x ::abfoot_y
 	foreach {var val} {
 	    A 1. B 2. Io 1. length 100. offset 0. thickness 10.
 	    detector_width 100. detector_distance 9000.
@@ -36,15 +36,24 @@ namespace eval abfoot {
 	active_graph $g -motion append_slit_value
 	active_axis $g y
 	active_legend $g
-	opt $g.refl pixels 4 fill {} lineWidth 1 color green symbol square
-	$g element create refl \
-	    -xdata ::refl_x -ydata ::refl_y -yerror ::refl_dy
-	opt $g.div pixels 4 fill {} lineWidth 0 color blue symbol cross
-	$g element create div \
-	    -xdata ::div_x -ydata ::div_y -yerror ::div_dy
-	opt $g.foot pixels 0 fill {} lineWidth 1 color darkblue symbol {}
+	set colors [option get $g lineColors LineColors]
+	set coloridx 0
+	foreach pol { {} A D } {c1 c2} [lrange $colors 1 6] {
+	    opt $g.refl$pol pixels 4 fill {} \
+		lineWidth 1 color $c1 symbol square
+	    $g element create refl$pol \
+		-xdata ::refl_x$pol -ydata ::refl_y$pol -yerror ::refl_dy$pol
+	    legend_set $g refl$pol on
+	    opt $g.div$pol pixels 4 fill {} \
+		lineWidth 0 color $c2 symbol cross
+	    $g element create div$pol \
+		-xdata ::div_x$pol -ydata ::div_y$pol -yerror ::div_dy$pol
+	}
+	opt $g.foot pixels 0 fill {} lineWidth 1 \
+	    color [lindex $colors 0] symbol {}
 	$g element create foot \
-	    -xdata ::refl_x -ydata ::abfoot_y
+	    -xdata ::abfoot_x -ydata ::abfoot_y
+	legend_set $g foot on
 
 	set f [frame $w.values]
 	set line {}
@@ -92,8 +101,12 @@ namespace eval abfoot {
     proc apply {} {
 	calc
 	# Scale refl by footprint, ignoring zeros
-	::refl_y expr "::div_y / (::abfoot_y + !::abfoot_y)"
-	::refl_dy expr "::div_dy / (::abfoot_y + !::abfoot_y)"
+	foreach pol { {} A B C D } {
+	    if { [::div_y$pol length] > 0 } {
+		::refl_y$pol expr "::div_y$pol / (::abfoot_y + !::abfoot_y)"
+		::refl_dy$pol expr "::div_dy$pol / (::abfoot_y + !::abfoot_y)"
+	    }
+	}
     }
 
     proc calc {} {
@@ -112,8 +125,17 @@ namespace eval abfoot {
 	set L1 [expr {$length/2.+$offset}]
 	set L2 [expr {$length/2.-$offset}]
 
-	set Qz ::div_x
-	set slit ::spec_m
+	if { [::spec_m length] > 0 } {
+	    set slit ::spec_m
+	    set Qz ::spec_x
+	} elseif { [::spec_mA length] > 0 } {
+	    set slit ::spec_mA
+	    set Qz ::spec_xA
+	} elseif { [::spec_mD length] > 0 } {
+	    set slit ::spec_mD
+	    set Qz ::spec_xD
+	}
+	$Qz dup ::abfoot_x
 
 	set wA [vector create \#auto] ;# Width of A
 	set wB [vector create \#auto] ;# Width of B
