@@ -25,7 +25,7 @@ namespace eval abfoot {
     proc dialog {} {
 	set w .abfoot
 	if {[winfo exists $w]} {
-	    wm state normal
+	    wm deiconify $w
 	    raise $w
 	    return
 	}
@@ -33,7 +33,7 @@ namespace eval abfoot {
 	toplevel $w
 	wm title $w "AB footprint"
 	set g [graph $w.g]
-	active_graph $g -motion append_slit_value
+	active_graph $g -motion motion_slit_value
 	active_axis $g y
 	active_legend $g
 	set colors [option get $g lineColors LineColors]
@@ -261,7 +261,7 @@ if {$argv0 eq [info script] && ![info exists running]} {
     set R(L) 5.
     set ::reduce_head R
     set ::pitimes4 [expr {atan(1)*16.}]
-    proc append_slit_value {w x y name idx msg} { return $msg }
+    proc motion_slit_value {w x y name idx msg} { return $msg }
 
     abfoot::dialog
 } 
