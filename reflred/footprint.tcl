@@ -82,6 +82,7 @@ proc draw {} {
 	legend_set $fp.graph div$pol on
     }
     active_legend $fp.graph
+    active_graph $fp.graph -motion motion_slit_value
 
     
     radiobutton $fp.auto -variable ::footprint_correction_type -value fit \
@@ -175,8 +176,8 @@ proc draw {} {
     grid $fpcr - - - - - -sticky sew
     grid $fpone - - - $fp.calc $fp.apply -sticky sew
 
-    #label $fp.message -relief ridge -anchor w
-    #grid $fp.message - - - - - -sticky we
+    label $fp.message -relief ridge -anchor w
+    grid $fp.message - - - - - -sticky we
 
     # resizable graph
     grid rowconfigure $fp 0 -weight 1
@@ -192,20 +193,19 @@ proc draw {} {
     pack conf $fpar.min $fpar.max $fpfr.min $fpfr.max -fill x -expand yes
 
     variable opening_slits
-    draw_opening_slits $opening_slits
+    draw_opening_slits $fp.graph $opening_slits
 }
 
 # Indicate on the footprint graph where the slits are opening using the
 # {start1 stop1 start2 stop2 ...} information in edges.
-proc draw_opening_slits {edges} {
-    variable fp
-    if { [winfo exists $fp] } {
-	eval [linsert [$fp.graph marker names] 0 $fp.graph marker delete]
+proc draw_opening_slits {w edges} {
+    if { [winfo exists $w] } {
+	eval [linsert [$w marker names] 0 $w marker delete]
 	foreach {start stop} $edges {
-	    $fp.graph marker create polygon -under true \
+	    $w marker create polygon -under true \
 		-coords [list $start -Inf $start Inf $stop Inf $stop -Inf] \
 		-fill AntiqueWhite
-	    $fp.graph marker create text \
+	    $w marker create text \
 		-coords [list $start -Inf] -anchor sw -text "opening slits"
 	}
     }
@@ -245,8 +245,22 @@ proc find_opening_slits {Q M} {
     return $edges
 }
 
-proc slits { Q m } {
+proc slits {} {
+    if {[::spec_m length] > 0 } {
+	set Q $::spec_x(:)
+	set m $::spec_m(:)
+    } elseif {[::spec_mA length] > 0 } {
+	set Q $::spec_xA(:)
+	set m $::spec_mA(:)
+    } elseif {[::spec_mD length] > 0 } {
+	set Q $::spec_xD(:)
+	set m $::spec_mD(:)
+    } else {
+	return
+    }
     variable opening_slits [find_opening_slits $Q $m]
+    variable fp
+    draw_opening_slits $fp.graph $opening_slits
 }
 
 proc line { name } {
