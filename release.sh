@@ -11,7 +11,7 @@ VERSION="`date +-%Y.%m.%d`"
 # isn't set up for ssh operations.
 
 # Here are my architecture specific build machines:
-BUILD="jazz macng7 h122045 whistle"
+BUILD="jazz macng7 h122045 dave"
 # Grrr... irix machines need gmake rather than make...
 makejazz="gmake"
 # Each machine has already been set up with a build directory 
@@ -105,7 +105,7 @@ echo Update instrument computers, user room software and web.
 echo On a linux-gcc3 box (h122045):
 echo    scp ~/cvs/reflfit/kit/reflpak cg1@andr:bin/reflpak$VERSION
 echo    scp ~/cvs/reflfit/kit/reflpak ng7@ng7refl:bin/reflpak$VERSION
-echo On a linux-gcc4 box (whistle):
+echo On a linux-gcc4 box (dave):
 echo    scp ~/cvs/reflfit/kit/reflpak ng1@ng1refl:bin/reflpak$VERSION
 echo Also need to point to the latest via symlink.
 echo Let users know a new version is available.
