@@ -202,7 +202,6 @@ proc reduce_init {} {
 
 }
 
-# XXX FIXME XXX make this generic
 # show the coordinates of the nearest point
 proc append_slit_value { w x y name idx msg } {
     if {[string match "*\[ABCD]" $name]} {
@@ -210,6 +209,8 @@ proc append_slit_value { w x y name idx msg } {
     } else {
 	set slit "::${name}_m"
     }
+    # FIXME hack div/refl to sub
+    set slit [string map {div sub refl sub} $slit]
     if {[vector_exists $slit] && [$slit length]>$idx } { 
 	append msg "     slit: [set ${slit}($idx)]"
     }
