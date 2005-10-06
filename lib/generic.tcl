@@ -1105,12 +1105,68 @@ proc graph_activate_menu {w X Y x y} {
 
 # bind zoom-$w <ButtonPress-3> {}
 bind active_graph <ButtonPress-3> { graph_activate_menu %W %X %Y %x %y; break }
+bind active_graph <Motion> { graph_motion %W %x %y }
+bind active_graph <Leave> { graph_motion_clear %W }
 
+proc graph_motion_clear {w} {
+    # Determine if this window has a message bar
+    # FIXME: consider using floating window if no message bar
+    if { [info exists ::active_graph($w,message)] } {
+	set wmsg $::active_graph($w,message)
+    } elseif { [winfo toplevel $w] == "." } {
+	set wmsg ".message"
+    } else {
+	set wmsg "[winfo toplevel $w].message"
+    }
+    if { ![winfo exists $wmsg] } { return }
+
+    # Update the message bar
+    $wmsg configure -text ""
+}
+
+proc graph_motion {w x y} {
+    # Move crosshairs to the current point
+    $w crosshairs conf -position @$x,$y
+
+    # Determine if this window has a message bar
+    # FIXME: consider using floating window if no message bar
+    if { [info exists ::active_graph($w,message)] } {
+	set wmsg $::active_graph($w,message)
+    } elseif { [winfo toplevel $w] == "." } {
+	set wmsg ".message"
+    } else {
+	set wmsg "[winfo toplevel $w].message"
+    }
+    if { ![winfo exists $wmsg] } { return }
+
+    # Generate the default message as "legend_label:index (x, y)"
+    $w element closest $x $y where -halo 1i
+    if { ![info exists where(x)] } { 
+	$wmsg configure -text ""
+	return 
+    } else {
+	set msg "[$w elem cget $where(name) -label]"
+	if {$msg == ""} { set msg $where(name) }
+	append msg ":[expr {$where(index)+1}]"
+	append msg " ([fix $where(x) {} {} 5], [fix $where(y) {} {} 5])"
+	
+	# Reformat the message specific to this graph
+	if { [info exists ::active_graph($w,motion)] } {
+	    set msg [$::active_graph($w,motion) \
+			 $w $x $y $where(name) $where(index) $msg]
+	}
+	
+	# Update the message bar
+	$wmsg configure -text $msg
+    }
+}
+    
 proc active_graph {w args} {
 
-    switch -- $args {
+    switch -- [lindex $args 0] {
         marker - index -
         element { return $::active_graph($w,$args) }
+	-motion { set ::active_graph($w,motion) [lindex $args 1] }
     }
     array set ::active_graph [list $w,element {} $w,marker {} $w,index {}]
     set ::active_graph($w,errbar) [option get $w showErrorBars ShowErrorBars]
