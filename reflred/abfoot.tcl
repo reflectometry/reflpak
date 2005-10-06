@@ -22,31 +22,6 @@ namespace eval abfoot {
 	}
     }
 
-    proc motion {w x y} {
-	$w crosshairs conf -position @$x,$y
-	$w element closest $x $y where -halo 1i
-	if { [info exists where(x)] } {
-	    ## XXX FIXME XXX better way to get the currently viewed record?
-	    ## (moot since we no longer support viewfile, only addrun)
-	    #if { [string equal $where(name) "data"] || [string } {
-	    #    upvar #0 [.tree selection get] rec
-	    #    set elid "Run $rec(legend)
-	    #} elseif [string matches rec* ::$where(name)] {
-	    #    upvar #0 $where(name) rec
-	    #    set elid "Run $rec(legend)
-	    #}
-	    set id $where(name)
-	    set idx $where(index)
-	    set ptid "[$w elem cget $id -label]:[expr $idx+1]"
-	    set ptx [fix $where(x)]
-	    set pty [fix $where(y) {} {} 5]
-	    set msg "$ptid $ptx, $pty   slit: $::spec_m($idx)"
-	    message $msg
-	} else {
-	    message ""
-	}
-    }
-
     proc dialog {} {
 	set w .abfoot
 	if {[winfo exists $w]} {
@@ -58,7 +33,7 @@ namespace eval abfoot {
 	toplevel $w
 	wm title $w "AB footprint"
 	set g [graph $w.g]
-	active_graph $g
+	active_graph $g -motion append_slit_value
 	active_axis $g y
 	active_legend $g
 	opt $g.refl pixels 4 fill {} lineWidth 1 color green symbol square
@@ -70,7 +45,6 @@ namespace eval abfoot {
 	opt $g.foot pixels 0 fill {} lineWidth 1 color darkblue symbol {}
 	$g element create foot \
 	    -xdata ::refl_x -ydata ::abfoot_y
-	bind $g <Motion> [namespace code {motion %W %x %y}]
 
 	set f [frame $w.values]
 	set line {}
@@ -265,6 +239,7 @@ if {$argv0 eq [info script] && ![info exists running]} {
     set R(L) 5.
     set ::reduce_head R
     set ::pitimes4 [expr {atan(1)*16.}]
+    proc append_slit_value {w x y name idx msg} { return $msg }
 
     abfoot::dialog
 } 
