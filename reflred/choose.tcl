@@ -90,7 +90,10 @@ proc ::Choose::Fill_contents { w path } {
 	    Dataset [file tail $dataset] Inst $inst "#Runs" $count($item) \
 	    Start $startinfo(date) End $endinfo(date) Path $path \
 	    Comment $startinfo(comment) \
-	    Pattern [$::extfn($ext) pattern $dataset]]
+	    Pattern $dataset]
+	# FIXME this retrieves the whole dataset, including others.
+	# If you want to restrict it to a particular extension, use:
+	#   Pattern [$::extfn($ext) pattern $dataset]]
     }
 
     # Display the selection table
