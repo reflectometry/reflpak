@@ -434,123 +434,6 @@ proc graph_exclude { w x y } {
 # ======================================================
 
 
-if 0 {
-# XXX FIXME XXX is this code in use?
-# This is just a macro for savescan.  It gets fid, log and rec
-# from there
-proc write_scan {} {
-    upvar rec rec
-    upvar fid fid
-    upvar log log
-    puts $fid "# date: [clock format $rec(date) -format %Y-%m-%d]"
-    puts $fid "# title: $rec(comment)"
-    puts $fid "# xlabel: $rec(xlab)"
-    if { $log } {
-	puts $fid "# ylabel: log $rec(ylab)"
-    } else {
-	puts $fid "# ylabel: $rec(ylab)"
-    }
-    puts $fid "# source: $rec(instrument) [typelabel $rec(type)]"
-    puts -nonewline $fid "# runs: $rec(dataset)"
-    foreach id $::addrun {
-	# XXX FIXME XXX nothing to stop files from being in
-	# other datasets, instruments, directories, etc.
-	# XXX FIXME XXX don't we want xml data format here?  After
-	# my experience with icp you would think I would know better
-	# than to create an ad hoc format.
-	puts -nonewline $fid " [set ::${id}(run)]"
-	if { [set ::${id}(k)] != 1.0 } {
-	    puts -nonewline $fid "x[fix [set ::${id}(k)]]([fix [set ::${id}(dk)]])"
-	}
-    }
-    puts $fid ""
-    puts $fid "# columns: x y dy"
-    # XXX FIXME XXX are we guaranteed that x_scan, y_scan, dy_scan are
-    # available?
-    if { $log } {
-	foreach x $::x_scan(:) y $::y_scan(:) dy $::dy_scan(:) {
-	    if { $y <= 0.0 } { set y 0.0 } else { set y [expr log($y)] }
-	    if { $dy <= 0.0 } { set dy 0.0 } else { set dy [expr log($dy)] }
-	    puts $fid "$x $y $dy"
-	}
-    } else {
-	foreach x $::x_scan(:) y $::y_scan(:) dy $::dy_scan(:) {
-	    puts $fid "$x $y $dy"
-	}
-    }
-}
-
-# savescan [-query all|existing|none] [-record id] [-vector id]
-# XXX FIXME XXX there is no way to trigger savescan
-# XXX FIXME XXX make sure reduce uses the same file format
-proc savescan { args } {
-    array set opt [list -query none -record [lindex $::addrun 0] -vector]
-    # XXX FIXME XXX often one run is the entire scan so it is not obvious
-    # that you should use addrun to save it.  And you do want to save it
-    # because of things like monitor count corrections, error bars and
-    # log scaling.
-    if { [string equal $::addrun ""] } {
-	message -bell "No runs selected"
-	return
-    }
-
-    upvar #0 [lindex $::addrun 0] rec
-    # Determine the valid extensions (these will eventually depend on
-    # the type since we need to distinguish between bg and avg bg for
-    # some background runs and between spec, background subtraction,
-    # slit corection and polarization correction), all with the same
-    # prefix.
-    set logext .log
-    set linext .dat
-
-    # XXX FIXME XXX do I really need to hardcode NG1p stuff here?
-    if { [string equal $rec(instrument) "NG1p"] } {
-	set index [string tolower [string index $rec(file) -1]]]
-	set logext [string replace $logext end-1 end $index]
-	set linext [string replace $linext end-1 end $index]
-    }
-
-    # Get the filename to use
-    # XXX FIXME XXX will the user be surprised that the default format
-    # is set by ::logaddrun?  Maybe we should add a log/linear option
-    # for scripting control
-    # XXX FIXME XXX need to be able to overwrite the title; the way to
-    # do this is to move the title into a separate widget, but we will
-    # have to add it to the graph before printing.  Maybe an EPS canvas?
-    # Maybe nice to annotate the graphs as well.
-#    if { $::logaddrun } {
-	set filename [file rootname $rec(file)]$logext
-#    } else {
-#	set filename [file rootname $rec(file)]$linext
-#    }
-    if { [string equal $opt "as"] } {
-	set filename [ tk_getSaveFile -defaultextension $logext \
-		-title "Save scan data" \
-		-filetypes [list [list Log $logext] [list Linear $linext]]]
-	if { [string equal $filename ""] } { return }
-    } elseif { [string equal $opt "verify"] && [file exists $filename] } {
-	if {![question "$filename exists. Do you want to overwrite it?"]} { 
-	    return 
-	}
-    }
-
-    # Linear or log?
-    set log [string equal [file extension $filename] $logext]
-
-    # Write the file
-    if { [catch { open $filename w } fid] } {
-	message -bell $fid
-    } else {
-	if { [catch { write_scan } msg] } {
-	    message -bell $msg
-	}
-	close $fid
-    }
-
-}
-
-}
-
 proc restart_octave {} {
     catch { octave close }
     octave connect $::OCTAVE_HOST
@@ -577,69 +460,110 @@ proc write_data { fid data args} {
     
     set log 0
     set pol {}
+    set columns {x y dy}
+    set names {}
     foreach {option value} $args {
 	switch -- $option {
 	    -log { set log [string is true $value] }
 	    -pol { set pol $value }
+	    -columns { set columns $value }
+	    -names { set names $value }
 	}
     }
-
+    if { [llength $names] == 0} { set names $columns }
     if { $log } {
-	puts $fid "# columns x logy dlogy"
-	foreach x [set ${data}_x${pol}(:)] \
-		y [set ${data}_y${pol}(:)] \
-		dy [set ${data}_dy${pol}(:)] {
-#	    puts "writing $x $y $dy"
+	# Munge names of y,dy to logy,dlogy
+	set names [lreplace $names 1 1 "log[lindex $names 1]"]
+	set names [lreplace $names 2 2 "dlog[string range [lindex $names 2] 1 end]"]
+    }
+    puts $fid "#columns $names"
+
+    set Vx [set ${data}_[lindex $columns 0]${pol}(:)]
+    set Vy [set ${data}_[lindex $columns 1]${pol}(:)]
+    set Vdy [set ${data}_[lindex $columns 2]${pol}(:)]
+    if { [llength $columns] == 4 } {
+	set Vm [set ${data}_[lindex $columns 3]${pol}(:)]
+    }
+
+    if { [llength $columns] == 4  && $log } {
+	foreach x $Vx y $Vy dy $Vdy m $Vm {
 	    if { $y <= $dy/1000. } {
-		# XXX FIXME XXX can dy be <= 0?
-		if { abs($y) <= $dy/1000. } {
-		    message -box "excluding (x,y,dy)=($x,$y,$dy)"
-		    continue
-		}
-		message "truncating counts below dy/1000 to log_10(dy)-3 $::symbol(plusminus) dy/(ln(10)*|y|)"
-		set newdy [expr $dy / ($::log10*abs($y)) ]
-		set logy [expr log($dy) / $::log10 - 3 ]
-		set logdy $newdy
+		puts $fid "# $x ln($y)/ln(10) ($dy/$y)/ln(10) $m"
 	    } else {
 		set logdy [expr $dy / ($::log10*$y)]
 		set logy [expr log($y) / $::log10 ]
+		puts $fid "$x $logy $logdy $m"
 	    }
+	}
+    } elseif { [llength $columns] == 4 } {
+	foreach x $Vx y $Vy dy $Vdy m $Vm {
 	    if { $::clip_data && $y <= 0. } {
-		puts $fid "# $x $logy $logdy"
+		puts $fid "# $x $y $dy $m"
 	    } else {
+		puts $fid "$x $y $dy $m"
+	    }
+	}
+    } elseif { $log } {
+	foreach x $Vx y $Vy dy $Vdy {
+	    if { $y <= $dy/1000. } {
+		puts $fid "# $x ln($y)/ln(10) ($dy/$y)/ln(10)"
+	    } else {
+		set logdy [expr $dy / ($::log10*$y)]
+		set logy [expr log($y) / $::log10 ]
 		puts $fid "$x $logy $logdy"
 	    }
 	}
     } else {
-	puts $fid "# columns x y dy"
-	foreach x [set ${data}_x${pol}(:)] \
-	    y [set ${data}_y${pol}(:)] \
-	    dy [set ${data}_dy${pol}(:)] {
-		if { $::clip_data && $y <= 0. } {
-		    puts $fid "# $x $y $dy"
-		} else {
-		    puts $fid "$x $y $dy"
-		}
+	foreach x $Vx y $Vy dy $Vdy {
+	    if { $::clip_data && $y <= 0. } {
+		puts $fid "# $x $y $dy"
+	    } else {
+		puts $fid "$x $y $dy"
 	    }
+	}
     }
 }
 
 proc write_scan { fid scanid } {
+    # FIXME duplicates write_reduce in reduce.tcl
+    # Can't replace it yet because data is not marked with the polarization
+    # crosssection (the vectors are e.g., S1_x S1_y S1_dy instead of 
+    # S1_xA S1_yA S1_dyA).
     upvar #0 $scanid rec
-    puts $fid "# date [clock format $rec(date) -format %Y-%m-%d]"
-    puts $fid "# title \"$rec(comment)\""
-    puts $fid "# instrument $rec(instrument)"
-    puts $fid "# monitor $rec(monitor)"
-    puts $fid "# temperature $rec(T)"
+    puts $fid "#RRF 1 1 $::app_version"
+    puts $fid "#date [clock format $rec(date) -format %Y-%m-%d]"
+    puts $fid "#title \"$rec(comment)\""
+    puts $fid "#instrument $rec(instrument)"
+    puts $fid "#monitor $rec(monitor)"
+    puts $fid "#temperature $rec(T)"
     if { [info exists rec(Tavg)] } {
-	puts $fid "# average temperature $rec(Tavg)"
+	puts $fid "#average_temperature $rec(Tavg)"
     }
-    puts $fid "# field $rec(H)"
-    puts $fid "# wavelength $rec(L)"
-    puts $fid "# xlabel $rec(xlab)"
-    puts $fid "# ylabel $rec(ylab)"
-    puts $fid "# $rec(type) $rec(files)"
-    write_data $fid ::$scanid
+    puts $fid "#field $rec(H)"
+    puts $fid "#wavelength $rec(L)"
+    puts $fid "#$rec(type) $rec(files)"
+    if { $rec(polarization) ne {} } {
+	puts $fid"#polarization $pol"
+    }
+    switch $rec(type) {
+	spec - back { 
+	    set columns {x y dy m} 
+	    set names {Qz counts dcounts slit1}
+	}
+	refl {
+	    set columns {x y dy m}
+	    set names {Qz R dR slit1}
+	}
+	slit {
+	    set columns {x y dy}
+	    set names {slit1 counts dcounts}
+	}
+	default { 
+	    set columns {x y dy} 
+	    set names {x y dy}
+	}
+    }
+    write_data $fid ::$scanid -columns $columns -names $names
 }
 
 proc savescan { scanid } {
@@ -2148,12 +2072,14 @@ proc app_source { f } {
 app_source [file join [HOME] .reflred.tcl]
 
 # load the initial directory (as set by the command line arguments if any)
-if {[llength $pattern] == 1} {
-    if {[file isdir $pattern]} {
-	cd $pattern
-    } else {
-	cd [file dir $pattern]
-	set pattern [file tail $pattern]
+catch {
+    if {[llength $pattern] == 1} {
+	if {[file isdir $pattern]} {
+	    cd $pattern
+	} else {
+	    cd [file dir $pattern]
+	    set pattern [file tail $pattern]
+	}
     }
 }
 setdirectory $pattern

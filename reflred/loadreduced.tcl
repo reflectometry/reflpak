@@ -332,28 +332,26 @@ proc loadother {id} {
     if {[info exists rec(columns)]} {
 	if {![get_columns $id $rec(columns) $data]} { return 0 }
 	if {[llength $rec(columns)] > 3} {
-	    if { [lsearch [string tolower $rec(columns)] slit] > -1 } {
-		set rec(slit) slit_$id
-	    } else {
-		message "$rec(file): did not find slit in { $rec(columns) }"
+	    if { [lsearch [string tolower $rec(columns)] slit1] <= 0 } {
+		message "$rec(file): did not find slit1 in { $rec(columns) }"
 	    }
 	}
     } else {
-	# Check that whether we have QR or QRdR data
+	# Check that whether we have Q R or Q R dR data
 	set D {[-+0-9dDeE.]+}
 	set S {\s+}
 	set T {\s*\n}
 
 	if {[regexp "^\n(?:$D$S$D$T)+$" $data]} {
-	    set rec(columns) [list x y]
+	    set rec(columns) [list Qz R]
 	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	    vector create ::dy_$id
 	    ::dy_$id expr "sqrt(::y_$id)"
 	} elseif { [regexp "^\n(?:$D$S$D$S$D$T)+$" $data]} {
-	    set rec(columns) [list x y dy]
+	    set rec(columns) [list Qz R dR]
 	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	} elseif { [regexp "^\n(?:$D$S$D$S$D$S$D$T)+$" $data]} {
-	    set rec(columns) [list x y dy s]
+	    set rec(columns) [list Qz counts dcounts slit1]
 	    if {![get_columns $id $rec(columns) $data]} { return 0 }
 	    set rec(slit) s_$id
 	} else {
@@ -362,27 +360,32 @@ proc loadother {id} {
 	}
     }
 
-    # If data is log, exponentiate.  It is log if the ylabel says it is
-    # log or if the data is mostly negative.  The second criterion will
-    # certainly fail for slit scans.  If users don't like this, then they
-    # will have to convert it back to log themselves by calling runlog id
-    # from the tcl console, followed by atten_set.
-    if { [info exists linear] } {
-	if { ![string is true $linear] } {
-	    runexp $id
-	}
-    } elseif { [string match {[Ll]og *} $rec(ylab)] } {
-	set rec(ylab) [string range $rec(ylab) 4 end]
-	runexp $id
-    } elseif { [vector expr "sum(::y_$id > 0) < length(::y_$id)/3"] } {
-	runexp $id
+    # Move y,dy or R,dR to counts,dcounts
+    if { ![vector_exists ::counts_$id] && [vector_exists ::R_$id] } {
+	::R_$id dup ::counts_$id
+	::dR_$id dup ::dcounts_$id
+    }
+    if { ![vector_exists ::counts_$id] && [vector_exists ::y_$id] } {
+	::y_$id dup ::counts_$id
+	::dy_$id dup ::dcounts_$id
+    }
+    # Move first column to x if no x column
+    if { ![vector_exists ::x_$id] } {
+	::[lindex $rec(columns) 0]_$rec(id) dup ::x_$rec(id)
+    }
+    # Let this work as either an addrun record or an accepted record
+    if { [vector_exists ::slit1_$id] } {
+	::slit1_$id dup ::m_$id
     }
 
+    # FIXME Data may be log.  Provide console commands to make it linear
+    # Already have runexp, but it needs to be checked and documented
+
+
     # correct for monitor
-    ::y_$id dup ::counts_$id
-    ::dy_$id dup ::dcounts_$id
-    ::y_$id expr "::y_$id/$rec(monitor)"
-    ::dy_$id expr "::dy_$id/$rec(monitor)"
+    vector create ::y_$id ::dy_$id
+    ::y_$id expr "::counts_$id/$rec(monitor)"
+    ::dy_$id expr "::dcounts_$id/$rec(monitor)"
     set rec(norm) "monitor"
     
     # We immediately convert preprocessed files into scans without

@@ -620,7 +620,7 @@ proc write_reduce { pol } {
     upvar log log
     upvar monitor monitor
     # Version info: #RRF $major $minor $appname $appversion for $arch
-    puts $fid "#RRF 1 0 $::app_version"
+    puts $fid "#RRF 1 1 $::app_version"
     puts $fid "#date [clock format $rec(date) -format %Y-%m-%d]"
     puts $fid "#title \"$rec(comment)\""
     puts $fid "#instrument $rec(instrument)"
@@ -667,8 +667,27 @@ proc write_reduce { pol } {
     if {$::footprint_correction} {
         puts $fid "#footprint [footprint::desc]"
     }
+
+    switch $data {
+	spec - back { 
+	    set columns {x y dy m} 
+	    set names {Qz counts dcounts slit1}
+	}
+	refl {
+	    set columns {x y dy m}
+	    set names {Qz R dR slit1}
+	}
+	slit {
+	    set columns {x y dy}
+	    set names {slit1 counts dcounts}
+	}
+	default { 
+	    set columns {x y dy} 
+	    set names {x y dy}
+	}
+    }
     
-    write_data $fid ::$data -pol $pol
+    write_data $fid ::$data -pol $pol -columns $columns -names $names
 }
 
 proc reduce_ext {} {
@@ -800,7 +819,17 @@ proc reduce_save { args } {
     set log [string equal [file extension $filename] .log]
 
     # Write the file
-    if {$polarized} { set l {A B C D} } { set l {{}} }
+    if {$polarized} {
+	# Find non-empty cross sections
+	set l {}
+	foreach crosssection {A B C D} {
+	    if {[::${data}_y${crosssection} length] != 0} {
+		lappend l $crosssection
+	    }
+	}
+    } else { 
+	set l {{}} 
+    }
     foreach pol $l {
         if { [catch { open $filename$pol w } fid] } {
             message -bell $fid
