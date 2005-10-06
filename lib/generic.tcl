@@ -320,6 +320,7 @@ proc message { args } {
 	if {![winfo exists $msgbox] && ($opts=="--" || $opts=="-bell")} {
 	    set opts -box
 	}
+	if { $top eq "none" } { set parent . }
 
 	switch -- $opts {
 	    -- { $msgbox conf -text $msg }
@@ -327,13 +328,13 @@ proc message { args } {
 	    -box {
 		if {$msg != "" } {
 		    tk_messageBox -title "$::argv0 Warning" -type ok \
-			-icon warning -message $msg -parent $top
+			-icon warning -message $msg -parent $parent
 		}
 	    }
 	    -error - -fail {
 		if {$msg != "" } {
 		    tk_messageBox -title "$::argv0 Error" -type ok \
-			-icon error -message $msg -parent $top
+			-icon error -message $msg -parent $parent
 		}
 	    }
 	}
