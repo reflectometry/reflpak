@@ -350,6 +350,7 @@ proc message { args } {
 	    return [expr {$ans ne "n"}]
 	} elseif {$msg != ""} { 
 	    puts "$tag$msg" 
+	    flush stdout
 	}
     } else {
 	# If no message widget, force use of a warning box
