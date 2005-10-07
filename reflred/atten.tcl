@@ -192,6 +192,15 @@ proc atten_from_ratio { id k dk } {
     atten_set $::addrun
 }
 
+proc atten_revert { runs } {
+    foreach id $runs {
+	upvar #0 $id rec
+	set rec(k) 1.0
+	set rec(dk) 0.0
+    }
+}
+
+
 proc atten_copy {id1 args} {
     upvar \#0 $id1 rec1
     foreach id2 $args {

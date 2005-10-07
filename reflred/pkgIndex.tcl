@@ -12,7 +12,18 @@ package ifneeded reflred 0.1 [subst {
 	{loaduxd.tcl source register_uxd}
 	{loadreduced.tcl source register_reduced}
     }
+    package require Tk
+    package require Tktable
+    package require BWidget
+    package require tkcon
+    package require reflplot
+    package require ncnrlib
+    package require octave
+    package require BLT
+    catch { namespace import blt::graph blt::vector blt::hiertable }
     source [list [file join $dir monitor.tcl]]
     source [list [file join $dir atten.tcl]]
+    source [list [file join $dir commands.tcl]]
     source [list [file join $dir viewrun.tcl]]
+    init_app
 }]

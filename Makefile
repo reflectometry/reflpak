@@ -33,12 +33,13 @@ fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
 	makeconstrain.tcl gmlayer$(LDEXT) gj2$(LDEXT)
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
-redsrc=viewrun.tcl loadicp.tcl loadice.tcl loaduxd.tcl loadreduced.tcl \
+redsrc=viewrun.tcl commands.tcl \
+	loadicp.tcl loadice.tcl loaduxd.tcl loadreduced.tcl \
 	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc \
 	footprint.tcl monitor.tcl atten.tcl pkgIndex.tcl abfoot.tcl
 redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	run_avg.m run_interp.m run_sub.m runlog.m \
-	plotrunop.m run_div.m run_poisson_avg.m run_tol.m run_send.m \
+	plotrunop.m run_div.m run_poisson_avg.m run_tol.m \
 	footprint_fit.m footprint_gen.m footprint_interp.m \
 	reduce.m reduce_part.m run_send.m run_send_pol.m \
 	polcor.m fitslits.m run_invscale.m 
