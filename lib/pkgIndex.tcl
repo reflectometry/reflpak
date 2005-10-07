@@ -1,7 +1,6 @@
 package ifneeded ncnrlib 0.1 [subst {
     # immediate loading of some packages
-    source [list [file join $dir options.tcl]]
-    source [list [file join $dir generic.tcl]]
+    source [list [file join $dir ncnrlib.tcl]]
     # delayed loading of other packages
     tclPkgSetup [list $dir] ncnrlib 0.1 {
 	{pan.tcl source pan}
@@ -11,6 +10,14 @@ package ifneeded ncnrlib 0.1 [subst {
 	{htext.tcl source {htext hpage}}
 	{print.tcl source PrintDialog}
         {sizer.tcl source sizer}
+	{ncnrgui.tcl source {
+	    sashconf 
+	    listbox_ordered_insert listbox_delete_by_name
+	    scroll vscroll hscroll
+	    text_replace text_append text_clear text_load
+	    addfields init_gui
+	    widget_browser winpath
+	}}
 	{graph.tcl source {
 	    active_legend legend_hidden legend_set
 	    active_axis active_graph zoom
