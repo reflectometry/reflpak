@@ -1,6 +1,43 @@
 package provide ncnrlib 0.1
 
 # HELP developer
+# Usage: init_cmd { cmds }
+#
+# Add the command to the list of commands to execute the first
+# time the application script file is loaded.  Using this, the
+# developer should be able to source the application script of
+# a running application and only have the initialization commands
+# called once.
+#
+# Individual dialogs should be constructed with their own constructors
+# with the init_cmd being a call to the constructor.  The state of the
+# widgets should be retrieved from elsewhere.  That way the dialog can
+# be debugged by destroying it, sourcing the constructor and calling it.
+#
+# TODO allow several applications to run simultaneously from the
+# same interpreter each with their own private global namespace.
+set init_cmds {}
+proc init_cmd { cmds } {
+    if { ![info exists ::app_initialized] } { lappend ::init_cmds $cmds }
+}
+
+# HELP developer
+# Usage: init_app
+#
+# Run all the initialization commands registered for the app if
+# this is not the first time through.
+proc init_app {} {
+    if { ![info exists ::app_initialized] } {
+	foreach cmd $::init_cmds { 
+	    # puts "$cmd"
+	    eval $cmd 
+	}
+	set ::app_initialized 1
+    }
+}
+    
+
+# HELP developer
 # Usage: opt widget property value property value ...
 #
 # Quick way to set a bunch of options and values in
@@ -273,12 +310,22 @@ proc app_fail { msg } {
 }
 
 
-# Usage: message ?[--|-bell|-box|-error|-fail] ?"text"
+# Usage: message ?severity ?text
 # Warn the user about something.  Works without GUI.  Uses the
 # message widget of the window containing the focus or opens a
 # warning dialog if not message widget is present.
-# FIXME: need to support several warnings from the same action
-# FIXME: need function to add status bar to toplevel
+#
+# Severity is one of:
+#   --      display message
+#   -bell   display message and ring bell
+#   -warn   display warning
+#   -cancel display warning and return true if proceed anyway
+#   -error  display error
+#   -fatal  display error and exit
+#
+# FIXME need to support several warnings from the same action
+# FIXME need function to add status bar to toplevel
+# FIXME deprecate old severity names -box and -fail
 proc message { args } {
     if { [string match "-*" [lindex $args 0]] } {
 	set opts [lindex $args 0]
@@ -289,14 +336,23 @@ proc message { args } {
     }
     if {![isgui]} {
 	# running without GUI, so output message to terminal
+	set opts [string map {-box -warn -fail -fatal} $opts]
 	switch -- $opts {
-	    -- { set tag "" }
-	    -bell { set tag "!" }
-	    -box { set tag "Warning: " }
-	    -error { set tag "Error: " }
-	    -fail { set tag "Fatal: " }
+	    --      { set tag "" }
+	    -bell   { set tag "!" }
+	    -warn   { set tag "Warning: " }
+	    -error  { set tag "Error: " }
+	    -fatal  { set tag "Fatal: " }
+	    -cancel { set tag "Warning: " }
 	}
-	if {$msg != ""} { puts "$tag$msg" }
+	if {$opts eq "-cancel"} {
+	    puts "$tag$msg  Continue? [y/n] "
+	    flush stdout
+	    gets stdin ans
+	    return [expr {$ans ne "n"}]
+	} elseif {$msg != ""} { 
+	    puts "$tag$msg" 
+	}
     } else {
 	# If no message widget, force use of a warning box
 	if { [catch {set top [winfo toplevel [focus]]}] } { set top none }
@@ -305,21 +361,36 @@ proc message { args } {
 	} else {
 	    set msgbox $top.message
 	}
-	if {![winfo exists $msgbox] && ($opts=="--" || $opts=="-bell")} {
-	    set opts -box
+	if { ![winfo exists $msgbox] && ($opts eq "--" || $opts eq "-bell") } {
+	    # if { $opts eq "-bell" } { bell }
+	    set opts -warn
 	}
 	if { $top eq "none" } { set parent . } { set parent $top }
 
 	switch -- $opts {
-	    -- { $msgbox conf -text $msg }
-	    -bell { $msgbox conf -text $msg; bell }
-	    -box {
+	    -- { 
+		$msgbox conf -text $msg 
+	    }
+	    -bell { 
+		$msgbox conf -text $msg
+		bell 
+	    }
+	    -warn {
 		if {$msg != "" } {
 		    tk_messageBox -title "$::argv0 Warning" -type ok \
 			-icon warning -message $msg -parent $parent
 		}
 	    }
-	    -error - -fail {
+	    -cancel {
+		if {$msg != "" } {
+		    set ans [tk_messageBox \
+				 -title "$::argv0 Warning" \
+				 -type okcancel -icon warning \
+				 -message $msg -parent $parent]
+		    return [expr {$ans eq "ok"}]
+		}
+	    }
+	    -error - -fatal {
 		if {$msg != "" } {
 		    tk_messageBox -title "$::argv0 Error" -type ok \
 			-icon error -message $msg -parent $parent
@@ -328,7 +399,7 @@ proc message { args } {
 	}
     }
 
-    if { $opts == "-fail" } { exit 1 }
+    if { $opts == "-fatal" } { exit 1 }
 }
 
 proc question {msg} {
