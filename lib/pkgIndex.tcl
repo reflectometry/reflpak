@@ -11,6 +11,12 @@ package ifneeded ncnrlib 0.1 [subst {
 	{htext.tcl source {htext hpage}}
 	{print.tcl source PrintDialog}
         {sizer.tcl source sizer}
+	{graph.tcl source {
+	    active_legend legend_hidden legend_set
+	    active_axis active_graph zoom
+	    graph_select graph_select_list
+	    graph_error blt_errorbars
+	}}
     }
 }]
 package ifneeded octave 0.1 [list source [file join $dir octave.tcl]]
