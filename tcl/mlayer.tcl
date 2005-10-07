@@ -2932,7 +2932,7 @@ proc set_entry { row col val } {
 	    }
 	}
 	default {
-	    message -box "trying to edit a non-existant field"
+	    message -warn "trying to edit a non-existant field"
 	    return 0
 	}
     }
@@ -3229,7 +3229,7 @@ proc new_parfile {filename} {
     reset_all
 
     if { [ file exists $::parfile ] } {
-	message -box \
+	message -warn \
 	    "File $::parfile exists; use Save as... to choose a different name"
     }
     return 1
@@ -3783,7 +3783,7 @@ proc start_file {} {
         } else {
             # We could fail here, or we can let guess_init take care of it.
             set initfile $arg
-            # message -fail "file $argv does not exist"
+            # message -fatal "file $argv does not exist"
         }
     } elseif { $::argc == 0 } {
 	return {} ;# For now, lets try starting empty

@@ -12,7 +12,7 @@
 ## VERSION and you will be warned.
 set RESOURCE_VERSION 0.0.1
 if { "$RESOURCE_VERSION" != "$VERSION" } {
-    message -box "~/.mlayer (v$RESOURCE_VERSION) does not match mlayer.tcl (v$VERSION) and so it will be ignored"
+    message -warn "~/.mlayer (v$RESOURCE_VERSION) does not match mlayer.tcl (v$VERSION) and so it will be ignored"
     return 0
 }
 
