@@ -113,7 +113,7 @@ proc init_selector { } {
 
 
     # tree to hold the list of runs
-    Tree .tree -selectcommand view_file -padx 1
+    Tree .tree -selectcommand tree_select_node -padx 1
     .tree configure -width [option get .tree width Width]
     pack [scroll .tree] -side left -in $treepane -fill both -expand yes
 
@@ -899,41 +899,61 @@ proc clear_graph {} {
     .graph marker conf date -hide 1
 }
 
-# node is now active in the tree widget, so display it
-proc view_file {widget node} {
-    # show the data only if it is a leaf node
-    if { ![string equal [$widget itemcget $node -data] "record"] } {
-	# clear the text
-	.filename conf -text ""
-	text_clear .text
-	return
-    }
+# HELP developer
+# Usage: rec_clear id
+#
+# Clear the current record from the record viewer.
+proc rec_clear {} {
+    # clear the text
+    .filename conf -text ""
+    text_clear .text
+}
 
-    upvar #0 $node rec
-
-    # make the current record available to tkcon
-    upvar #0 $node ::rec
-
+# HELP developer
+# Usage: rec_view id
+#
+# Show a record in the record viewer.
+proc rec_view {id} {
+    upvar #0 $id rec
 
     ## display the filename
-    .filename conf -text "$rec(file) ($node)"
+    .filename conf -text "$rec(file) ($id)"
 
     ## display the file contents as text
-    if { [info exists ::rec(view)] } {
-	$::rec(view) $node .text
+    if { [info exists rec(view)] } {
+	$rec(view) $id .text
     } else {
 	text_load .text $rec(file)
     }
 }
 
+# HELP internal
+# Usage: tree_select_node w node
+#
+# Callback for tree widget node selection.
+proc tree_select_node {w node} {
+    # show the data only if it is a leaf node
+    if { ![string equal [$w itemcget $node -data] "record"] } {
+	# clear the existing record
+	rec_clear
+    } else {
+	# show the selected record and make it available from tkcon
+	upvar #0 $node ::rec
+	rec_view $node
+    }
+}
 
-## Show what portion of the total data range is used by a particular node.
-## This is called by my hacked version of the BWidget Tree widget, which
-## first draws the label for $node, then gives you the canvas widget $w and
-## the bounding box {x0 y0 x1 y1} of the label on the canvas, and lets you
-## add your own canvas annotations.  The tags used on the canvas items
-## must be listed in the order given if the user is to click on your
-## annotations to select the node.
+
+# HELP internal
+# Usage: decorate_node node canvas bbox
+#
+# Show what portion of the total data range is used by a particular node.
+# This is called by my hacked version of the BWidget Tree widget (see
+# _draw_node function below), which first draws the label for the node, 
+# then gives you the canvas widget and the bounding box {x0 y0 x1 y1} 
+# of the label on the canvas, and lets you add your own canvas annotations.
+# The tags used on the canvas items must be listed in the order given if 
+# the user is to click on your annotations to select the node.
 proc decorate_node { node w bbox } {
     # make sure it is a leaf node
     if { [string equal [.tree itemcget $node -data] "record"] } {
@@ -999,35 +1019,20 @@ proc decorate_node { node w bbox } {
     }
 }
 
-proc setdirectory { pattern_set } {
-    # if currently loading a directory, abort before loading the new one
-    if { [winfo exists .loading ] } {
-	# Can't abort directly, so instead signal an abort as if the
-	# user pressed the stop button, and check back every 50 ms until
-	# the abortion is complete.
-	set ::loading_abort 1
-	after 50 [list setdirectory $pattern_set ]
-	return
-    }
+# HELP user
+# Usage: tree_draw
+#
+# Redraw the tree with all records.  Do this after you mark a number of
+# records by hand.
+proc tree_draw {} {
+    if {![winfo exists .tree]} { return }
 
-    # clear the old data
-    addrun clear
-    .tree delete [.tree nodes root]
-    clear_set
-    .filename conf -text ""
-    text_clear .text
-    clear_graph
-
-    # Scan file list
-    set files [mark_pattern $pattern_set]
-
-    # Display data path in the window header.
-    set p [file normalize [file dirname [lindex $files 0]]]
-    wm title . "$::title [tildesub $p]"
+    # Clear the tree
+    tree_clear
 
     # display the tree
     .message conf -text "Building tree..."
-    update
+    update idletasks
     set branch 0
     foreach dataset [dataset_list] {
 	set dataset_branch "dataset[incr branch]"
@@ -1057,6 +1062,40 @@ proc setdirectory { pattern_set } {
 	}
     }
     .message conf -text ""
+}
+
+proc tree_clear {} {
+    .tree delete [.tree nodes root]
+}
+
+
+proc setdirectory { pattern_set } {
+    # if currently loading a directory, abort before loading the new one
+    if { [winfo exists .loading ] } {
+	# Can't abort directly, so instead signal an abort as if the
+	# user pressed the stop button, and check back every 50 ms until
+	# the abortion is complete.
+	set ::loading_abort 1
+	after 50 [list setdirectory $pattern_set ]
+	return
+    }
+
+    # clear the old data
+    addrun clear
+    tree_clear
+    rec_clear
+    dataset_clear
+    clear_graph
+
+    # Scan file list
+    mark_pattern $pattern_set
+
+    # Display data path in the window header.
+    set p [file normalize [file dirname [lindex $::datafiles 0]]]
+    wm title . "$::title [tildesub $p]"
+    update
+
+    tree_draw
 
     if { [llength [.tree nodes root]] == 0 } {
 	choose_dataset setdirectory
@@ -1069,8 +1108,6 @@ proc setdirectory { pattern_set } {
 	set sets [.tree nodes $first]
 	if { [llength $sets] == 1 } { .tree itemconfigure $sets -open 1 }
     }
-
-
 }
 
 init_cmd { init_selector }
