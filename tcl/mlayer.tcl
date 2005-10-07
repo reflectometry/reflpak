@@ -2586,8 +2586,6 @@ proc draw_layers {} {
 active_graph .layers
 # Blt_ZoomStack .layers
 
-bind .layers <Motion> { %W crosshairs conf -position @%x,%y }
-
 # Define the nudging keys
 bind .layers <Up>    { nudge_handle  1 v }
 bind .layers <Down>  { nudge_handle -1 v }
@@ -2707,9 +2705,6 @@ active_graph .reflectivity
 # XXX FIXME XXX this should be controlled with a button rather than
 # a mouse click on the graph.
 # bind .reflectivity <Shift-ButtonPress-3> { PrintDialog %W }
-
-bind .reflectivity <Motion> { %W crosshairs conf -position @%x,%y }
-
 
 # display chi^2 on the graph
 .reflectivity axis conf x2 -min 0 -max 1
