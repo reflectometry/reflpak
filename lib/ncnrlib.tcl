@@ -325,7 +325,6 @@ proc app_fail { msg } {
 #
 # FIXME need to support several warnings from the same action
 # FIXME need function to add status bar to toplevel
-# FIXME deprecate old severity names -box and -fail
 proc message { args } {
     if { [string match "-*" [lindex $args 0]] } {
 	set opts [lindex $args 0]
@@ -336,7 +335,6 @@ proc message { args } {
     }
     if {![isgui]} {
 	# running without GUI, so output message to terminal
-	set opts [string map {-box -warn -fail -fatal} $opts]
 	switch -- $opts {
 	    --      { set tag "" }
 	    -bell   { set tag "!" }
