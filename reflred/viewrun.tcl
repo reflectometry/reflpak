@@ -19,6 +19,10 @@ init_cmd {
     set ::erraddrun y
 }
 
+# HELP internal
+# Usage: init_tree_select_images
+#
+# Create icons for new, select and clear record.
 proc init_tree_select_images {} {
     set box9 {
 	{ 111111111}
@@ -38,11 +42,16 @@ proc init_tree_select_images {} {
     set ::image(select) [image create photo]
     $::image(select) put [string map { 0 "red " 1 "black " } $box9]
 }
+init_cmd { 
+    # On startup, create the images then clear the function.
+    init_tree_select_images
+    rename init_tree_select_images {} 
+}
 
-init_cmd { init_tree_select_images }
-init_cmd { rename init_tree_select_images {} }
-
-# draw the selector window
+# HELP internal
+# Usage: init_selector
+#
+# Draw the selector window
 proc init_selector { } {
     menu .menu
     . config -menu .menu
@@ -182,7 +191,7 @@ proc init_selector { } {
     
     .graph.menu add separator
     .graph.menu add command -label Exclude \
-        -command { exclude_point [active_graph .graph element] [active_graph .graph index] }
+        -command { exclude_point .graph [active_graph .graph element] [active_graph .graph index] }
 
     # buttons to toggle polarization states
     # XXX FIXME XXX these should only appear for polarized data
@@ -231,10 +240,10 @@ proc init_selector { } {
     wm sizefrom . program
 }
 
-# Polarization cross-section toggling
-
-bind pol_toggle <<Elements>> { pol_toggle_enable %W }
-
+# HELP developer
+# Usage: pol_toggle_init w
+#
+# Add support for polarization cross-section toggling to the graph.
 proc pol_toggle_init {w} {
     frame $w.toggle
     foreach {n t} {a A b B c C d D} {
@@ -244,7 +253,13 @@ proc pol_toggle_init {w} {
     }
     bindtags $w [linsert [bindtags $w] 0 pol_toggle]
 }
+bind pol_toggle <<Elements>> { pol_toggle_enable %W }
 
+# HELP internal
+# Usage: pol_toggle_enable w
+#
+# Add A-B-C-D buttons to graph if any elements are polarization cross-sections.
+# Callback from graph element add/delete event.
 proc pol_toggle_enable {w} {
     set show 0
     foreach el [$w elem names *] {
@@ -260,6 +275,11 @@ proc pol_toggle_enable {w} {
     }
 }
 
+# HELP internal
+# Usage: pol_toggle w n
+#
+# Toggle all elements of the given cross-section.
+# Callback for the buttons for each cross-section.
 proc pol_toggle {w n} { 
     switch -- $n {
 	a { set pattern *A }
@@ -287,7 +307,12 @@ proc pol_toggle {w n} {
     }
 }
 
-# show the coordinates of the nearest point
+# HELP internal
+# Usage: addrun_point_info w x y name idx msg
+#
+# Show the coordinates of the nearest point.  Undo effects of graph scaling.
+# Display counts, alpha and beta values if available.
+# Callback from graph motion event.
 proc addrun_point_info { w x y name idx msg } {
     # To undo the effects of Q4 and Fresnel scaling, need to regenerate
     # entire message from scratch
@@ -312,33 +337,47 @@ proc addrun_point_info { w x y name idx msg } {
     return $msg
 }
 
-proc exclude_point { id index } {
-    if { ![string match rec* $id] } { return }
+# HELP internal
+# Usage: exclude_point w id n
+#
+# Toggle the exclusion of point n in the given record.  Adjust the element
+# to display exclusions if a new exclusion vector is created.
+#
+# FIXME simplify since all records are now assumed to have an associated
+# index vector
+proc exclude_point { w id index } {
+    if { ![string match $::recpattern $id] } { return }
     
     # construct an index vector if needed
     set vec ::idx_$id
     if { ![vector_exists $vec] } {
         vector create $vec
         $vec expr 1+0*::x_$id
-        # XXX FIXME XXX do we have to leak info about the
-        # name of the graph widget here?
-        catch { .graph element conf $id -weight $vec -styles { {excludePoint -0.5 0.5} } }
+        catch { $w element conf $id -weight $vec -styles { {excludePoint -0.5 0.5} } }
     }
     # negate the particular index
-    set ${vec}($index) [expr 1.0 - [set ${vec}($index)]]
+    set ${vec}($index) [expr {1.0 - [set ${vec}($index)]}]
 }
 
+# HELP internal
+# Usage: graph_exclude w x y
+# 
+# Exclude the point under the cursor.
+# Callback for graph exclude event
 proc graph_exclude { w x y } {
     # Find the data record and exclude the point
     $w element closest $x $y where -halo 1i
     if { [info exists where(x)] } {
-        exclude_point $where(name) $where(index)
+        exclude_point $w $where(name) $where(index)
     } else {
         message -bell "No points under mouse"
     }
 }
 
 
+# HELP internal
+# Usage: clearscan id
+#
 # Clear the scan from memory and from the compose graph.
 # If -all, remove all scans.
 proc clearscan { scanid } {
