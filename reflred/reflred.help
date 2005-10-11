@@ -133,15 +133,15 @@ attenuators.
 
 Calculate attenuation between two records with one overlapping point:
 
-  atten R1 R2
+  atten_from_overlap R1 R2
 
 Calculate attenuation between two records with n overlapping points:
 
-  atten R1 R2 n
+  atten_from_overlap R1 R2 n
 
 Skip k points from the end of the overlap region:
 
-  atten R1 R2 end-n+1:end-k 0:k-1
+  atten_from_overlap R1 R2 end-n+1:end-k 0:k-1
 
 Copy attenuator values from R1 to R2, R3, ... and Rk
 

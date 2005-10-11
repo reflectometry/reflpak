@@ -78,7 +78,7 @@ proc atten_update { row col val } {
 }
 
 
-proc atten { id1 id2 args} {
+proc atten_from_overlap { id1 id2 args} {
     switch [llength $args] {
 	0 {
 	    set range1 end
@@ -87,9 +87,8 @@ proc atten { id1 id2 args} {
 	1 {
 	    set overlap $args
 	    if { $overlap > 1 } {
-		incr overlap -1
-		set range1 "end-$overlap:end"
-		set range2 "0:$overlap"
+		set range1 "[expr {[::y_$id1 length]-$overlap}]:end"
+		set range2 "0:[expr {$overlap-1}]"
 	    } else {
 		set range1 "end"
 		set range2 "0"
@@ -104,19 +103,19 @@ proc atten { id1 id2 args} {
 	}
     }
 
-    upvar \#0 $id2 rec
+    upvar \#0 $id1 rec
 
     set rec(k) 1.0
     set rec(dk) 0.0
-    monitor_norm $id2
+    monitor_norm $id1
     set y1  [vector expr "sum(::y_${id1}($range1))"]
     set dy1 [vector expr "sqrt(sum(::dy_${id1}($range1)^2))"]
     set y2  [vector expr "sum(::y_${id2}($range2))"]
     set dy2 [vector expr "sqrt(sum(::dy_${id2}($range2)^2))"]
 
-    set k   [vector expr "$y1/$y2"]
-    set dk  [vector expr "sqrt( ($dy1/$y2)^2 + ($y1*$dy2/$y2^2)^2 )"]
-    atten_from_ratio $id2 $k $dk
+    set k   [vector expr "$y2/$y1"]
+    set dk  [vector expr "sqrt( ($dy2/$y1)^2 + ($y2*$dy1/$y1^2)^2 )"]
+    atten_from_ratio $id1 $k $dk
 }
 
 proc _atten_sum_points {points Iname dIname} {
@@ -192,12 +191,15 @@ proc atten_from_ratio { id k dk } {
     atten_set $::addrun
 }
 
-proc atten_revert { runs } {
-    foreach id $runs {
+proc atten_revert { args } {
+    if {[llength $args] == 0} { set args $::addrun }
+    foreach id $args {
 	upvar #0 $id rec
 	set rec(k) 1.0
 	set rec(dk) 0.0
     }
+    atten_table_reset
+    atten_set $::addrun
 }
 
 
