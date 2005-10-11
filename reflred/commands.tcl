@@ -47,7 +47,7 @@ proc initial_pattern {} {
 
     # load the initial directory (as set by the command line arguments if any)
     catch {
-	if {[llength $pattern] == 1} {
+	if {[llength $pattern] == 1 && $pattern ne "{}"} {
 	    if {[file isdir $pattern]} {
 		cd $pattern
 		set pattern {{}}
@@ -63,6 +63,7 @@ proc initial_pattern {} {
 
 # useful constants
 set ::log10 [expr {log(10.)}]
+set ::pi [expr {4*atan(1.)}]
 set ::pitimes16 [expr {64*atan(1.)}]
 set ::pitimes4 [expr {16.*atan(1.)}]
 set ::pitimes2 [expr {8.*atan(1.)}]
@@ -85,6 +86,8 @@ proc AB_to_QxQz {id} {
 }
 
 proc QxQz_to_AB {id} {
+    upvar \#0 $id rec
+
     # Algorithm for converting Qx-Qz to alpha-beta:
     #   beta = 2 asin(L/(2 pi) sqrt(Qx^2+Qz^2)/2) * 180/pi 
     #        = asin(L sqrt(Qx^2+Qz^2) /(4 pi)) / (pi/360)
@@ -94,10 +97,18 @@ proc QxQz_to_AB {id} {
     #   alpha = theta + beta/2
     #   if Qz < 0, add 180 to alpha
     vector create ::alpha_$id ::beta_$id
-    ::beta_$id expr "asin($rec(L)*sqrt(::Qx_$id^2-::Qz_$id^2)/$::pitimes4)/$::piover360"
+    ::beta_$id expr "asin($rec(L)*sqrt(::Qx_$id^2+::Qz_$id^2)/$::pitimes4)/$::piover360"
     ::beta_$id expr "::beta_$id*(::Qz_$id>=0) - ::beta_$id*(::Qz_$id<0)"
-    ::alpha_$id expr "atan2(::Qx_$id,::Qz_$id)/$::piover360)"
-    ::alpha_$id expr "::alpha_$id - 360*(::alpha_$id>90) + $::beta_$id/2"
+    ## No atan2 in BLT so replace <<
+    #    ::alpha_$id expr "atan2(::Qx_$id,::Qz_$id)/$::piover360)"
+    # >> with <<
+    set y ::Qx_$id
+    set x ::Qz_$id
+    ::alpha_$id expr "atan($y/($x+!$x*1e-100)) + $::pi*($x<0)*$y/abs($y+!$y)"
+    ::alpha_$id expr "::alpha_$id/$::piover360"
+    # >>
+
+    ::alpha_$id expr "::alpha_$id - 360*(::alpha_$id>90) + ::beta_$id/2"
     ::alpha_$id expr "::alpha_$id + 180*(::Qz_$id<0)"
 }
 
