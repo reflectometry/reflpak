@@ -50,9 +50,10 @@ proc initial_pattern {} {
 	if {[llength $pattern] == 1} {
 	    if {[file isdir $pattern]} {
 		cd $pattern
+		set pattern {{}}
 	    } else {
 		cd [file dir $pattern]
-		set pattern [file tail $pattern]
+		set pattern [list [file tail $pattern]]
 	    }
 	}
     }
@@ -921,7 +922,7 @@ proc rec { file } {
 
 
 # HELP developer
-# Usage: mark_pattern { pattern set }
+# Usage: mark_pattern { prefix1 prefix2 ... }
 #
 # Categorize a set of files and create records for each of them.
 proc mark_pattern { pattern_set } {
