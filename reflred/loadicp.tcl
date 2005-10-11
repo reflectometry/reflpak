@@ -429,6 +429,33 @@ proc motor_column { id motor instrument_name standard_name} {
     }
 }
 
+proc seconds_column { id } {
+    upvar \#0 $id rec
+
+    # Convert MIN column to time in seconds if available
+    # FIXME do we need a time uncertainty vector as well?
+    if { [vector_exists ::MIN_$id] } {
+	vector create ::seconds_$id
+	# time measured in seconds but recorded in hundredths of a minute
+	::seconds_$id expr "round(::MIN_$id*60)"
+	if { $rec(base) != "TIME" } {
+	    # assume no uncertainty if counting against time.  If counting
+	    # against monitor, the uncertainty is +/- a half second uniformly
+	    # distributed, which can be approximated by a gaussian of width
+	    # 1/sqrt(12)
+	    vector create ::dseconds_$id
+	    ::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
+	}
+    } elseif { $rec(base) == "TIME" } {
+	vector create ::seconds_$id
+	::seconds_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
+    } else {
+	# No time information
+	catch { vector destroy ::seconds_$id ::dseconds_$id }
+    }
+}
+
+
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
 proc NG1load {id} {
@@ -457,33 +484,13 @@ proc NG1load {id} {
     motor_column $id 4 A4 beta
     AB_to_QxQz $id
 
-    # Convert MIN column to time in seconds if available
-    # FIXME do we need a time uncertainty vector as well?
-    if { [vector_exists ::MIN_$id] } {
-	vector create ::seconds_$id
-	# time measured in seconds but recorded in hundredths of a minute
-	::seconds_$id expr "round(::MIN_$id*60)"
-	if { $rec(base) != "TIME" } {
-	    # assume no uncertainty if counting against time.  If counting
-	    # against monitor, the uncertainty is +/- a half second uniformly
-	    # distributed, which can be approximated by a gaussian of width
-	    # 1/sqrt(12)
-	    vector create ::dseconds_$id
-	    ::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
-	}
-    } elseif { $rec(base) == "TIME" } {
-	vector create ::seconds_$id
-	::seconds_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
-    } else {
-	# No time information
-	catch { vector destroy ::seconds_$id ::dseconds_$id }
-    }
+    # Generate seconds column from MIN or monitor
+    seconds_column $id
 
     # Exclude all points exceeding the saturation rate since 
     # the dead-time correction factor for the NG1 detector 
     # has not been measured.
     exclude_saturated $id [set ::${inst}saturation]
-
 
     # Create a monitor column if necessary
     if {[vector_exists ::MON_$id] } {
@@ -562,21 +569,26 @@ proc XRAYload {id} {
     # set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
     check_wavelength $id $::xraywavelength
 
+    motor_column $id 3 A3 alpha
+    motor_column $id 4 A4 beta
+    AB_to_QxQz $id
+
+    # Generate seconds column from MIN or monitor
+    seconds_column $id
+
     switch $rec(type) {
 	rock {
-	    vector create ::x_$id
-	    ::x_$id expr [ atoQx ::A3_$id [expr {2*$rec(rockbar)}] $rec(L) ]
+	    ::Qx_$id dup ::x_$id
 	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
 	    set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
 	absorption {
-	    ::A3_$id dup ::x_$id
+	    ::alpha_$id dup ::x_$id
 	    set rec(xlab) "A3 ($::symbol(degree))"
 	}
 	spec {
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    vector create ::x_$id
-	    ::x_$id expr [ a4toQz ::A4_$id $rec(L) ]
+	    ::Qz_$id dup ::x_$id
 	}
 	back {
 	    exclude_specular_ridge $id
