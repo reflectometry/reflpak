@@ -706,7 +706,7 @@ proc NG7load {id} {
     upvar #0 $id rec
 
     if ![icp_load $id] { return 0 }
-    if {$rec(psdplot)} { NG7_psd_fvector $id }
+    if {[info exists rec(psdplot)]} { NG7_psd_fvector $id }
     check_wavelength $id $::ng7wavelength
     
     # Build standard vectors S1,S2,S3
@@ -732,11 +732,6 @@ proc NG7load {id} {
 	message "$rec(file) has no monitor counts"
     }
 
-    if { [vector_exists ::Qz_$id] } {
-	octave send ::Qz_$id Qz
-	octave send ::seconds_$id seconds
-    }
-    
     # monitor calibration
     NG7monitor_calibration $id
 
@@ -760,10 +755,6 @@ proc NG7load {id} {
             vector create ::psd_$id ::psderr_$id
             octave recv psd_$id psd_$id
             octave recv psderr_$id psderr_$id
-        } else {
-	    ::dy_$id expr "sqrt((::dy_$id/::monitor_$id)^2 + \
-                (::y_$id*::dmonitor_$id/::monitor_$id^2)^2)"
-	    ::y_$id expr "::y_$id/::monitor_$id"
 	}
     }
 
