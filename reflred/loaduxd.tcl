@@ -215,42 +215,61 @@ proc UXDload {id} {
 	default { set rec(k) 1.0 }
     }
 
-    # convert the data columns to x-y vectors
+    # convert the data columns to vectors
+    switch $rec(DRIVE) {
+	Z { 
+	    set motor height
+	    set rec(xlab) "Height" 
+	}
+	KHI { 
+	    set motor sample_angle
+	    set rec(xlab) "Sample angle (KHI degrees)" 
+	}
+	PHI {
+	    set motor tilt
+	    set rec(xlab) "Phi Tilt (degrees)" 
+	}
+	THETA { 
+	    set motor alpha
+	    set rec(xlab) "Incident angle (THETA degrees)" }
+	COUPLED { 
+	    set motor beta
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	}
+    }
     if { [info exists rec(STEP)] } {
 	# 1-column data is assumed to be counts, with 2theta generated
 	# based on start and step
-	vector create ::x_$id ::y_$id
+	vector create ::${motor}_$id ::counts_$id
 	# XXX FIXME XXX should be using x = start+step*[0:length-1]
 	# rather than x = [ start:step:stop ] since it is more robust
 	# ::x_$id seq 1 [llength $rec(data)]
 	# ::x_$id expr "$rec(START) + (::x_$id-1)*$rec(STEP)"
-	::x_$id seq $rec(START) $rec(STOP) $rec(STEP)
-	::y_$id set $rec(data)	
+	::${motor}_$id seq $rec(START) $rec(STOP) $rec(STEP)
+	::counts_$id set $rec(data)
     } else {
 	# 2-column data is assumed to be 2theta and counts
-	if {![get_columns $id {x y} $rec(data)]} { return 0 }
+	if {![get_columns $id [list $motor counts] $rec(data)]} { return 0 }
+    }
+    ::${motor}_$id dup ::x_$id
+    if { $rec(DRIVE) eq "COUPLED" } {
+	vector create ::alpha_$id
+	::alpha_$id expr "::beta_$id/2"
+	AB_to_QxQz $id
     }
 
-    # normalize y to the monitor time and estimate the uncertainty
-    vector create ::dy_$id
+    # If measurements recorded as counts per second, translate to counts.
+    vector create ::dcounts_$id
     if { [info exists rec(CPS)] } {
-	::dy_$id expr "(sqrt(::y_$id) + !::y_$id)/sqrt($rec(monitor))"
-    } else {
-	::dy_$id expr "(sqrt(::y_$id) + !::y_$id)/$rec(monitor)"
-	::y_$id expr "::y_$id/$rec(monitor)"
+	::counts_$id expr "::counts_$id * $rec(monitor)"
     }
+    ::dcounts_$id expr "sqrt(::counts_$id + !::counts_$id)"
+
+    # Create the 'seconds' column from the constant monitor
+    vector create ::seconds_$id
+    ::seconds_$id expr "::counts_$id*0 + $rec(monitor)"
 
     # XXX FIXME XXX convert x to Qz or whatever units are appropriate
-    switch $rec(DRIVE) {
-	Z { set rec(xlab) "Height" }
-	KHI { set rec(xlab) "Sample angle (KHI degrees)" }
-	PHI { set rec(xlab) "Phi Tilt (degrees)" }
-	THETA { set rec(xlab) "Incident angle (THETA degrees)" }
-	COUPLED { 
-	    set rec(xlab) "Qz ($::symbol(invangstrom))"
-	    ::x_$id expr [ a4toQz ::x_$id $rec(L) ]
-	}
-    }
     set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
 
     return 1
