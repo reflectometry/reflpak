@@ -17,6 +17,7 @@ init_cmd {
     # FIXME turn these into resources
     set ::logaddrun 0
     set ::erraddrun y
+    set ::psdstyle fvector
 }
 
 # HELP internal
@@ -103,6 +104,8 @@ proc init_selector { } {
     .menu.options add separator
     .menu.options add checkbutton -label "Clip zeros in files" \
 	-variable ::clip_data
+    .menu.options add checkbutton -label "New PSD" \
+	-variable ::psdstyle -onvalue fvector -offvalue octave
     set ::clip_data 0
 
     .menu.options add separator
@@ -586,12 +589,12 @@ proc addrun_add { id } {
     # properties of the first element as the properties for the entire list.
     lappend ::addrun $id
 
-    #catch { if { [set ::${id}(psd)] } { psd $id } }
-
     catch { 
-	if { [info exists ::${id}(psdplot)] } { 
-	    reflplot::plot_window .psd
-	    reflplot::plot2d add .psd.c $id
+	if { [info exists ::${id}(psdplot)] && $::psdstyle eq "fvector" } { 
+	    reflplot::plot_window .newpsd
+	    reflplot::plot2d add .newpsd.c $id
+	} elseif { [set ::${id}(psd)] } { 
+	    psd $id 
 	}
     }
 
