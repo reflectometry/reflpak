@@ -796,37 +796,15 @@ proc toggle_background { node } {
 
     # make sure new records use the new indicator
     set dataset $::background_basis_nodes($node)
-    set ::background_basis($dataset) \
-	    [string map { A3 A4 A4 A3 } $::background_basis($dataset)]
+    set basis [string map { A3 A4 A4 A3 } $::background_basis($dataset)]
+
+    # Update existing records to use the new Q range (including records
+    # currently displayed on the graph).
+    set_background_basis $dataset $basis
 
     # Clear the cumulative range from the cache
     set gid [.tree itemcget $node -data]
     array unset ::grouprange $gid
-
-    # Update existing records to use the new Q range (including records
-    # currently displayed on the graph).
-    switch $::background_basis($dataset) {
-	A3 {
-	    foreach id [.tree nodes $node] {
-		set ::${id}(start) [set ::${id}(start,3)]
-		set ::${id}(stop) [set ::${id}(stop,3)]
-		set A3 [set ::${id}(A3)]
-		if {[vector_exists ::x_$id]} {
-		    ::x_$id expr [ a3toQz $A3 [set ::${id}(L)] ]
-		}
-	    }
-	}
-	A4 {
-	    foreach id [.tree nodes $node] {
-		set ::${id}(start) [set ::${id}(start,4)]
-		set ::${id}(stop) [set ::${id}(stop,4)]
-		set A4 [set ::${id}(A4)]
-		if {[vector_exists ::x_$id]} {
-		    ::x_$id expr [ a4toQz $A4 [set ::${id}(L)] ]
-		}
-	    }
-	}
-    }
 }
 
 proc redraw_range_indicators {} {
@@ -840,8 +818,7 @@ proc redraw_range_indicators {} {
 proc reset_backgrounds { } {
     foreach node [array names ::background_basis_nodes] {
 	set dataset $::background_basis_nodes($node)
-	if {![string equal $::background_default \
-		$::background_basis($dataset)]} {
+	if {$::background_default ne $::background_basis($dataset)} {
 	    toggle_background $node
 	}
     }

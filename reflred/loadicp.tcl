@@ -266,38 +266,6 @@ proc icp_load {id} {
     return 1
 }
 
-# exclude all points in the record $id for which 2*A3 != A4
-proc exclude_specular_ridge {id} {
-    upvar #0 $id rec
-    ::idx_$id expr "::idx_$id && (2*::A3_$id != ::A4_$id)"
-}
-
-# exclude points above a saturation value in counts per second
-proc exclude_saturated {id rate} {
-    upvar \#0 $id rec
-    if {[vector_exists ::seconds_$id]} {
-	# Find good points, which are those for which rate >= counts/seconds
-	# To protect against seconds==0, use seconds*rate >= counts instead.
-	# If there is uncertainty in time use least restrictive value rate,
-	# which is counts/(seconds+dseconds).
-	set good [vector create \#auto]
-	if {[vector_exists ::dseconds_$id]} {
-	    $good expr "(::seconds_$id+::dseconds_$id)*$rate >= ::counts_$id"
-	} else {
-	    $good expr "::seconds_$id*$rate >= ::counts_$id"
-	}
-
-	# If there are any points that are excluded by this test, warn the
-	# user and remove them from the list of valid points.
-	if {[vector expr "prod($good)"] == 0} {
-	    message "excluding points which exceed $rate counts/second"
-	    ::idx_$id expr "::idx_$id && $good"
-	}
-	vector destroy $good
-    }
-}
-
-
 proc default_x {id} {
     upvar #0 $id rec
     
@@ -545,11 +513,11 @@ proc NG1load {id} {
 	    switch $col {
 		A3 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ]
+		    ::x_$id expr [ a3toQz ::alpha_$id $rec(L) ]
 		}
 		A4 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a4toQz $rec(A4) $rec(L) ]
+		    ::x_$id expr [ a4toQz ::beta_$id $rec(L) ]
 		}
 	    }
 	}
@@ -959,8 +927,6 @@ proc XRAYmark {file} {
     } elseif { abs($rec(step,4) - 2.0*$rec(step,3)) < 1e-10 } {
 	# offset background
 	set m [string index $::background_default 1]
-	set rec(A3) ::A3_$rec(id)
-	set rec(A4) ::A4_$rec(id)
 	if { $rec(start,4) > 2.0*$rec(start,3) } {
 	    marktype back $rec(start,4) $rec(stop,4) +
 	} else {
@@ -1059,8 +1025,6 @@ proc NG1mark {file} {
 	} else {
 	    # use default background basis
 	    set m [string index $::background_default 1]
-	    set rec(A3) ::A3_$rec(id)
-	    set rec(A4) ::A4_$rec(id)
 	    if { $rec(stop,4) > 2.0*$rec(stop,3) } {
 		marktype back $rec(start,$m) $rec(stop,$m) +$rec(polarization)
 	    } else {

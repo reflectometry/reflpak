@@ -112,6 +112,37 @@ proc QxQz_to_AB {id} {
     ::alpha_$id expr "::alpha_$id + 180*(::Qz_$id<0)"
 }
 
+# exclude all points in the record $id for which 2*alpha != beta
+proc exclude_specular_ridge {id} {
+    upvar #0 $id rec
+    ::idx_$id expr "::idx_$id && (2*::alpha_$id != ::beta_$id)"
+}
+
+# exclude points above a saturation value in counts per second
+proc exclude_saturated {id rate} {
+    upvar \#0 $id rec
+    if {[vector_exists ::seconds_$id]} {
+	# Find good points, which are those for which rate >= counts/seconds
+	# To protect against seconds==0, use seconds*rate >= counts instead.
+	# If there is uncertainty in time use least restrictive value rate,
+	# which is counts/(seconds+dseconds).
+	set good [vector create \#auto]
+	if {[vector_exists ::dseconds_$id]} {
+	    $good expr "(::seconds_$id+::dseconds_$id)*$rate >= ::counts_$id"
+	} else {
+	    $good expr "::seconds_$id*$rate >= ::counts_$id"
+	}
+
+	# If there are any points that are excluded by this test, warn the
+	# user and remove them from the list of valid points.
+	if {[vector expr "prod($good)"] == 0} {
+	    message "excluding points which exceed $rate counts/second"
+	    ::idx_$id expr "::idx_$id && $good"
+	}
+	vector destroy $good
+    }
+}
+
 monitor_init
 
 # ======================================================
@@ -735,6 +766,7 @@ proc group_list {dataset} {
     return [lsort -dictionary [array names ::group "$dataset,*"]]
 }
 
+
 # HELP internal
 # Usage: group_range id start stop
 #
@@ -753,6 +785,36 @@ proc group_range {gid Vstart Vstop } {
 	    if { $stop < $rec(stop) } { set stop $rec(stop) }
 	}
 	set ::grouprange($gid) [list $start $stop]
+    }
+}
+
+# HELP developer
+# Usage: set_background_basis dataset basis
+#
+# Set the background basis for aligning specular and background to
+# A3 or A4.
+#
+# FIXME replace A3/A4 with alpha/beta and motor 3/4 with alpha/beta.
+proc set_background_basis {dataset basis} {
+    # puts "changing basis from $::background_basis($dataset) to $basis for $dataset"
+    set ::background_basis($dataset) $basis
+    foreach id $::group($dataset,back) {
+	switch $basis {
+	    A3 {
+		set ::${id}(start) [set ::${id}(start,3)]
+		set ::${id}(stop) [set ::${id}(stop,3)]
+		if {[vector_exists ::x_$id]} {
+		    ::x_$id expr [ a3toQz ::alpha_$id [set ::${id}(L)] ]
+		}
+	    }
+	    A4 {
+		set ::${id}(start) [set ::${id}(start,4)]
+		set ::${id}(stop) [set ::${id}(stop,4)]
+		if {[vector_exists ::x_$id]} {
+		    ::x_$id expr [ a4toQz ::beta_$id [set ::${id}(L)] ]
+		}
+	    }
+	}
     }
 }
 
