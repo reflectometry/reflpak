@@ -64,7 +64,7 @@ proc parse_data {id data} {
     set m [expr {[flength d]/$n}]
     if {$m != $rec(points)} {
 	# XXX FIXME XXX better error reporting
-	puts "Expected $rec(points) scan points but found $m (columns=$rec(Ncolumns) pixels=$rec(pixels) values=[flength d])"
+	message "Expected $rec(points) scan points but found $m (columns=$rec(Ncolumns) pixels=$rec(pixels) values=[flength d])"
 	set rec(points) $m
     }
 
@@ -74,15 +74,16 @@ proc parse_data {id data} {
 	set rec(column,$c) [fextract $m $n d $idx]
 	incr idx
     }
-    set rec(psd) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
-    ferr rec(psd) rec(psderr)
+    set rec(psddata) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+    ferr rec(psddata) rec(psderr)
+    set rec(psdraw) $rec(psddata)
 }
 
 proc normalize {id monitor} {
     upvar \#0 $id rec
 
     # normalize by monitor counts
-    fdivide $rec(points) $rec(pixels) rec(psd) rec(column,$monitor)
+    fdivide $rec(points) $rec(pixels) rec(psddata) rec(column,$monitor)
     fdivide $rec(points) $rec(pixels) rec(psderr) rec(column,$monitor)
 }
 
@@ -223,7 +224,7 @@ proc vlimits {records} {
     set vlim {}
     foreach id $records {
 	upvar \#0 $id rec
-	set vlim [flimits rec(psd) $vlim]
+	set vlim [flimits rec(psddata) $vlim]
     }
     return $vlim
 }
@@ -276,7 +277,7 @@ proc calc_transform {path type} {
 	}
 	$path delete $plot($id)
 	set plot($id) \
-	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
 	set plot(title) "$rec(ylabel) vs. $rec(xlabel)"
     }
 }
@@ -338,11 +339,12 @@ proc add {path records} {
 	if { $plot(mesh) == "pixel" } {
 	    mesh_$plot(mesh) $id $plot(points)
 	    incr plot(points) $rec(points)
+	    incr plot(points)
 	} else {
 	    mesh_$plot(mesh) $id
 	}
 	set plot($id) \
-	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psd)]
+	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
     }
     auto_axes $path
     auto_vrange $path
@@ -406,11 +408,12 @@ proc uncertainty { val err } {
 
 proc ShowCoordinates { w x y } {
     findplot $w
+    set wmsg [winfo toplevel $w].message
 
     foreach {X Y} [$w coords $x $y] break
     # puts "Coordinates for $x $y -> $X $Y"
 
-    set plot(coords) ""
+    
     # FIXME: traverse the plots in stack order, stopping at
     # the first one which matches
     foreach id $plot(records) {
@@ -419,7 +422,7 @@ proc ShowCoordinates { w x y } {
 	set idx [find_$plot(mesh) $id $X $Y]
 	if { $idx >= 0 } { 
 	    set counts [findex rec(psdraw) $idx]
-	    set val [findex rec(psd) $idx]
+	    set val [findex rec(psddata) $idx]
 	    if { [info exists rec(psderr)] } {
 		set err [findex rec(psderr) $idx]
 	    } else {
@@ -427,10 +430,13 @@ proc ShowCoordinates { w x y } {
 	    }
 	    set j [expr {$idx/$rec(pixels)}]
 	    set k [expr {$idx%$rec(pixels)}]
-	    set plot(coords) "[file tail $rec(file)]($j,$k)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
+	    $wmsg conf -text \
+		"[file tail $rec(file)]($j,$k)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
+	    return
 	}
     }
 
+    $wmsg conf -text ""
 }
 
 proc plot_window {{w .plot}} {
@@ -479,11 +485,11 @@ proc plot_window {{w .plot}} {
     }
     grid $f.lcenter $f.center $f.ltransform $f.transform
 
-    label $w.coords -textvariable ${pid}(coords) -relief ridge -anchor w
+    label $w.message -relief ridge -anchor w
  
     grid $w.c -sticky news
     grid $w.controls -sticky w
-    grid $w.coords -sticky ew
+    grid $w.message -sticky ew
     grid rowconfigure $w 0 -w 1
     grid columnconfigure $w 0 -w 1
     return $w.c
@@ -558,7 +564,6 @@ proc read_data {file id} {
     set rec(distance)  1600.
 
     reflplot::parse_data $id $data
-    set rec(psdraw) $rec(psd)
     reflplot::normalize $id Monitor
     reflplot::set_axes $id Theta TwoTheta
     reflplot::set_center_pixel $id
