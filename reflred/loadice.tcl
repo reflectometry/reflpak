@@ -187,7 +187,7 @@ proc parseheader {head} {
 	switch -- $rec(scan) {
 	    Theta { marktype spec 0 0 $pol }
 	    TwoTheta { marktype rock 0 0 $pol }
-	    S1 { marktype slit 0 0 $pol }
+	    S1 - S2 - S3 - S4 { marktype slit 0 0 $pol }
 	    default { marktype $rec(scan) 0 0 $pol }
 	} 
 	} else { marktype slit 0 0 $pol }
@@ -221,8 +221,6 @@ proc parseheader {head} {
 	    marktype spec $rec(start,Theta) $rec(stop,Theta) $pol
 	} else {
 	    # use default background basis
-	    set rec(A3) ::Theta_$rec(id)
-	    set rec(A4) ::TwoTheta_$rec(id)
 	    set rec(start,3) $rec(start,Theta)
 	    set rec(stop,3) $rec(stop,Theta)
 	    set rec(start,4) $rec(start,TwoTheta)
@@ -282,24 +280,42 @@ proc parsedata {id} {
 	if {![get_columns $id $rec(columns) $data]} { return 0 }
     }
 
-    vector create ::y_$id ::dy_$id
+    return 1
+}
+
+proc load {id} {
+    upvar #0 $id rec
+
+    if {![parsedata $id]} { return 0 }
+
+    check_wavelength $id $::cg1wavelength
+
     set signal ::$rec(signal)_$id
     set monitor ::$rec(base)_$id
     # XXX FIXME XXX need dead-time correction
     # XXX FIXME XXX better correction for 0 signal
-    catch { ::dy_$id expr "sqrt($signal+!$signal + $signal^2/$monitor)/$monitor" }
-    catch { ::y_$id expr "$signal/$monitor" }
+    ::$rec(signal)_$id dup ::counts_$id
+    vector create ::dcounts_$id ::idx_$id
+    ::dcounts_$id expr "sqrt(::counts_$id+!::counts_$id)"
+    ::idx_$id expr "::counts_$id*0 + 1"
+    catch { 
+	::Monitor_$id dup ::monitor_$id
+	vector create ::dmonitor_$id
+	::dmonitor_$id expr "sqrt(::monitor_$id+!::monitor_$id)"
+    }
+    catch { ::Time_$id dup ::seconds_$id }
+    catch { ::Theta_$id dup ::alpha_$id }
+    catch { ::TwoTheta_$id dup ::beta_$id }
+    catch { ::S1_$id dup ::slit1_$id }
+    catch { ::S2_$id dup ::slit2_$id }
+    catch { ::S3_$id dup ::slit3_$id }
+    catch { ::S4_$id dup ::slit4_$id }
 
     set haveA3 [expr {[lsearch $rec(columns) "Theta"]>=0}]
     set haveA4 [expr {[lsearch $rec(columns) "TwoTheta"]>=0}]
-    set A3 ::Theta_$id
-    set A4 ::TwoTheta_$id
 
-    check_wavelength $id $::cg1wavelength
     if {$haveA3 && $haveA4} {
-	vector create ::Qx_$id ::Qz_$id
-	::Qx_$id expr "$::pitimes2/$rec(L)*(cos(($A4-$A3)*$::piover180)-cos($A3*$::piover180))"
-	::Qz_$id expr "$::pitimes2/$rec(L)*(sin(($A4-$A3)*$::piover180)+sin($A3*$::piover180))"
+	AB_to_QxQz $id
     } elseif {$haveA3} {
 	vector create ::Qz_$id
 	::Qz_$id expr [ a3toQz ::Theta_$id $rec(L) ]
@@ -308,7 +324,6 @@ proc parsedata {id} {
 	::Qz_$id expr [ a4toQz ::TwoTheta_$id $rec(L) ]
     }
 
-    vector create ::idx_$id
     if { "$rec(signal)" == "Area" } {
 	# XXX FIXME XXX what is the limit?
 	# XXX FIXME XXX do we also want to test ROI?
@@ -316,18 +331,7 @@ proc parsedata {id} {
     } else {
 	set limit 10000
     }
-    ::idx_$id expr "(::Time_$id+(0.0025*(::Time_$id==0.0)))*$limit>::$rec(signal)_$id"
-    if { [vector expr prod(::idx_$id)] == 1.0 } {
-	vector destroy ::idx_$id
-    } else {
-	message "excluding points which exceed $limit counts/second"
-    }
-
-    return 1
-}
-
-proc load {id} {
-    if {![parsedata $id]} { return 0 }
+    exclude_saturated $id $limit
 
     upvar #0 $id rec
     switch -- $rec(type) {
@@ -342,21 +346,21 @@ proc load {id} {
 	}
 	slit {
 	    set rec(xlab) "slit opening (motor S1 units)"
-	    ::S1_$id dup ::x_$id
+	    ::slit1_$id dup ::x_$id
 	}
 	back {
-	    set rec(slit) S1_$id
+	    set rec(slit) slit1_$id
 	    # XXX FIXME XXX exclude_specular_ridge $id
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	    set col $::background_basis($rec(dataset),$rec(instrument))
 	    switch $col {
 		A3 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a3toQz $rec(A3) $rec(L) ] 
+		    ::x_$id expr [ a3toQz ::alpha_$id $rec(L) ] 
 		}
 		A4 {
 		    vector create ::x_$id
-		    ::x_$id expr [ a4toQz $rec(A4) $rec(L) ]
+		    ::x_$id expr [ a4toQz ::beta_$id $rec(L) ]
 		}
 	    }
 	}

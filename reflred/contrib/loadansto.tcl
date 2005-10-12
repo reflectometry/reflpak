@@ -108,7 +108,7 @@ namespace eval ANSTO {
 	# 6:Slit1(mm)          7:Slit2(mm)           8:Slit3(mm)
 	# 9:theta(deg)         10:Detector Height(mm)
 	# We aren't going to process the Monitor ID == slit2 column
-	set columns {x y monitors time S1 S2 S3 theta height}
+	set columns {Qz counts monitors seconds slit1 slit2 slit3 alpha height}
 
 	# Strip commas and the Monitor ID==slit2 column.
 	# Chop the data into lines.
@@ -137,18 +137,14 @@ namespace eval ANSTO {
 	# curve.  See loadicp.tcl:NG7load for details.
 
 
-	# Divide counts by monitors, propagating error
-	vector create ::dmonitors_$id ::dy_$id
+	# Determine uncertainty
+	vector create ::dmonitors_$id ::dcounts_$id
 	::dmonitors_$id expr "sqrt(::monitors_$id) + !::monitors_$id"
-	::dy_$id expr "sqrt(::y_$id) + !::y_$id"
-	::dy_$id expr "sqrt((::dy_$id/::monitors_$id)^2 + \
-            (::y_$id*::dmonitors_$id/::monitors_$id^2)^2)"
-	::y_$id expr "::y_$id/::monitors_$id"
+	::dcounts_$id expr "sqrt(::counts_$id) + !::counts_$id"
 
-	# That should be it
+	# Plot against Q
 	set rec(xlab) "Qz ($::symbol(invangstrom))"
-	set rec(slit) S1_$id
-	set rec(ylab) "Unnormalized Reflectivity"
+	::Qz_$id dup ::x_$id
 
 	return 1
     }
