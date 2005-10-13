@@ -441,8 +441,8 @@ proc ::psd::integrate {args} {
 	y = spec - back;
 	d2back = d2y - d2spec;
     }
-    octave recv y_$id y/[set ::${id}(monitor)]
-    octave recv dy_$id sqrt(d2y)/[set ::${id}(monitor)]
+    octave recv y_$id y
+    octave recv dy_$id sqrt(d2y)
     octave recv psd_spec_y spec
     octave recv psd_back_y back
     octave recv psd_spec_dy sqrt(d2spec)
@@ -451,7 +451,12 @@ proc ::psd::integrate {args} {
     octave recv psd_select1_err dslicefrom
     octave recv psd_select2_counts sliceto
     octave recv psd_select2_err dsliceto
-    octave eval "send('y_$id dup ::psd_reduce_y; dy_$id dup ::psd_reduce_dy')"
+    octave eval "
+      send('::y_$id dup ::psd_reduce_y')
+      send('::dy_$id dup ::psd_reduce_dy')
+      send('::counts_$id expr ::y_$id*::monitor_$id')
+      send('::dcounts_$id expr ::dy_$id*::dmonitor_$id')
+    "
     octave eval { send('atten_set $::addrun') }
 }
 
