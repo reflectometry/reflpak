@@ -677,7 +677,7 @@ proc addrun_remove { id } {
 
     catch { 
 	if { [info exists ::${id}(psdplot)] } { 
-	    reflplot::plot2d delete .psd.c $id
+	    reflplot::plot2d delete .newpsd.c $id
 	}
     }
 
