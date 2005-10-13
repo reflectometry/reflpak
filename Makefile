@@ -106,20 +106,20 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
 		kit/copykit$(EXE) main.tcl Makefile vfslib
 	./vfslib reflpak
-	./vfslib reflpak ncnrlib $(libfiles)
-	./vfslib reflpak scifun $(scifunfiles)
-	./vfslib reflpak snit $(snitfiles)
-	$(addwinlink)
-	./vfslib reflpak reflfit $(fitfiles) $(fiticons) $(gmlayer) $(gj2)
-	./vfslib reflpak reflred $(redfiles) $(redicons)
-	./vfslib reflpak reflred/octave $(redoctavefiles)
-	./vfslib reflpak reflpak $(pakfiles) $(pakicons)
-	./vfslib reflpak reflplot $(reflplotfiles)
+	@./vfslib reflpak ncnrlib $(libfiles)
+	@./vfslib reflpak scifun $(scifunfiles)
+	@./vfslib reflpak snit $(snitfiles)
+	@$(addwinlink)
+	@./vfslib reflpak reflfit $(fitfiles) $(fiticons) $(gmlayer) $(gj2)
+	@./vfslib reflpak reflred $(redfiles) $(redicons)
+	@./vfslib reflpak reflred/octave $(redoctavefiles)
+	@./vfslib reflpak reflpak $(pakfiles) $(pakicons)
+	@./vfslib reflpak reflplot $(reflplotfiles)
 	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
 	cd kit && ./copykit $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
-	touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
+	@touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 reflred/red.ico: $(redicon)
 	cp $(redicon) $@
