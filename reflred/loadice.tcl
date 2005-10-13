@@ -239,11 +239,11 @@ proc parseheader {head} {
 }
 
 
-proc parsepsd {id data} {
+proc parse_psd_octave {id data} {
     upvar #0 $id rec
 
     # Strip the commas and newlines so that sscanf can handle it
-    set data [ string map {"," " " "\n" " "} $data ]
+    set data [ string map {"\n" " "} $data ]
     octave eval "x=sscanf('$data', '%f ',Inf)"
     octave eval "nc=prod(\[$rec(dims)])+$rec(Ncolumns);"
     octave eval "x=reshape(x,nc,length(x)/nc)';"
@@ -253,6 +253,59 @@ proc parsepsd {id data} {
 	octave recv ${c}_$id x(:,[incr i])
 	if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i)" }
     }
+}
+
+proc parse_psd_fvector {id data} {
+    upvar #0 $id rec
+    reflplot::parse_data $id $data
+
+    # Convert fvectors to BLT vectors
+    foreach c $rec(columns) {
+	vector create ::${c}_$id
+	::${c}_$id set [fvector rec(column,$c)]
+    }
+
+    set rec(psdplot) 1
+}
+
+
+proc psd_fvector {id} {
+#    reflplot::normalize $id
+#    set_center_pixel $id 250
+    upvar #0 $id rec
+
+    if {![info exists rec(column,Theta)]} {
+	set v {}
+	for {set i 0} {$i < $rec(points)} {incr i} {
+	    lappend v [expr {$rec(start,3) + $i * $rec(step,3)}]
+	}
+	fvector rec(column,Theta) $v
+    }
+
+    if {![info exists rec(column,TwoTheta)]} {
+	set v {}
+	for {set i 0} {$i < $rec(points)} {incr i} {
+	    lappend v [expr {$rec(start,4) + $i * $rec(step,4)}]
+	}
+	fvector rec(column,TwoTheta) $v
+    }
+
+    reflplot::set_axes $id Theta TwoTheta
+
+    set rec(distance) $rec(detector,distance)
+    set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]
+
+    reflplot::set_center_pixel $id [expr {$rec(pixels)/2.}]
+
+    set rec(column,monitor) $rec(column,Monitor)
+    reflplot::normalize $id monitor
+
+
+}
+
+proc psd_octave {id} {
+    upvar #0 $id rec
+
     # XXX FIXME XXX need dead-time correction
     # XXX FIXME XXX better correction for 0 signal
     octave eval "psd_$id = x(:,[incr i]:columns(x))"
@@ -262,7 +315,6 @@ proc parsepsd {id data} {
     octave eval "psd_$id = psd_$id ./ mon"
     octave sync
 }
-
 
 proc parsedata {id} {
     # ptrace
@@ -275,7 +327,7 @@ proc parsedata {id} {
     close $fid
 
     if { $rec(psd) } {
-	parsepsd $id $data
+	parse_psd_$::psdstyle $id $data
     } else {
 	if {![get_columns $id $rec(columns) $data]} { return 0 }
     }
@@ -286,9 +338,14 @@ proc parsedata {id} {
 proc load {id} {
     upvar #0 $id rec
 
-    if {![parsedata $id]} { return 0 }
+    if { [string match "CG*" $rec(instrument)] } { 
+	set inst cg1
+    } else {
+	set inst ng1
+    }
 
-    check_wavelength $id $::cg1wavelength
+    check_wavelength $id $::inst($inst,wavelength)
+    if {![parsedata $id]} { return 0 }
 
     set signal ::$rec(signal)_$id
     set monitor ::$rec(base)_$id
@@ -324,14 +381,17 @@ proc load {id} {
 	::Qz_$id expr [ a4toQz ::TwoTheta_$id $rec(L) ]
     }
 
-    if { "$rec(signal)" == "Area" } {
-	# XXX FIXME XXX what is the limit?
-	# XXX FIXME XXX do we also want to test ROI?
-	set limit 8000
+    if { $rec(psd) } {
+	exclude_saturated $id $::inst($inst,psdsaturation)
+	set rec(detector,width)      $::inst($inst,width)
+	set rec(detector,minbin)     $::inst($inst,minbin)
+	set rec(detector,maxbin)     $::inst($inst,maxbin)
+	set rec(detector,distance)   $::inst($inst,distance)
+	psd_$::psdstyle $id 
     } else {
-	set limit 10000
+	exclude_saturated $id $::inst($inst,saturation)
     }
-    exclude_saturated $id $limit
+
 
     upvar #0 $id rec
     switch -- $rec(type) {

@@ -1,13 +1,39 @@
 # See README.load
 # XXX FIXME XXX dump this into a namespace
 
-set ::xraywavelength 1.5416
-set ::cg1wavelength 5.0
-set ::ng1wavelength 4.75
-set ::ng7wavelength 4.768
-# exclude points whose count rate exceeds this
-set ::cg1saturation 15000
-set ::ng1saturation 15000
+array set ::inst {
+  xray,wavelength 1.5416
+
+  ng7,wavelength  4.768
+  ng7,minbin          9
+  ng7,maxbin        246
+  ng7,width        -100.
+  ng7,distance     2000.
+
+  ng1,wavelength  4.75
+  ng1,saturation   15000
+  ng1,psdsaturation 8000
+  ng1,minbin         1
+  ng1,maxbin       256
+  ng1,width        -4*25.4
+  ng1,distance     36*25.4
+
+  cg1,wavelength   5.0
+  cg1,saturation   15000
+  cg1,psdsaturation 8000
+  cg1,minbin         1
+  cg1,maxbin       608
+  cg1,width        211.
+  cg1,distance    1600.
+}
+
+# Expand width and distance calculations
+foreach dim {width distance} {
+    foreach id [array names ::inst *,$dim] {
+	set ::inst($id) [expr $::inst($id)]
+    }
+}
+
 
 proc atoQx {a3 a4 lambda} {
     return "(cos($::piover180*($a4-$a3)) - cos($::piover180*$a3))*$::pitimes2/$lambda"
@@ -200,18 +226,19 @@ proc icp_parse_psd_fvector {id data} {
 	set rec(column,$c) [fextract $m $n d $idx]
 	incr idx
     }
-    set rec(psd) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+    set rec(psddata) [fextract $m $n d $rec(Ncolumns) $rec(pixels)]
+    ferr rec(psddata) rec(psderr)
+    set rec(psdraw) $rec(psddata)
 
-    vector create ::y_$id
-    ::y_$id set [fvector rec(column,y)]
+    # Convert fvectors to BLT vectors
+    foreach c $rec(columns) {
+	vector create ::${c}_$id
+	::${c}_$id set [fvector rec(column,$c)]
+    }
+
     set rec(psdplot) 1
 }
 
-
-# Call the function we are working with
-catch { rename icp_parse_psd {} }
-rename icp_parse_psd_fvector icp_parse_psd
-#rename icp_parse_psd_octave icp_parse_psd
 
 proc icp_load {id} {
     upvar #0 $id rec
@@ -248,7 +275,8 @@ proc icp_load {id} {
 
     # load the data columns into ::<column>_<id>
     if { [string first , $data] >= 0 } {
-	icp_parse_psd $id $data
+	icp_parse_psd_$::psdstyle $id $data
+	set rec(psd) 1
     } else {
 	if ![get_columns $id $rec(columns) $data] { return 0 }
 	set rec(psd) 0
@@ -319,13 +347,24 @@ proc check_wavelength { id wavelength } {
 proc NG1_psd_octave {id} {
     upvar \#0 $id rec
 
-    set rec(detector,width)      4 ;# 4" detector
-    set rec(detector,minbin)     1 ;# assume it is using all bins
-    set rec(detector,maxbin)   256 ;# 
-    set rec(detector,distance)  48 ;# detector bank is 48" away
-    # set rec(detector,A4slope)     [expr {double($rec(stop,4)-$rec(start,4))/($rec(stop,3)-$rec(start,3))}]
-    # set rec(detector,A4intercept) [expr {$rec(start,4)-$rec(detector,A4slope)*$rec(start,3)}]
-    # octave send ::A3_$id A3_$id
+    if {[vector_exists ::monitor_$id]} {
+	octave send ::monitor_$id monitor
+	octave send ::dmonitor_$id dmonitor
+    } else {
+	octave send ::seconds_$id monitor
+	if {[vector_exists ::dseconds_$id]} {
+	    octave send ::dseconds_$id dmonitor
+	} else {
+	    octave eval {dmonitor = monitor*0;}
+	}
+    }
+    octave eval "
+        monitor = monitor * ones(1,columns(psd_$id));
+        dmonitor = dmonitor * ones(1,columns(psd_$id));
+        psderr_$id = sqrt ( (psderr_$id./monitor) .^ 2 + ...
+                        (psd_$id.*dmonitor./monitor.^2) .^ 2 );
+        psd_$id = psd_$id ./ monitor;
+    "
     vector create ::psd_$id ::psderr_$id
     octave recv psd_$id psd_$id
     octave recv psderr_$id psderr_$id
@@ -358,19 +397,6 @@ proc NG1_psd_fvector {id} {
 
     reflplot::set_axes $id A3 A4
 
-    if {[string match CG* $rec(instrument)]} {
-	set rec(detector,minbin)      1 ;# doesn't use all the bins
-	set rec(detector,maxbin)    608 ;# => 0.42mm spacing
-	set rec(detector,width)     211.;# KOD says 0.34727 mm/pixel
-	set rec(detector,distance) 1600.;# KOD says detector bank is 1.6m away
-    } else {
-	set rec(detector,minbin)      1 ;# doesn't use all the bins
-	set rec(detector,maxbin)    256 ;# => 0.42mm spacing
-	set rec(detector,width)    [expr {-4*25.4}] ;# reversed 4" detector
-	set rec(detector,distance) [expr {36*25.4}] ;# detector bank is 3' away
-    }
-
-    set rec(pixels) [expr {$rec(detector,maxbin)-$rec(detector,minbin)+1}]
     set rec(distance) $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]
 
@@ -429,16 +455,15 @@ proc seconds_column { id } {
 proc NG1load {id} {
     upvar #0 $id rec
 
-    if ![icp_load $id] { return 0 }
-    if { [info exists rec(psdplot)] } { NG1_psd_fvector $id }
-
     if { [string match "CG*" $rec(instrument)] } { 
 	set inst cg1
     } else {
 	set inst ng1
     }
 
-    check_wavelength $id [set ::${inst}wavelength]
+    if ![icp_load $id] { return 0 }
+
+    check_wavelength $id $::inst($inst,wavelength)
 
     # Create slit1 and slit2 columns using the stored values if available
     # otherwise generating them from the motor movement specs in the header
@@ -455,10 +480,6 @@ proc NG1load {id} {
     # Generate seconds column from MIN or monitor
     seconds_column $id
 
-    # Exclude all points exceeding the saturation rate since 
-    # the dead-time correction factor for the NG1 detector 
-    # has not been measured.
-    exclude_saturated $id [set ::${inst}saturation]
 
     # Create a monitor column if necessary
     if {[vector_exists ::MON_$id] } {
@@ -473,9 +494,20 @@ proc NG1load {id} {
 	::dmonitor_$id expr "sqrt(::monitor_$id)"
     }
 
+    if { $rec(psd) } {
+	set rec(detector,width)      $::inst($inst,width)
+	set rec(detector,minbin)     $::inst($inst,minbin)
+	set rec(detector,maxbin)     $::inst($inst,maxbin)
+	set rec(detector,distance)   $::inst($inst,distance)
+	NG1_psd_$::psdstyle $id
+	exclude_saturated $id $::inst($inst,psdsaturation)
+    } else {
+	exclude_saturated $id $::inst($inst,saturation)
+    }
+
     switch $rec(type) {
 	psd {
-	    vector create ::x_$id
+	    ::Qz_$id dup ::x_$id
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	}
 	psdstep {
@@ -535,7 +567,7 @@ proc XRAYload {id} {
 
     if ![icp_load $id] { return 0 }
     # set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
-    check_wavelength $id $::xraywavelength
+    check_wavelength $id $::inst(xray,wavelength)
 
     motor_column $id 3 A3 alpha
     motor_column $id 4 A4 beta
@@ -655,12 +687,6 @@ proc NG7_psd_fvector {id} {
     vector destroy theta twotheta
     reflplot::set_axes $id Theta TwoTheta
 
-    set rec(detector,width)       -100.;# 10cm detector, reverse pixel order
-    set rec(detector,minbin)         9 ;# doesn't use all the bins
-    set rec(detector,maxbin)       246 ;# => 0.42mm spacing
-    set rec(detector,distance)    2000.;# detector bank is 2m away
-
-    set rec(pixels)     256
     set rec(distance)   $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
     reflplot::set_center_pixel $id 128
@@ -668,15 +694,27 @@ proc NG7_psd_fvector {id} {
     reflplot::normalize $id MON
 }
 
+proc NG7_psd_octave {id} {
+    octave eval "
+        monitor = monitor * ones(1,columns(psd_$id));
+        dmonitor = dmonitor * ones(1,columns(psd_$id));
+        psderr_$id = sqrt ( (psderr_$id./monitor) .^ 2 + ...
+                        (psd_$id.*dmonitor./monitor.^2) .^ 2 );
+        psd_$id = psd_$id ./ monitor;
+    "
+    vector create ::psd_$id ::psderr_$id
+    octave recv psd_$id psd_$id
+    octave recv psderr_$id psderr_$id
+}
+
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
 proc NG7load {id} {
     upvar #0 $id rec
 
+    check_wavelength $id $::inst(ng7,wavelength)
     if ![icp_load $id] { return 0 }
-    if {[info exists rec(psdplot)]} { NG7_psd_fvector $id }
-    check_wavelength $id $::ng7wavelength
-    
+
     # Build standard vectors S1,S2,S3
     motor_column $id S1 S1 slit1
     motor_column $id S2 S2 slit2
@@ -699,36 +737,23 @@ proc NG7load {id} {
     } else {
 	message "$rec(file) has no monitor counts"
     }
-
+    
     # monitor calibration
     NG7monitor_calibration $id
 
-    if { [vector_exists ::monitor_$id] } {
-        if { $rec(psd) } {
-	    set rec(detector,width)      10 ;# 10cm detector
-	    set rec(detector,minbin)      9 ;# doesn't use all the bins
-	    set rec(detector,maxbin)    246 ;# => 0.42mm spacing
-	    set rec(detector,distance)  200 ;# detector bank is 2m away
-	    # set rec(detector,A4slope)     2 ;# XXX FIXME XXX these depend on
-	    # set rec(detector,A4intercept) 0 ;# motor 13 and motor Qx but how?
-	    # octave eval "A3_$id = asin(($rec(L)/(4*pi))*Qz)"
-            octave eval "
-                monitor = monitor * ones(1,columns(psd_$id));
-                dmonitor = dmonitor * ones(1,columns(psd_$id));
-                psderr_$id = sqrt ( (psderr_$id./monitor) .^ 2 + ...
-                                (psd_$id.*dmonitor./monitor.^2) .^ 2 );
-                psd_$id = psd_$id ./ monitor;
-            "
+    if { $rec(psd) } {
+	set rec(detector,width)      $::inst(ng7,width)
+	set rec(detector,minbin)     $::inst(ng7,minbin)
+	set rec(detector,maxbin)     $::inst(ng7,maxbin)
+	set rec(detector,distance)   $::inst(ng7,distance)
 
-            vector create ::psd_$id ::psderr_$id
-            octave recv psd_$id psd_$id
-            octave recv psderr_$id psderr_$id
-	}
+	NG7_psd_$::psdstyle $id
     }
 
+    
     switch $rec(type) {
 	psd {
-	    vector create ::x_$id
+	    ::Qz_$id dup ::x_$id
 	    set rec(xlab) "Qz ($::symbol(invangstrom))"
 	}
 	psdstep {
@@ -988,6 +1013,11 @@ proc NG1mark {file} {
 	    marktype psd \
 		[expr [a3toQz $rec(start,3) $rec(L)]] \
 		[expr [a3toQz $rec(stop,3) $rec(L)]] \
+		$rec(polarization)
+	} elseif { $rec(step,4) != 0.0 } {
+	    marktype psd \
+		[expr [a4toQz $rec(start,4) $rec(L)]] \
+		[expr [a4toQz $rec(stop,4) $rec(L)]] \
 		$rec(polarization)
 	} elseif { !$fixed } {
 	    marktype psdslit $rec(start,1) $rec(stop,1) $rec(polarization)
