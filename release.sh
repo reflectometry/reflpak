@@ -85,7 +85,7 @@ done
 # when it is complete.
 echo; echo "== local build ========================"
 make && make dist
-echo; echo "Scroll back and check for build errors"
+echo; echo "Scroll back and check that the build was error free."
 echo -n "Press y to continue: "
 read ans
 test "$ans" != "y" && exit
@@ -116,7 +116,8 @@ cp release/reflpak$VERSION.exe bin/win
 
 
 # Check if we should put the current build on the servers
-echo; echo -n "Check web and bin are correct.  Update server? [y for yes]: "
+echo; echo "Check web and bin are free from errors."
+echo -n "Update server? [y for yes]: "
 read ans
 test "$ans" != "y" && exit
 echo; echo "== updating $WEBDIR and $BINDIR =="
@@ -145,6 +146,7 @@ if test "$ans" = "y"; then
 fi
 
 # Make sure the instrument computers are updated.
+echo
 echo Update instrument computers, user room software and web.
 echo    scp bin/linux3/reflpak cg1@andr:bin/reflpak$VERSION
 echo    scp bin/linux3/reflpak ng7@ng7refl:bin/reflpak$VERSION
