@@ -162,70 +162,70 @@ tagdist:
 
 srcdist: ChangeLog
 	cvs -q export -r HEAD -d reflpak$(VERSION)-src reflfit >/dev/null
-	cp ChangeLog reflpak$(VERSION)-src
-	if test ! -d release ; then mkdir release ; fi
+	@cp ChangeLog reflpak$(VERSION)-src
+	@if test ! -d release ; then mkdir release ; fi
 	tar czf release/reflpak$(VERSION)-src.tar.gz reflpak$(VERSION)-src
-	$(RM) -rf reflpak$(VERSION)-src
+	@$(RM) -rf reflpak$(VERSION)-src
 
 datadist: release/reflpak-data.zip
 
 release/reflpak-data.zip: DIR=reflpak-data
 release/reflpak-data.zip: data/README data/ss02/*.ng1 data/ss02-fit/*
-	if test -d $(DIR) ; then rm -rf $(DIR); fi
-	mkdir $(DIR)
-	cp -p README $(DIR)/README.ss02
-	mkdir $(DIR)/ss02
-	cp -p data/ss02/*.ng1 $(DIR)/ss02
-	mkdir $(DIR)/ss02-fit
-	cp -p data/ss02-fit/*.{staj,log} $(DIR)/ss02-fit
+	@if test -d $(DIR) ; then rm -rf $(DIR); fi
+	@mkdir $(DIR)
+	@cp -p README $(DIR)/README.ss02
+	@mkdir $(DIR)/ss02
+	@cp -p data/ss02/*.ng1 $(DIR)/ss02
+	@mkdir $(DIR)/ss02-fit
+	@cp -p data/ss02-fit/*.{staj,log} $(DIR)/ss02-fit
 	zip -r $@ $(DIR)
-	rm -rf $(DIR)
+	@rm -rf $(DIR)
 
 ifeq ($(ARCH),macosx)
 
 dist: kit/reflpak $(macscripts) RELEASE-NOTES
-	if test -d diskimage ; then rm -rf diskimage ; fi
-	mkdir diskimage
-	mkdir diskimage/reflpak$(VERSION)
-	cp -p kit/reflpak RELEASE-NOTES diskimage/reflpak$(VERSION)
-	ditto -rsrc $(macscripts) diskimage/reflpak$(VERSION)
-	ditto -rsrc data diskimage/data
-	ditto -rsrc macosx/README diskimage
+	@if test -d diskimage ; then rm -rf diskimage ; fi
+	@mkdir diskimage
+	@mkdir diskimage/reflpak$(VERSION)
+	@cp -p kit/reflpak RELEASE-NOTES diskimage/reflpak$(VERSION)
+	@ditto -rsrc $(macscripts) diskimage/reflpak$(VERSION)
+	@ditto -rsrc data diskimage/data
+	@ditto -rsrc macosx/README diskimage
 	cd diskimage && ../macosx/dmgpack.sh reflpak$(VERSION) README reflpak$(VERSION) data
-	if test ! -d release ; then mkdir release ; fi
-	mv diskimage/reflpak$(VERSION).dmg release
-	rm -rf diskimage
+	@if test ! -d release ; then mkdir release ; fi
+	@mv diskimage/reflpak$(VERSION).dmg release
+	@rm -rf diskimage
 
 else
 ifeq ($(ARCH),win)
 
 dist: kit/reflpak$(EXE)
-	if test ! -d release ; then mkdir release ; fi
+	@if test ! -d release ; then mkdir release ; fi
 	cp -a kit/reflpak$(EXE) release/reflpak$(VERSION)$(EXE)
 
 else
 
 dist: DIR=reflpak$(VERSION)-$(ARCH)
 dist: kit/reflpak$(EXE) RELEASE-NOTES
-	if test -d $(DIR) ; then rm -rf $(DIR); fi
-	mkdir $(DIR)
-	cp -p RELEASE-NOTES linux/README $(DIR)
-	cp -p kit/reflpak $(DIR)/reflpak$(VERSION)
-	cp -pR data $(DIR)/data
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
+	@if test -d $(DIR) ; then rm -rf $(DIR); fi
+	@mkdir $(DIR)
+	@cp -p RELEASE-NOTES linux/README $(DIR)
+	@cp -p kit/reflpak $(DIR)/reflpak$(VERSION)
+	@cp -pR data $(DIR)/data
+	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
 		< linux/reflpak.in > $(DIR)/reflpak
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" \
+	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" \
 		< linux/reflpak.in > $(DIR)/reflred
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" \
+	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" \
 		< linux/reflpak.in > $(DIR)/reflfit
-	sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" \
+	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" \
 		< linux/reflpak.in > $(DIR)/reflpol
-	chmod a+rx $(DIR)/refl{pak,red,fit,pol}
-	if test ! -d release ; then mkdir release ; fi
+	@chmod a+rx $(DIR)/refl{pak,red,fit,pol}
+	@if test ! -d release ; then mkdir release ; fi
 	tar cf release/$(DIR).tar $(DIR)
-	if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi
+	@if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi
 	gzip release/$(DIR).tar
-	rm -rf $(DIR)
+	@rm -rf $(DIR)
 
 endif
 endif
