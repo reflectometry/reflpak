@@ -92,6 +92,10 @@ test "$ans" != "y" && exit
 
 # Gather results for the web distribution
 rm -rf web; mkdir web
+echo; echo "== gather html ======================="
+scp -r $htmlmachine:$builddir/html web
+scp $htmlmachine:$builddir/release/reflpak-data.zip web
+
 echo; echo "== gather local build results ====================="
 cp release/reflpak$VERSION.exe web
 for machine in $BUILD; do
@@ -100,9 +104,6 @@ for machine in $BUILD; do
 done
 sed -e"s,@VERSION@,$VERSION,g" < INSTALL >web/index.html
 cp RELEASE-NOTES web
-echo; echo "== gather html ======================="
-scp -r $htmlmachine:$builddir/html web
-scp $htmlmachine:$builddir/release/reflpak-data.zip web
 
 # Gather results for the binary server
 rm -rf bin; mkdir bin
