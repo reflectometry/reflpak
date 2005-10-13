@@ -40,7 +40,7 @@ WEBCP=scp
 # MSYS cp to shared is broken for versions before 1.0.11
 # We are using cygwin's cp instead.
 BINDIR="//charlotte/public/Reflpak"
-BINCP="/c/cygdrive/bin/cp -r"
+BINCP="/c/cygwin/bin/cp -r"
 
 # =========== End of configuration ============
 
