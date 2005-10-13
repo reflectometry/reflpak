@@ -22,6 +22,13 @@ C 2002-01-08 Paul Kienzle
 C * optimizations
 C * combine r4x and r4xa
 
+C If on OS X, don't print error messages.  Strictly speaking it is only
+C the error messages that are a problem, not the test for NaN, but the
+C result is the same.
+#if !(defined(__APPLE__) && defined(__MACH__))
+#define HAVE_FPERROR
+#endif
+
 #ifdef AMPLITUDE
 #define R4X R4XA
 #endif
@@ -82,9 +89,11 @@ c       constants
 
 
 C	Function to test and reset FPU error flags
+#ifdef HAVE_FPERROR
 	external fperror
 	integer fperror
 	call fpreset
+#endif
 
 C       For this program, incident and substrate media must be non-magnetic, so
         GQMSQ(1)=0.
@@ -381,11 +390,13 @@ C         Calculate reflectivity coefficients specified by POLSTAT
 #endif
           endif
          
+#ifdef HAVE_FPERROR
 C         Check for errors during calculation of the current Q
           if (fperror() .NE. 0) then
              write(*,6001) Q(NQ)
  6001        format ('/** Matrix error at Q = ',G15.7, ' **/')
           endif
+#endif
 
  600    CONTINUE
 C       Done computing all desired values of Q
