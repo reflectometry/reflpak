@@ -19,7 +19,7 @@ win=localhost
 BUILD="$irix $osx $linux3 $linux4"
 
 # Grrr... irix machines need gmake rather than make...
-make$irix="gmake"
+makejazz="gmake"
 
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagick
@@ -58,7 +58,7 @@ test "$ans" != "y" && exit
 
 # Check release notes
 echo "Are any files not added that should be added?"
-echo "Are the RELEASE-NOTES up to date, and tagged with today's date?"
+echo "Are the RELEASE-NOTES up to date, and tagged for reflpak$VERSION?"
 ls -l RELEASE-NOTES
 head -10 RELEASE-NOTES
 echo -n "Press y to continue: "
