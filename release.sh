@@ -108,7 +108,7 @@ scp $htmlmachine:$builddir/release/reflpak-data.zip web
 rm -rf bin; mkdir bin
 for arch in irix osx linux3 linux4; do
    mkdir bin/$arch
-   scp $arch:$builddir/kit/reflpak bin/$arch/reflpak$VERSION
+   scp ${!arch}:$builddir/kit/reflpak bin/$arch/reflpak$VERSION
 done
 mkdir bin/win
 cp release/reflpak$VERSION.exe bin/win
