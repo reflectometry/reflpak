@@ -1,10 +1,16 @@
-Unofficial release.  This is still alpha software 
-with known bugs and limitations.  Particularly, 
-intermediate file formats are subject to change.
+This is still alpha software with known bugs and limitations.  
+Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
-2005-09-28
+2005-10-13
+* RED: Allow selection of old or new PSD viewer (Options>New PSD)
+* RED: Support starting from DAVE
+* RED: Ab initio footprint correction (experimental)
+* RED: Polarization correction is now optional
+* RED: Support reloading of partly reduced spec/back/slit files
+
+2005-09-28 (NG1 only)
 * RED: Allow normalization by time or by monitor (see monitor help)
 * RED: Add functions to help calculate attenuators (see attenuator help)
 * RED: Qx = 2pi/L (cos(A4-A3) - cos(A3)); Qz = 2pi/L (sin(A4-A3) - sin(A3))
