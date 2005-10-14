@@ -37,7 +37,7 @@ proc desc {} {
             return "[fix $::footprint_m {} {} 5]([fix $::footprint_dm {} {} 5]) + [fix $::footprint_b {} {} 5]([fix $::footprint_db {} {} 5]) from Qz=[fix $::footprint_Qmin {} {} 5] to Qz=[fix $::footprint_Qmax {} {} 5], [fix $::footprint_at_Qmax {} {} 5]([fix $::footprint_at_Qmax_err {} {} 5]) above"
         }
         div {
-            return "divided by [set ::${::footprint_line}(file)]"
+            return "divided by [set ::${::footprint_line}(file)] from Qz=[fix $::footprint_Qmin {} {} 5] to Qz=[fix $::footprint_Qmax {} {} 5]"
         }
     }
 }
@@ -129,7 +129,8 @@ proc draw {} {
 	"$fp.div.spec configure -values \$::available_spec"
     $fp.div.spec configure -modifycmd \
 	"footprint::line \[$fp.div.spec cget -text]"
-    pack $fp.div.lab $fp.div.spec -side left
+    pack $fp.div.lab -side left
+    pack $fp.div.spec -side left -fill x -expand yes
 
     set fpar [frame $fp.applyrange]
     entry $fpar.min -textvariable ::footprint_Qmin -width $width
@@ -268,6 +269,7 @@ proc line { name } {
     set name [lindex [split $name :] 0]
     if { [info exists ::scanindex($name)] } {
 	set id $::scanindex($name)
+	if {[info exists ::${id}(A)]} { set id [set ::${id}(A)] }
 	::${id}_y dup ${id}_ky
 	::${id}_dy dup ${id}_kdy
     } else {
@@ -350,7 +352,11 @@ proc calc {{div div} {foot foot}} {
 		return
 	    }
 	    set ::footprint_Q_at_one {}
-	    octave eval "foot=footprint_interp(div,$::footprint_line)"
+	    octave eval [subst -nocommand {
+		foot = $::footprint_line;
+		foot=run_trunc(foot,[$::footprint_Qmin,$::footprint_Qmax])
+		foot=footprint_interp(div,foot)
+	    }]
 	}
     }
 

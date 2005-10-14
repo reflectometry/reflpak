@@ -863,7 +863,7 @@ proc reduce_polid { scanid } {
 	set pid $::scanindex($name)
     } else {
         if { [info exists scan(psd)] } { set psd 1 } { set psd 0 }
-	set pid scanp[incr ::scancount]
+	set pid "PS[incr ::scancount]"
 	array set ::$pid [list polarized 1 id $pid \
                               comment $scan(comment) \
 			      monitor $scan(monitor) \

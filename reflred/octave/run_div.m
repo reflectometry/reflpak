@@ -7,13 +7,23 @@
 function run = run_div(run1,run2)
 
   ## do the division
-  if isempty(run1)
+  if isempty(run1) || isempty(run2)
     run = [];
-  elseif struct_contains(run1,'A')
+  elseif isfield(run1,'A') && isfield(run2,'A')
     run.A = run_div(run1.A,run2.A);
     run.B = run_div(run1.B,run2.B);
     run.C = run_div(run1.C,run2.C);
     run.D = run_div(run1.D,run2.D);
+  elseif isfield(run1,'A')
+    run.A = run_div(run1.A,run2);
+    run.B = run_div(run1.B,run2);
+    run.C = run_div(run1.C,run2);
+    run.D = run_div(run1.D,run2);
+  elseif isfield(run2,'A')
+    run.A = run_div(run1,run2.A);
+    run.B = run_div(run1,run2.B);
+    run.C = run_div(run1,run2.C);
+    run.D = run_div(run1,run2.D);
   else
     assert(run1.x,run2.x);
     run.x = run1.x;
