@@ -245,7 +245,6 @@ proc init_gui {} {
 
     switch $::tcl_platform(platform) {
 	windows {
-	    option add *ResizeCursor size_we 100
 	    option add *Scrollbar.width 12 widgetDefault
 	    option add *Text.background white widgetDefault
 	    option add *Button.padY 0 widgetDefault
@@ -267,7 +266,8 @@ proc init_gui {} {
 	    option add *sashWidth 4 widgetDefault
 	    bind Button <Key-Return> {tk::ButtonInvoke %W}
 	    
-	    option add *Hiertable.ResizeCursor size_we widgetDefault
+	    option add *Hiertable.ResizeCursor size_we 100
+            option add *TreeView.ResizeCursor size_we 100
 	    
 	    option add *Graph.Legend.Font {{Arial Narrow} -10} widgetDefault
 	}
