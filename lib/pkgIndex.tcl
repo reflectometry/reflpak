@@ -1,6 +1,4 @@
 package ifneeded ncnrlib 0.1 [subst {
-    # immediate loading of some packages
-    source [list [file join $dir ncnrlib.tcl]]
     # delayed loading of other packages
     tclPkgSetup [list $dir] ncnrlib 0.1 {
 	{pan.tcl source pan}
@@ -25,6 +23,12 @@ package ifneeded ncnrlib 0.1 [subst {
 	    graph_error blt_errorbars
 	}}
     }
+
+    # immediate definition of some functions
+    source [list [file join $dir ncnrlib.tcl]]
+    # if Tk is present do the GUI setup
+    # Note: protect the test against subst so it is executed when needed
+    if {\[info exists ::tk_version]} { init_gui }
 }]
 package ifneeded octave 0.1 [list source [file join $dir octave.tcl]]
 package ifneeded keystate 0.1 [list source [file join $dir keystate.tcl]]
