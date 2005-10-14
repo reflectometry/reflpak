@@ -5,11 +5,13 @@ ifndef ARCH
 endif
 
 VERSION ?= -$(shell date +%Y.%m.%d)
-VERSIONTAG ?= R$(shell date +%Y%m%d)
+VERSIONTAG ?= R$(shell echo "$(VERSION)" | sed -e's/[^[:alnum:]]//g')
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
+
+PRODUCT=reflpak$(VERSION)
 
 pakicon=icons/yellowpack.ico
 redicon=icons/Ryellow.ico
@@ -109,7 +111,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 	@./vfslib reflpak reflred/octave $(redoctavefiles)
 	@./vfslib reflpak reflpak $(pakfiles) $(pakicons)
 	@./vfslib reflpak reflplot $(reflplotfiles)
-	echo "set ::app_version {`date +%Y-%m-%d` for $(ARCH)}" \
+	echo "set ::app_version {$(ARCH)$(VERSION)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
 	cd kit && ./copykit $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
@@ -155,11 +157,11 @@ tagdist:
 	cvs rtag $(VERSIONTAG) reflfit
 
 srcdist: ChangeLog
-	cvs -q export -r HEAD -d reflpak$(VERSION)-src reflfit >/dev/null
-	@cp ChangeLog reflpak$(VERSION)-src
+	cvs -q export -r HEAD -d $(PRODUCT)-src reflfit >/dev/null
+	@cp ChangeLog $(PRODUCT)-src
 	@if test ! -d release ; then mkdir release ; fi
-	tar czf release/reflpak$(VERSION)-src.tar.gz reflpak$(VERSION)-src
-	@$(RM) -rf reflpak$(VERSION)-src
+	tar czf release/$(PRODUCT)-src.tar.gz $(PRODUCT)-src
+	@$(RM) -rf $(PRODUCT)-src
 
 datadist: release/reflpak-data.zip
 
@@ -180,14 +182,14 @@ ifeq ($(ARCH),macosx)
 dist: kit/reflpak $(macscripts) RELEASE-NOTES
 	@if test -d diskimage ; then rm -rf diskimage ; fi
 	@mkdir diskimage
-	@mkdir diskimage/reflpak$(VERSION)
-	@cp -p kit/reflpak RELEASE-NOTES diskimage/reflpak$(VERSION)
-	@ditto -rsrc $(macscripts) diskimage/reflpak$(VERSION)
+	@mkdir diskimage/$(PRODUCT)
+	@cp -p kit/reflpak RELEASE-NOTES diskimage/$(PRODUCT)
+	@ditto -rsrc $(macscripts) diskimage/$(PRODUCT)
 	@ditto -rsrc data diskimage/data
 	@ditto -rsrc macosx/README diskimage
-	cd diskimage && ../macosx/dmgpack.sh reflpak$(VERSION) README reflpak$(VERSION) data
+	cd diskimage && ../macosx/dmgpack.sh $(PRODUCT) README $(PRODUCT) data
 	@if test ! -d release ; then mkdir release ; fi
-	@mv diskimage/reflpak$(VERSION).dmg release
+	@mv diskimage/$(PRODUCT).dmg release
 	@rm -rf diskimage
 
 else
@@ -202,16 +204,16 @@ kit/reflpak.res: win/reflpak.rc $(icons)
 
 dist: kit/reflpak$(EXE)
 	@if test ! -d release ; then mkdir release ; fi
-	cp -a kit/reflpak$(EXE) release/reflpak$(VERSION)$(EXE)
+	cp -a kit/reflpak$(EXE) release/$(PRODUCT)$(EXE)
 
 else
 
-dist: DIR=reflpak$(VERSION)-$(ARCH)
+dist: DIR=$(PRODUCT)-$(ARCH)
 dist: kit/reflpak$(EXE) RELEASE-NOTES
 	@if test -d $(DIR) ; then rm -rf $(DIR); fi
 	@mkdir $(DIR)
 	@cp -p RELEASE-NOTES linux/README $(DIR)
-	@cp -p kit/reflpak $(DIR)/reflpak$(VERSION)
+	@cp -p kit/reflpak $(DIR)/$(PRODUCT)
 	@cp -pR data $(DIR)/data
 	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
 		< linux/reflpak.in > $(DIR)/reflpak

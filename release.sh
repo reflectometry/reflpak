@@ -14,10 +14,10 @@
 # FIXME document other required tools
 
 # Currently version is tied to date
-export VERSION VERSIONTAG
 VERSION="-${VERSION:-`date +%Y.%m.%d`}"
-VERSIONTAG="R${VERSIONTAG:-`echo \"$VERSION\" | sed -e's/[^[:alnum:]]//g'`}"
-echo "Creating relfpak$VERSION, tagged $VERSIONTAG"
+echo "Creating relfpak$VERSION"
+export VERSION
+
  
 # I'm assuming this script is being run from one of the build
 # machines.  In my case, this is windows since my windows box
@@ -80,8 +80,8 @@ test "$ans" != "y" && exit
 
 # Do the local build
 echo; echo "== build html ========================="
-ssh $htmlmachine "cd $builddir && make html"
-ssh $htmlmachine "cd $builddir && make datadist"
+ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make html"
+ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make datadist"
 echo; echo "== build source ======================="
 make srcdist
 
@@ -91,13 +91,13 @@ for machine in $BUILD; do
     echo; echo "== build on $machine ========================"
     # if make$machine is a defined variable use it, otherwise use 'make'
     par=make$machine
-    ssh $machine "cd $builddir && ${!par:-make} && ${!par:-make} dist"
+    ssh $machine "cd $builddir && VERSION='$VERSION' ${!par:-make} dist"
 done
 
 # Do the local build last since you need to type exit in the interpreter
 # when it is complete.
 echo; echo "== local build ========================"
-make && make dist
+make dist
 echo; echo "Scroll back and check that the build was error free."
 echo -n "Press y to continue: "
 read ans
