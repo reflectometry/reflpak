@@ -1,11 +1,21 @@
 #!/bin/sh
 
-# Build an official release of reflpak.  I'm assuming all the
-# tools are in place on your machine, including perl and cvs2cl.pl
+# Usage: ./release.sh
+#
+# Build an official release of reflpak, tagged with the current date.
+#
+# To replace a previous version (e.g., from the previous day), use
+#    VERSION=-yyyy.mm.dd ./release.sh
+#
+# This is highly dependent on my particular setup and must be run from
+# the Windows machine.  perl and cvs2cl.pl must be present on this
+# machine to perform 'make srcdist'. 
+#
+# FIXME document other required tools
 
 # Currently version is tied to date
-VERSION="`date +-%Y.%m.%d`"
-
+VERSION=${VERSION:-`date +-%Y.%m.%d`}
+ 
 # I'm assuming this script is being run from one of the build
 # machines.  In my case, this is windows since my windows box
 # isn't set up for ssh operations.
