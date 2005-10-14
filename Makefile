@@ -154,7 +154,7 @@ ChangeLog:
 	cvs2cl.pl --fsf --file ChangeLog > /dev/null
 
 tagdist:
-	cvs rtag $(VERSIONTAG) reflfit
+	cvs rtag -F $(VERSIONTAG) reflfit
 
 srcdist: ChangeLog
 	cvs -q export -r HEAD -d $(PRODUCT)-src reflfit >/dev/null
