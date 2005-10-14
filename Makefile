@@ -83,16 +83,10 @@ icons=$(fiticons) $(pakicons) $(redicons)
 
 .PHONY: $(SUBDIRS) ChangeLog
 
-all: $(SUBDIRS) kit kit/reflpak$(EXE)
+all: $(SUBDIRS) kit kit/reflpak
 
 kit:
 	mkdir kit
-
-kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
-	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
-
-kit/reflpak.res: win/reflpak.rc $(icons)
-	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
 kit/copykit$(EXE): $(NCNRKIT)
 	cp $(NCNRKIT) kit/copykit$(EXE)
@@ -198,6 +192,13 @@ dist: kit/reflpak $(macscripts) RELEASE-NOTES
 
 else
 ifeq ($(ARCH),win)
+
+# Set icon on new package
+kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
+	cd kit && ../win/bindres.sh reflpak.exe reflpak.res
+
+kit/reflpak.res: win/reflpak.rc $(icons)
+	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
 dist: kit/reflpak$(EXE)
 	@if test ! -d release ; then mkdir release ; fi
