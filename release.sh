@@ -14,7 +14,10 @@
 # FIXME document other required tools
 
 # Currently version is tied to date
-VERSION=${VERSION:-`date +-%Y.%m.%d`}
+export VERSION VERSIONTAG
+VERSION="-${VERSION:-`date +%Y.%m.%d`}"
+VERSIONTAG="R${VERSIONTAG:-`echo \"$VERSION\" | sed -e's/[^[:alnum:]]//g'`}"
+echo "Creating relfpak$VERSION, tagged $VERSIONTAG"
  
 # I'm assuming this script is being run from one of the build
 # machines.  In my case, this is windows since my windows box

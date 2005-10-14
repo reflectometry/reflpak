@@ -4,8 +4,8 @@ ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-VERSION = $(shell date +-%Y.%m.%d)
-VERSIONTAG = $(shell date +%Y%m%d)
+VERSION ?= -$(shell date +%Y.%m.%d)
+VERSIONTAG ?= R$(shell date +%Y%m%d)
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
@@ -152,7 +152,7 @@ ChangeLog:
 	cvs2cl.pl --fsf --file ChangeLog > /dev/null
 
 tagdist:
-	cvs rtag R$(VERSIONTAG) reflfit
+	cvs rtag $(VERSIONTAG) reflfit
 
 srcdist: ChangeLog
 	cvs -q export -r HEAD -d reflpak$(VERSION)-src reflfit >/dev/null
