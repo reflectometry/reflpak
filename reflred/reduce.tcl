@@ -84,9 +84,6 @@ proc reduce_init {} {
     .reduce.graph axis conf y -title "Background/Specular/Slit counts"
     .reduce.graph axis conf y2 -title "Reflectivity" -hide no
 
-    # let the graph be zoomed
-    Blt_ZoomStack .reduce.graph
-
     active_axis .reduce.graph y
     active_axis .reduce.graph y2
 

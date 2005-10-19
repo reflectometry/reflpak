@@ -66,7 +66,6 @@ proc draw {} {
         LineWidth 1 Pixels 0 Symbol {}
 
     graph $fp.graph
-    Blt_ZoomStack $fp.graph
     active_axis $fp.graph y
     vector create ::foot_x ::foot_y ::foot_dy ::foot_yp ::foot_ym
     $fp.graph element create foot -xdata ::foot_x -ydata ::foot_y
