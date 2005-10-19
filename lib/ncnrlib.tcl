@@ -18,7 +18,9 @@ package provide ncnrlib 0.1
 # same interpreter each with their own private global namespace.
 set init_cmds {}
 proc init_cmd { cmds } {
-    if { ![info exists ::app_initialized] } { lappend ::init_cmds $cmds }
+    if { ![info exists ::app_initialized] } { 
+	lappend ::init_cmds [uplevel namespace code [list $cmds]]
+    }
 }
 
 # HELP developer
