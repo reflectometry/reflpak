@@ -87,7 +87,7 @@ proc normalize {id monitor} {
     fdivide $rec(points) $rec(pixels) rec(psderr) rec(column,$monitor)
 }
 
-proc set_axes {id theta twotheta} {
+proc set_axes {id theta twotheta slit1} {
     upvar \#0 $id rec
 
     # XXX FIXME XXX edges doesn't work for single pixel scans
@@ -95,11 +95,14 @@ proc set_axes {id theta twotheta} {
     if {[flength rec(column,$theta)] == 1} {
 	set a [fvector rec(column,$theta)]
 	set b [fvector rec(column,$twotheta)]
+	set s [fvector rec(column,$slit1)]
 	fvector rec(alpha) [list [expr {$a-0.01}] [expr {$a+0.01}]]
 	fvector rec(beta) [list $b $b]
+	fvector rec(slit1) [list [expr {$s-0.01}] [expr {$s+0.01}]]
     } else {
 	fvector rec(alpha) [edges [fvector rec(column,$theta)]]
 	fvector rec(beta) [edges [fvector rec(column,$twotheta)]]
+	fvector rec(slit1) [edges [fvector rec(column,$slit1)]]
     }
 }
 
@@ -187,6 +190,24 @@ proc find_AB {id x y} {
     return [findmesh -b \
 		$rec(points) $rec(pixels) \
 		rec(alpha) rec(beta) rec(dtheta) $x $y]
+}
+
+proc mesh_slit {id} {
+    upvar \#0 $id rec
+    foreach {rec(x) rec(y)} [buildmesh \
+				 $rec(points) $rec(pixels) \
+				 rec(slit1) rec(dtheta)] {}
+    set rec(xlabel) "theta_f - theta_i (degrees)"
+    set rec(ylabel) "slit 1 (mm)"
+    set rec(ycoord) "S1"
+    set rec(xcoord) "Td"
+}
+
+proc find_slit {id x y} {
+    upvar \#0 $id rec
+    return [findmesh \
+		$rec(points) $rec(pixels) \
+		rec(slit1) rec(dtheta) $x $y]
 }
 
 proc mesh_pixel {id {base 0}} {
@@ -311,8 +332,8 @@ proc center {path center} {
 proc transform {path type} {
     upvar plot plot
     set newtype [expr {$plot(mesh) != $type}]
-    if { [lsearch {QxQz TiTf TiTd AB pixel} $type] < 0 } {
-	error "transform $path $type: expected QxQz TiTf TiTd AB or pixel"
+    if { [lsearch {QxQz TiTf TiTd AB slit pixel} $type] < 0 } {
+	error "transform $path $type: expected QxQz TiTf TiTd AB slit or pixel"
     }
     calc_transform $path $type
     if {$newtype} { auto_axes $path }
@@ -472,7 +493,7 @@ proc plot_window {{w .plot}} {
 	    -menu $f.transform.menu -indicatoron true -relief raised \
 	    -padx 1 -pady 1 -width 5
 	set m [menu $f.transform.menu -tearoff 1]
-	foreach v {TiTf QxQz TiTd AB pixel} {
+	foreach v {TiTf QxQz TiTd AB slit pixel} {
 	    $m add radio -label $v -variable ${pid}(mesh_entry) -value $v \
 		-command [namespace code [list UpdateMesh $w.c]]
 	}	
@@ -565,7 +586,7 @@ proc read_data {file id} {
 
     reflplot::parse_data $id $data
     reflplot::normalize $id Monitor
-    reflplot::set_axes $id Theta TwoTheta
+    reflplot::set_axes $id Theta TwoTheta S1
     reflplot::set_center_pixel $id
 }
 

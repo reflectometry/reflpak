@@ -297,8 +297,11 @@ proc psd_fvector {id} {
 	}
 	fvector rec(column,TwoTheta) $v
     }
+    if {![info exists rec(column,S1)]} {
+	fvector rec(column,S1) [set ::slit1_${id}(:)]
+    }
 
-    reflplot::set_axes $id Theta TwoTheta
+    reflplot::set_axes $id Theta TwoTheta S1
 
     set rec(distance) $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]

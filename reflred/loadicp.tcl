@@ -375,6 +375,7 @@ proc NG1_psd_fvector {id} {
 #    set_center_pixel $id 250
     upvar #0 $id rec
 
+    # FIXME: use standard column names
     if {![info exists rec(column,A3)]} {
 	set v {}
 	for {set i 0} {$i < $rec(points)} {incr i} {
@@ -391,11 +392,16 @@ proc NG1_psd_fvector {id} {
 	fvector rec(column,A4) $v
     }
 
+    if {![info exists rec(column,A1)]} {
+	fvector rec(column,A1) [set ::slit1_${id}(:)]
+    }
+
     vector create ::A3_$id ::A4_$id
     ::A3_$id set [fvector rec(column,A3)]
     ::A4_$id set [fvector rec(column,A4)]
 
-    reflplot::set_axes $id A3 A4
+
+    reflplot::set_axes $id A3 A4 A1
 
     set rec(distance) $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]
@@ -685,7 +691,8 @@ proc NG7_psd_fvector {id} {
     fvector rec(column,Theta) $theta(:)
     fvector rec(column,TwoTheta) $twotheta(:)
     vector destroy theta twotheta
-    reflplot::set_axes $id Theta TwoTheta
+    fvector rec(column,S1) [set ::slit1_${id}(:)]
+    reflplot::set_axes $id Theta TwoTheta S1
 
     set rec(distance)   $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
