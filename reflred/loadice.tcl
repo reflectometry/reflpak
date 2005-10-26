@@ -253,6 +253,14 @@ proc parse_psd_octave {id data} {
 	octave recv ${c}_$id x(:,[incr i])
 	if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i)" }
     }
+    # XXX FIXME XXX need dead-time correction
+    # XXX FIXME XXX better correction for 0 signal
+    octave eval "psd_$id = x(:,[incr i]:columns(x))"
+    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
+    octave eval "mon = mon * ones(1,columns(psd_$id))"
+    octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon"
+    octave eval "psd_$id = psd_$id ./ mon"
+    octave sync
 }
 
 proc parse_psd_fvector {id data} {
@@ -304,16 +312,6 @@ proc psd_fvector {id} {
 }
 
 proc psd_octave {id} {
-    upvar #0 $id rec
-
-    # XXX FIXME XXX need dead-time correction
-    # XXX FIXME XXX better correction for 0 signal
-    octave eval "psd_$id = x(:,[incr i]:columns(x))"
-    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
-    octave eval "mon = mon * ones(1,columns(psd_$id))"
-    octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon"
-    octave eval "psd_$id = psd_$id ./ mon"
-    octave sync
 }
 
 proc parsedata {id} {
