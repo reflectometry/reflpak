@@ -1002,7 +1002,7 @@ proc NG1mark {file} {
 	    error "expected internal file name of *.C?1 or *.N?1"
 	}
     }
-    #if { $rec(psd) } { append rec(instrument) "PSD" }
+    if { $rec(psd) } { append rec(instrument) "PSD" }
 
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,1)] || ![info exists rec(start,3)] \
@@ -1010,19 +1010,17 @@ proc NG1mark {file} {
 	marktype ? 0 0 $rec(polarization)
     } elseif { $rec(psd) } { 
 	if { $rec(step,3) != 0.0 } {
-	    marktype psd \
-		[expr [a3toQz $rec(start,3) $rec(L)]] \
-		[expr [a3toQz $rec(stop,3) $rec(L)]] \
-		$rec(polarization)
+	    marktype spec $rec(start,3) $rec(stop,3) $rec(polarization)
 	} elseif { $rec(step,4) != 0.0 } {
-	    marktype psd \
-		[expr [a4toQz $rec(start,4) $rec(L)]] \
-		[expr [a4toQz $rec(stop,4) $rec(L)]] \
-		$rec(polarization)
-	} elseif { !$fixed } {
-	    marktype psdslit $rec(start,1) $rec(stop,1) $rec(polarization)
+	    marktype spec [expr {$rec(start,4)/2}] \
+		[expr {$rec(stop,4)/2}] $rec(polarization)
+	} elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
+		       && ($fixed || $rec(step,1) != 0.0) } {
+	    # direct beam with no motors moving => slit measurement
+	    # direct beam with spreading slits => slit scan
+	    marktype slit $rec(start,1) $rec(stop,1) $rec(polarization)
 	} else {
-	    marktype psdstep 1 $rec(pts) $rec(polarization)
+	    marktype time 0 [runtime $id] $rec(polarization)
 	}
     } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
 		   && ($fixed || $rec(step,1) != 0.0) } {
@@ -1093,13 +1091,13 @@ proc NG7mark {file} {
 
     # instrument specific initialization
     set rec(instrument) [NG7info instrument]
-#    if { $rec(psd) } { append rec(instrument) "PSD" }
+    if { $rec(psd) } { append rec(instrument) "PSD" }
 
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,Qz)] || ![info exists rec(start,S1)] } {
 	marktype ?
     } elseif { $rec(psd) } {
-	marktype psd $rec(start,Qz) $rec(stop,Qz)
+	marktype spec $rec(start,Qz) $rec(stop,Qz)
     } elseif { $fixed } {
 	marktype time 0 [runtime $id]
     } elseif { [info exists rec(start,13)] && $rec(step,13) != 0. } {
