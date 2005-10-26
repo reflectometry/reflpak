@@ -455,7 +455,7 @@ proc ::psd::integrate {args} {
       send('::y_$id dup ::psd_reduce_y')
       send('::dy_$id dup ::psd_reduce_dy')
       send('::counts_$id expr ::y_$id*::monitor_$id')
-      send('::dcounts_$id expr ::dy_$id*::dmonitor_$id')
+      send('::dcounts_$id expr ::dy_$id*::monitor_$id')
     "
     octave eval { send('atten_set $::addrun') }
 }
