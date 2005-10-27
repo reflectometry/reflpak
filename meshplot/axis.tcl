@@ -38,6 +38,11 @@ package require snit
 	    bottom { set draw bdraw; set d $w }
 	}
 
+	# Sort max and min
+	if {$options(-min) >= $options(-max)} {
+	    set options(-max) [expr {$options(-min)+1.}]
+	}
+
 	if {$options(-tics) != ""} {
 	    set min $options(-min)
 	    set max $options(-max)
@@ -144,9 +149,6 @@ package require snit
     method compute_tics {min max steps tics_v mtics_v} {
 	upvar $tics_v tics
 	upvar $mtics_v mtics
-
-	# Requires valid limits
-	if { $max <= $min } { error "axis limits cannot be equal in $self" }
 
 	# Determine major and minor increment and number of subincrements
 	set range [expr {$max-$min}]
