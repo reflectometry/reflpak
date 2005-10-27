@@ -94,7 +94,7 @@ catch { package require snit }
 	install XAxis using axis $win.x -side bottom -height 1c
 	install YAxis using axis $win.y -side left -width 2c
 	install Mesh using togl $win.c -rgba true -double true
-	install Menu using menu $win.menu -title "Image controls"
+	install Menu using menu $win.menu -title "Image controls" -tearoff 0
 	grid $win.y  $win.c -sticky news
 	grid   x    $win.x -sticky news
 	grid columnconfigure $win 0 -minsize 2c
@@ -107,10 +107,9 @@ catch { package require snit }
 	#event add <<Pick>> <Button-1>
 	event add <<Navigate>> <ButtonPress-1>
         event add <<NavigateEnd>> <ButtonRelease-1>
-	event add <<Pan>> <Control-Button-1>
+	event add <<Pan>> <Button-2>
 	event add <<ContextMenu>> <Button-3>
-	event add <<ZoomIn>> <Button-4>
-	event add <<ZoomOut>> <Button-5>
+	mousewheel bind $win ;# Convert <MouseWheel> to <<Wheel>> events
 	bind $win.c <<Navigate>> [subst {$win navigate xy 5 %x %y}]
 	bind $win.x <<Navigate>> [subst {$win navigate x 5 %x %y}]
 	bind $win.y <<Navigate>> [subst {$win navigate y 5 %x %y}]
@@ -118,17 +117,12 @@ catch { package require snit }
         bind $win.x <<NavigateEnd>> [subst {$win navigate halt}]
         bind $win.y <<NavigateEnd>> [subst {$win navigate halt}]
 
-	bind $win   <<ZoomIn>>  [subst {$win  zoom  5}]
-	bind $win   <<ZoomOut>> [subst {$win  zoom -5}]
-	bind $win.c <<ZoomIn>>  [subst {$win  zoom  5 %x %y}]
-	bind $win.c <<ZoomOut>> [subst {$win  zoom -5 %x %y}]
-	bind $win.c <<Pick>>    [subst {$Mesh pick %x %y}]
-	bind $win.x <<ZoomIn>>  [subst {$win xzoom  5 %x}]
-	bind $win.x <<ZoomOut>> [subst {$win xzoom -5 %x}]
-	bind $win.y <<ZoomIn>>  [subst {$win yzoom  5 %y}]
-	bind $win.y <<ZoomOut>> [subst {$win yzoom -5 %y}]
+	bind $win.c <<Wheel>> "$win zoom  \[mousewheel step %W] %x %y"
+	bind $win.x <<Wheel>> "$win xzoom \[mousewheel step %W] %x"
+	bind $win.y <<Wheel>> "$win yzoom \[mousewheel step %W] %y"
 
-	bind $win.c <<Pan>> [subst {pan start $win %X %Y; break }]
+	bind $win.c <<Pick>> [subst {$Mesh pick %x %y}]
+	bind $win.c <<Pan>>  [subst {pan start $win %X %Y; break }]
 	#bind $win.c <ButtonRelease-2> [subst {pan stop $win; break }]
 	#bind $win.c <B2-Motion> [subst {pan move $win %X %Y; break }]
 
