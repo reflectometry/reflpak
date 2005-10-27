@@ -60,7 +60,7 @@
 	    set x [expr {$X-[winfo rootx $w]}]
 	    set y [expr {$Y-[winfo rooty $w]}]
 	    variable delta
-	    set delta($w) $factor
+	    set delta $factor
 	    event generate $w <<Wheel>> -rootx $X -rooty $Y -x $x -y $y
 	}
     }
@@ -68,7 +68,7 @@
     # Return step size from delta
     proc step {w} {
 	variable delta
-	return [expr {int(pow($delta($w)/120,3))}]
+	return [expr {int(pow($delta/120,3))}]
     }
  }
 
