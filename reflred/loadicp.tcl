@@ -252,7 +252,11 @@ proc icp_load {id} {
     close $fid
 
     # chop everything until after the Mot: line
-    set offset [string last "\n Mot: " $data ]
+    if { $rec(Qscan) } {
+	set offset [string first "(hkl scan center)" $data]
+    } else {
+	set offset [string first "\n Mot: " $data ]
+    }
     if { $offset < 0 } { return 0 }
     set offset [string first "\n" $data [incr offset]]
     set data [string range $data [incr offset] end]
@@ -264,9 +268,10 @@ proc icp_load {id} {
     set offset [string first "\n" $data]
     set col [string range $data 0 [incr offset -1]]
     set col [string map { 
+	"Counts" "counts"
 	"COUNTS" "counts" 
 	"MONITOR" "MON" 
-	"#1 " "" "#2 " "N2" 
+	"#1 " "" "#2 " "N2" "(" "" ")" ""
     } $col]
     set rec(columns) {}
     foreach c $col { lappend rec(columns) "$c" }
@@ -432,29 +437,126 @@ proc motor_column { id motor instrument_name standard_name} {
 proc seconds_column { id } {
     upvar \#0 $id rec
 
-    # Convert MIN column to time in seconds if available
-    # FIXME do we need a time uncertainty vector as well?
-    if { [vector_exists ::MIN_$id] } {
-	vector create ::seconds_$id
-	# time measured in seconds but recorded in hundredths of a minute
+    # Convert MIN column to time in seconds if available.
+    # Time measured in seconds but recorded in hundredths of a minute.
+    vector create ::seconds_$id
+    if { [vector_exists ::min_$id] } {
+	::seconds_$id expr "round(::min_$id*60)"
+    } elseif { [vector_exists ::MIN_$id] } {
 	::seconds_$id expr "round(::MIN_$id*60)"
-	if { $rec(base) != "TIME" } {
-	    # assume no uncertainty if counting against time.  If counting
-	    # against monitor, the uncertainty is +/- a half second uniformly
-	    # distributed, which can be approximated by a gaussian of width
-	    # 1/sqrt(12)
-	    vector create ::dseconds_$id
-	    ::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
-	}
     } elseif { $rec(base) == "TIME" } {
-	vector create ::seconds_$id
 	::seconds_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
     } else {
 	# No time information
-	catch { vector destroy ::seconds_$id ::dseconds_$id }
+	catch { vector destroy ::seconds_$id }
+    }
+
+    if { $rec(base) != "TIME" } {
+	# assume no uncertainty if counting against time.  If counting
+	# against monitor, the uncertainty is +/- a half second uniformly
+	# distributed, which can be approximated by a gaussian of width
+	# 1/sqrt(12)
+	vector create ::dseconds_$id
+	::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
     }
 }
 
+proc monitor_column { id } {
+    upvar \#0 $id rec
+
+    # Create a monitor column if necessary
+    if {[vector_exists ::MON_$id] } {
+	::MON_$id dup ::monitor_$id
+    } elseif {$rec(base) == "NEUT"} {
+	vector create ::monitor_$id
+	::monitor_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
+    }
+    
+    if {[vector_exists ::monitor_$id]} {
+	vector create ::dmonitor_$id
+	::dmonitor_$id expr "sqrt(::monitor_$id)"
+    }
+}
+
+
+proc QscanLoad {id} {
+    upvar \#0 $id rec
+    if { [string match "CG*" $rec(instrument)] } {
+	set inst cg1
+    } else {
+	set inst ng1
+    }
+    set rec(detector,width)      $::inst($inst,width)
+    set rec(detector,minbin)     $::inst($inst,minbin)
+    set rec(detector,maxbin)     $::inst($inst,maxbin)
+    set rec(detector,distance)   $::inst($inst,distance)
+
+    if ![icp_load $id] { return 0 }
+    check_wavelength $id $::inst($inst,wavelength)
+
+    # No slit information and no motor table
+
+    # Generate alpha, beta, Qx and Qz
+    ::A3_$id dup ::alpha_$id
+    ::A4_$id dup ::beta_$id
+    AB_to_QxQz $id
+
+    # Generate seconds and monitor columns
+    seconds_column $id
+    monitor_column $id
+
+    if { $rec(psd) } {
+	NG1_psd_$::psdstyle $id
+	exclude_saturated $id $::inst($inst,psdsaturation)
+    } else {
+	exclude_saturated $id $::inst($inst,saturation)
+    }
+
+    switch $rec(type) {
+	rock {
+	    ::Qx_$id dup ::x_$id
+	    set rec(Qrockbar) [expr [a3toQz $rec(rockbar) $rec(L)]]
+	    set rec(xlab) "Qx ($::symbol(invangstrom))"
+	}
+	absorption {
+	    ::alpha_$id dup ::x_$id
+	    set rec(xlab) "A3 ($::symbol(degree))"
+	}
+	rock3 {
+	    ::Qx_$id dup ::x_$id
+            set rec(Qrockbar) [expr [a4toQz -$rec(rockbar) $rec(L)]]
+            set rec(xlab) "Qx ($::symbol(invangstrom))"
+	}
+	spec {
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	    ::Qz_$id dup ::x_$id
+	}
+	slit {
+	    # XXX FIXME XXX if slit 1 is fixed, should we use slit 2?
+	    set rec(xlab) "slit 1 opening (motor units)"
+	    ::slit1_$id dup ::x_$id
+	}
+	back {
+	    exclude_specular_ridge $id
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	    set col $::background_basis($rec(dataset),$rec(instrument))
+	    switch $col {
+		A3 {
+		    vector create ::x_$id
+		    ::x_$id expr [ a3toQz ::alpha_$id $rec(L) ]
+		}
+		A4 {
+		    vector create ::x_$id
+		    ::x_$id expr [ a4toQz ::beta_$id $rec(L) ]
+		}
+	    }
+	}
+	default { default_x $id }
+    }
+    set rec(ylab) [monitor_label $rec(base) $rec(monitor)]
+
+    return 1
+}
 
 # Load contents of id(file) into x_id, y_id, dy_id
 # Set id(xlab) and id(ylab) as appropriate
@@ -466,6 +568,10 @@ proc NG1load {id} {
     } else {
 	set inst ng1
     }
+    set rec(detector,width)      $::inst($inst,width)
+    set rec(detector,minbin)     $::inst($inst,minbin)
+    set rec(detector,maxbin)     $::inst($inst,maxbin)
+    set rec(detector,distance)   $::inst($inst,distance)
 
     if ![icp_load $id] { return 0 }
 
@@ -483,34 +589,18 @@ proc NG1load {id} {
     motor_column $id 4 A4 beta
     AB_to_QxQz $id
 
-    # Generate seconds column from MIN or monitor
+    # Generate seconds and monitor columns
     seconds_column $id
-
-
-    # Create a monitor column if necessary
-    if {[vector_exists ::MON_$id] } {
-	::MON_$id dup ::monitor_$id
-    } elseif {$rec(base) == "NEUT"} {
-	vector create ::monitor_$id
-	::monitor_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
-    }
-
-    if {[vector_exists ::monitor_$id]} {
-	vector create ::dmonitor_$id
-	::dmonitor_$id expr "sqrt(::monitor_$id)"
-    }
+    monitor_column $id
 
     if { $rec(psd) } {
-	set rec(detector,width)      $::inst($inst,width)
-	set rec(detector,minbin)     $::inst($inst,minbin)
-	set rec(detector,maxbin)     $::inst($inst,maxbin)
-	set rec(detector,distance)   $::inst($inst,distance)
 	NG1_psd_$::psdstyle $id
 	exclude_saturated $id $::inst($inst,psdsaturation)
     } else {
 	exclude_saturated $id $::inst($inst,saturation)
     }
 
+    # FIXME: rec(type) no longer contains psd
     switch $rec(type) {
 	psd {
 	    ::Qz_$id dup ::x_$id
@@ -843,7 +933,7 @@ proc parse2ng7 {line} {
 proc loadhead {file} {
     # Slurp file header.  An ICP header is than 15 lines, so 1200
     # bytes is more than enough.
-    if [catch {open $file r} fid] {
+    if {[catch {open $file r} fid]} {
 	message $fid
 	return -code return
     }
@@ -852,14 +942,22 @@ proc loadhead {file} {
 	::icedata::mark $file $fid $text
 	close $fid
 	return -code return
-    }
+    } 
     close $fid
 
-    # if it has a motor line, then assume the format is good
-    set offset [ string first "\n Mot: " $text]
-    if { $offset < 0 } {
-	# puts "couldn't find Mot: line in $file";
-	return -code return
+    # if it has a line saying "hkl scan center" it is a qscan.
+    set offset [string first "(hkl scan center)" $text]
+    if { $offset > 0 } {
+	set Qscan 1
+    } else {
+	set Qscan 0
+
+	# if it has a motor line, then assume the format is good
+	set offset [ string first "\n Mot: " $text]
+	if { $offset < 0 } {
+	    # puts "couldn't find Mot: line in $file";
+	    return -code return
+	}
     }
     set lines [split [string range $text 0 [incr offset -1]] "\n"]
 
@@ -889,34 +987,60 @@ proc loadhead {file} {
 	set rec(polarization) {}
     }
 
-    # parse the motor lines
-    upvar fixed fixed
-    set fixed 1
-    foreach line [lrange $lines 5 end] {
-	foreach { name start step stop } $line {
-	    set rec(stop,$name) $stop
-	    # make sure start is before end
-	    # (you can tell if is backward from step)
-	    # XXX FIXME XXX rename start/stop to lo/hi
-	    if { $start <= $stop } {
-		set rec(start,$name) $start
-		set rec(step,$name) $step
-		set rec(stop,$name) $stop
-	    } else {
-		set rec(start,$name) $stop
-		set rec(step,$name) $step
-		set rec(stop,$name) $start
-	    }
-	    if { $start != $stop } { set fixed 0 }
-	}
-    }
-
     # Check for psd: a comma in the data section indicates psd data
     set rec(psd) [expr {[string first , $text $offset]> 0}]
 
-    # return the header2 line
-    upvar header2 header2
-    set header2 [lindex $lines 3]
+    if { $Qscan } {
+	set rec(Qscan) 1
+
+	foreach {hc kc lc dh dk dl field} [lindex $lines 9] break
+	# FIXME don't know slits
+	set rec(start,1) 1.
+	set rec(step,1)  0.
+	set rec(stop,1)  1.
+
+	# Fake A3 and A4 motors
+	set rec(start,3) [expr {$hc-($rec(pts)-1.)/2.*$dh}]
+	set rec(step,3)  $dh
+	set rec(stop,3)  [expr {$hc+($rec(pts)-1.)/2.*$dh}]
+	set rec(start,4) [expr {$lc-($rec(pts)-1.)/2.*$dl}]
+	set rec(step,4)  $dl
+	set rec(stop,4)  [expr {$lc+($rec(pts)-1.)/2.*$dl}]
+
+	# Miscellaneous other info
+	set rec(H) $field
+	set rec(L) [expr {sqrt(81.804/[lindex $lines 7 2])}]
+	set rec(T) [lindex $lines 7 5]
+	set rec(monitor) [expr {$rec(mon)*$rec(prf)}]
+    } else {
+	set rec(Qscan) 0
+	# parse the motor lines
+	upvar fixed fixed
+	set fixed 1
+	foreach line [lrange $lines 5 end] {
+	    foreach { name start step stop } $line {
+		set rec(stop,$name) $stop
+		# make sure start is before end
+		# (you can tell if is backward from step)
+		# XXX FIXME XXX rename start/stop to lo/hi
+		if { $start <= $stop } {
+		    set rec(start,$name) $start
+		    set rec(step,$name) $step
+		    set rec(stop,$name) $stop
+		} else {
+		    set rec(start,$name) $stop
+		    set rec(step,$name) $step
+		    set rec(stop,$name) $start
+		}
+		if { $start != $stop } { set fixed 0 }
+	    }
+	}
+
+	# return the header2 line
+	upvar header2 header2
+	set header2 [lindex $lines 3]
+    }
+
     return $rec(id)
 }
 
@@ -983,10 +1107,15 @@ proc NG1mark {file} {
     # our scope. If there is an error it causes us to return.
     set id [loadhead $file]
     upvar #0 $id rec
-    set rec(load) NG1load
 
-    # parse2... parses the second set of fields into "rec".
-    parse2ng1 $header2
+
+    if {$rec(Qscan)} {
+	set rec(load) QscanLoad
+    } else {
+	# parse2... parses the second set of fields into "rec".
+	set rec(load) NG1load
+	parse2ng1 $header2
+    }
 
     # instrument specific initialization
     # icky hack to determine CG1/NG1 polarized/non-polarized
