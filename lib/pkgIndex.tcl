@@ -8,6 +8,7 @@ package ifneeded ncnrlib 0.1 [subst {
 	{htext.tcl source {htext hpage}}
 	{print.tcl source PrintDialog}
         {sizer.tcl source sizer}
+        {mousewheel.tcl source mousewheel }
 	{ncnrgui.tcl source {
 	    sashconf 
 	    listbox_ordered_insert listbox_delete_by_name
