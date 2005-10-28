@@ -1,3 +1,5 @@
+# FIXME: put this all in a graph namespace to hide private functions
+
 #========================= BLT graph functions =====================
 # HELP developer
 # Usage: zoom w on|off
@@ -388,14 +390,10 @@ proc graph_motion_clear {w} {
 }
 
 # HELP internal
-# Usage: graph_motion w x y
-#
-# Display info about the point under the cursor.  Update the graph
-# crosshairs. Callback for the graph motion event.
-proc graph_motion {w x y} {
-    # Move crosshairs to the current point
-    $w crosshairs conf -position @$x,$y
-
+# Usage: graph_message w
+# 
+# Determine which message box to use, if any.
+proc graph_message {w args} {
     # Determine if this window has a message bar
     # FIXME: consider using floating window if no message bar
     if { [info exists ::active_graph($w,message)] } {
@@ -405,13 +403,27 @@ proc graph_motion {w x y} {
     } else {
 	set wmsg "[winfo toplevel $w].message"
     }
-    if { ![winfo exists $wmsg] } { return }
+    if { ![winfo exists $wmsg] } { 
+	set wmsg "" 
+    } elseif { [llength $args] > 0 } {
+	$wmsg configure -text [concat $args]
+    }
+    return $wmsg
+}
+
+# HELP internal
+# Usage: graph_motion w x y
+#
+# Display info about the point under the cursor.  Update the graph
+# crosshairs. Callback for the graph motion event.
+proc graph_motion {w x y} {
+    # Move crosshairs to the current point
+    $w crosshairs conf -position @$x,$y
 
     # Generate the default message as "legend_label:index (x, y)"
     $w element closest $x $y where -halo 1i
-    if { ![info exists where(x)] } { 
-	$wmsg configure -text ""
-	return 
+    if { ![info exists where(x)] } {
+	set msg ""
     } else {
 	set msg "[$w elem cget $where(name) -label]"
 	if {$msg == ""} { set msg $where(name) }
@@ -423,10 +435,51 @@ proc graph_motion {w x y} {
 	    set msg [$::active_graph($w,motion) \
 			 $w $x $y $where(name) $where(index) $msg]
 	}
-	
-	# Update the message bar
-	$wmsg configure -text $msg
     }
+
+    # Output the message to the message box
+    graph_message $w $msg
+}
+
+proc graph_export { w } {
+    # FIXME want an export dialog
+    #   *record separator, field separator, field width
+    #   *digits of precision or digits after decimal
+    #   *comment character for heading lines
+    #   *export to clipboard or named file (along with directory icon)
+    #   *list of labelled legend items to choose from, defaulting to current
+    # Remember choices between sessions; default choices according to OS
+    set el [active_graph $w element]
+    if {$el eq ""} { 
+	graph_message $w "no element selected" 
+	return
+    }
+    set filename "[$w element cget $el -label].dat"
+    set filename [ tk_getSaveFile -defaultextension .dat \
+		       -initialfile $filename -title "Export file" ]
+    if {$filename eq ""} { return }
+
+    if {[catch {
+	set fid [open $filename w]
+	set columns {}
+	foreach v { xdata xerror ydata yerror } {
+	    set data [$w element cget $el -$v]
+	    if { [vector_exists $data] } { set data [set ${data}(:)] }
+	    if { [llength $data] > 0 } { lappend $columns $v }
+	    set $v $data
+	}
+	puts $fid "# title [$w cget -title]"
+	puts $fid "# legend [$w element cget $el -label]"
+	puts $fid "# xlabel [$w axis cget [$w element cget $el -mapx] -title]"
+	puts $fid "# ylabel [$w axis cget [$w element cget $el -mapy] -title]"
+	puts $fid "# columns $columns"
+	foreach x $xdata dx $xerror y $ydata dy $yerror { 
+	    puts $fid "$x $dx $y $dy"	
+	}
+    } msg] } {
+	graph_message $w $msg
+    }
+    catch { close $fid }
 }
 
 # HELP developer
@@ -492,7 +545,8 @@ proc active_graph {w args} {
     if { [string equal windows $::tcl_platform(platform)] } {
         $w.menu add command -underline 3 -label "Copy" -command "$w snap -format emf CLIPBOARD"
     }
-    $w.menu add command -underline 0 -label "Print" -command "PrintDialog $w"
+    $w.menu add command -underline 0 -label "Print..." -command "PrintDialog $w"
+    $w.menu add command -underline 1 -label "Export..." -command "graph_export $w"
 
     # Add zoom capability to graph, but use the menu to unzoom
     Blt_ZoomStack $w
