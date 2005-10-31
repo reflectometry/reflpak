@@ -126,6 +126,7 @@ for arch in irix osx linux3 linux4; do
 done
 mkdir bin/win
 cp release/reflpak$VERSION.exe bin/win
+cp RELEASE-NOTES bin
 
 
 # Check if we should put the current build on the servers
