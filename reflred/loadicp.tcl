@@ -1000,6 +1000,7 @@ proc loadhead {file} {
 	set rec(stop,1)  1.
 
 	# Fake A3 and A4 motors
+	# FIXME this is Qx,Qz not A3,A4 so rockbar is wrong
 	set rec(start,3) [expr {$hc-($rec(pts)-1.)/2.*$dh}]
 	set rec(step,3)  $dh
 	set rec(stop,3)  [expr {$hc+($rec(pts)-1.)/2.*$dh}]
