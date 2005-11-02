@@ -536,7 +536,7 @@ proc fix { value {min {}} {max {}} {digits 3}} {
     if { $max == $min } { set max 1.0 }
     set shift [expr {int(ceil(log10($max-$min)-$digits))}]
     set scale [expr {pow(10,$shift)}]
-    set value [expr {round($value/$scale)*$scale}]
+    set value [expr {floor($value/$scale+0.5)*$scale}]
     if {$shift+$digits < -3 || $shift+$digits>9} {
 	return [format "%.*e" [expr {$digits-1}] $value]
     } elseif {$shift < 0} {
