@@ -130,6 +130,21 @@ proc monitor_label { base monitor } {
 
 
 
+# Estimate rate from geometric mean of second third and fourth point.
+# If that fails, use all points.
+# If that fails, use rate 1.
+proc monitor_rate {id} {
+    set M ::monitor_$id
+    set T ::seconds_$id
+    if {![vector_exists $M] || ![vector_exists $T]} {
+	return 1.
+    } elseif { [$M length] < 4 } {
+	return [vector expr (prod($M)/prod($T))^(1./[$M length])]
+    } else {
+	return [vector expr (prod(${M}(1:3))/prod(${T}(1:3)))^(1./3.)]
+    }
+}    
+
 proc monitor_value { id } {
     upvar \#0 $id rec
 
@@ -147,7 +162,15 @@ proc monitor_value { id } {
     set seconds $::monitor(fixed_seconds)
     set monitor $::monitor(fixed_counts)
     if { !$::monitor(use_fixed) } {
-	set $norm $rec(monitor)
+	if {$rec(base) eq "TIME"  && $norm eq "monitor"} {
+	    set mon [expr {$rec(monitor)*[monitor_rate $rec(id)]}]
+	    set $norm [fix $mon  {} {} 3]
+	} elseif {$rec(base) eq "NEUT" && $norm eq "seconds"} {
+	    set mon [expr {$rec(monitor)/[monitor_rate $rec(id)]}]
+	    set $norm [fix $mon {} {} 3]
+	} else {
+	    set $norm $rec(monitor)
+	}
     }
 
     # Convert this into the appropriate y-label for the record
