@@ -529,13 +529,21 @@ array set symbol {
 # nearest 0.01, 2 digits would be rounding to the nearest 0.001
 # and three digits would be rounding to the nearest 0.0001.
 # If min or max are not specified, reasonable values are chosen.
-proc fix { value {min {}} {max {}} {accuracy 3}} {
+proc fix { value {min {}} {max {}} {digits 3}} {
     if { [string equal {} $max] } { set max $value }
     if { [string equal {} $min] } { set min $value }
     if { $max == $min } { set min 0.0 ; set max [expr {abs($max)}] }
     if { $max == $min } { set max 1.0 }
-    set scale [expr {pow(10,ceil(log10($max-$min))-$accuracy)}]
-    return [expr {round($value/$scale)*$scale}]
+    set shift [expr {int(ceil(log10($max-$min)-$digits))}]
+    set scale [expr {pow(10,$shift)}]
+    set value [expr {round($value/$scale)*$scale}]
+    if {$shift+$digits < -3 || $shift+$digits>9} {
+	return [format "%.*e" [expr {$digits-1}] $value]
+    } elseif {$shift < 0} {
+	return [format "%.*f" [expr {-$shift}] $value]
+    } else {
+	return [expr int($value)]
+    }
 }
 
 # HELP developer
