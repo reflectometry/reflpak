@@ -104,17 +104,22 @@ int utoa(unsigned int u, char *a)
 
 void icp_save(FILE *out, unsigned int v[], int n, int continuation)
 {
-  char line[100];
+  static char line[100] = " ";
+  static int c = 1;
   unsigned int num;
-  int c, l;
-  c = 1;
-  line[0] = ' ';
+  int l;
   while (1) {
+    /* Next number */
     num = *v++;
+
+    /* Convert to string */
     l = utoa(num,line+c);
     c += l;
     line[c++] = ',';
+
     if (--n==0) break;
+
+    /* Check for full line */
     if (c > 78) {
       line[c-l-1] = '\n';
       line[c-l] = '\0';
@@ -133,12 +138,10 @@ void icp_save(FILE *out, unsigned int v[], int n, int continuation)
       line[c-l-1] = '\n';
       line[c-l] = '\0';
       fputs(line,out);
-      utoa(num,line+1);
-      line[l+1]=',';
-      c = l+2;
+      c = 1;
+      c += utoa(num,line+c);
+      line[c++] = ',';
     } 
-    line[c] = '\n';
-    line[c+1] = '\0';
   } else {
     /* No comma at the end of the set
      * since we are done with this data point.
@@ -152,8 +155,10 @@ void icp_save(FILE *out, unsigned int v[], int n, int continuation)
     } 
     line[c-1] = '\n';
     line[c] = '\0';
+    fputs(line,out);
+    line[0] = ' ';
+    c=1;
   }
-  fputs(line,out);
 }
 
 void vtk_save(FILE *out, unsigned int v[], int n, int continuation)
