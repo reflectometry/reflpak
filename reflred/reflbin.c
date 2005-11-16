@@ -117,9 +117,10 @@ void icp_save(FILE *out, unsigned int v[], int n, int continuation)
     c += l;
     line[c++] = ',';
 
+    /* If no more numbers then break. */
     if (--n==0) break;
 
-    /* Check for full line */
+    /* If line with comma is too long, move last number to next line. */
     if (c > 78) {
       line[c-l-1] = '\n';
       line[c-l] = '\0';
@@ -131,32 +132,29 @@ void icp_save(FILE *out, unsigned int v[], int n, int continuation)
   }
 
   if (continuation) {
-    /* Need a comma at the end of the set 
-     * since there is another set coming.
-     */
+    /* If line with comma is too long, move last number to next line. */
     if (c > 78) {
       line[c-l-1] = '\n';
       line[c-l] = '\0';
       fputs(line,out);
-      c = 1;
-      c += utoa(num,line+c);
-      line[c++] = ',';
+      utoa(num,line+1);
+      line[l+1] = ',';
+      c = l+2;
     } 
   } else {
-    /* No comma at the end of the set
-     * since we are done with this data point.
-     */
-    if (c > 79) {
+    /* If line without comma is too long, move last number to next line. */
+    if (c-1 > 78) {
       line[c-l-1] = '\n';
       line[c-l] = '\0';
       fputs(line,out);
       utoa(num,line+1);
+      line[l+1] = ',';
       c = l+2;
     } 
+    /* Trim final comma before writing the last row in the matrix. */
     line[c-1] = '\n';
     line[c] = '\0';
     fputs(line,out);
-    line[0] = ' ';
     c=1;
   }
 }
