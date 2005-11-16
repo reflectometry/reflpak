@@ -11,12 +11,13 @@ MinGW:
   LIBZ="-L/usr/local/lib -lz"
   gcc -Wall -O2 -I/usr/local/include reflbin.c -o reflbin -lm $(LIBZ)
 
+Compile with -DDEBUG to show input and output.
 */
 
 /* Set the following to true to save bins at edges which don't cover 
  * the full range of the width and height accumulators.
  */
-#define SAVE_PARTIAL 0 
+// #define DEBUG
 
 #include <assert.h>
 #include <stdio.h>
@@ -59,7 +60,7 @@ FILE *infile, *outfile;
 char line[MAX_LINE];
 
 /* options */
-int do_transpose;
+int do_transpose, save_partial;
 int width, height, output;
 int xstart, xstop, ystart, ystop;
 
@@ -249,19 +250,28 @@ void write_frame()
   mxtype *v;
   int i;
 
-#if SAVE_PARTIAL
-  if (rows_accumulated != 0) frame_h++; /* Keep partly full row sum */
-#else
-  if (frame_h == 0 && rows_accumulated != 0) frame_h++; /* Collapse dimension */
-#endif
+  /* Decide what to do with partial bins */
+  if (save_partial) {
+    if (rows_accumulated != 0) frame_h++; /* Keep partial row always */
+  } else if (frame_h == 0 && rows_accumulated != 0) 
+    frame_h++; /* Keep partial row if it is the only one */
+  else {
+    /* Ignore partial row; update accounting */
+    v = matrix + frame_h*frame_w;
+    for (i=0; i < frame_w; i++) {
+      recorded_counts -= v[i];
+      ignored_counts += v[i];
+    }
+  }
 
   /* Check for consistent number of rows in frame */
   if (rows == 0) {
     rows = frame_h;
   } else if (frame_h == 0) {
     /* ICP dropped the frame so fill with zeros */
+    frame_w = columns;
     for (frame_h = 0; frame_h < rows; frame_h++) clear_row();
-    // printf("recover dropped frame?\n");
+    // printf("recover dropped frame to %d x %d\n", frame_h, frame_w);
   } else if (rows != frame_h) {
     if (warn_dims) fprintf(stderr,"inconsistent number of rows\n");
     warn_dims = 0;
@@ -301,15 +311,9 @@ void save_row(mxtype *v, int n)
 {
   int i, w;
 
-  // printf("; columns=%d, n=%d\n", columns, n);
-  /* Check the number of columns in the datafile. */
-  if (columns == 0) { 
-    columns = n; 
-  } else if (warn_dims && n != columns) {
-    warn_dims = 0;
-    fprintf(stderr, "ignoring inconsistent number of columns\n");
-    n = columns; /* Assume remainder of v is zero */
-  }
+#ifdef DEBUG
+  printf(";\n");
+#endif
 
   /* Add the next line of the frame to the current row */
   if (frame_r >= ystart && frame_r <= ystop) {
@@ -323,12 +327,28 @@ void save_row(mxtype *v, int n)
       if (++w == width) { bin++; w=0; }
     }
     for (i = xstop+1; i < n; i++) ignored_counts += v[i];
-#if SAVE_PARTIAL
-    if (w != 0) bin++; /* Bin only partly full --- save it anyway */
-#else
-    if (bin == 0 && w != 0) bin++; /* Collapse dimension */
-#endif
-    frame_w = bin; /* Constant since number of input columns is fixed. */
+
+    /* Decide what to do with partial bins */
+    if (save_partial) {
+      if (w != 0) bin++; /* Keep partial bin always */
+    } else if (bin == 0 && w != 0) 
+      bin++; /* Keep partial bin if it is the only one */
+    else { 
+      /* Ignore partial bin; update accounting */
+      recorded_counts -= row_data[bin]; 
+      ignored_counts += row_data[bin]; 
+    }
+
+    // printf("; columns=%d, n=%d\n", columns, n);
+    /* Check the number of columns in the datafile. */
+    if (columns == 0) { 
+      columns = bin; 
+    } else if (warn_dims && bin != columns) {
+      warn_dims = 0;
+      fprintf(stderr, "ignoring inconsistent number of columns\n");
+      bin = columns; /* Assume remainder of v is zero */
+    }
+    frame_w = bin;
 
     /* Move to next row if at the end of vertical accumulation. */
     if (++rows_accumulated == height) next_row();
@@ -347,9 +367,13 @@ accumulate_bins()
   int i; /* character number in line */
   int have_number; /* whether we are building a number */
 
+#ifdef DEBUG
+#define SHOW_S printf("%d ",s);
+#else
+#define SHOW_S 
+#endif
 #define ACCUMULATE do {				\
-    /* printf("%d ",s);	*/			\
-    have_number = 0;				\
+    SHOW_S have_number = 0;			\
     bins[b++] = s;				\
     total_counts += s;				\
     nnz += (s!=0);				\
@@ -408,9 +432,17 @@ accumulate_bins()
       /* the matrix was already saved by the '\n'.  The only */
       /* way we can get here is if we have an empty frame. */ 
       i++;
-      if (have_number) return;
+      if (have_number) {
+#ifdef DEBUG
+	printf("empty frame triggered by consecutive numbers with no separator\n");
+#endif
+	return;
+      }
     } else {
       /* Some kind of floating point character ... must be a new point */
+#ifdef DEBUG
+      printf("empty frame triggered by character which is not digit, space or separator\n");
+#endif
       return;
     }
   }
@@ -510,23 +542,23 @@ void process_file(char *file)
       fprintf(outfile,"LOOKUP_TABLE default\n");
       integrate_psd();
       fseek(outfile,dim_pos,SEEK_SET);
-      fprintf(outfile,"%d %d %d",frame_w,frame_h,points);
+      fprintf(outfile,"%d %d %d",columns,rows,points);
 #if 0
       fseek(outfile,space_pos,SEEK_SET);
-      fprintf(outfile,"%f %f %f",1./frame_w,2./frame_h,4./points);
+      fprintf(outfile,"%f %f %f",1./columns,2./rows,4./points);
 #endif
       fseek(outfile,numpoints_pos,SEEK_SET);
-      fprintf(outfile,"%d",frame_w*frame_h*points);
+      fprintf(outfile,"%d",columns*rows*points);
     }
   }
 
-  fprintf(stderr,"%s %d x %d x %d\n", ofile, frame_h, frame_w, points);
+  fprintf(stderr,"%s %d x %d x %d\n", ofile, rows, columns, points);
   fprintf(stderr,"number of nonzero bins = %d\n", nnz);
   fprintf(stderr,"recorded counts = %d\n", recorded_counts);
-  fprintf(stderr,"ignored counts = %d\n", ignored_counts);
-  if (recorded_counts + ignored_counts != total_counts) {
+  if (ignored_counts)
+    fprintf(stderr,"ignored counts = %d\n", ignored_counts);
+  if (recorded_counts + ignored_counts != total_counts)
     fprintf(stderr,"!!!recorded+ignored != %d\n", total_counts);
-  }
 
   gzclose(infile);
   fclose(outfile);  
@@ -552,6 +584,7 @@ int main(int argc, char *argv[])
   xstart=ystart=0;
   xstop=ystop=1000000;
   output=ICP;
+  save_partial = 0;
 
   if (argc <= 1) {
     fprintf(stderr,"usage: %s [-vtk|-icp] [-w##] [-h##] f1 f2 ...\n\n",argv[0]);
@@ -561,6 +594,7 @@ int main(int argc, char *argv[])
     fprintf(stderr," -y#LO-#HI pixel range in y (1-origin)\n");
     fprintf(stderr," -vtk  use VTK format for output\n");
     fprintf(stderr," -icp  use ICP format for output\n");
+    fprintf(stderr," -p    keep final bin even if it is not full\n");
     fprintf(stderr,"\nIf output is ICP, the outfile is Ixxx.cg1 in the current directory.\n");
     fprintf(stderr,"If output is VTK, the outfile is xxx.vtk in the current directory.\n");
     fprintf(stderr,"To get the bare data, use -vtk and strip the header, using e.g.,\n");
@@ -577,6 +611,7 @@ int main(int argc, char *argv[])
       case 'y': range(argv[i]+2,&ystart,&ystop); break;
       case 'v': output = VTK; break;
       case 'i': output = ICP; break;
+      case 'p': save_partial = 1; break;
       default: fprintf(stderr,"unknown option %s\n",argv[i]); exit(1);
       }
     } else {
