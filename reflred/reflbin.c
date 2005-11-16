@@ -104,60 +104,54 @@ int utoa(unsigned int u, char *a)
 
 void icp_save(FILE *out, unsigned int v[], int n, int continuation)
 {
-  static char line[100] = " ";
-  static int c = 1;
+  static char line[100] = " "; /* Current line */
+  static int c = 1;            /* Current character */
   unsigned int num;
-  int l;
+  int len;
+
+#define MOVE_NUMBER_TO_NEXT_LINE do {		\
+    line[c-len-1] = '\n';			\
+    line[c-len] = '\0';				\
+    fputs(line,out);				\
+    utoa(num,line+1);				\
+    line[len+1] = ',';				\
+    c = len+2;					\
+  } while (0)
+    
+
   while (1) {
     /* Next number */
     num = *v++;
 
-    /* Convert to string */
-    l = utoa(num,line+c);
-    c += l;
+    /* Convert to string, remembering length */
+    len = utoa(num,line+c);
+    c += len;
     line[c++] = ',';
 
     /* If no more numbers then break. */
     if (--n==0) break;
 
     /* If line with comma is too long, move last number to next line. */
-    if (c > 78) {
-      line[c-l-1] = '\n';
-      line[c-l] = '\0';
-      fputs(line,out);
-      utoa(num,line+1);
-      line[l+1] = ',';
-      c = l+2;
-    }
+    if (c > 78) MOVE_NUMBER_TO_NEXT_LINE;
   }
 
   if (continuation) {
     /* If line with comma is too long, move last number to next line. */
-    if (c > 78) {
-      line[c-l-1] = '\n';
-      line[c-l] = '\0';
-      fputs(line,out);
-      utoa(num,line+1);
-      line[l+1] = ',';
-      c = l+2;
-    } 
+    if (c > 78) MOVE_NUMBER_TO_NEXT_LINE;
   } else {
     /* If line without comma is too long, move last number to next line. */
-    if (c-1 > 78) {
-      line[c-l-1] = '\n';
-      line[c-l] = '\0';
-      fputs(line,out);
-      utoa(num,line+1);
-      line[l+1] = ',';
-      c = l+2;
-    } 
+    if (c-1 > 78) MOVE_NUMBER_TO_NEXT_LINE;
+
     /* Trim final comma before writing the last row in the matrix. */
     line[c-1] = '\n';
     line[c] = '\0';
     fputs(line,out);
+
+    /* Start next line, leaving the ' ' in place. */
     c=1;
   }
 }
+
 
 void vtk_save(FILE *out, unsigned int v[], int n, int continuation)
 {
@@ -385,7 +379,7 @@ accumulate_bins()
   for (b=0; b < MAX_BIN+1; b++) bins[b] = 0.;
 
   getline(line,MAX_LINE);
-  have_number = 0;
+  have_number = 0; s=0;
   b = i = 0;
   while (1) {
     const char c = line[i];
