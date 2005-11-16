@@ -316,8 +316,8 @@ void save_row(mxtype *v, int n)
     mxtype *row_data = matrix + frame_h*frame_w;
     int bin;
     bin = w = 0;
-    for (i = 0; i < n && i < xstart; i++) ignored_counts += v[i];
-    for (i = xstart; i < n && i < xstop; i++) {
+    for (i = 0; i < xstart && i < n; i++) ignored_counts += v[i];
+    for (i = xstart; i < n && i <= xstop; i++) {
       row_data[bin] += v[i];
       recorded_counts += v[i];
       if (++w == width) { bin++; w=0; }
@@ -350,29 +350,29 @@ accumulate_bins()
 #define ACCUMULATE do {				\
     /* printf("%d ",s);	*/			\
     have_number = 0;				\
-    if (s != 0) { total_counts += s; nnz++; }	\
-    bins[b++] = s; s=0;				\
+    bins[b++] = s;				\
+    total_counts += s;				\
+    nnz += (s!=0);				\
   } while (0)
-  
 
   for (b=0; b < MAX_BIN+1; b++) bins[b] = 0.;
 
   getline(line,MAX_LINE);
   have_number = 0;
-  b = i = 0; s = 0;
+  b = i = 0;
   while (1) {
     const char c = line[i];
     // printf("<s=%d c='%c'>",s,c);
-    switch (c) {
-    case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':
-      have_number = 1;
-      s = s*10 + c - '0';
+    if (isdigit(c)) {
+      if (have_number) {
+	s = s*10 + c - '0';
+      } else {
+	have_number = 1;
+	s = c - '0';
+      }
       // printf("<digit %c s=%d>",c,s);
       i++;
-      break;
-
-    case ',': case ';':
+    } else if (c==',' || c==';') {
       assert(have_number == 1);
       ACCUMULATE;
       if (c == ';') {
@@ -380,9 +380,7 @@ accumulate_bins()
 	while (b>0) bins[--b] = 0;
       }
       i++;
-      break;
-
-    case '\n': case '\r':
+    } else if (c=='\n' || c=='\r') {
       getline(line,MAX_LINE);
       if (have_number) { 
 	/* End of frame if line ends in a number without punctuation */
@@ -392,9 +390,7 @@ accumulate_bins()
       }
       if (gzeof(infile)) return;
       i = 0;
-      break;
-
-    case '\0':
+    } else if (c == '\0') {
       /* Maybe line was too long or maybe we are at the end of the file */
       getline(line,MAX_LINE);
       if (gzeof(infile)) {
@@ -406,20 +402,14 @@ accumulate_bins()
 	return;
       }
       i = 0;
-      break;
-
-    case '\t': case ' ':
-      if (have_number) {
-	/* Space between numbers ... must in be a new point */
-	/* Note that we don't save it, since the end of */
-	/* the matrix was already saved by the '\n'.  The only */
-	/* way we can get here is if we have an empty frame. */ 
-	return;
-      }
+    } else if (isspace(c)) {
+      /* If at a space between numbers ... must in be a new point */
+      /* Note that we don't save it, since the end of */
+      /* the matrix was already saved by the '\n'.  The only */
+      /* way we can get here is if we have an empty frame. */ 
       i++;
-      break;
-
-    default:
+      if (have_number) return;
+    } else {
       /* Some kind of floating point character ... must be a new point */
       return;
     }

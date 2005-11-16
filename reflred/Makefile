@@ -3,7 +3,7 @@ ifeq ($(OS), IRIX64)
   DEFS=-DNEED_BASENAME
   LDFLAGS=-L/usr/freeware/lib32
 endif
-CFLAGS=-O2 
+CFLAGS=-O3
 LIBS=-lz -lm
 all: reflbin
 
