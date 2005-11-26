@@ -110,6 +110,7 @@ scp -r $htmlmachine:$builddir/html web
 scp $htmlmachine:$builddir/release/reflpak-data.zip web
 
 echo; echo "== gather local build results ====================="
+cp release/reflpak$VERSION-src.tar.gz web
 cp release/reflpak$VERSION.exe web
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="

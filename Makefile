@@ -161,7 +161,7 @@ srcdist: ChangeLog
 	cvs -q export -r HEAD -d $(PRODUCT)-src reflfit >/dev/null
 	@cp ChangeLog $(PRODUCT)-src
 	@if test ! -d release ; then mkdir release ; fi
-	tar czf release/$(PRODUCT)-src.tar.gz $(PRODUCT)-src
+	$(TAR) czf release/$(PRODUCT)-src.tar.gz $(PRODUCT)-src
 	@$(RM) -rf $(PRODUCT)-src
 
 datadist: release/reflpak-data.zip
@@ -226,7 +226,7 @@ dist: kit/reflpak$(EXE) RELEASE-NOTES
 		< linux/reflpak.in > $(DIR)/reflpol
 	@chmod a+rx $(DIR)/refl{pak,red,fit,pol}
 	@if test ! -d release ; then mkdir release ; fi
-	tar cf release/$(DIR).tar $(DIR)
+	$(TAR) cf release/$(DIR).tar $(DIR)
 	@if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi
 	gzip release/$(DIR).tar
 	@rm -rf $(DIR)
