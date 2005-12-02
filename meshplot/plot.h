@@ -79,4 +79,4 @@ void meshredraw(void);
 void plot_demo(PReal limits[6], int stack[]);
 #endif
 
-#endif _PLOT_H
+#endif /* _PLOT_H */
