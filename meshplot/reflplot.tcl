@@ -516,21 +516,21 @@ proc plot_window {{w .plot}} {
     return $w.c
 }
 
-proc demo {{mesh_style QxQz}} {
-    set w [plot_window]
-
-    ice::read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
-    ice::read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2
-
-    plot2d center $w 467
-    plot2d add $w { rec1 rec2 }
-}
-
 }
 
 catch { namespace import reflplot::* }
 
 namespace eval ice {
+
+proc demo {{mesh_style QxQz}} {
+    set w [plot_window]
+
+    read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
+    read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2
+
+    plot2d center $w 467
+    plot2d add $w { rec1 rec2 }
+}
 
 proc read_header {fid chunk} {
     set header {}
@@ -591,3 +591,4 @@ proc read_data {file id} {
 }
 
 }; # ice namespace
+

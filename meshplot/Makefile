@@ -18,6 +18,10 @@ ifeq ($(OS),MINGW32_NT-5.0)
   OS=WINDOWS
   GLINC =
 endif
+ifeq ($(OS),MINGW32_NT-5.1)
+  OS=WINDOWS
+  GLINC =
+endif
 
 ifeq ($(OS),IRIX64)
   GLUTINC = -I/usr/freeware/include
@@ -72,9 +76,12 @@ CFLAGS += -DPRECISION=float
 # font support is needed for demos (recommend ftgl instead)
 #DEFS	+= -DTOGL_USE_FONTS
 
-OBJS=togl_plot.o togl.o refl.o mx.o plot.o
+CFLAGS += -DUSE_TCL
+
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o
 
 %.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
+%.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
 
 all: plot$(LDEXT)
 
@@ -83,13 +90,14 @@ plot$(EXE): plot.c
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
 plot$(LDEXT): $(OBJS)
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
+	$(CXX) -pipe -shared $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h
 togl.o: togl.h
 mx.o: mx.c mx.h
 refl.o: refl.c refl.h mx.h
+isis_read.o: isis_read.cc isis_read.h
 
 clean:
 	rm -f $(TOGL) *.o plot$(LDEXT) plot$(EXE) *~

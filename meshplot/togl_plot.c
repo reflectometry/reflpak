@@ -601,6 +601,8 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
 #include "mx_tcl.c"
 #include "refl_tcl.c"
 
+void isis_init(Tcl_Interp*);
+
 /*
  * Called by Tk_Main() to let me initialize the modules (Togl) I will need.
  */
@@ -667,6 +669,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 
   mx_init(interp);
   refl_init(interp);
+  isis_init(interp);
 
   return TCL_OK;
 }
