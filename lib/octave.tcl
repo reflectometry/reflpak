@@ -163,7 +163,7 @@ proc octave::close { f } {
 
     # if the connection is associated with a procedure, delete the 
     # procedure so nobody tries to use it
-    if { [llength state(command)] > 0 } {
+    if { [llength $state(command)] > 0 } {
 	rename $state(command) ""
     }
 
