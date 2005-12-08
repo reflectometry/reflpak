@@ -446,7 +446,7 @@ proc reduce_parts {spec back slit} {
                 } else {
                     set pol {}
                 }
-		octave eval "$part = reduce_part($part,$line,$mon,'$pol')"
+		octave eval "$part = reduce_part($part,$line,$mon,'$pol');"
 	    }
 	}
     }
@@ -461,7 +461,7 @@ proc reduce {spec back slit} {
 	run_send_pol('back_%s', back);
 	run_send_pol('slit_%s', slit);
 	# XXX FIXME XXX a better way of coordinating footprint screen?
-	send("::footprint::slits")
+	send("::footprint::slits");
     }
 
     # Combine the parts, creating sub if there is background subtraction

@@ -53,8 +53,8 @@ proc psd {id} {
 	  send('x_$id',Qz);
 	endif
     "
-    octave eval "psd = psd_$id"
-    octave eval "psderr = psderr_$id"
+    octave eval "psd = psd_$id;"
+    octave eval "psderr = psderr_$id;"
     ::psd::draw_matrix
     ::psd::reset_axes
     ::psd::integrate
@@ -230,7 +230,7 @@ proc ::psd::init {} {
 
     octave eval {
 	function idx = nearest(V,x)
-	    idx = interp1(V,1:length(V),x,'nearest','extrap')
+	idx = interp1(V,1:length(V),x,'nearest','extrap');
 	end
     }
 
@@ -452,12 +452,12 @@ proc ::psd::integrate {args} {
     octave recv psd_select2_counts sliceto
     octave recv psd_select2_err dsliceto
     octave eval "
-      send('::y_$id dup ::psd_reduce_y')
-      send('::dy_$id dup ::psd_reduce_dy')
-      send('::counts_$id expr ::y_$id*::monitor_$id')
-      send('::dcounts_$id expr ::dy_$id*::monitor_$id')
+      send('::y_$id dup ::psd_reduce_y');
+      send('::dy_$id dup ::psd_reduce_dy');
+      send('::counts_$id expr ::y_$id*::monitor_$id');
+      send('::dcounts_$id expr ::dy_$id*::monitor_$id');
     "
-    octave eval { send('atten_set $::addrun') }
+    octave eval { send('atten_set $::addrun'); }
 }
 
 
@@ -528,7 +528,7 @@ proc ::psd::draw_matrix { } {
     # Alternatively, set the initial crosshairs.
     # Don't know why we need binidx
     octave recv psd_x Qz
-    octave eval binidx=128 
+    octave eval { binidx=128; } 
 
     # Request new matrix image from octave and wait for it
     if { $logscale } {
@@ -702,7 +702,7 @@ proc ::psd::draw_slice {action skew Qzcross bincross} {
     }
 
     # Find the new skew slice
-    octave eval "\[slicebin, sliceqz, biny, bindy]=psdslice(Qz,psd,psderr,$skew,$Qzcross,$bincross)"
+    octave eval "\[slicebin, sliceqz, biny, bindy]=psdslice(Qz,psd,psderr,$skew,$Qzcross,$bincross);"
     octave eval { biny(biny==0) = min(biny(biny!=0))/2; }
     octave recv psd_bin slicebin
     octave recv psd_bin_counts biny

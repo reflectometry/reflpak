@@ -244,22 +244,22 @@ proc parse_psd_octave {id data} {
 
     # Strip the commas and newlines so that sscanf can handle it
     set data [ string map {"\n" " "} $data ]
-    octave eval "x=sscanf('$data', '%f ',Inf)"
+    octave eval "x=sscanf('$data', '%f ',Inf);"
     octave eval "nc=prod(\[$rec(dims)])+$rec(Ncolumns);"
     octave eval "x=reshape(x,nc,length(x)/nc)';"
     set i 0
     foreach c $rec(columns) {
 	vector create ::${c}_$id
 	octave recv ${c}_$id x(:,[incr i])
-	if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i)" }
+	if { "$c" == $rec(base) } {	octave eval "mon = x(:,$i);" }
     }
     # XXX FIXME XXX need dead-time correction
     # XXX FIXME XXX better correction for 0 signal
-    octave eval "psd_$id = x(:,[incr i]:columns(x))"
-    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
-    octave eval "mon = mon * ones(1,columns(psd_$id))"
-    octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon"
-    octave eval "psd_$id = psd_$id ./ mon"
+    octave eval "psd_$id = x(:,[incr i]:columns(x));"
+    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0);"
+    octave eval "mon = mon * ones(1,columns(psd_$id));"
+    octave eval "psderr_$id = sqrt(psd_$id+!psd_$id + psd_$id.^2./mon)./mon;"
+    octave eval "psd_$id = psd_$id ./ mon;"
     octave sync
 }
 

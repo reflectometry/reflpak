@@ -224,7 +224,7 @@ proc average_seq {} {
     octave send ::y_seq r.y
     octave send ::dy_seq r.dy
     # XXX FIXME XXX what about excluded points?
-    octave eval "r = run_poisson_avg(r)"
+    octave eval "r = run_poisson_avg(r);"
     octave recv x_seq r.x
     octave recv y_seq r.y
     octave recv dy_seq r.dy

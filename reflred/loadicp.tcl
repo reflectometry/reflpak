@@ -170,10 +170,10 @@ proc icp_parse_psd_octave {id data} {
     
     # Strip the commas so that sscanf can handle it
     set data [ string map {"," " " "\n" " "} $data ]
-    octave eval "x=sscanf('$data', '%f ',Inf)"
+    octave eval "x=sscanf('$data', '%f ',Inf);"
     
     # Reshape into a matrix of the appropriate number of lines
-    octave eval "x=reshape(x,length(x)/$lines,$lines)'"
+    octave eval "x=reshape(x,length(x)/$lines,$lines)';"
     
     # Return the first k columns into $rec_$col, and put the
     # rest into psd. I'll leave it to the data interpreter to
@@ -188,8 +188,8 @@ proc icp_parse_psd_octave {id data} {
 	vector create ::${c}_$id 
 	octave recv ${c}_$id x(:,[incr i])
     }
-    octave eval "psd_$id = x(:,[incr i]:columns(x))"
-    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0)"
+    octave eval "psd_$id = x(:,[incr i]:columns(x));"
+    octave eval "psderr_$id = sqrt(psd_$id) + (psd_$id==0);"
     octave sync
     set rec(psd) 1
 }
@@ -728,7 +728,7 @@ proc load_NG7_monitor_calibration {} {
     # We extend the correction at the maximum rate.  Should we also
     # mark these points for exclusion?
     set data [string map { "\n" " " } $::NG7_monitor_calibration]
-    octave eval "NG7monitor=sscanf('$data', '%f ', Inf)"
+    octave eval "NG7monitor=sscanf('$data', '%f ', Inf);"
     octave eval {
 	NG7monitor = reshape(NG7monitor,2,length(NG7monitor)/2)';
 	if NG7monitor(1,1) != 0

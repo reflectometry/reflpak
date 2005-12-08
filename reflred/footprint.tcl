@@ -289,7 +289,7 @@ proc calc {{div div} {foot foot}} {
     if {$div ne "div" || $foot ne "foot"} { 
         error "Use \[footprint::update div foot] for now"
     }    
-    octave eval { foot = [] }
+    octave eval { foot = []; }
     foreach v { x y dy yp ym } { ::foot_$v delete : }
 
     switch $::footprint_correction_type {
@@ -319,8 +319,8 @@ proc calc {{div div} {foot foot}} {
 		message "Invalid footprint slope/intercept"
 		return
 	    }
-	    octave eval "p = \[$::footprint_m $::footprint_b]"
-	    octave eval "dp = \[$::footprint_dm $::footprint_db]"
+	    octave eval "p = \[$::footprint_m $::footprint_b];"
+	    octave eval "dp = \[$::footprint_dm $::footprint_db];"
 	}
     }
 
@@ -353,8 +353,8 @@ proc calc {{div div} {foot foot}} {
 	    set ::footprint_Q_at_one {}
 	    octave eval [subst -nocommand {
 		foot = $::footprint_line;
-		foot=run_trunc(foot,[$::footprint_Qmin,$::footprint_Qmax])
-		foot=footprint_interp(div,foot)
+		foot=run_trunc(foot,[$::footprint_Qmin,$::footprint_Qmax]);
+		foot=footprint_interp(div,foot);
 	    }]
 	}
     }
@@ -425,9 +425,9 @@ if {$argv0 eq [info script] && ![info exists running]} {
     # set up debugging tools
     tkcon show
     proc disp x { 
-        octave eval { retval='\n' }
-        octave eval "retval=$x"
-        octave eval { send(sprintf('set ::ans {%s}',disp(retval))) }
+        octave eval { retval='\n'; }
+        octave eval "retval=$x;"
+        octave eval { send(sprintf('set ::ans {%s}',disp(retval))); }
         vwait ::ans 
         return [string range $::ans 0 end-1]
     }

@@ -151,7 +151,7 @@ monitor_init
 proc restart_octave {} {
     catch { octave close }
     octave connect $::OCTAVE_HOST
-    octave eval "cd /tmp"
+    octave eval "cd /tmp;"
     foreach file $::OCTAVE_SUPPORT_FILES {
 	octave mfile [file join $::VIEWRUN_HOME octave $file.m]
     }
@@ -163,9 +163,9 @@ proc restart_octave {} {
     set ::NG7_monitor_calibration_loaded 0
 }
 proc disp x { 
-    octave eval { retval='\n' }
-    octave eval "retval=$x"
-    octave eval { send(sprintf('set ::ans {%s}',disp(retval))) }
+    octave eval { retval='\n'; }
+    octave eval "retval=$x;"
+    octave eval { send(sprintf('set ::ans {%s}',disp(retval))); }
     vwait ::ans 
     return [string range $::ans 0 end-1]
 }
@@ -347,11 +347,11 @@ proc setscan { runs } {
     upvar #0 $scanid scanrec
     
     # need to recalculate since the run list may have changed
-    octave eval "$scanrec(id)=\[]"
+    octave eval "$scanrec(id)=\[];"
     set scanrec(files) {}
     foreach id $runs {
 	upvar #0 $id rec
-	octave eval "r=\[]"
+	octave eval "r=\[];"
 	
 	# data (already includes attenuator)
 	octave send ::x_${id} r.x
@@ -359,7 +359,7 @@ proc setscan { runs } {
 	octave send ::dy_${id} r.dy
 	
 	# monitor
-	octave eval "r = run_scale(r,$scanrec(monitor))"
+	octave eval "r = run_scale(r,$scanrec(monitor));"
 	
 	# slit motor position if available
 	if {[vector_exists ::slit1_$id] && !($rec(type) == "slit")} { 
@@ -369,14 +369,14 @@ proc setscan { runs } {
 	# remove exclusions (and generate note for the log)
 	if {[vector_exists ::idx_$id] && [vector expr "prod(::idx_$id)"]==0} {
 	    octave send ::idx_${id} idx
-	    octave eval { r = run_include(r,idx) }
+	    octave eval { r = run_include(r,idx); }
 	    set exclude " \[excluding 0-origin [::idx_$id search 0]]"
 	} else {
 	    set exclude ""
 	}
 	
 	# append run
-	octave eval "$scanid = run_poisson_avg($scanid,r)"
+	octave eval "$scanid = run_poisson_avg($scanid,r);"
 	
 	# pretty scale
 	if { $rec(k) == 1 && $rec(dk) == 0 } {
