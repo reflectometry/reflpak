@@ -427,7 +427,16 @@ find_in_Qmesh(const int n, const int m,
   return m*j + k;
 }
 
-/* == warped mesh, Qx vs. Qz from delta-theta, lambda == */
+/* == warped mesh, Qx vs. Qz from delta-theta, lambda ==
+// alpha is sample angle (usually known as theta)
+// beta is detector angle (usually known as twotheta)
+// dtheta is angle of pixel center relative to the detector angle
+// lambda is wavelength of the pixel
+//
+// The values in the displayed mesh are the vertically summed
+// time binned detector values, possibly normalized by monitor,
+// clipped and log-scaled.
+*/
 
 void
 build_Lmesh(const int n, const int m, 
