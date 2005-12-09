@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <vector>
 
 inline double square(double x) { return x*x; }
