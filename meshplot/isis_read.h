@@ -54,10 +54,20 @@ public:
   int getframes(std::vector<int>& data, int frame, int num_frames);
   void getTimeChannelBoundaries(void);
   bool open(const char *filename);
-  void close(void) { if (is_open) ::close(fileid); is_open = false; }
+  void close(void) { 
+    DEBUG("Closing " << fileid);
+    if (is_open) ::close(fileid); is_open = false; 
+  }
   void summary(std::ostream& out);
 
-  isis_file() { is_open = false; }
+  isis_file() { 
+    is_open = false; 
+    nTimeRegimes = nTimeChannels = nSpectra = nPeriods 
+      = nSampleEnvironmentParameters = nDetectors = nMonitors = 0; 
+    userLength = 0;
+    run = 0;
+    title[0] = '\0';
+  }
   ~isis_file() { close(); }
 } ;
 
