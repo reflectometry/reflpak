@@ -2,12 +2,12 @@ namespace eval isis {
 
 proc demo {{mesh_style QxQz}} {
     set w [reflplot::plot_window]
-    set DATADIR c:/home/pkienzle/data/test
+    set DATADIR /home/pkienzle/data/test
     isis::read_data [file join $DATADIR isis SRF25115.RAW] rec1
     isis::read_data [file join $DATADIR isis SRF25149.RAW] rec2
 
-    plot2d center $w 15
-    plot2d add $w { rec1 rec2 }
+#    plot2d center $w 15
+#    plot2d add $w { rec1 rec2 }
 }
 
 proc read_data { file id } {
@@ -16,8 +16,6 @@ proc read_data { file id } {
 
     # read file
     set fid [isis $file]
-puts "isis fid is $fid"
-return
     set rec(fid) $fid
     set rec(isTOF) 1
     set rec(A) 1.
