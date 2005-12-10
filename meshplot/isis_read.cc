@@ -126,8 +126,12 @@ C                                      =1  failed
 
 void isis_file::getTimeChannelBoundaries(void)
 {
+#include <stdint.h>
+DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0]));
   tcb.resize(nTimeChannels+1);
-
+DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
+      << ", size=" << tcb.size());
+ exit(1);
   double extra;
   if (version[HEAD] == 1) {
     extra = 0.0;
@@ -209,7 +213,7 @@ isis_file::open(const char *filename)
 {
   close();
   name = filename;
-  fileid = ::open(filename,O_RDONLY);
+  fileid = ::open(filename,O_RDONLY|O_BINARY);
   DEBUG("open " << name << " in " << fileid); 
   if (fileid < 0) return false;
   DEBUG("open succeeded");
@@ -337,13 +341,16 @@ bool SURF::open(const char *file)
   DEBUG("SURF open get time channel boundaries");
   getTimeChannelBoundaries();
   DEBUG("SURF open return from getTimeChannelBoundaries");
+
   for (int i=0; i <= nTimeChannels; i++) 
 { DEBUG(" tcb[i] == " << tcb[i]);
 tcb[i]+=8.0;  // >>add 8 to tcb's (why???)
 }
   // for (int i=0; i <= nTimeChannels; i+=100) DEBUG(i << ": " << tcb[i] << " ");
+
   DEBUG("SURF open set lambda");
   set_lambda();
+
   // for (int i=0; i < nTimeChannels; i+=100) DEBUG(i << ": " << lambda[i] << " ");
   DEBUG(nTimeChannels-1 << ": " << lambda[nTimeChannels-1] << " ");
   DEBUG("SURF open load monitor");
