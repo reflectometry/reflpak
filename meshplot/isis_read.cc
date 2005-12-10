@@ -704,11 +704,13 @@ get_tcl_vector(Tcl_Interp *interp, const char *name,
 static int
 isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
 {
+  DEBUG("entering isis_method");
   Tcl_ResetResult(interp);
   SURF *file = static_cast<SURF *>(isis_filep);
   const char *isis_name = Tcl_GetString(argv[0]);
   const char *method = "";
-  if (argc >= 2) method = Tcl_GetString(argv[0]);
+  if (argc >= 2) method = Tcl_GetString(argv[1]);
+  DEBUG(isis_name << " method is " << method);
   if (strcmp(method, "Nx") == 0) {
     return int_result(interp, file->Nx);
   } else if (strcmp(method, "Ny") == 0) {
@@ -795,10 +797,11 @@ isis_open(ClientData junk, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
   SURF *isis_handle = new SURF;
   if (isis_handle->open(filename)) {
     char isis_name[30];
-    sprintf(isis_name, "isis%d", isis_id);
+    sprintf(isis_name, "isis%d", ++isis_id);
 DEBUG("function handle is " << isis_name);
     Tcl_CreateObjCommand( interp, isis_name, isis_method, &isis_handle, isis_delete );
 DEBUG("command created");
+ Tcl_AppendResult( interp, isis_name, NULL); 
   } else {
     delete isis_handle;
     Tcl_ResetResult(interp);
