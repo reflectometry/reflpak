@@ -55,7 +55,7 @@ public:
   void getTimeChannelBoundaries(void);
   bool open(const char *filename);
   void close(void) { 
-    DEBUG("Closing " << fileid);
+    if (is_open) DEBUG("Closing " << fileid);
     if (is_open) ::close(fileid); is_open = false; 
   }
   void summary(std::ostream& out);
@@ -89,7 +89,6 @@ public:
   const static double rsampdet=2840.*2.;    //twice sample det distance required angle calcs
   const static double monitor_distance=850; // mod-monitor distance (cm)
   const static double pixel=2.3;            // vertical sectrum spacing (mm)
-  std::vector<double> tcb;        // time channel boundaries
   std::vector<double> lambda;     // wavelength (nTimeChannels)
   std::vector<double> dlambda;    // wavelength uncertainty
   std::vector<double> monitor;    // monitor  (nTimeChannels)
@@ -194,8 +193,8 @@ rebin_counts(const std::vector<Real> &xold,
              const std::vector<Real> &xnew, 
              std::vector<Real> &Inew, std::vector<Real> &dInew)
 {
-  assert(xold.size() == Iold.size()+1);
-  assert(xold.size() == dIold.size()+1);
+  assert(xold.size()-1 == Iold.size());
+  assert(xold.size()-1 == dIold.size());
   Inew.resize(xnew.size()-1);
   dInew.resize(xnew.size()-1);
   rebin_counts(Iold.size(), &xold[0], &Iold[0], &dIold[0],

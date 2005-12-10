@@ -78,6 +78,9 @@ CFLAGS += -DPRECISION=float
 
 CFLAGS += -DUSE_TCL
 
+#CFLAGS += -g
+#LDFLAGS += -g
+
 OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o
 
 %.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@

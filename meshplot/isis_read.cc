@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdint.h> // intptr_t
 
 #if 1
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
@@ -126,12 +127,10 @@ C                                      =1  failed
 
 void isis_file::getTimeChannelBoundaries(void)
 {
-#include <stdint.h>
 DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0]));
   tcb.resize(nTimeChannels+1);
 DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
       << ", size=" << tcb.size());
- exit(1);
   double extra;
   if (version[HEAD] == 1) {
     extra = 0.0;
@@ -213,7 +212,7 @@ isis_file::open(const char *filename)
 {
   close();
   name = filename;
-  fileid = ::open(filename,O_RDONLY|O_BINARY);
+  fileid = ::open(filename,O_RDONLY);
   DEBUG("open " << name << " in " << fileid); 
   if (fileid < 0) return false;
   DEBUG("open succeeded");
@@ -342,6 +341,8 @@ bool SURF::open(const char *file)
   getTimeChannelBoundaries();
   DEBUG("SURF open return from getTimeChannelBoundaries");
 
+DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
+      << ", size=" << tcb.size());
   for (int i=0; i <= nTimeChannels; i++) 
 { DEBUG(" tcb[i] == " << tcb[i]);
 tcb[i]+=8.0;  // >>add 8 to tcb's (why???)
@@ -383,6 +384,7 @@ void SURF::integrate_counts(void)
 {
   // Reset counts vector
   counts.resize(Ny*nTimeChannels, 0);
+  dcounts.resize(Ny*nTimeChannels);
 
   // Sum across x
   std::vector<int> frame(nTimeChannels);
@@ -395,7 +397,6 @@ void SURF::integrate_counts(void)
     }
   }     
 
-  dcounts.resize(Ny*nTimeChannels);
   for (int i=0; i < Ny*nTimeChannels; i++) dcounts[i] = counts[i] != 0. ? sqrt(counts[i]) : 1.;
 }
 
@@ -404,6 +405,7 @@ void SURF::set_lambda(void)
 {
   // Use the usual formula for TOF to lambda, *100. for units.
   lambda.resize(nTimeChannels);
+  dlambda.resize(nTimeChannels);
   const double scale = Plancks_constant * 100.0 / (neutron_mass*detector_distance);
   for (int i=0; i < nTimeChannels; i++) {
     lambda[i] = 0.5 * (tcb[i] + tcb[i+1]) * scale;
@@ -430,11 +432,12 @@ void SURF::load_monitor(void)
 
   // Compute wavelengths at the time boundaries for detector and monitor
   std::vector<double> monitor_edges(nTimeChannels+1), detector_edges(nTimeChannels+1);
-  for (int i = 0; i <= nTimeChannels+1; i++) {
+  for (int i = 0; i <= nTimeChannels; i++) {
     monitor_edges[i] = tcb[i]*Plancks_constant*100.0 / (neutron_mass*monitor_distance); 
     detector_edges[i] = tcb[i]*Plancks_constant*100.0 / (neutron_mass*detector_distance); 
   }
 
+  DEBUG("about to rebin");
   // Rebin monitor to detector time boundaries.
   rebin_counts(monitor_edges,rawmon,drawmon,detector_edges,monitor,dmonitor);
 }
@@ -685,8 +688,9 @@ static int real_result(Tcl_Interp *interp, double v)
 }
 
 template <class T> static int 
-vector_result(Tcl_Interp *interp, int n, const T v[])
+vector_result(Tcl_Interp *interp, size_t n, const T v[])
 {
+  DEBUG("vector_result returning " << n << " values at " << intptr_t(v));
   Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
   if (!xobj) return TCL_ERROR;
   mxtype *x = (mxtype *)Tcl_SetByteArrayLength(xobj,n*sizeof(mxtype));
@@ -699,7 +703,7 @@ vector_result(Tcl_Interp *interp, int n, const T v[])
 template <class T> inline int
 vector_result(Tcl_Interp *interp, const std::vector<T>& v)
 {
-  return vector_result(interp,v.size(), &v[0]);
+  return vector_result(interp, v.size(), &v[0]);
 }
 
 
