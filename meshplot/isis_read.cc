@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <stdint.h> // intptr_t
 
-#if 1
+#if 0
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
 #define DEBUG(a) do { } while (0)
@@ -23,6 +23,10 @@
 
 const double Plancks_constant=6.62618e-27; // Planck constant (erg*sec)
 const double neutron_mass=1.67495e-24;     // neutron mass (g)
+inline double TOF_to_wavelength(double d)
+{
+  return Plancks_constant*100./(neutron_mass*d);
+}
 
 void isis_file::seek(section_number section, int p) // Jump to position p in a section
 {
@@ -212,7 +216,12 @@ isis_file::open(const char *filename)
 {
   close();
   name = filename;
+  // FIXME do I need O_BINARY here?
+#ifdef O_BINARY
+  fileid = ::open(filename,O_RDONLY|O_BINARY);
+#else
   fileid = ::open(filename,O_RDONLY);
+#endif
   DEBUG("open " << name << " in " << fileid); 
   if (fileid < 0) return false;
   DEBUG("open succeeded");
@@ -341,22 +350,20 @@ bool SURF::open(const char *file)
   getTimeChannelBoundaries();
   DEBUG("SURF open return from getTimeChannelBoundaries");
 
-DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
+  DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
       << ", size=" << tcb.size());
-  for (int i=0; i <= nTimeChannels; i++) 
-{ DEBUG(" tcb[i] == " << tcb[i]);
-tcb[i]+=8.0;  // >>add 8 to tcb's (why???)
-}
-  // for (int i=0; i <= nTimeChannels; i+=100) DEBUG(i << ": " << tcb[i] << " ");
+  // add 8 to tcb's (why???)
+  for (int i=0; i <= nTimeChannels; i++) tcb[i]+=8.0; 
+  // for (int i=0;i<=nTimeChannels;i+=100) DEBUG(i << ": " << tcb[i] << " ");
 
   DEBUG("SURF open set lambda");
   set_lambda();
 
-  // for (int i=0; i < nTimeChannels; i+=100) DEBUG(i << ": " << lambda[i] << " ");
+  //for (int i=0;i<nTimeChannels;i+=100) DEBUG(i << ": " << lambda[i] << " ");
   DEBUG(nTimeChannels-1 << ": " << lambda[nTimeChannels-1] << " ");
   DEBUG("SURF open load monitor");
   load_monitor();
-  // for (int i=0; i < nTimeChannels; i+=100) DEBUG(i << ": " << monitor[i] << " ");
+  //for (int i=0;i<nTimeChannels;i+=100) DEBUG(i << ": " << monitor[i] << " ");
   DEBUG("SURF open load all frames");
   load_all_frames();
   DEBUG("SURF open integrate counts");
@@ -397,7 +404,8 @@ void SURF::integrate_counts(void)
     }
   }     
 
-  for (int i=0; i < Ny*nTimeChannels; i++) dcounts[i] = counts[i] != 0. ? sqrt(counts[i]) : 1.;
+  for (int i=0; i < Ny*nTimeChannels; i++) 
+    dcounts[i] = counts[i] != 0. ? sqrt(counts[i]) : 1.;
 }
 
 // Determine wavelength for each time channel from the center of the time bins.
@@ -406,40 +414,47 @@ void SURF::set_lambda(void)
   // Use the usual formula for TOF to lambda, *100. for units.
   lambda.resize(nTimeChannels);
   dlambda.resize(nTimeChannels);
-  const double scale = Plancks_constant * 100.0 / (neutron_mass*detector_distance);
+  lambda_edges.resize(nTimeChannels+1);
+  const double scale = TOF_to_wavelength(detector_distance);
+  for (int i=0; i <= nTimeChannels; i++) lambda_edges[i] = tcb[i]*scale;
   for (int i=0; i < nTimeChannels; i++) {
-    lambda[i] = 0.5 * (tcb[i] + tcb[i+1]) * scale;
+    lambda[i] = 0.5 * (tcb[i] + tcb[i+1])*scale;
     // FIXME incorrect formula for dlambda
-    dlambda[i] = (tcb[i+1] - tcb[i])/sqrt(log10(256)) * scale; 
+    dlambda[i] = (tcb[i+1] - tcb[i])/sqrt(log10(256))*scale; 
   }
+  DEBUG("setting lambda(" << lambda.size() << ") at " << intptr_t(&lambda[0]));
 }
 
 // Load the monitor values and rebin to detector bins.
 void SURF::load_monitor(void)
 {
+  monitor_raw.resize(nTimeChannels);
+  dmonitor_raw.resize(nTimeChannels);
+  monitor_lambda.resize(nTimeChannels);
+
   // Load raw monitor counts
   std::vector<int> intmon(nTimeChannels);
   getframes(intmon,Nx*Ny+1,1);
   DEBUG("mon");
-  for (int i=0; i < nTimeChannels; i+=100) DEBUG(i << ": " << intmon[i] << " ");
+  //for (int i=0;i<nTimeChannels;i+=100) DEBUG(i << ": " << intmon[i] << " ");
 
   // Convert to I,dI
-  std::vector<double> rawmon(nTimeChannels), drawmon(nTimeChannels);
   for (int i=0; i < nTimeChannels; i++) {
-    rawmon[i] = intmon[i];
-    drawmon[i] = intmon[i] != 0 ? sqrt(intmon[i]) : 1.;
+    monitor_raw[i] = intmon[i];
+    dmonitor_raw[i] = intmon[i] != 0 ? sqrt(double(intmon[i])) : 1.;
   }
 
   // Compute wavelengths at the time boundaries for detector and monitor
-  std::vector<double> monitor_edges(nTimeChannels+1), detector_edges(nTimeChannels+1);
-  for (int i = 0; i <= nTimeChannels; i++) {
-    monitor_edges[i] = tcb[i]*Plancks_constant*100.0 / (neutron_mass*monitor_distance); 
-    detector_edges[i] = tcb[i]*Plancks_constant*100.0 / (neutron_mass*detector_distance); 
-  }
+  std::vector<double> monitor_edges(nTimeChannels+1);
+  const double scale = TOF_to_wavelength(monitor_distance); 
+  for (int i = 0; i <= nTimeChannels; i++) monitor_edges[i] = tcb[i]*scale;
+  for (int i=0; i < nTimeChannels; i++) 
+    monitor_lambda[i] = (tcb[i]+tcb[i+1])*scale/2.;
 
   DEBUG("about to rebin");
   // Rebin monitor to detector time boundaries.
-  rebin_counts(monitor_edges,rawmon,drawmon,detector_edges,monitor,dmonitor);
+  rebin_counts(monitor_edges,monitor_raw,dmonitor_raw,
+	       lambda_edges,monitor,dmonitor);
 }
 
 // Compute I,dI from counts and monitors
@@ -671,6 +686,8 @@ int main(int argc, char *argv[])
 //   lambda/dlambda    returns vector [Nt] as string
 //   counts/dcounts    returns matrix [Ny x Nt] as string
 //   I/dI              returns matrix [Ny x Nt] as string
+//   Nmonitor_raw      returns int
+//   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
 //   
 
 static int int_result(Tcl_Interp *interp, int k)
@@ -687,16 +704,22 @@ static int real_result(Tcl_Interp *interp, double v)
   return TCL_OK;
 }
 
+static mxtype* build_return_vector(Tcl_Interp *interp, size_t n)
+{
+  Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
+  if (!xobj) return NULL;
+  mxtype *x = (mxtype *)Tcl_SetByteArrayLength(xobj,n*sizeof(mxtype));
+  if (x != 0) Tcl_SetObjResult(interp,xobj);
+  return x;
+}
+
 template <class T> static int 
 vector_result(Tcl_Interp *interp, size_t n, const T v[])
 {
   DEBUG("vector_result returning " << n << " values at " << intptr_t(v));
-  Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
-  if (!xobj) return TCL_ERROR;
-  mxtype *x = (mxtype *)Tcl_SetByteArrayLength(xobj,n*sizeof(mxtype));
-  for (int i=0; i < n; i++) x[i] = v[i];
-  if (!x) return TCL_ERROR;
-  Tcl_SetObjResult(interp,xobj);
+  mxtype *x = build_return_vector(interp, n); 
+  if (x == 0) return TCL_ERROR;
+  for (size_t i=0; i < n; i++) x[i] = v[i];
   return TCL_OK;
 }
 
@@ -721,7 +744,7 @@ isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST 
   const char *isis_name = Tcl_GetString(argv[0]);
   const char *method = "";
   if (argc >= 2) method = Tcl_GetString(argv[1]);
-  DEBUG(isis_name << " method is " << method);
+  DEBUG(isis_name << " (" << intptr_t(isis_filep) <<") method is " << method);
   if (strcmp(method, "Nx") == 0) {
     return int_result(interp, file->Nx);
   } else if (strcmp(method, "Ny") == 0) {
@@ -740,11 +763,22 @@ isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST 
     return vector_result(interp, file->I);
   } else if (strcmp(method, "dI") == 0) {
     return vector_result(interp, file->dI);
+  } else if (strcmp(method, "Nmonitor_raw") == 0) {
+    return int_result(interp, file->monitor_raw.size());
+  } else if (strcmp(method, "monitor_raw") == 0) {
+    return vector_result(interp, file->monitor_raw);
+  } else if (strcmp(method, "dmonitor_raw") == 0) {
+    return vector_result(interp, file->dmonitor_raw);
+  } else if (strcmp(method, "monitor_raw_lambda") == 0) {
+    return vector_result(interp, file->monitor_lambda);
   } else if (strcmp(method, "monitor") == 0) {
     return vector_result(interp, file->monitor);
   } else if (strcmp(method, "dmonitor") == 0) {
     return vector_result(interp, file->dmonitor);
+  } else if (strcmp(method, "lambda_edges") == 0) {
+    return vector_result(interp, file->lambda_edges);
   } else if (strcmp(method, "lambda") == 0) {
+DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]));
     return vector_result(interp, file->lambda);
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
@@ -810,7 +844,8 @@ isis_open(ClientData junk, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
     char isis_name[30];
     sprintf(isis_name, "isis%d", ++isis_id);
 DEBUG("function handle is " << isis_name);
-    Tcl_CreateObjCommand( interp, isis_name, isis_method, &isis_handle, isis_delete );
+DEBUG(isis_name << " (" << intptr_t(isis_handle) << ") lambda(" << isis_handle->lambda.size() << ") at " << intptr_t(&isis_handle->lambda[0]));
+    Tcl_CreateObjCommand( interp, isis_name, isis_method, isis_handle, isis_delete );
 DEBUG("command created");
  Tcl_AppendResult( interp, isis_name, NULL); 
   } else {

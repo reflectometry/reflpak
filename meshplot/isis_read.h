@@ -89,8 +89,10 @@ public:
   const static double rsampdet=2840.*2.;    //twice sample det distance required angle calcs
   const static double monitor_distance=850; // mod-monitor distance (cm)
   const static double pixel=2.3;            // vertical sectrum spacing (mm)
+  std::vector<double> lambda_edges; // edges of the wavelength bins
   std::vector<double> lambda;     // wavelength (nTimeChannels)
   std::vector<double> dlambda;    // wavelength uncertainty
+  std::vector<double> monitor_raw, dmonitor_raw, monitor_lambda;
   std::vector<double> monitor;    // monitor  (nTimeChannels)
   std::vector<double> dmonitor;   // monitor uncertainty
   std::vector<double> delta;      // detector relative angle
