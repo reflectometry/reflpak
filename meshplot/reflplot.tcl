@@ -303,6 +303,73 @@ proc calc_transform {path type} {
     }
 }
 
+proc setdiff {a b} {
+    set result {}
+    foreach el $a { if {[lsearch $b $el] < 0} { lappend result $el } }
+    return $result
+}
+
+variable rebin_lo
+variable rebin_hi
+variable rebin_resolution
+proc rebin {id} {
+    variable rebin_lo
+    variable rebin_hi
+    variable rebin_resolution
+    puts "rebin $id from $rebin_lo to $rebin_hi with $rebin_resolution"  
+}
+
+proc monitor {id} {
+    set w .monitor
+    if {[winfo exists $w]} {
+        raise $w
+    } else {
+        toplevel $w
+        graph $w.graph -title "Monitor graph"
+	$w.graph axis conf x -title "Wavelength ($::symbol(angstrom))"
+	$w.graph axis conf y -title "Counts"
+	active_graph $w.graph
+	active_axis $w.graph x
+	active_axis $w.graph y
+	active_legend $w.graph
+	set f [frame $w.rebin]
+	entry $f.start -textvariable [namespace current]::rebin_lo
+	entry $f.stop -textvariable [namespace current]::rebin_hi
+	entry $f.resolution -textvariable [namespace current]::rebin_resolution
+	button $f.getrange -text "From graph..." -command [subst {
+            graph_select $w.graph [namespace current]::rebin_lo \
+		[namespace current]::rebin_hi}]
+	button $f.rebin -text "Rebin"
+	label $f.start_label -text "From"
+        label $f.start_units -text "$::symbol(angstrom)"
+	label $f.stop_label -text "to"
+	label $f.stop_units -text "$::symbol(angstrom)" 
+	label $f.resolution_label -text "Resolution"
+	label $f.resolution_units -text "$::symbol(invangstrom)"
+	grid $f.rebin \
+             $f.resolution_label $f.resolution $f.resolution_units \
+	     $f.start_label $f.start $f.start_units \
+             $f.stop_label $f.stop $f.stop_units \
+             $f.getrange
+        label $w.message -relief ridge -anchor w
+	grid $w.graph -sticky news
+	grid $w.rebin -sticky w
+	grid $w.message -sticky we
+        grid rowconfigure $w 0 -weight 1
+	grid columnconfigure $w 0 -weight 1
+    }
+    upvar #0 $id rec
+    eval $w.graph element delete [$w.graph element names]
+    eval $w.graph marker delete [$w.graph marker names]
+    $w.graph conf  -title "Monitors for $rec(legend)"
+    $w.rebin.rebin conf -command "[namespace current]::rebin $id"
+#    $w.graph element create Raw -label "" \
+#            -xdata [fvector rec(column,monitor_raw_lambda)] \
+#            -ydata [fvector rec(column,monitor_raw)]
+    $w.graph element create Monitor -label "" \
+            -xdata [fvector rec(column,lambda)] \
+            -ydata [fvector rec(column,monitor)]
+}
 
 proc showall {path} {
     upvar plot plot
@@ -433,7 +500,6 @@ proc ShowCoordinates { w x y } {
 
     foreach {X Y} [$w coords $x $y] break
     # puts "Coordinates for $x $y -> $X $Y"
-
     
     # FIXME: traverse the plots in stack order, stopping at
     # the first one which matches
@@ -486,7 +552,7 @@ proc plot_window {{w .plot}} {
     bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
     bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
 
-    set plot(mesh_entry) $plot(mesh)
+    set plot(meshentry) $plot(mesh)
     label $f.ltransform -text "Transform"
     if 1 {
 	menubutton $f.transform -textvariable ${pid}(mesh) \
