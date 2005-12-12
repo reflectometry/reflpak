@@ -80,7 +80,7 @@ QxQz_to_BetaLambda(const double Qx, const double Qz, const double alpha,
   if (T>90.) T -= 360.;
   B = 2*(alpha-T);
   if (B>180.) B -= 360.;
-  L = 4*M_PI*sin(B/2.*M_PI/180) / sqrt(Qx*Qz + Qz*Qz);
+  L = 4*M_PI*sin(B/2.*M_PI/180) / sqrt(Qx*Qx + Qz*Qz);
 
   *beta = B;
   *lambda = L;
