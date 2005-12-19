@@ -240,7 +240,7 @@ int tp_logdata(Togl *togl, int argc, CONST84 char *argv[] )
 		   TCL_STATIC );
     return TCL_ERROR;
   }
-  plot->log = (strcmp(argv[2],"on")==0);
+  plot->log = (strcmp(argv[2],"on")==0 || strcmp(argv[2],"1")==0);
 
   plot_vrange(plot->log,plot->limits[4],plot->limits[5]);
   return TCL_OK;
