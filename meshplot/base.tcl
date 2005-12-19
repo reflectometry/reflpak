@@ -1,3 +1,11 @@
+proc fmultiply {name value} {
+    upvar $name vec
+    set s [fvector vec]
+    set t {}
+    foreach el [fvector vec] { lappend t [expr {$el*$value}] }
+    fvector vec $t
+}
+
 proc findex {name idxstr} {
     if {[fprecision] == 8} { set pattern d } else { set pattern f }
     upvar $name vec
@@ -65,14 +73,16 @@ proc flimits {name {limits {}}} {
     return [list $min $max]
 }
 
-proc edges {centers} {
-  if { [llength $centers] == 1 } {
-    if { $centers == 0. } {
-      set e {-1. 1}
-    } elseif { $centers < 0. } {
-      set e [list [expr {2.*$centers}] 0.]
-    } else {
-      set e [list 0 [expr {2.*$centers}]]
+proc edges {centers delta} {
+#  if { [llength $centers] == 1 }
+#    set e [list [expr {$centers-$delta}] [expr {$centers+$delta}]]
+  if { [lindex $centers 0] == [lindex $centers end] } {
+    set c [lindex $centers 0]
+    set e [expr {$c-$delta}]
+    set sign 1.
+    foreach r $centers {
+        lappend e [expr {$c+$sign*$delta}]
+        set sign [expr {-$sign}]
     }
   } else {
     set l [lindex $centers 0]
