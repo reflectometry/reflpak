@@ -1097,8 +1097,8 @@ void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
   }
 }
 
-#define WARP_M 140
-#define WARP_N 512
+#define WARP_M 1000
+#define WARP_N 304
 #define Q (WARP_M*WARP_N)
 #define QM ((WARP_M+1)*(WARP_N+1))
 void drawwarp(int stack[])
