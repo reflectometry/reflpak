@@ -13,9 +13,10 @@ if {![namespace exists reflplot]} {
 namespace eval reflplot {
 
     variable pi_over_180 [expr {atan(1.)/45.}]
+    variable transforms {QxQz TiTf TiTd AB slit pixel LTd}
 
 namespace export plot2d
-variable actions {new add delete transform center showall names}
+variable actions {new add delete transform center showall names redraw}
 proc plot2d {action path args} {
     variable actions
     set id [lsearch $actions $action]
@@ -100,9 +101,9 @@ proc set_axes {id theta twotheta slit1} {
 	fvector rec(beta) [list $b $b]
 	fvector rec(slit1) [list [expr {$s-0.01}] [expr {$s+0.01}]]
     } else {
-	fvector rec(alpha) [edges [fvector rec(column,$theta)]]
-	fvector rec(beta) [edges [fvector rec(column,$twotheta)]]
-	fvector rec(slit1) [edges [fvector rec(column,$slit1)]]
+	fvector rec(alpha) [edges [fvector rec(column,$theta)] 0.01]
+	fvector rec(beta) [edges [fvector rec(column,$twotheta)] 0.01]
+	fvector rec(slit1) [edges [fvector rec(column,$slit1)] 0.001]
     }
 }
 
@@ -210,6 +211,24 @@ proc find_slit {id x y} {
 		rec(slit1) rec(dtheta) $x $y]
 }
 
+proc mesh_LTd {id} {
+    upvar \#0 $id rec
+    foreach {rec(x) rec(y)} [buildmesh \
+				$rec(points) $rec(pixels) \
+				rec(lambda) rec(dtheta)] {}
+    set rec(xlabel) "theta_f - theta_i (degrees)"
+    set rec(ylabel) "wavelength ($::symbol(angstrom))"
+    set rec(xcoord) "Td"
+    set rec(ycoord) "L"    
+}
+
+proc find_LTd {id x y} {
+    upvar \#0 $id rec
+    return [findmesh \
+		$rec(points) $rec(pixels) \
+		rec(lambda) rec(dtheta) $x $y]
+}
+
 proc mesh_pixel {id {base 0}} {
     upvar \#0 $id rec
     fvector rec(xv) [integer_edges $rec(pixels)]
@@ -313,10 +332,142 @@ variable rebin_lo
 variable rebin_hi
 variable rebin_resolution
 proc rebin {id} {
+    upvar #0 $id rec
+    if {![info exist rec(TOF)]} { return }
+    set fid $rec(fid)
     variable rebin_lo
     variable rebin_hi
     variable rebin_resolution
-    puts "rebin $id from $rebin_lo to $rebin_hi with $rebin_resolution"  
+    # puts "rebin $id from $rebin_lo to $rebin_hi with $rebin_resolution"
+    $fid proportional_binning $rebin_lo $rebin_hi $rebin_resolution
+
+    set rec(points) [$fid Nt]
+    set rec(lambda) [$fid lambda_edges]
+    set rec(column,lambda) [$fid lambda]
+    set rec(column,monitor) [$fid monitor]
+    set rec(psdraw) [$fid counts]
+    set rec(psddata) [$fid I]
+    set rec(psderr) [$fid dI]
+
+    plot2d redraw .plot.c
+}
+
+proc FrameCoordinates {w x y} {
+    variable frame
+    set wmsg [winfo toplevel $frame(plot)].message
+    upvar #0 $frame(id) rec
+    foreach {X Y} [$frame(plot) coords $x $y] break
+    set idx -1
+    catch { set idx [findmesh $frame(nx) $frame(ny) frame(xv) frame(yv) $X $Y]}
+    if { $idx >= 0 } {
+        set val [findex frame(data) $idx]
+        $wmsg conf -text \
+	    "[file tail $rec(file)]([expr {int($X)}],[expr {int($Y)}]): $val"
+    } else {
+        $wmsg conf -text ""
+    }
+}
+
+proc SetFrame {v} {
+    variable frame
+    upvar #0 $frame(id) rec
+    set Nt [$rec(fid) Nt]
+    if {$v > $Nt} { set v $Nt }
+    $frame(w) conf -to $Nt
+    set frame(nx) [$rec(fid) Nx]
+    set frame(ny) [$rec(fid) Ny]
+    fvector frame(xv) [integer_edges $frame(nx)]
+    fvector frame(yv) [integer_edges $frame(ny)]
+    foreach {frame(x) frame(y)} [buildmesh $frame(nx) $frame(ny) frame(xv) frame(yv)] {}
+    set frame(data) [$rec(fid) frame $v]
+    foreach {lo hi} [flimits frame(data)] {}
+    if {$v != 0 } { set lo 0.5 }
+    $frame(plot) configure -vrange [list $lo $hi]
+    $frame(plot) delete
+    $frame(plot) mesh $frame(nx) $frame(ny) $frame(x) $frame(y) $frame(data)
+    $frame(plot) draw
+    set sum [fintegrate $frame(nx) $frame(ny) frame(data) 1]
+    ::frame_x seq 1 $frame(ny)
+    ::frame_y set [fvector sum]
+    if { $v == 0 } { 
+	set frame(lambda) {} 
+    } else {
+	set lambda [fvector rec(column,lambda)]
+	set frame(lambda) [fix [lindex $lambda [expr {$v-1}]] {} {} 5]
+    }
+}
+
+proc setframe {{v 1}} {
+    variable frame
+    $frame(w) set $v
+    SetFrame $v
+}
+
+proc frameplot {id} {
+    variable frame
+    set w .frame
+    if {[winfo exists $w]} {
+        raise $w
+    } else {
+        toplevel $w
+	set frame(plot) $w.c
+	set frame(slice) $w.slice
+
+	vector create ::frame_x ::frame_y
+	graph $frame(slice) -height 100 -leftmargin 79 -rightmargin 0 \
+	    -border 0 -plotpadx 0 -plotpady 0 -plotborderwidth 0
+	$frame(slice) elem create data -xdata ::frame_x -ydata ::frame_y
+	$frame(slice) legend configure -hide 1
+	$frame(slice) axis configure x -hide 1
+        meshplot $frame(plot) -borderwidth 4
+        $frame(plot) delete
+        $frame(plot) colormap [colormap_bright 64]
+        $frame(plot) configure -logdata off -grid on
+	$frame(plot) bind <Motion> [namespace code {FrameCoordinates %W %x %y}]
+	set f [frame $w.f]
+        set frame(sum) 0
+	radiobutton $f.sum -text "Sum frames" \
+	    -variable [namespace current]::frame(sum) -value 1 \
+	    -command [namespace code {
+	        SetFrame 0
+		.frame.f.framenum configure -state disable
+		.frame.f.wavelength_label configure -state disable
+	        .frame.f.wavelength configure -state disable
+	}]
+	radiobutton $f.single -text "Frame #" \
+	    -variable [namespace current]::frame(sum) -value 0 \
+            -command [namespace code {
+	        SetFrame [.frame.f.framenum get]
+	        .frame.f.framenum configure -state normal
+		.frame.f.wavelength_label configure -state normal
+	        .frame.f.wavelength configure -state readonly
+	}]
+	set frame(w) $f.framenum
+	spinbox $f.framenum -command [namespace code {SetFrame %s}] \
+	    -from 1 -to 2 -width 5
+	label $f.wavelength_label -text "Wavelength"
+	entry $f.wavelength -textvariable [namespace current]::frame(lambda) \
+	    -state readonly -width 10
+	grid $f.sum $f.single $f.framenum $f.wavelength_label $f.wavelength
+	label $w.message -relief ridge -anchor w
+        # scrollbar $w.select -takefocus 1 -orient horiz
+	grid $frame(slice) -sticky news
+	grid $frame(plot) -sticky news
+        grid $f -sticky w
+        grid $w.message -sticky ew
+	grid rowconfigure $w 0 -weight 1
+	grid rowconfigure $w 1 -weight 5
+	grid columnconfigure $w 0 -weight 1
+    }
+    variable frame
+    set frame(id) $id
+    upvar #0 $id rec
+    $frame(w) configure -to $rec(points)
+    set xmax [expr {[$rec(fid) Ny]+1}]
+    set ymax [expr {[$rec(fid) Nx]+1}]
+    $frame(plot) configure -limits [list 0 $xmax 0 $ymax]
+    $frame(slice) axis configure x -min 0 -max $xmax
+    SetFrame 1
 }
 
 proc monitor {id} {
@@ -340,12 +491,13 @@ proc monitor {id} {
             graph_select $w.graph [namespace current]::rebin_lo \
 		[namespace current]::rebin_hi}]
 	button $f.rebin -text "Rebin"
+	bind $f.resolution <Return> "$f.rebin invoke"
 	label $f.start_label -text "From"
         label $f.start_units -text "$::symbol(angstrom)"
 	label $f.stop_label -text "to"
 	label $f.stop_units -text "$::symbol(angstrom)" 
 	label $f.resolution_label -text "Resolution"
-	label $f.resolution_units -text "$::symbol(invangstrom)"
+	label $f.resolution_units -text "%"
 	grid $f.rebin \
              $f.resolution_label $f.resolution $f.resolution_units \
 	     $f.start_label $f.start $f.start_units \
@@ -363,17 +515,24 @@ proc monitor {id} {
     eval $w.graph marker delete [$w.graph marker names]
     $w.graph conf  -title "Monitors for $rec(legend)"
     $w.rebin.rebin conf -command "[namespace current]::rebin $id"
-#    $w.graph element create Raw -label "" \
-#            -xdata [fvector rec(column,monitor_raw_lambda)] \
-#            -ydata [fvector rec(column,monitor_raw)]
-    $w.graph element create Monitor -label "" \
-            -xdata [fvector rec(column,lambda)] \
-            -ydata [fvector rec(column,monitor)]
+    $w.graph element create Raw -label "" \
+            -xdata [fvector rec(column,monitor_raw_lambda)] \
+            -ydata [fvector rec(column,monitor_raw)]
+#    $w.graph element create Monitor -label "" \
+#            -xdata [fvector rec(column,lambda)] \
+#            -ydata [fvector rec(column,monitor)]
+}
+
+proc redraw {path} {
+    upvar plot plot
+    calc_transform $path $plot(mesh)
+    $path draw
 }
 
 proc showall {path} {
     upvar plot plot
     auto_axes $path
+    auto_vrange $path
     $path draw
 }
 
@@ -399,8 +558,9 @@ proc center {path center} {
 proc transform {path type} {
     upvar plot plot
     set newtype [expr {$plot(mesh) != $type}]
-    if { [lsearch {QxQz TiTf TiTd AB slit pixel} $type] < 0 } {
-	error "transform $path $type: expected QxQz TiTf TiTd AB slit or pixel"
+    variable transforms
+    if { [lsearch $transforms $type] < 0 } {
+	error "transform $path $type: expected $transforms"
     }
     calc_transform $path $type
     if {$newtype} { auto_axes $path }
@@ -465,10 +625,10 @@ proc delete {path records} {
 }
 
 proc new {w} {
-    meshplot $w
+    meshplot $w -borderwidth 4
     $w delete
     $w colormap [colormap_bright 64]
-    $w configure -logdata on -grid on -vrange {0.00002 2}
+    $w configure -logdata on -grid on -vrange {0.0002 2}
     variable P$w
     array set P$w {mesh TiTd records {} center 100 title {}}
     bind <Destroy> $w [namespace code [list unset P$w]]
@@ -506,7 +666,8 @@ proc ShowCoordinates { w x y } {
     foreach id $plot(records) {
 	upvar \#0 $id rec
 
-	set idx [find_$plot(mesh) $id $X $Y]
+	set idx -1
+	catch { set idx [find_$plot(mesh) $id $X $Y] }
 	if { $idx >= 0 } { 
 	    set counts [findex rec(psdraw) $idx]
 	    set val [findex rec(psddata) $idx]
@@ -554,17 +715,18 @@ proc plot_window {{w .plot}} {
 
     set plot(meshentry) $plot(mesh)
     label $f.ltransform -text "Transform"
+    variable transforms
     if 1 {
 	menubutton $f.transform -textvariable ${pid}(mesh) \
 	    -menu $f.transform.menu -indicatoron true -relief raised \
 	    -padx 1 -pady 1 -width 5
 	set m [menu $f.transform.menu -tearoff 1]
-	foreach v {TiTf QxQz TiTd AB slit pixel} {
+	foreach v $transforms {
 	    $m add radio -label $v -variable ${pid}(mesh_entry) -value $v \
 		-command [namespace code [list UpdateMesh $w.c]]
 	}	
     } else {
-	spinbox $f.transform  -values {TiTf QxQz TiTd AB pixel} -width 5 \
+	spinbox $f.transform  -values $transforms -width 5 \
 	    -textvariable ${pid}(mesh_entry) \
 	    -command [namespace code [list UpdateMesh $w.c]]
 	bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
