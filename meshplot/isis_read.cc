@@ -131,6 +131,11 @@ C                                      =1  failed
 
 void isis_file::getTimeChannelBoundaries(void)
 {
+  // FIXME hack to support reloading spectra
+  // Proper fix is to make sure rebinning doesn't change nTimeChannels
+  seek(TCB,261);  
+  nTimeChannels = getint();
+
 DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0]));
   tcb.resize(nTimeChannels+1);
 DEBUG("nTimeChannels=" << nTimeChannels << ", &tcb[0]=" << intptr_t(&tcb[0])
@@ -345,7 +350,12 @@ set_delta(int Ny, double delta[], double pixelwidth, double detectordistance)
 bool SURF::open(const char *file)
 {
   if (!isis_file::open(file)) return false;
+  load();
+  return true;
+}
 
+void SURF::load(void)
+{
   DEBUG("SURF open get time channel boundaries");
   getTimeChannelBoundaries();
   DEBUG("SURF open return from getTimeChannelBoundaries");
@@ -371,10 +381,10 @@ bool SURF::open(const char *file)
   DEBUG("SURF open normalize counts");
   normalize_counts();
   DEBUG("SURF open complete");
-  return true;
 }
 
-void SURF::getframe(std::vector<double>& frame, int n)  // Return a particular frame
+// Return a particular frame
+void SURF::getframe(std::vector<double>& frame, int n)  
 {
   frame.resize(Nx*Ny);
   const int offset = n * Nx*Ny;
@@ -502,32 +512,49 @@ SURF::sum_all_frames(void)
   return frame;
 }
 
+template <class T>
+static void copy_chunk(int n, T* from, T* to)
+{
+  memcpy(to, from, n*sizeof(T));
+}
+template <class T>
+static void add_chunk(int n, T* from, T* to)
+{
+  for (int k=0; k < n; k++) to[k] += from[k];
+}
+template <class T>
+static void copy_chunk_square(int n, T* from, T* to)
+{
+  for (int k=0; k < n; k++) to[k] = from[k]*from[k];
+}
+template <class T>
+static void add_chunk_square(int n, T* from, T* to)
+{
+  for (int k=0; k < n; k++) to[k] += from[k]*from[k];
+}
+
 void SURF::copy_frame(int from, int to)
 {
   if (from == to) return;
-  const int from_offset = from*Nx*Ny; 
-  const int to_offset = to*Nx*Ny;
-  for (int i=0; i < Nx*Ny; i++) all_frames[to_offset+i] = all_frames[from_offset+i];
+  copy_chunk(Nx*Ny,&all_frames[from*Nx*Ny],&all_frames[to*Nx*Ny]);
+  copy_chunk(Ny,&counts[from*Ny],&counts[to*Ny]);
+  copy_chunk_square(Ny,&dcounts[from*Ny],&dcounts[to*Ny]);
+  copy_chunk(Ny,&I[from*Ny],&I[to*Ny]);
+  copy_chunk_square(Ny,&dI[from*Ny],&dI[to*Ny]);
   monitor[to] = monitor[from];
   dmonitor[to] = square(dmonitor[from]);
-  counts[to] = counts[from];
-  dcounts[to] = dcounts[from];
-  I[to] = I[from];
-  dI[to] = dI[from];
   tcb[to] = tcb[from];
 }
 
 void SURF::add_frame(int from, int to)
 {
-  const int from_offset = from*Nx*Ny;
-  const int to_offset = to*Nx*Ny;
-  for (int i=0; i < Nx*Ny; i++) all_frames[to_offset+i] += all_frames[from_offset+i];
+  add_chunk(Nx*Ny,&all_frames[from*Nx*Ny],&all_frames[to*Nx*Ny]);
+  add_chunk(Ny,&counts[from*Ny],&counts[to*Ny]);
+  add_chunk_square(Ny,&dcounts[from*Ny],&dcounts[to*Ny]);
+  add_chunk(Ny,&I[from*Ny],&I[to*Ny]);
+  add_chunk_square(Ny,&dI[from*Ny],&dI[to*Ny]);
   monitor[to] += monitor[from];
   dmonitor[to] += square(dmonitor[from]);
-  counts[to] += counts[from];
-  dcounts[to] += dcounts[from];
-  I[to] += I[from];
-  dI[to] += dI[from];
 }
 
 // Given a list [b_1 b_2 ... b_{n+1}], sum all data from b_i to b_{i+1}-1
@@ -540,26 +567,76 @@ void SURF::merge_frames(int n, int boundaries[])
 {
   for (int k=0; k < n; k++) {
     copy_frame(boundaries[k], k);
+DEBUG("merging " << boundaries[k] << " to " << boundaries[k+1] << " into " << k);
     for (int i=boundaries[k]+1; i < boundaries[k+1]; i++) add_frame(i,k);
   }
   // Adding in quadrature; take square roots
   for (int k=0; k < n; k++) {
+    dmonitor[k] = sqrt(dmonitor[k]);
+  }
+  for (int k=0; k < n*Ny; k++) {
     dI[k] = sqrt(dI[k]);
     dcounts[k] = sqrt(dcounts[k]);
-    dmonitor[k] = sqrt(dmonitor[k]);
   }
   // Throw away unneeded memory (really only need to do this for all_frames)
   all_frames.resize(n*Nx*Ny);
-  I.resize(n);
-  dI.resize(n);
-  counts.resize(n);
-  dcounts.resize(n);
+  I.resize(n*Ny);
+  dI.resize(n*Ny);
+  counts.resize(n*Ny);
+  dcounts.resize(n*Ny);
   monitor.resize(n);
   dmonitor.resize(n);
   tcb[n] = tcb[boundaries[n]];
   tcb.resize(n+1);
   nTimeChannels = n;
+DEBUG("rebin n=" << n << ", Ny=" << Ny);
   set_lambda();
+}
+
+void SURF::select_frames(double lo, double hi)
+{
+  int ilo=1;
+  while (ilo <= nTimeChannels && lambda_edges[ilo] <= lo) ilo++;
+  ilo--;
+  int ihi=ilo+1;
+  while (ihi < nTimeChannels && lambda_edges[ihi] < hi) ihi++;
+
+  std::vector<int> ichannels(ihi-ilo+1);
+  for (int i=ilo; i <= ihi; i++) ichannels[i-ilo] = i;
+
+  merge_frames(ihi-ilo,&ichannels[0]);
+}
+
+void SURF::merge_frames(double lo, double hi, double percent)
+{
+  if (percent == 0.) {
+    select_frames(lo,hi);
+    return;
+  }
+
+  // Convert percent to step
+  const double step = percent/100.+1.;
+
+  // Count bins
+  int n=0;
+  double next=lo;
+  while (next < hi) { next*=step; n++; }
+  std::vector<int> ichannels(n+1);
+
+  int i=1,k=0;
+  while (i <= nTimeChannels && lambda_edges[i] <= lo) i++;
+  ichannels[k++] = i-1;
+  next=lo*step;
+  while (i <= nTimeChannels && lambda_edges[i] <= hi) {
+    if (lambda_edges[i] > next) {
+      ichannels[k++] = i;
+      next *= step;
+    }
+    i++;
+  }
+  while (k <= n) ichannels[k++] = i; 
+
+  merge_frames(n, &ichannels[0]);
 }
 
 void SURF::printframe(int n, std::ostream& out)
@@ -599,7 +676,8 @@ print_sum_all_frames(SURF& data, std::ostream& out = std::cout)
   out << "# sum of all frames" << std::endl;
   std::vector<int> frame(data.sum_all_frames());
   for (int i=0; i < data.Nx; i++) {
-    for (int j=0; j < data.Ny; j++) out << " " << std::setw(10) << frame[j+i*data.Ny];
+    for (int j=0; j < data.Ny; j++) 
+      out << " " << std::setw(10) << frame[j+i*data.Ny];
     out << std::endl;
   }
 }
@@ -792,9 +870,32 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
     int k;
     if (Tcl_GetIntFromObj(interp,argv[2],&k) != TCL_OK) return TCL_ERROR;
 
-    std::vector<int> frame;
-    file->getframes(frame, k, 1);
-    return vector_result(interp, frame);
+    if (k > file->nTimeChannels || k < 0) {
+      Tcl_AppendResult(interp, isis_name,
+		    ": frame number must be 0 for sum or 1..Nt", NULL);
+      return TCL_ERROR;
+    }
+
+    if (k > 0) {
+      std::vector<double> frame;
+      file->getframe(frame, k-1);
+      return vector_result(interp, frame);
+    } else {
+      return vector_result(interp, file->sum_all_frames());
+    }
+
+  } else if (strcmp(method, "proportional_binning") == 0) {
+    if (argc != 5) {
+      Tcl_AppendResult( interp, isis_name,
+			": proportional_binning needs lo hi step%", NULL);
+      return TCL_ERROR;
+    }
+    double lo, hi, step;
+    if (Tcl_GetDoubleFromObj(interp,argv[2],&lo) != TCL_OK) return TCL_ERROR;
+    if (Tcl_GetDoubleFromObj(interp,argv[3],&hi) != TCL_OK) return TCL_ERROR;
+    if (Tcl_GetDoubleFromObj(interp,argv[4],&step) != TCL_OK) return TCL_ERROR;
+    file->load();
+    file->merge_frames(lo, hi, step);
   } else if (strcmp(method, "channels") == 0) {
     if (argc != 4) {
       Tcl_AppendResult( interp, isis_name, 
@@ -811,16 +912,15 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
     std::vector<int> ichannels(k+1);
     for (int i=0; i <= k; i++) ichannels[i] = int(channels[i]);
     file->merge_frames(k,&ichannels[0]);
-    return TCL_OK;
   } else if (strcmp(method,"close") == 0) {
     file->close();
-    return TCL_OK;
   } else {
     Tcl_AppendResult( interp, isis_name, 
                       ": expects close, Nx, Ny, Nt, monitor, frame i, counts, dcounts, active start stop, distance, pixelwidth, lambda, I or dI",
                       NULL);
      return TCL_ERROR;
   }
+  return TCL_OK;
 }
 
 static void

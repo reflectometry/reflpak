@@ -50,6 +50,7 @@ public:
   int getint(void);            // Read int from current position
   double getreal(void);        // Read real from current position
   void getbytes(signed char *b, int n); // Read string from current position
+  // FIXME call these spectra rather than frames
   int getframes(int data[], int frame, int num_frames); // Read a set of data frames
   int getframes(std::vector<int>& data, int frame, int num_frames);
   void getTimeChannelBoundaries(void);
@@ -88,7 +89,7 @@ public:
   const static double detector_distance=1184; //modified for 2.84 sampto det distance
   const static double rsampdet=2840.*2.;    //twice sample det distance required angle calcs
   const static double monitor_distance=850; // mod-monitor distance (cm)
-  const static double pixel=2.3;            // vertical sectrum spacing (mm)
+  const static double pixel=-2.3;            // vertical sectrum spacing (mm)
   std::vector<double> lambda_edges; // edges of the wavelength bins
   std::vector<double> lambda;     // wavelength (nTimeChannels)
   std::vector<double> dlambda;    // wavelength uncertainty
@@ -104,6 +105,7 @@ public:
   SURF() { set_delta(); }
   ~SURF() {}
   bool open(const char *file);    // Open the file
+  void load(void);                // Load the data
   void getframe(std::vector<double>& frame, int i);  // Return a particular frame
   std::vector<int> sum_all_frames(void);
   // Note: for isis files, we need to preload all frames because they are stored
@@ -115,6 +117,8 @@ public:
   void printcounts(int n, std::ostream& out = std::cout);
   void printspectrum(int n, std::ostream& out = std::cout);
   void merge_frames(int n, int boundaries[]);
+  void merge_frames(double lo, double hi, double step);
+  void select_frames(double lo, double hi);
 } ;
 
 /* From Robin Becker <robin@jessikat.fsnet.co.uk>
