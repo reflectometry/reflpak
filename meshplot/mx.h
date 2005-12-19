@@ -4,7 +4,8 @@
 
 #define mxtype PRECISION
 
-void mx_transpose(int n, int m, mxtype *a, mxtype *b);
+void mx_transpose(int m, int n, mxtype *a, mxtype *b);
+void mx_integrate(int m, int n, const mxtype *a, int dim, mxtype *b);
 void mx_extract_columns(int m, int n, const mxtype *a,
 			int column, int width, mxtype *b);
 void mx_divide_columns(int m, int n, mxtype *M, const mxtype *y);

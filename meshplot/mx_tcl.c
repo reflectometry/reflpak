@@ -95,6 +95,50 @@ fextract(ClientData junk, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+
+static int
+fintegrate(ClientData junk, Tcl_Interp *interp, 
+	 int argc, Tcl_Obj *CONST argv[])
+{
+  int m,n,dim,return_length;
+  const mxtype *x;
+  mxtype *y;
+  Tcl_Obj *yobj;
+  const char *name;
+
+  /* Interpret args */
+  if (argc != 5) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"fintegrate m n x dim\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
+      || Tcl_GetIntFromObj(interp,argv[2],&n) != TCL_OK
+      || Tcl_GetIntFromObj(interp,argv[4],&dim) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+
+  /* Get data vector */
+  name = Tcl_GetString(argv[3]);
+  x = get_tcl_vector(interp,name,"fintegrate","x",m*n);
+  if (x == NULL) return TCL_ERROR;
+
+  /* Build return vector */
+  return_length = (dim == 1 ? n : m);
+  yobj = Tcl_NewByteArrayObj(NULL,0);
+  if (!yobj) return TCL_ERROR;
+  Tcl_SetObjResult(interp,yobj);
+  y = (mxtype *)Tcl_SetByteArrayLength(yobj,return_length*sizeof(mxtype));
+  if (!y) return TCL_ERROR;
+
+  /* Extract data */
+  mx_integrate(m,n,x,dim,y);
+
+  return TCL_OK;
+}
+
 /* wrap in-place transpose function */
 static int 
 ftranspose(ClientData junk, Tcl_Interp *interp, 
@@ -171,6 +215,7 @@ void mx_init(Tcl_Interp *interp)
 {
   Tcl_CreateObjCommand( interp, "ftranspose", ftranspose, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fextract", fextract, NULL, NULL );
+  Tcl_CreateObjCommand( interp, "fintegrate", fintegrate, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fdivide", fdivide, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fprecision", fprecision, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fslice", fslice, NULL, NULL );

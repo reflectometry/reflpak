@@ -36,6 +36,23 @@ void mx_transpose(int n, int m, mxtype *a, mxtype *b)
   }
 }
 
+void mx_integrate(int m, int n, const mxtype *a,
+		  int dim, mxtype *b)
+{
+  int i,j;
+  if (dim == 1) {
+    for (j=0; j < n; j++) {
+      b[j] = 0;
+      for (i=0; i < m; i++) b[j] += a[j+i*n];
+    }
+  } else {
+    for (i=0; i < m; i++) {
+      b[i] = 0;
+      for (j=0; j < n; j++) b[i] += a[j+i*n];
+    }
+  }
+}
+
 /* 0-origin dense column extraction */
 void mx_extract_columns(int m, int n, const mxtype *a,
 			int column, int width, mxtype *b)
