@@ -88,6 +88,7 @@ catch { package require snit }
     delegate option -yborder to YAxis as -width
     delegate option -cursor to hull
     delegate option -width to hull
+    delegate option -borderwidth to hull
 
     hulltype frame
     constructor {args} {
@@ -105,7 +106,11 @@ catch { package require snit }
 	$self configure -vmin 0 -vmax 1 -xmin 0 -xmax 1 -ymin 0 -ymax 1
 
 	#event add <<Pick>> <Button-1>
-	event add <<Navigate>> <ButtonPress-1>
+	event add <<Zoom>> <ButtonPress-1>
+	event add <<ZoomMove>> <Motion>
+	event add <<ZoomEnd>> <ButtonRelease-1>
+	event add <<Navigate>> <Shift-ButtonPress-1>
+	event add <<Navigate>> <Control-ButtonPress-1>
         event add <<NavigateEnd>> <ButtonRelease-1>
 	event add <<Pan>> <Button-2>
 	event add <<ContextMenu>> <Button-3>
@@ -113,9 +118,19 @@ catch { package require snit }
 	bind $win.c <<Navigate>> [subst {$win navigate xy 5 %x %y}]
 	bind $win.x <<Navigate>> [subst {$win navigate x 5 %x %y}]
 	bind $win.y <<Navigate>> [subst {$win navigate y 5 %x %y}]
-        bind $win.c <<NavigateEnd>> [subst {$win navigate halt}]
-        bind $win.x <<NavigateEnd>> [subst {$win navigate halt}]
-        bind $win.y <<NavigateEnd>> [subst {$win navigate halt}]
+        bind $win.c <<NavigateEnd>> [subst {$win navigate halt 0 %x %y}]
+        bind $win.x <<NavigateEnd>> [subst {$win navigate halt 0 %x %y}]
+        bind $win.y <<NavigateEnd>> [subst {$win navigate halt 0 %x %y}]
+
+	bind $win.c <<Zoom>> [subst {$win zoombox start xy %x %y}]
+	bind $win.x <<Zoom>> [subst {$win zoombox start x %x %y}]
+	bind $win.y <<Zoom>> [subst {$win zoombox start y %x %y}]
+	bind $win.c <<ZoomMove>> [subst {$win zoombox move xy %x %y}]
+	bind $win.x <<ZoomMove>> [subst {$win zoombox move x %x %y}]
+	bind $win.y <<ZoomMove>> [subst {$win zoombox move y %x %y}]
+	bind $win.c <<ZoomEnd>> [subst {$win zoombox end xy %x %y}]
+	bind $win.x <<ZoomEnd>> [subst {$win zoombox end x %x %y}]
+	bind $win.y <<ZoomEnd>> [subst {$win zoombox end y %x %y}]
 
 	bind $win.c <<Wheel>> "$win zoom  \[mousewheel step %W] %x %y"
 	bind $win.x <<Wheel>> "$win xzoom \[mousewheel step %W] %x"
@@ -137,10 +152,37 @@ catch { package require snit }
 	    -command "pan start $win"
 	$Menu add command -label "Grid" \
 	    -command "$win.c grid toggle; $win.c draw"
+#	$Menu add command -label "Log(data)" \
+#	    -command "$win.c logdata toggle; $win.c draw"
     }
 
     method contextmenu {X Y} {
 	tk_popup $Menu $X $Y
+    }
+
+    variable zoom_x {} 
+    variable zoom_y {}
+    method zoombox { which dir x y } {
+	variable zoom_x 
+	variable zoom_y
+	if { $which eq "start" } {
+            set zoom_x $x
+	    set zoom_y $y
+        } elseif { $which eq "move" } {
+	    # if zooming update bounding box
+	} elseif { $which eq "end" } {
+            if { $zoom_x ne {} && $zoom_x != $x && $zoom_y != $y } {
+		foreach {l t} [$self coords $zoom_x $zoom_y] {}
+		foreach {r b} [$self coords $x $y] {}
+	        if { $l > $r } { foreach {l r} [list $r $l] {} }
+	        if { $b > $t } { foreach {t b} [list $b $t] {} }
+		if { $dir == "x" || $dir == "xy" } { $self configure -xmin $l -xmax $r }
+                if { $dir == "y" || $dir == "xy" } { $self configure -ymin $b -ymax $t }
+		$self draw
+	    }
+	    set zoom_x {}
+	    set zoom_y {}
+	}
     }
 
     method navigate { which {n 5} {x {}} {y {}} } {
@@ -234,6 +276,8 @@ catch { package require snit }
 	$Mesh grid $options(-grid)
 
 	$Mesh limits $options(-xmin) $options(-xmax) $options(-ymin) $options(-ymax)
+# puts "Setting vrange ($options(-vmin),$options(-vmax))"
+	$Mesh vrange $options(-vmin) $options(-vmax)
 	$Mesh draw
 
 	$XAxis draw
@@ -319,6 +363,14 @@ catch { package require snit }
 	}
     }
 
+    method logdata {state} {
+	if { $state == "toggle" } {
+	    $self configure -logdata [string is false $options(-logdata)]
+	} else {
+	    $self configure -logdata $state
+	}
+    }
+
     method Logdata {op v} {
 	$Mesh logdata $v
     }
@@ -367,17 +419,19 @@ catch { package require snit }
 
 
     typemethod demo {} {
-	meshlegend .cl
-	meshplot .c -legend .cl
-	meshplot .d
-	grid .c .d -sticky news
-	grid .cl - -sticky news
-	grid rowconfigure . 0 -w 1
-	grid columnconfigure . {0 1} -w 1
-	wm geometry . 500x400
-	.c example
-	.d plot_demo
-	.c configure -grid on
+	set w [toplevel .meshplot]
+	meshlegend $w.cl
+	meshplot $w.c -legend $w.cl
+	meshplot $w.d
+	grid $w.c $w.d -sticky news
+	grid $w.cl - -sticky news
+	grid rowconfigure $w 0 -w 1
+	grid columnconfigure $w {0 1} -w 1
+	
+	wm geometry $w 500x400
+	$w.c example
+	$w.d plot_demo
+	$w.c configure -grid on
     }
 
 }
