@@ -23,9 +23,9 @@
 
 const double Plancks_constant=6.62618e-27; // Planck constant (erg*sec)
 const double neutron_mass=1.67495e-24;     // neutron mass (g)
-inline double TOF_to_wavelength(double d)
+inline double TOF_to_wavelength(double d)  // distance (m)
 {
-  return Plancks_constant*100./(neutron_mass*d);
+  return Plancks_constant/(neutron_mass*d);
 }
 
 void isis_file::seek(section_number section, int p) // Jump to position p in a section
@@ -340,11 +340,13 @@ isis_file::open(const char *filename)
 
 // Detector solid angle as a function of pixel width and detector distance
 static void 
-set_delta(int Ny, double delta[], double pixelwidth, double detectordistance)
+set_delta(int n, double delta[], double pixelwidth, double detectordistance)
 {
   // Set y coordinates
-  for (int i=0; i < Ny; i++) 
-    delta[i] = 2*atan2(pixelwidth*i,detectordistance);
+  for (int i=0; i < n; i++) {
+    delta[i] = 180./M_PI*atan2(pixelwidth*(i+1-n/2.),detectordistance);
+    //    std::cout << "atan2(" << pixelwidth*(i-n/2.) << "," << detectordistance << ") = " << delta[i] << std::endl;
+  }
 }
 
 bool SURF::open(const char *file)
@@ -394,7 +396,7 @@ void SURF::getframe(std::vector<double>& frame, int n)
 void SURF::set_delta(void)
 {
   delta.resize(Ny);
-  ::set_delta(Ny,&delta[0],pixel,rsampdet);
+  ::set_delta(Ny,&delta[0],pixel_width,sample_to_detector);
 }
  
 void SURF::integrate_counts(void)
@@ -425,7 +427,7 @@ void SURF::set_lambda(void)
   lambda.resize(nTimeChannels);
   dlambda.resize(nTimeChannels);
   lambda_edges.resize(nTimeChannels+1);
-  const double scale = TOF_to_wavelength(detector_distance);
+  const double scale = TOF_to_wavelength(moderator_to_detector);
   for (int i=0; i <= nTimeChannels; i++) lambda_edges[i] = tcb[i]*scale;
   for (int i=0; i < nTimeChannels; i++) {
     lambda[i] = 0.5 * (tcb[i] + tcb[i+1])*scale;
@@ -456,7 +458,7 @@ void SURF::load_monitor(void)
 
   // Compute wavelengths at the time boundaries for detector and monitor
   std::vector<double> monitor_edges(nTimeChannels+1);
-  const double scale = TOF_to_wavelength(monitor_distance); 
+  const double scale = TOF_to_wavelength(moderator_to_monitor); 
   for (int i = 0; i <= nTimeChannels; i++) monitor_edges[i] = tcb[i]*scale;
   for (int i=0; i < nTimeChannels; i++) 
     monitor_lambda[i] = (tcb[i]+tcb[i+1])*scale/2.;
@@ -829,10 +831,10 @@ isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST 
     return int_result(interp, file->Ny);
   } else if (strcmp(method, "Nt") == 0) {
     return int_result(interp, file->nTimeChannels);
-  } else if (strcmp(method, "distance") == 0) {
-    return real_result(interp, file->detector_distance);
+  } else if (strcmp(method, "sampletodetector") == 0) {
+    return real_result(interp, file->sample_to_detector);
   } else if (strcmp(method, "pixelwidth") == 0) {
-    return real_result(interp, file->pixel);
+    return real_result(interp, file->pixel_width);
   } else if (strcmp(method, "counts") == 0) {
     return vector_result(interp, file->counts);
   } else if (strcmp(method, "dcounts") == 0) {

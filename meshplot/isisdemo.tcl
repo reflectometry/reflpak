@@ -9,7 +9,7 @@ proc demo {{mesh_style QxQz}} {
     isis::read_data [file join $DATADIR isis SRF25149.RAW] rec2000
 
     plot2d transform $w $mesh_style
-    plot2d center $w 23.5
+    plot2d center $w 25
     plot2d add $w { rec2000 }
     $w configure -vmin 0.002 -vmax 2.
     reflplot::monitor rec2000
@@ -30,7 +30,7 @@ proc read_data { file id } {
     set rec(TOF) 1
     set rec(A) 1.5
     set rec(B) 3.0
-    set rec(distance) [$fid distance]
+    set rec(distance) [$fid sampletodetector]
     set rec(pixelwidth) [$fid pixelwidth]
     set rec(pixels) [$fid Ny]
     set rec(column,monitor_raw) [$fid monitor_raw]

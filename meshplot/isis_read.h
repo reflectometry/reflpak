@@ -86,10 +86,10 @@ class SURF : public isis_file
   std::vector<int> all_frames;
 public:
   const static int Nx=40, Ny=46;            // Detector dimensions
-  const static double detector_distance=1184; //modified for 2.84 sampto det distance
-  const static double rsampdet=2840.*2.;    //twice sample det distance required angle calcs
-  const static double monitor_distance=850; // mod-monitor distance (cm)
-  const static double pixel=-2.3;            // vertical sectrum spacing (mm)
+  const static double moderator_to_detector=11.84; // (m)
+  const static double sample_to_detector=2.84;     // (m)
+  const static double moderator_to_monitor=8.5;    // (m)
+  const static double pixel_width=-0.0023;         // (m)
   std::vector<double> lambda_edges; // edges of the wavelength bins
   std::vector<double> lambda;     // wavelength (nTimeChannels)
   std::vector<double> dlambda;    // wavelength uncertainty
