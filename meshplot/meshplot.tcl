@@ -65,6 +65,50 @@ catch { package require snit }
     }
 }
 
+::snit::widget meshcolorbar {
+    option -min
+    option -max
+    component Color
+    component ZAxis
+    delegate option -padx to hull
+    delegate option -pady to hull
+    delegate option -logscale to ZAxis
+
+    hulltype frame
+    constructor {args} {
+	# FIXME need to allow tics on right, left, top or bottom.
+	install Color using togl $win.bar -rgba true -double true -width 0.75c
+#	install Color using canvas $win.bar -width 0.5c
+	install ZAxis using axis $win.z -side right -width 2c
+	grid $win.bar $win.z -sticky news
+	grid columnconfigure $win 0 -weight 1
+	grid rowconfigure $win 0 -weight 1
+	$self configure -min 0 -max 1
+
+	# Add mesh to colorbar
+	set n 1024
+	fvector xv [linspace 0 1 [expr {$n+1}]]
+	fvector yv [linspace 0 1 2]
+	foreach {x y} [buildmesh $n 1 xv yv] {}
+	fvector z [linspace 0 1 $n]
+	$Color vrange 0. 1.
+	$Color limits 0. 1. 0. 1.
+	$Color mesh $n 1 x y z
+    }
+    method draw {args} {
+	# $Color draw
+	$ZAxis configure -min $options(-min) -max $options(-max)
+	$ZAxis draw
+    }
+
+    method vrange {min max} { $self configure -min $min -max $max }
+
+    method colormap {map} { 
+	# $Color colormap map 
+    }
+
+}
+
 ::snit::widget meshplot {
 #    option -xborder -default 1c
 #    option -yborder -default 2c
@@ -79,6 +123,7 @@ catch { package require snit }
     option -grid
     option -logdata -configuremethod Logdata
     option -legend -default {}
+    option -colorbar -default {}
 
     component XAxis
     component YAxis
@@ -278,6 +323,10 @@ catch { package require snit }
 	$Mesh limits $options(-xmin) $options(-xmax) $options(-ymin) $options(-ymax)
 # puts "Setting vrange ($options(-vmin),$options(-vmax))"
 	$Mesh vrange $options(-vmin) $options(-vmax)
+	if { $options(-colorbar) != "" } {
+	    $options(-colorbar) vrange $options(-vmin) $options(-vmax)
+	    $options(-colorbar) draw
+	}
 	$Mesh draw
 
 	$XAxis draw
@@ -313,7 +362,12 @@ catch { package require snit }
 
     method hue {h} { $Mesh valmap $h }
 
-    method colormap {map} { $Mesh colormap map }
+    method colormap {map} { 
+	$Mesh colormap map 
+	if { $options(-colorbar) != "" } {
+	    $options(-colorbar) colormap map
+	}
+    }
 
     method mesh {m n x y v {name {}}} {
 	set xvar $x
@@ -372,6 +426,10 @@ catch { package require snit }
     }
 
     method Logdata {op v} {
+	if { $options(-colorbar) != "" } {
+#puts "Logdata with colorbar $options(-colorbar) and v=$v"
+	    $options(-colorbar) configure -logscale $v
+	}
 	$Mesh logdata $v
     }
 
