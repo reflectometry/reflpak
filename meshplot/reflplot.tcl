@@ -381,7 +381,7 @@ proc SetFrame {v} {
     foreach {frame(x) frame(y)} [buildmesh $frame(nx) $frame(ny) frame(xv) frame(yv)] {}
     set frame(data) [$rec(fid) frame $v]
     foreach {lo hi} [flimits frame(data)] {}
-    if {$v != 0 } { set lo 0.5 }
+    if {$v != 0 } { set lo 1. }
     $frame(plot) configure -vrange [list $lo $hi]
     $frame(plot) delete
     $frame(plot) mesh $frame(nx) $frame(ny) $frame(x) $frame(y) $frame(data)
@@ -414,12 +414,14 @@ proc frameplot {id} {
 	set frame(slice) $w.slice
 
 	vector create ::frame_x ::frame_y
-	graph $frame(slice) -height 100 -leftmargin 79 -rightmargin 0 \
+	graph $frame(slice) -height 100 -leftmargin 2c -rightmargin 0 \
 	    -border 0 -plotpadx 0 -plotpady 0 -plotborderwidth 0
 	$frame(slice) elem create data -xdata ::frame_x -ydata ::frame_y
 	$frame(slice) legend configure -hide 1
 	$frame(slice) axis configure x -hide 1
-        meshplot $frame(plot) -borderwidth 4
+	meshcolorbar $w.cb
+	$w.cb configure -pady 1cm
+        meshplot $frame(plot) -borderwidth 4 -colorbar $w.cb
         $frame(plot) delete
         $frame(plot) colormap [colormap_bright 64]
         $frame(plot) configure -logdata off -grid on
@@ -451,10 +453,10 @@ proc frameplot {id} {
 	grid $f.sum $f.single $f.framenum $f.wavelength_label $f.wavelength
 	label $w.message -relief ridge -anchor w
         # scrollbar $w.select -takefocus 1 -orient horiz
-	grid $frame(slice) -sticky news
-	grid $frame(plot) -sticky news
-        grid $f -sticky w
-        grid $w.message -sticky ew
+	grid $frame(slice) $w.cb -sticky news
+	grid $frame(plot)   ^ -sticky news
+        grid $f - -sticky w
+        grid $w.message - -sticky ew
 	grid rowconfigure $w 0 -weight 1
 	grid rowconfigure $w 1 -weight 5
 	grid columnconfigure $w 0 -weight 1
@@ -699,6 +701,9 @@ proc plot_window {{w .plot}} {
 
     # Create a plot window
     plot2d new $w.c
+    meshcolorbar $w.cb
+    $w.cb configure -pady 1cm
+    $w.c configure -colorbar $w.cb -logdata on
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
@@ -736,9 +741,9 @@ proc plot_window {{w .plot}} {
 
     label $w.message -relief ridge -anchor w
  
-    grid $w.c -sticky news
-    grid $w.controls -sticky w
-    grid $w.message -sticky ew
+    grid $w.c $w.cb -sticky news
+    grid $w.controls - -sticky w
+    grid $w.message - -sticky ew
     grid rowconfigure $w 0 -w 1
     grid columnconfigure $w 0 -w 1
     return $w.c
