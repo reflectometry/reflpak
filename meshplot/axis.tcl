@@ -22,6 +22,7 @@ package require snit
     option -side -default left
     option -min -default 0.
     option -max -default 1.
+    option -logscale -default 0
 
     method setlength {} {
     }
@@ -32,11 +33,19 @@ package require snit
 	set h [expr {[winfo height $win]-1}]
 	switch -- $options(-side) {
 	    default -
-	    left { set draw ldraw; set d $h }
-	    right { set draw rdraw; set d $h }
-	    top { set draw tdraw; set d $w }
-	    bottom { set draw bdraw; set d $w }
+	    left { set draw ldraw; set d $h; set spacing 0.5 }
+	    right { set draw rdraw; set d $h; set spacing 0.5 }
+	    top { set draw tdraw; set d $w; set spacing 1.25 }
+	    bottom { set draw bdraw; set d $w; set spacing 1.25 }
 	}
+
+	# Determine the number of major increments, at most 2 per inch.
+	set steps [expr {ceil($d/([tk scaling]*72.)/$spacing)}]
+	if {$steps < 1.} { set steps 1. }
+	# FIXME if horizontal scale with lots of digits per number
+	# then we will need cut down the number of major tics and
+	# increase the number of displayed digits
+
 
 	# Sort max and min
 	if {$options(-min) >= $options(-max)} {
@@ -55,12 +64,14 @@ package require snit
 		lappend mtics [expr {double($value-$min)/double($max-$min)}]
 	    }
 	} else {
-	    # Determine the number of major increments, at most 2 per inch.
-	    set steps [expr {ceil(2.*$d/([tk scaling]*72.))}]
-	    if {$steps < 1.} { set steps 1. }
-
 	    # turn min,max,steps into major,minor tics
-	    $self compute_tics $options(-min) $options(-max) $steps tics mtics
+	    if {[string is true $options(-logscale)]} {
+		# puts "log tics in \[$options(-min), $options(-max)]"
+		$self log_tics $options(-min) $options(-max) $steps tics mtics
+	    } else {
+		# puts "linear tics in \[$options(-min), $options(-max)]"
+		$self linear_tics $options(-min) $options(-max) $steps tics mtics
+	    }
 	}
 
 	#Example tics for testing purposes
@@ -81,7 +92,7 @@ package require snit
 	    $win create line $w $p $endpos $p -width 1p -tag All
 	    $win create text $labpos $p -text $text -anchor e -tag All
 	}
-	set endpos [expr {$w-3.*[tk scaling]}]
+	set endpos [expr {$w-3.*[tk scaling]+1}]
 	foreach pos $mtics {
 	    set p [expr {$h - $h*$pos}]
 	    $win create line $w $p $endpos $p -width 1p -tag All
@@ -131,14 +142,14 @@ package require snit
 	set h [expr {[winfo height $win]-1}]
 	$win delete All
 	$win create line 0 $h [expr {$w+1}] $h -width 1p -tag All
-	set endpos [expr {$h-5.*[tk scaling]+1}]
-	set labpos [expr {$h-7.*[tk scaling]+1}]
+	set endpos [expr {$h-5.*[tk scaling]}]
+	set labpos [expr {$h-7.*[tk scaling]}]
 	foreach {pos text} $tics {
 	    set p [expr {$w*$pos}]
 	    $win create line $p $endpos $p $h -width 1p -tag All
 	    $win create text $p $labpos -text $text -anchor s -tag All
 	}
-	set endpos [expr {$h-3.*[tk scaling]}]
+	set endpos [expr {$h-3.*[tk scaling]+1}]
 	foreach pos $mtics {
 	    set p [expr {$w*$pos}]
 	    $win create line $p $endpos $p $h -width 1p -tag All
@@ -146,7 +157,80 @@ package require snit
     }
 
 
-    method compute_tics {min max steps tics_v mtics_v} {
+    method log_tic_values {min max steps tics_v mtics_v} {
+	upvar $tics_v tics
+	upvar $mtics_v mtics
+
+	set tics {}
+	set mtics {}
+	set range [expr {log10(double($max)/double($min))}]
+	set val [expr {pow(10,floor(log10($min)))}]
+	if { $range < 0.5 } {
+	    # puts " Log scale with linear tics"
+	    $self linear_tic_values $min $max $steps tics mtics
+	} elseif { $range > $steps } {
+	    # puts " Multiple decades per tic, minor tics at remainder"
+	    # FIXME may want multiple decades per minor tic too
+	    set subtics [expr {int(ceil($range/$steps))}]
+	    if { $val < $min } { set val [expr {$val*10}] }
+	    set i 0
+	    while { $val <= $max } {
+		if { $i % $subtics == 0 } {
+		    lappend tics $val
+		} else {
+		    lappend mtics $val
+		}
+		set val [expr {$val*10.}]
+		incr i
+	    }
+	} elseif { $range*3 > $steps } {
+	    # puts " Major tics at decades, minor tics at 2 and 5"
+	    while { $val <= $max } {
+		if { $val >= $min && $val <= $max } {
+		    lappend tics $val
+		}
+		if { 2*$val >= $min && 2*$val <= $max } {
+		    lappend mtics [expr {2*$val}]
+		}
+		if { 5*$val >= $min && 5*$val <= $max } {
+		    lappend mtics [expr {5*$val}]
+		}
+		set val [expr {$val*10}]
+	    }
+	} elseif { $range*10 > $steps } {
+	    # puts " Major tics at 1 2 5, minor tics at 3 4 6 7 8 9"
+	    while { $val <= $max } {
+		set i 1
+		while { $i < 10 } {
+		    if { $i * $val >= $min && $i * $val <= $max } {
+			if { $i == 1 || $i == 2 || $i == 5 } {
+			    lappend tics [expr {$i*$val}]
+			} else {
+			    lappend mtics [expr {$i*$val}]
+			}
+		    }
+		    incr i
+		}
+		set val [expr {$val*10}]
+	    }
+	} else {
+	    # puts " Major tics at 1 2 3 4 5 6 7 8 9, no minor tics"
+	    # FIXME consider minor tics at 1.2, 1.5, 2.5, 3.5, 4.5
+	    while { $val <= $max } {
+		set i 1
+		while { $i < 10 } {
+		    if { $i * $val >= $min && $i * $val <= $max } {
+			lappend tics [expr {$i*$val}]
+		    }
+		    incr i
+		}
+		set val [expr {$val*10}]
+	    }
+	}
+
+    }
+
+    method linear_tic_values {min max steps tics_v mtics_v} {
 	upvar $tics_v tics
 	upvar $mtics_v mtics
 
@@ -173,19 +257,82 @@ package require snit
 	set mtics {}
 	set d [expr {$n*$minor}]
 	while {$d <= $max} {
-	    # normalize position to [0,1]
-	    set pos [expr {($d-$min)/$range}]
 	    if {  $n%$sub == 0 } {
 		# major tic --- normalized position followed by text
-		# XXX FIXME XXX if we are looking at a small range
+		# FIXME if we are looking at a small range
 		# away from 0, we are losing too many digits
-		lappend tics $pos [format %g $d]
+		lappend tics $d
 	    } else {
 		# minor tic --- just add normalized position
-		lappend mtics $pos
+		lappend mtics $d
 	    }
 	    set d [expr {[incr n]*$minor}]
-	}	
+	}
+    }
+
+    method linear_tics {min max steps tics_v mtics_v} {
+	upvar $tics_v tics
+	upvar $mtics_v mtics
+
+	# locate tic marks
+	$self linear_tic_values $min $max $steps tv mtv
+
+	# compute number of digits to display for major tic marks
+	if { [llength $tv] > 1 } {
+	    set step [expr {[lindex $tv 1]-[lindex $tv 0]}]
+	    set precision [expr {int(floor(log10($step)))}]
+	    if { $precision < 0 } { 
+		set precision [expr {-$precision+1}]
+	    } else {
+		set precision 0
+	    }
+	} else {
+	    set precision 0
+	}
+ 
+	# normalize marks to [0,1] and format major tic labels
+	set tics {}
+	set mtics {}
+ 	set range [expr {$max-$min}]
+	foreach v $tv {
+	    set pos [expr {($v-$min)/$range}]
+	    if { $precision > 0 } {
+		lappend tics $pos [format %.*g $precision $v]
+	    } else {
+		lappend tics $pos [format %g $v]
+	    }
+	}
+	foreach v $mtv {
+	    set pos [expr {($v-$min)/$range}]
+	    lappend mtics $pos 
+	}
+    }
+
+    method log_tics {min max steps tics_v mtics_v} {
+	upvar $tics_v tics
+	upvar $mtics_v mtics
+
+	# Correct bad ranges
+	# FIXME this needs to be based on the actual values plotted
+	if { $max <= 0 } { set max 1. }
+	if { $min <= 0 } { set min [expr {$max/1000.}] }
+
+	# locate tic marks
+	$self log_tic_values $min $max $steps tv mtv
+ 
+	# normalize marks to [0,1] and format major tic labels
+	set tics {}
+	set mtics {}
+	set min [expr {log10($min)}]
+ 	set range [expr {log10($max)-$min}]
+	foreach v $tv {
+	    set pos [expr {(log10($v)-$min)/$range}]
+	    lappend tics $pos [format %g $v]
+	}
+	foreach v $mtv {
+	    set pos [expr {(log10($v)-$min)/$range}]
+	    lappend mtics $pos 
+	}
     }
 }
 
@@ -205,15 +352,19 @@ if {[info exists argv0] && [file tail [info script]]==[file tail $argv0]} {
     axis .x2 -height 1c -side top -bg yellow -min 3.141597 -max 3.141599
     axis .x3 -height 1c -side bottom -bg green -min -335.793 -max -327.31
     canvas .c -bg green -highlightthickness 0
+    axis .x4 -height 1c -side top -bg green -min 6 -max 98 -logscale 1
+    axis .y3 -width 2c -side left -bg green -min 256 -max 257 -logscale 1
+    axis .y4 -width 2c -side right -bg green -min .3 -max 857000 -logscale 1
 
-    grid  x .x2  x  -sticky news
-    grid .y .c  .y2 -sticky news
-    grid  x .x   x  -sticky news
-    grid  x .x3  x  -sticky news
+    grid  x   x .x4  x   x  -sticky news
+    grid  x   x .x2  x   x  -sticky news
+    grid .y3 .y .c  .y2 .y4 -sticky news
+    grid  x   x .x   x   x  -sticky news
+    grid  x   x .x3  x   x  -sticky news
     grid columnconfig . {0 2} -minsize 2c
-    grid columnconfig . 1 -weight 1
+    grid columnconfig . 2 -weight 1
     grid rowconfig . {0 2} -minsize 1c
-    grid rowconfig . 1 -weight 1
+    grid rowconfig . 2 -weight 1
     . conf -width 15c -height 10c
 }
 
