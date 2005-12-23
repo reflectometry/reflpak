@@ -27,6 +27,8 @@ FLIBS=-lftn -lm
 
 # C compiler
 CC=cc
+CXX=g++
+#CXX=CC -I/data/freeware/src/CC-isoheaders 
 C99=c99 -DNEED_C99_MATH_PROTOTYPES
 CFLAGS=-O -n32 $(TCL_INCLUDE_SPEC) $(DEBUG)
 LIBS=$(TCL_STUB_LIB_SPEC) $(FLIBS)
