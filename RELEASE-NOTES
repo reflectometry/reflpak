@@ -3,6 +3,11 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2005-12-23
+
+* Add data line export to graph context menus
+* RED: Fix calculation of Qz in UXD files
+
 2005-10-27
 * RED: Support for ICP Q scans
 * RED: Improved PSD viewer
