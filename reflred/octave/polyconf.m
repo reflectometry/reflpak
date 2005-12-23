@@ -19,9 +19,10 @@
 ##
 ## polyconf(...,1-alpha)
 ##
-##   The width of the prediction interval. The default is .05 for
-##   a 95% prediction interval, or erfc(1/sqrt(2)) for a one
-##   standard deviation confidence interval.
+##   Control the width of the interval. If asking for the prediction
+##   interval 'pi', the default is .05 for the 95% prediction interval.
+##   If asking for the confidence interval 'ci', the default is
+##   erfc(1/sqrt(2)) for a one standard deviation confidence interval.
 ##
 ## Example:
 ##  [p,s] = polyfit(x,y,1);
@@ -29,6 +30,9 @@
 ##  [yf,dyf] = polyconf(p,xf,s,'ci');
 ##  plot(xf,yf,'g-;fit;',xf,yf+dyf,'g.;;',xf,yf-dyf,'g.;;',x,y,'xr;data;');
 ##  plot(x,y-polyval(p,x),';residuals;',xf,dyf,'g-;;',xf,-dyf,'g-;;');
+
+## Author: Paul Kienzle
+## This program is granted to the public domain.
 function [y,dy] = polyconf(p,x,varargin)
   alpha = s = [];
   typestr = 'pi';
@@ -69,9 +73,9 @@ end
 %! strength=[66.3;64.84;64.36;69.70;66.26;72.06;73.23;71.4;68.85;75.78;72.57;76.64;78.87;77.37;75.94;78.82;77.13;77.09];
 %! [p,s] = polyfit(temperature,strength,1);
 %! [y,dy] = polyconf(p,40,s,0.05,'ci');
-%! assert([y,dy],[66.15396825396826,1.71702862681486],100*eps);
+%! assert([y,dy],[66.15396825396826,1.71702862681486],200*eps);
 %! [y,dy] = polyconf(p,40,s,0.05,'pi');
-%! assert(dy,4.45345484470743,100*eps);
+%! assert(dy,4.45345484470743,200*eps);
 
 ## [y,dy] = confidence(A,p,s)
 ##
@@ -95,9 +99,10 @@ end
 ##
 ## confidence(...,1-alpha)
 ##
-##   The width of the confidence interval. The default is .05 for
-##   a 95% prediction interval, or erfc(1/sqrt(2)) for a one
-##   standard deviation confidence interval.
+##   Control the width of the interval. If asking for the prediction
+##   interval 'pi', the default is .05 for the 95% prediction interval.
+##   If asking for the confidence interval 'ci', the default is
+##   erfc(1/sqrt(2)) for a one standard deviation confidence interval.
 ##
 ## Confidence intervals for linear system are given by:
 ##    x' p +/- sqrt( Finv(1-a,1,df) var(x' p) )
