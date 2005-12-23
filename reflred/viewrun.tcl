@@ -329,15 +329,18 @@ proc addrun_point_info { w x y name idx msg } {
 	Q4 { set y [Q4_unscale_point $x $y] }
 	Fresnel { set y [Fresnel_unscale_point $x $y] }
     }
+    # display Q and normalized counts
     append msg " ([fix $x {} {} 5], [fix $y {} {} 5])"
+    # display raw counts
     if { [vector_exists ::counts_$name]} {
 	append msg "  counts: [expr int([set ::counts_${name}($idx)])]"
     }
+    # display angles to the nearest 0.0001 degree
     if { [vector_exists ::alpha_$name]} {
-	append msg "  A: [fix [set ::alpha_${name}($idx)]]$::symbol(degree)"
+	append msg "  A: [expr {round([set ::alpha_${name}($idx)]/0.0001)*0.0001}]$::symbol(degree)"
     }
     if { [vector_exists ::beta_$name]} {
-	append msg "  B: [fix [set ::beta_${name}($idx)]]$::symbol(degree)"
+	append msg "  B: [expr {round([set ::beta_${name}($idx)]/0.0001)*0.0001}]$::symbol(degree)"
     }
     return $msg
 }
@@ -1184,10 +1187,15 @@ proc _draw_node { path node x0 y0 deltax deltay padx showlines } {
     }
 
     if { [string compare $dc "never"] && ($len || ![string compare $dc "allways"]) } {
+	if { [info exists ::BWIDGET::SHARE] } {
+	    set bwidget_share $::BWIDGET::SHARE
+	} else {
+	    set bwidget_share $::BWIDGET::LIBRARY
+	}
         if { $exp } {
-            set bmp [file join $::BWIDGET::LIBRARY "images" "minus.xbm"]
+            set bmp [file join $bwidget_share "images" "minus.xbm"]
         } else {
-            set bmp [file join $::BWIDGET::LIBRARY "images" "plus.xbm"]
+            set bmp [file join $bwidget_share "images" "plus.xbm"]
         }
         $path.c create bitmap $x0 $y0 \
             -bitmap     @$bmp \
