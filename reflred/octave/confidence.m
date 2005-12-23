@@ -20,9 +20,10 @@
 ##
 ## confidence(...,1-alpha)
 ##
-##   The width of the confidence interval. The default is .05 for
-##   a 95% prediction interval, or erfc(1/sqrt(2)) for a one
-##   standard deviation confidence interval.
+##   Control the width of the interval. If asking for the prediction
+##   interval 'pi', the default is .05 for the 95% prediction interval.
+##   If asking for the confidence interval 'ci', the default is 
+##   erfc(1/sqrt(2)) for a one standard deviation confidence interval.
 ##
 ## Confidence intervals for linear system are given by:
 ##    x' p +/- sqrt( Finv(1-a,1,df) var(x' p) )
