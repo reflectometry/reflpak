@@ -196,7 +196,7 @@ proc axis_toggle {w} {
 # TODO should be able to restrict the points to a subset of the
 # available elements.
 proc graph_select { w args } {
-    set ::graph_select(focus,$w) [focus]
+    #set ::graph_select(focus,$w) [focus]
     set ::graph_select(points,$w) $args
     # ptrace "adding tag to [bindtags $w] for $w"
     bindtags $w [concat graph_select [bindtags $w]]
@@ -225,7 +225,7 @@ option add *Graph.selectPointText.Under 1 widgetDefault
 # ... {xk yk namek idxk}}.  Use vwait var to process the data after all
 # selections are complete.
 proc graph_select_list { w var {n 0}} {
-    set ::graph_select(focus,$w) [focus]
+    #set ::graph_select(focus,$w) [focus]
     set ::graph_select(listname,$w) $var
     set ::graph_select(list,$w) {}
     set ::graph_select(listn,$w) $n
@@ -329,8 +329,8 @@ proc graph_select_cancel {w} {
     bindtags $w [ldelete [bindtags $w] graph_select]
     grab release $w
     catch {
-	raise [winfo toplevel $::graph_select(focus,$w)]
-	focus $::graph_select(focus,$w)
+	#raise [winfo toplevel $::graph_select(focus,$w)]
+	#focus $::graph_select(focus,$w)
     }
     # If getting a set of points, return the set
     if {[info exists ::graph_select(list,$w)]} {
@@ -390,9 +390,10 @@ proc graph_motion_clear {w} {
 }
 
 # HELP internal
-# Usage: graph_message w
+# Usage: graph_message w msg
 # 
-# Determine which message box to use, if any.
+# Display a message on the status bar associated with the widget.  Returns
+# the status bar widget.
 proc graph_message {w args} {
     # Determine if this window has a message bar
     # FIXME: consider using floating window if no message bar
@@ -406,7 +407,7 @@ proc graph_message {w args} {
     if { ![winfo exists $wmsg] } { 
 	set wmsg "" 
     } elseif { [llength $args] > 0 } {
-	$wmsg configure -text [concat $args]
+	$wmsg configure -text [lindex $args 0]
     }
     return $wmsg
 }
