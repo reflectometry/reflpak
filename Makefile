@@ -180,7 +180,7 @@ release/reflpak-data.zip: data/README data/ss02/*.ng1 data/ss02-fit/*
 
 ifeq ($(ARCH),macosx)
 
-dist: kit/reflpak $(macscripts) RELEASE-NOTES
+dist: $(SUBDIRS) kit/reflpak $(macscripts) RELEASE-NOTES
 	@if test -d diskimage ; then rm -rf diskimage ; fi
 	@mkdir diskimage
 	@mkdir diskimage/$(PRODUCT)
@@ -203,14 +203,14 @@ kit/reflpak.exe: kit/reflpak kit/reflpak.res win/bindres.sh
 kit/reflpak.res: win/reflpak.rc $(icons)
 	cd win && $(RC) reflpak.rc ../kit/reflpak.res
 
-dist: kit/reflpak$(EXE)
+dist: $(SUBDIRS) kit/reflpak$(EXE)
 	@if test ! -d release ; then mkdir release ; fi
 	cp -a kit/reflpak$(EXE) release/$(PRODUCT)$(EXE)
 
 else
 
 dist: DIR=$(PRODUCT)-$(ARCH)
-dist: kit/reflpak$(EXE) RELEASE-NOTES
+dist: $(SUBDIRS) kit/reflpak$(EXE) RELEASE-NOTES
 	@if test -d $(DIR) ; then rm -rf $(DIR); fi
 	@mkdir $(DIR)
 	@cp -p RELEASE-NOTES linux/README $(DIR)
