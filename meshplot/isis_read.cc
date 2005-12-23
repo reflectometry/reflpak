@@ -11,9 +11,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdint.h> // intptr_t
 
 #if 0
+#include <stdint.h> // intptr_t
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
 #define DEBUG(a) do { } while (0)
@@ -432,7 +432,7 @@ void SURF::set_lambda(void)
   for (int i=0; i < nTimeChannels; i++) {
     lambda[i] = 0.5 * (tcb[i] + tcb[i+1])*scale;
     // FIXME incorrect formula for dlambda
-    dlambda[i] = (tcb[i+1] - tcb[i])/sqrt(log10(256))*scale; 
+    dlambda[i] = (tcb[i+1] - tcb[i])/sqrt(log10(256.))*scale; 
   }
   DEBUG("setting lambda(" << lambda.size() << ") at " << intptr_t(&lambda[0]));
 }
