@@ -85,11 +85,11 @@ class SURF : public isis_file
   void normalize_counts(void);
   std::vector<int> all_frames;
 public:
-  const static int Nx=40, Ny=46;            // Detector dimensions
-  const static double moderator_to_detector=11.84; // (m)
-  const static double sample_to_detector=2.84;     // (m)
-  const static double moderator_to_monitor=8.5;    // (m)
-  const static double pixel_width=-0.0023;         // (m)
+  const int Nx, Ny;            // Detector dimensions
+  const double moderator_to_detector; // (m)
+  const double sample_to_detector;     // (m)
+  const double moderator_to_monitor;    // (m)
+  const double pixel_width;         // (m)
   std::vector<double> lambda_edges; // edges of the wavelength bins
   std::vector<double> lambda;     // wavelength (nTimeChannels)
   std::vector<double> dlambda;    // wavelength uncertainty
@@ -102,7 +102,13 @@ public:
   std::vector<double> I;          // normalized detector counts (Ny x nTimeChannels)
   std::vector<double> dI;         // normalized detector counts uncertainty
 
-  SURF() { set_delta(); }
+  SURF() :
+  Nx(40), Ny(46),               // Detector dimensions
+  moderator_to_detector(11.84), // (m)
+  sample_to_detector(2.84),     // (m)
+  moderator_to_monitor(8.5),    // (m)
+  pixel_width(-0.0023)          // (m)
+  { set_delta(); }
   ~SURF() {}
   bool open(const char *file);    // Open the file
   void load(void);                // Load the data
