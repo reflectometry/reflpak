@@ -1,5 +1,5 @@
 namespace eval isis {
-variable DATADIR /home/pkienzle/data/test
+variable DATADIR [file join $HOME data test]
 
 proc demo {{mesh_style QxQz}} {
     puts "starting demo"
