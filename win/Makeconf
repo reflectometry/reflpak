@@ -31,9 +31,11 @@ FPP=-x f77-cpp-input
 
 # C compiler
 CC=gcc
+CXX=g++
 CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC)
 LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
-LD=gcc -pipe -shared
+LD=$(CC) -pipe -shared
+LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=
 EXE=.exe
 LDEXT=$(TCL_SHLIB_SUFFIX)

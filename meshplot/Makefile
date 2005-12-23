@@ -93,7 +93,7 @@ plot$(EXE): plot.c
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
 plot$(LDEXT): $(OBJS)
-	$(CXX) -pipe -shared $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
+	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h
