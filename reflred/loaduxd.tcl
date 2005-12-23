@@ -251,11 +251,13 @@ proc UXDload {id} {
 	# 2-column data is assumed to be 2theta and counts
 	if {![get_columns $id [list $motor counts] $rec(data)]} { return 0 }
     }
-    ::${motor}_$id dup ::x_$id
     if { $rec(DRIVE) eq "COUPLED" } {
 	vector create ::alpha_$id
 	::alpha_$id expr "::beta_$id/2"
 	AB_to_QxQz $id
+	::Qz_$id dup ::x_$id
+    } else {
+	::${motor}_$id dup ::x_$id
     }
 
     # If measurements recorded as counts per second, translate to counts.
