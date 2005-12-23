@@ -8,7 +8,7 @@ function data = polcor(fit,FRratio,sub)
   do_plot = nargout == 0;
 
   %# determine which slits we are using
-  if nargin < 3 || nargin > 7
+  if nargin != 3
     usage('cor = polcor(slitfit,FRratio,sub)')
   end
 
