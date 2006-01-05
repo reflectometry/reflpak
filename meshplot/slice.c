@@ -1,28 +1,86 @@
 #include "mx.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/* To compile the test program:
+
+  gcc -Dtest slice.c
+
+*/
+
 /* Slice a 2D mesh with a straight line.
  *
- * A point is defined by two vertices (x,y) stored in an array as [x,y].
+ * A point is defined by two vertices (x,y).
  *
  * A line is defined by the two points, (x1,y1) and (x2,y2) stored in an
  * array as [L.x,L.y,L.dx,L.dy] = [x1,y1,x2-x1,y2-y1].
  *
- * A mesh is defined by m x n points in row major order.
+ * A mesh is defined by m x n points in x and y matrices stored in row major.
  *
  * The returned slice is a list of every quadrilateral on the mesh
- * which is traversed by the line.  The slice is not ordered..
+ * which is traversed by the line.  Quadrilaterals are defined by the
+ * index in the x,y matrix of first corner of the quad (that is, the lowest
+ * numbered x,y index of all the corners of the quad).
  *
+ * When the slice overlays an edge use the higher numbered quad for the
+ * slice.  That is, if it is between row 3 and row 4, use row 4.  If it is
+ * between column 3 and column 4 use column 4.
+ *
+ * When the slice only intersects the edge at a single corner, don't include
+ * the quad for that corner.
+ */
+
+/*
  * The basic algorithm is as follows:
  *
  * 1. Traverse the boundary looking for intersections between the segment
  *    on the boundary and the line.
  * 2. Whenever a intersection is found, shoot through the mesh in order
  *    of increasing position on the line.
+ *
+ * The current implementation only moves from a quad to one of its
+ * neighbours.  It needs to choose a neighbour that can actually be entered
+ * from the quad (including along an edge), skipping those which it only
+ * intercepts at the corner.
  */
 
-/* Based on information from Paul Bourke
- * at http://astronomy.swin.edu.au/~pbourke/geometry/
+#define DEBUG 0
+
+
+#ifndef FAIL
+#define FAIL(msg) do { \
+    printf("%s(%d): %s\n",__FUNCTION__,__LINE__,msg); exit(0); \
+  } while (0)
+#endif
+
+#if DEBUG>=3
+#define LOG3(msg) do { \
+    printf("%s(%d): ",__FUNCTION__,__LINE__); msg; printf("\n"); \
+  } while (0)
+#else
+#define LOG3(msg) do {} while (0)
+#endif
+
+#if DEBUG>=2
+#define LOG2(msg) do { \
+    printf("%s(%d): ",__FUNCTION__,__LINE__); msg; printf("\n"); \
+  } while (0)
+#else
+#define LOG2(msg) do {} while (0)
+#endif
+
+/* t = intersect(L,P1x,P1y,P2x,P2y,&u)
+ *
+ * Return true if the line segment defined by points P1 = (P1x,P1y) 
+ * and P2 = (P2x,P2y) intersects the line L = [x,y,dx,dy].
+ * Sets the position on the line u as follows:
+ *   u < 0: intersection is before (x,y)
+ *   u = 0: intersection is at (x,y)
+ *   0<u<1: intersection is within (x,y) and (x+dx,y+dy)
+ *   u = 1: intersection is at (x+dx,y+dy)
+ *   u > 1: intersection is after (x+dx,y+dy)
+ * If P1=P2 then the line segment is a point, and no intersection is returned.
  *
  * Nearest point on a line L to point P:
  *   u = ((P.x - L.x) * L.dx + (P.y-L.y) * L.dy)/(L.dx^2 + L.dy^2)
@@ -39,20 +97,9 @@
  *   x = A.x + uA*A.dx = B.x + uB*B.dx
  *   y = A.y + uA*A.dy = B.y + uB*B.dy
  * Note: if 0 <= uA,uB <= 1, then (x,y) lies within the respective segment
- */
-
-
-/* t = intersect(L,P1x,P1y,P2x,P2y,&u)
  *
- * Return true if the line segment defined by points P1 = (P1x,P1y) 
- * and P2 = (P2x,P2y) intersects the line L = [x,y,dx,dy].
- * Sets the position on the line u as follows:
- *   u < 0: intersection is before (x,y)
- *   u = 0: intersection is at (x,y)
- *   0<u<1: intersection is within (x,y) and (x+dx,y+dy)
- *   u = 1: intersection is at (x+dx,y+dy)
- *   u > 1: intersection is after (x+dx,y+dy)
- * If P1=P2 then the line segment is a point, and no intersection is returned.
+ * Based on information from Paul Bourke
+ * at http://astronomy.swin.edu.au/~pbourke/geometry/
  */
 inline int
 intersect(const mxtype L[], 
@@ -60,26 +107,42 @@ intersect(const mxtype L[],
 	  const mxtype P2x, const mxtype P2y,
 	  double *position_on_line)
 {
+  const double Lx = L[0];
+  const double Ly = L[1];
+  const double Ldx = L[2];
+  const double Ldy = L[3];
   const double Pdx = P2x-P1x;
   const double Pdy = P2y-P1y;
-  const double denominator = Pdy * L[2] - Pdx * L[3];
+  const double denominator = Pdy * Ldx - Pdx * Ldy;
+  const double crossX = Lx - P1x;
+  const double crossY = Ly - P1y;
 
-  //  printf("[%g,%g,%g,%g] and (%g,%g),(%g,%g)",L[0],L[1],L[2],L[3],P1x,P1y,P2x,P2y);
+  LOG3(printf("[%g,%g,%g,%g] and (%g,%g),(%g,%g)",L[0],L[1],L[2],L[3],P1x,P1y,P2x,P2y));
   if (denominator != 0) {
-    /* P1-P2 defines a line segment */
-    const double crossX = L[0] - P1x;
-    const double crossY = L[1] - P1y;
-    const double numeratorP = L[2] * crossY - L[3] * crossX;
+    /* P1-P2 defines a line segment that may or may not intersect L */
+    const double numeratorP = Ldx * crossY - Ldy * crossX;
     const double position_on_segment = numeratorP/denominator;
     if (position_on_segment >= 0. && position_on_segment < 1.) {
+      /* P1-P2 intersects L */
       const double numeratorL = Pdx * crossY - Pdy * crossX;
       *position_on_line = numeratorL/denominator;
-      // printf(" intersect at Pu=%g, Lu=%g\n",position_on_segment,*position_on_line);
+      LOG3(printf(" intersect at Pu=%g, Lu=%g",position_on_segment,*position_on_line));
       return 1;
     }
-    // printf(" intersect at Pu=%g (off segment)\n",position_on_segment); return 0;
+    // printf(" intersect at Pu=%g (off segment)\n",position_on_segment);
+  } else {
+    /* P1-P2 defines a line segment parallel to L */
+    const double u = -(crossX*Ldx + crossY*Ldy) / (Ldx*Ldx + Ldy*Ldy);
+    const double Nx = Lx + u * Ldx;
+    const double Ny = Ly + u * Ldy;
+    if (Nx == P1x && Ny == P1y) {
+      /* P1-P2 lies on L, return position of far end */
+      *position_on_line = (fabs(Ldx)>fabs(Ldy)?(P2x-Lx)/Ldx:(P2y-Ly)/Ldy);
+      LOG3(printf(" overlap (Lu=%g)",*position_on_line));
+      return 1;
+    }
+    LOG3(printf(" are parallel"));
   }
-  // printf(" are parallel\n");
   return 0;
 }
 
@@ -100,49 +163,53 @@ step_through_mesh(size_t m, size_t n,
   const size_t rstep = 1;
   const size_t bstep = rstep+cstep;
   int il, it, ir, ib;
-  double l=0., t=0., r=0., b=0.;
-  printf("new shot\n");
+  double l=u, t=u, r=u, b=u;
+  LOG2(printf("start stepping through mesh"));
   while (1) {
-    printf("stepping %d from position %d\n",step,i);
-    if (i+bstep >= n*m) {
-      printf("out of range with i=%d\n",i);
-      return;
-    }
+    LOG2(printf("stepping %d from position %d",step,i));
     il = step!=STEP_RIGHT 
       && intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&l);
     it = step!=STEP_DOWN 
-      && intersect(L,x[i+cstep],y[i+cstep],x[i],y[i],&t);
+      && intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&t);
     ir = step!=STEP_LEFT 
-      && intersect(L,x[i+bstep],y[i+bstep],x[i+cstep],y[i+cstep],&r);
+      && intersect(L,x[i+cstep],y[i+cstep],x[i+bstep],y[i+bstep],&r);
     ib = step!=STEP_UP 
       && intersect(L,x[i+rstep],y[i+rstep],x[i+bstep],y[i+bstep],&b);
-    il = il && l >= u;
-    it = it && t >= u;
-    ir = ir && r >= u;
-    ib = ib && b >= u;
+    if (l > u || t > u || r > u || b > u) {
+      il = il && l > u;
+      it = it && t > u;
+      ir = ir && r > u;
+      ib = ib && b > u;
+    } else {
+      il = il && l == u;
+      it = it && t == u;
+      ir = ir && r == u;
+      ib = ib && b == u;
+    }
     if (il || it || ir || ib) {
-      printf("adding %d at position %d\n",i,*last);
+      LOG2(printf("adding %d at position %d",i,*last));
       if (*last < Nidx) idx[*last] = i;
-      else {printf("overflow\n"); exit(1);}
+      else if (*last > n*m) { FAIL("overflow in mesh_slice"); }
       ++*last;
     } else {
-      printf("no borders intersect L\n");
+      LOG2(printf("no borders intersect L"));
       return;
     }
-    printf("is[l,r,t,b]=[%d,%d,%d,%d]\n",il,ir,it,ib);
+    LOG2(printf("is[l,r,t,b]=[%d,%d,%d,%d]",il,ir,it,ib));
     if (il && (!it || l < t) && (!ir || l < r) && (!ib || l < b)) {
-      if (i < cstep) return;
+      if (i/m == 0) return;
       u=l; i-=cstep; step=STEP_LEFT;
     } else if (it && (!ir || t < r) && (!ib || t < b)) {
-      if (i < rstep) return;
+      if (i%m == 0) return;
       u=t; i-=rstep; step=STEP_UP;
     } else if (ir && (!ib || r < b)) {
+      if (i/m == n-2) return;
       u=r; i+=cstep; step=STEP_RIGHT;
     } else if (ib) {
+      if (i%m == m-2) return;
       u=b; i+=rstep; step=STEP_DOWN;
     } else {
-      printf("Can't get here!\n");
-      exit(0);
+      FAIL("Can't get here!");
     }
   }
 }
@@ -180,30 +247,34 @@ mx_slice(const size_t m, const size_t n,
   // call and always accepting [0,1).
 
   // Traverse left border
-  printf("== left\n");
+  LOG2(printf("== left"));
   for (i=0; i < bottom; i+=rstep) {
     if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i,STEP_RIGHT);
   }
 
   // Traverse top border
-  printf("== top\n");
+  LOG2(printf("== top"));
   for (i=0; i < right; i+=cstep) {
-    if (intersect(L,x[i+cstep],y[i+cstep],x[i],y[i],&u))
-      step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i,STEP_DOWN);
+    if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&u)) {
+      double v;
+      /* Avoid contention for left corner */
+      if (i!=0 || intersect(L,x[i+cstep],y[i+cstep],x[i],y[i],&v))
+	step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i,STEP_DOWN);
+    }
   }
 
   // Traverse bottom border
-  printf("== bottom\n");
+  LOG2(printf("== bottom"));
   for (i=bottom; i < bottom+right; i+=cstep) {
     if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i-rstep,STEP_UP);
   }
 
   // Traverse right boundary
-  printf("== right\n");
+  LOG2(printf("== right"));
   for (i=right; i < bottom+right; i+=rstep) {
-    if (intersect(L,x[i+rstep],y[i+rstep],x[i],y[i],&u))
+    if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i-cstep,STEP_LEFT);
   }
 
@@ -216,54 +287,288 @@ mx_slice(const size_t m, const size_t n,
 
 #include <stdio.h>
 
-void test_regular(void)
+void list_quads(const char name[], int k, const size_t idx[], 
+		const mxtype x[], const mxtype y[])
 {
-  const mxtype x[] = { 0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3 };
-  const mxtype y[] = { 4,3,2,1,0,4,3,2,1,0,4,3,2,1,0,4,3,2,1,0 };
-  const mxtype vert[] = {0.5,0,0,1};
-  const mxtype horz[] = {0,0.5,1,0};
-  const mxtype edge[] = {0,0,1,0};
-  const mxtype miss[] = {-1,-1,-1,-1};
-  const mxtype diag[] = {0,0,1,1};
-  const mxtype corner[]      = {0,0,-1,-1};
-  const mxtype inside_edge[] = {0,1,1,0};
-  const mxtype slope2[]      = {0,0,1,2};
-  const mxtype diag_middle[] = {0,0.5,1,1};
-  const mxtype Rvert[] = {0.5,0,0,-1};
-  const mxtype Rhorz[] = {0,0.5,-1,0};
-  const mxtype Rdiag[] = {0,0,-1,-1};
-  const mxtype adiag[] = {0,3,1,-1};
-  const mxtype Radiag[] = {0,3,-1,1};
-  const size_t m=5,n=4,Nidx = 10;
-  size_t idx[Nidx], i, k;
+  int i;
+
+  printf("%s %d: [", name, k);
+  if (k == 0) {
+    printf("]");
+  } else {
+    for (i=0; i < k; i++) printf("%d%c",idx[i],(i<k-1?' ':']'));
+    for (i=0; i < k; i++) printf(" (%g,%g)",x[idx[i]],y[idx[i]]);
+  }
+  printf("\n");
+}
+
+void do_test(const size_t m, const size_t n,
+	     const mxtype x[], const mxtype y[],
+	     const mxtype Lx, const mxtype Ly, 
+	     const mxtype Ldx, const mxtype Ldy,
+	     const char *name, 
+	     const size_t Nexpected, const size_t expected[])
+{
+  const size_t Nidx = 10;
+  size_t idx[Nidx], k, i;
+  mxtype L[4];
+  int success;
+
+  printf("%s (x,y)=(%g,%g) (dx,dy)=(%g,%g)\n",name,Lx,Ly,Ldx,Ldy);
+
+  // Try forward
+  L[0] = Lx; L[1] = Ly; L[2] = Ldx; L[3] = Ldy;
+  k = mx_slice(m,n,x,y,L,Nidx,idx);
+  list_quads(" forward",k,idx,x,y);
+
+  success = (k == Nexpected);
+  if (success) for(i=0; i < k; i++) success = success && (idx[i]==expected[i]);
+  if (!success) {
+    if (Nexpected == 0) printf("**expected []");
+    else {
+      printf(" *** expected [");
+      for(i=0;i<Nexpected;i++) 
+	printf("%d%c",expected[i],i==Nexpected-1?']':' ');
+    }
+    printf("\n");
+  }
+
+  // Try reverse
+  L[2] = -Ldx; L[3] = -Ldy;
+  k = mx_slice(m,n,x,y,L,Nidx,idx);
+  list_quads(" reverse",k,idx,x,y);
+
+  success = (k == Nexpected);
+  if (success) 
+    for(i=0; i < k; i++) success = success && (idx[k-i-1]==expected[i]);
+  if (!success) {
+    if (Nexpected == 0) printf("**expected []");
+    else {
+      printf(" *** expected [");
+      for(i=0;i<Nexpected;i++) 
+	printf("%d%c",expected[Nexpected-i-1],i==Nexpected-1?']':' ');
+    }
+    printf("\n");
+  }
+
+}
 
 #undef DO_TEST
-#define DO_TEST(L) do { \
-    k = mx_slice(m,n,x,y,L,Nidx,idx); \
-    printf("%s (%g,%g) (%g,%g): %d quads.\n",#L,L[0],L[1],L[0]+L[2],L[1]+L[3],k); \
-    for (i=0; i < k; i++) printf("%d->(%g,%g) ",idx[i],x[idx[i]],y[idx[i]]); \
-    printf("\n"); \
-  } while (0)
+#define DO_TEST(name,Lx,Ly,Ldx,Ldy) \
+    do_test(m,n,x,y,Lx,Ly,Ldx,Ldy,#name,sizeof(E)/sizeof(*E),E)
 
-  DO_TEST(diag);
-  DO_TEST(Rdiag);
-  DO_TEST(adiag);
-  DO_TEST(Radiag);
-  DO_TEST(diag_middle);
-  DO_TEST(slope2);
-  DO_TEST(Rhorz);
-  DO_TEST(Rvert);
-  DO_TEST(miss);
-  DO_TEST(horz);
-  DO_TEST(vert);
-  DO_TEST(edge);
-  DO_TEST(corner);
-  DO_TEST(inside_edge);
+
+void test_regular(void)
+{
+  /*  Regular mesh
+
++--+--+--+
+| 0| 5|10|
++--+--+--+
+| 1| 6|11|
++--+--+--+
+| 2| 7|12|
++--+--+--+
+| 3| 8|13|
++--+--+--+
+
+   */
+  const size_t m=5,n=4;
+  const mxtype x[] = { 0,0,0,0,0,1,1,1,1,1,2,2,2,2,2,3,3,3,3,3 };
+  const mxtype y[] = { 4,3,2,1,0,4,3,2,1,0,4,3,2,1,0,4,3,2,1,0 };
+
+  printf("\n\n=== line intersects segment in the middle ===\n");
+  { size_t E[]= {};        DO_TEST(miss,-1,-1,-1,1);     }
+  { size_t E[]= {3,2,1,0}; DO_TEST(vert,0.5,0,0,1);      }
+  { size_t E[]= {3,8,13};  DO_TEST(horz,0,0.5,1,0);      }
+  { size_t E[]= {3,2,1,6,5}; DO_TEST(slope 2.1,0,0,1,2.1);      }
+  { size_t E[]= {3,2,7,6,11,10}; DO_TEST(diag middle,0,0.5,1,1); }
+
+  printf("\n\n=== line intersects segment along an edge ===\n");
+  { size_t E[]= {0,5,10};  DO_TEST(top,   0,4,1,0); }
+  { size_t E[]= {2,7,12};  DO_TEST(middle,0,2,1,0); }
+  { size_t E[]= {3,8,13};  DO_TEST(bottom,0,0,1,0); }
+  { size_t E[]= {0,1,2,3};     DO_TEST(left,  0,0,0,-1); }
+  { size_t E[]= {5,6,7,8};     DO_TEST(middle,1,0,0,-1); }
+  { size_t E[]= {10,11,12,13}; DO_TEST(right, 3,0,0,-1); }
+
+  printf("\n\n=== line intersects segment on a corner ===\n");
+  { size_t E[]= {3,7,11};  DO_TEST(diag,0,0,1,1);        }
+  { size_t E[]= {3,7,11};  DO_TEST(diag2,-1,-1,1,1);     }
+  { size_t E[]= {1,7,13};  DO_TEST(adiag,0,3,1,-1);      }
+  { size_t E[]= {};        DO_TEST(corner,0,0,-1,1);     }
+  { size_t E[]= {3,2,6,5}; DO_TEST(slope 2,0,0,1,2);      }
 }
+
+void test_warped(void)
+{
+  /* irregularly mesh
+
+x----------x
+|0        . \
+x--------x   \
+|1      . \  5\
+x------x   \   \
+|2    . \ 6 \   \
+x----x   \   \   x
+|3  . \7  \   x  |
+x--x 8 \   x  |  |
+    \   x  |  |  |
+     x  |  |  |  |
+     |13|12|11|10|
+     x--x--x--x--X
+
+  */
+
+  const size_t m=5,n=4;
+  const mxtype x[] = {  0,0,0,0,0,  5,4,3,2,1, 10,8,6,4,2, 10,8,6,4,2 };
+  const mxtype y[] = { 10,8,6,4,2, 10,8,6,4,2,  5,4,3,2,1,  0,0,0,0,0 };
+
+  printf("\n\n=== warped mesh ===\n");
+  { size_t E[]= {2,3,8,13,12};  DO_TEST(connected,0,4.5,1,-1);  }
+  { size_t E[]= {3,13};         DO_TEST(disjoint,0,2.5,1,-1); }
+  { size_t E[]= {2,7,6,5};      DO_TEST(borderpoint,0,4,2,1); }
+  { size_t E[]= {5};            DO_TEST(borderline,15,0,1,-1); }
+  { size_t E[]= {3,2,6,5};      DO_TEST(interiorpoint,0,3,1,1); }
+  { size_t E[]= {2,7,12};       DO_TEST(interiorline,0,6,1,-1); }
+}
+
+void test_degenerate(void)
+{
+
+  /* 
+
+Degenerate mesh
+
++--+--+--+
+|0 |3/ 6 |
++--*-----+
+|1 |4\ 7 |
++--+--+--+
+
+  */
+
+  const size_t m=3,n=4;
+  const mxtype x[] = { 0,0,0, 1,1,1, 2,1,2, 3,3,3 };
+  const mxtype y[] = { 2,1,0, 2,1,0, 2,1,0, 2,1,0 };
+
+  printf("\n\n=== degenerate mesh (some edges have zero length) ===\n");
+  { size_t E[]= {4,7,6,3};     DO_TEST(miss,1,1.5,0,1); }
+  { size_t E[]= {1,3};         DO_TEST(point,1,1,1,2); }
+  { size_t E[]= {1,6};         DO_TEST(edge,1,1,1,1); }
+  { size_t E[]= {1,6};         DO_TEST(pointskip,1,1,2,1); }
+  { size_t E[]= {4,3};         DO_TEST(vert,1,0,0,1); }
+}
+
+
+void test_twisted1(void)
+{
+
+  /*
+
+Twisted mesh with twist inside the quads
+
++--+--+--+
+| 0| 4| 8|
++--+--+--+
+  .1 .5\ |  <-- 9
+        .|.
+   9 --> |\ 5 . 1 .
+         +--+--+--+
+         |10| 6| 2|
+         +--+--+--+
+  */
+
+  const size_t m=4,n=4;
+  const mxtype x[] = {-3,-3,3,3, -2,-2,2,2, -1,-1,1,1, 0,0,0,0   };
+  const mxtype y[] = {2,1,-1,-2, 2,1,-1,-2, 2,1,-1,-2, 2,1,-1,-2 };
+
+  printf("\n\n=== twisted mesh (some edges have negative length) ===\n");
+  { size_t E[]= {1,5,8};      DO_TEST(twist1,0,0.5,1,0); }
+  { size_t E[]= {8,5,1};      DO_TEST(twist2,0,-0.5,1,0); }
+  { size_t E[]= {1,5,8};      DO_TEST(origin,0,0,1,1); } /* may not be the right "expected" */
+  { size_t E[]= {10,9,8};     DO_TEST(twist3,0,0,-1,4); }
+  { size_t E[]= {2,6,5,4,0};  DO_TEST(twist4,0,0,-3,2); }
+  { size_t E[]= {6,5,4};      DO_TEST(edge,0,0,-1,1); }
+  { size_t E[]= {10,9,1,5,9,8,4}; DO_TEST(disjoint,1,-2,-3,5); }
+  { size_t E[]= {10,1,0};     DO_TEST(moredisjoint,1,-2,-1,1); }
+}
+
+void test_twisted2(void)
+{
+  /*
+
+Twisted mesh with twist between the quads.
+
++--+--+--+
+| 0| 5|10|
++--+--+--+
+  .1 .6\ | <-- 11
+         +
+  12 --> |\ 7 . 2 .
+         +--+--+--+
+         |13| 8| 3|
+         +--+--+--+
+  */
+
+  const size_t m=5,n=4;
+  const mxtype x[] = {-3,-3,0,3,3, -2,-2,0,2,2, -1,-1,0,1,1, 0,0,0,0,0   };
+  const mxtype y[] = {2,1,0,-1,-2, 2,1,0,-1,-2, 2,1,0,-1,-2, 2,1,0,-1,-2 };
+
+  printf("\n\n=== twisted mesh (some edges have zero length) ===\n");
+  { size_t E[]= {1,6,11};      DO_TEST(twist1,0,0.5,1,0); }
+  { size_t E[]= {12,7,2};      DO_TEST(twist2,0,-0.5,1,0); }
+  { size_t E[]= {};            DO_TEST(origin,0,0,1,1); }
+  { size_t E[]= {13,12,11,10}; DO_TEST(twist3,0,0,-1,4); }
+  { size_t E[]= {3,8,7,6,5,0}; DO_TEST(twist4,0,0,-3,2); }
+  { size_t E[]= {8,7,6,5};     DO_TEST(edge,0,0,-1,1); }
+  { size_t E[]= {13,12,1,6,11,10,5}; DO_TEST(disjoint,1,-2,-3,5); }
+  { size_t E[]= {13,1,0};     DO_TEST(moredisjoint,1,-2,-1,1); }
+}
+
+void test_nonconvex(void)
+{
+
+  /*
+Mesh with non-convex node #5
+
++--+
+|0 |  .
++--+.   .
+|1  \ . 4 .
+|    \  .   .
++-----+5 +--+
+|2 . / . |  |
+++ 6/.   |  |
+ +-+     |  |
+ 10|    9| 8|
+ +-+-----+--+
+
+
+  */
+
+  const size_t m=4, n=4;
+  const mxtype x[] = {0,0,0,0, 2,2,4,1, 8,6,2,1, 8,6,2,1};
+  const mxtype y[] = {8,6,4,3, 8,6,4,3, 4,4,2,2, 0,0,0,0};
+
+  printf("\n\n=== non-concave quad in mesh ===\n");
+  { size_t E[] = {10,6,2,1,0};    DO_TEST(miss,1.5,0,0,1); }
+  /* Should 5 appear twice ?? */
+  { size_t E[] = {9,5,6,2,1,5,4}; DO_TEST(reenter,3,0,0,1); }
+  { size_t E[] = {9,5,4};         DO_TEST(corner,4,0,0,1); }
+  { size_t E[] = {9,5,4};         DO_TEST(center,5,0,0,1); }
+  { size_t E[] = {8,4};           DO_TEST(miss,6,0,0,1); }
+}
+
+
 
 int main(int argc, char *argv[])
 {
-  test_regular();  
+  test_regular();
+  test_warped();
+  test_degenerate();
+  test_twisted1();
+  test_twisted2();
   return 0;
 }
 
