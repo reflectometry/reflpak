@@ -1,15 +1,15 @@
 /* public domain 
 
 jazz:
-  LIBZ="-L/data/people/pkienzle/packages/zlib-1.4.4 -lz
-  cc -O2 reflbin.c -o ~/bin/reflbin -lgen -lm $(LIBZ)
+  LIBZ="-L/data/people/pkienzle/packages/zlib-1.4.4 -lz"
+  cc -O2 reflbin.c -o ~/bin/reflbin -lgen -lm $LIBZ
 
 linux, macosx:
   gcc -Wall -O2 reflbin.c -o ~/bin/reflbin -lm -lz
 
 MinGW:
   LIBZ="-L/usr/local/lib -lz"
-  gcc -Wall -O2 -I/usr/local/include reflbin.c -o reflbin -lm $(LIBZ)
+  gcc -Wall -O2 -I/usr/local/include reflbin.c -o reflbin.exe -lm $LIBZ
 
 Compile with -DDEBUG to show input and output.
 */
@@ -485,7 +485,7 @@ void process_file(char *file)
 
   warn_dims = 1;
   rows = columns = points = 0;
-  recorded_counts = ignored_counts = 0;
+  total_counts = recorded_counts = ignored_counts = 0;
 
   infile = gzopen(file,"rb");
   if (infile == NULL) {
