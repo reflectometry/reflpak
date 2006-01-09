@@ -1,11 +1,11 @@
 OS = $(shell uname -s)
-CFLAGS=-O3  -Wall
+CFLAGS=-O3  -Wall -I/usr/local/include
 ifeq ($(OS), IRIX64) 
   DEFS=-DNEED_BASENAME
   LDFLAGS=-L/usr/freeware/lib32
   CFLAGS=-O2
 endif
-LIBS=-lz -lm
+LIBS=-L/usr/local/lib -lz -lm
 all: reflbin
 
 reflbin: reflbin.c
