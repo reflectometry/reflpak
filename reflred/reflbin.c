@@ -33,6 +33,7 @@ Compile with -DDEBUG to show input and output.
 
 #if defined(WIN32)
 #define NEED_BASENAME
+#define NEED_DIRNAME
 #else
 #include <libgen.h>
 #endif
@@ -45,6 +46,25 @@ char *basename(char *file)
   return file+i+1;
 }
 #endif
+
+#ifdef NEED_DIRNAME
+char *dirname(char *file)
+{
+  static char dir[1000];
+  int i = strlen(file);
+  while (i--) { if (file[i]=='/' || file[i]=='\\') break; }
+  if (i > sizeof(dir)-1 || i < 0) {
+    /* Directory path too long, using '.' instead */
+    dir[0] = '.';
+    dir[1] = '\0';
+  } else {
+    dir[i] = '\0';
+    while (--i) dir[i] = file[i]; 
+  } 
+  return dir;
+}
+#endif
+
 
 /* Per frame data */
 typedef unsigned int mxtype;
@@ -478,9 +498,9 @@ void integrate_psd()
 
 }
 
-void process_file(char *file)
+void process_file(char *file, char *outputdir)
 {
-  char ofile[200], *base, *ext;
+  char *ofile, *base, *ext, *dir, *f1, *f2;
   int len, gz;
 
   warn_dims = 1;
@@ -493,25 +513,32 @@ void process_file(char *file)
     return;
   }
 
-  base = basename(file);
+  /* Get filename without .gz */
+  f1 = strdup(file); 
+  base = basename(f1);
   len = strlen(base);
-  gz =  (len > 3 && !strcmp(base+len-3,".gz"));
-  if (len+6 > sizeof(ofile)) {
-    fprintf(stderr,"file name is too long %s\n",file);
-    gzclose(infile);
-    return;
-  }
+  gz = (len > 3 && !strcmp(base+len-3,".gz"));
+  if (gz) base[len-3] = '\0';
+
+  /* Get directory name */
+  f2 = strdup(file);
+  dir = outputdir != NULL ? outputdir : dirname(f2);
+
+  /* Make room for output file :
+     aaa/xxx.yyy -> outdir/Ixxx.yyy\0    (so max is len(outdir)+len(xxx.yyy)+3)
+     aaa/xxx.yyy -> outdir/xxx.vtk\0     (so max is len(outdir)+len(xxx)+6)
+   */
+  len = strlen(dir) + strlen(base) + 6;
+  ofile = malloc(len+1); 
 
   switch (output) {
   case ICP:
-    strcat(strcpy(ofile,"I"),base);
-    if (gz) ofile[len-2]='\0'; /* Chop .gz extension, +1 for leading 'I' */
+    strcat(strcat(strcpy(ofile,dir),"/I"),base);
     outfile = fopen(ofile,"wb");
     integrate_psd();
     break;
   case VTK:
-    strcpy(ofile,base);
-    if (gz) ofile[len-3]='\0'; /* Chop .gz extension. */
+    strcat(strcat(strcpy(ofile,dir),"/"),base);
     ext = strrchr(ofile,'.');
     if (ext != NULL) strcpy(ext,".vtk");
     else strcat(ofile,".vtk");
@@ -559,6 +586,7 @@ void process_file(char *file)
 
   gzclose(infile);
   fclose(outfile);  
+  free(f1); free(f2);
 }
 
 /* Convert 1-origin ##-## string to 0-origin start-stop values */
@@ -575,6 +603,7 @@ void range(const char *v, int *start, int *stop)
 int main(int argc, char *argv[])
 {
   int i;
+  char *dir = NULL;
 
   height=1000000;
   width=1; 
@@ -584,13 +613,14 @@ int main(int argc, char *argv[])
   save_partial = 0;
 
   if (argc <= 1) {
-    fprintf(stderr,"usage: %s [-vtk|-icp] [-w##] [-h##] f1 f2 ...\n\n",argv[0]);
+    fprintf(stderr,"usage: %s [-vtk|-icp] [-w##] [-h##] [-dpath] f1 f2 ...\n\n",argv[0]);
     fprintf(stderr," -w##  bin width (default 1)\n");
     fprintf(stderr," -h##  bin height (default 1000000)\n");
     fprintf(stderr," -x#LO-#HI pixel range in x (1-origin)\n");
     fprintf(stderr," -y#LO-#HI pixel range in y (1-origin)\n");
     fprintf(stderr," -vtk  use VTK format for output\n");
     fprintf(stderr," -icp  use ICP format for output\n");
+    fprintf(stderr," -dpath store output in path rather than original directory\n");
     fprintf(stderr," -p    keep final bin even if it is not full\n");
     fprintf(stderr,"\nIf output is ICP, the outfile is Ixxx.cg1 in the current directory.\n");
     fprintf(stderr,"If output is VTK, the outfile is xxx.vtk in the current directory.\n");
@@ -609,11 +639,19 @@ int main(int argc, char *argv[])
       case 'v': output = VTK; break;
       case 'i': output = ICP; break;
       case 'p': save_partial = 1; break;
+      case 'd': {
+        if (argv[i][2] == '\0') { 
+	  fprintf(stderr,"no space allowed between -d and dir name\n");
+          exit(1);
+        }
+        dir = argv[i]+2; 
+        break;
+      }
       default: fprintf(stderr,"unknown option %s\n",argv[i]); exit(1);
       }
     } else {
       do_transpose=(output==ICP);
-      process_file(argv[i]);
+      process_file(argv[i],dir);
     }
   }
   exit(0);
