@@ -23,6 +23,7 @@ package ifneeded ncnrlib 0.1 [subst {
 	    graph_select graph_select_list
 	    graph_error blt_errorbars
 	}}
+	{graphselect.tcl source { graph::select graph::select_list }}
     }
 
     # immediate definition of some functions
