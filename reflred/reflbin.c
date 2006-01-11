@@ -59,7 +59,7 @@ char *dirname(char *file)
     dir[1] = '\0';
   } else {
     dir[i] = '\0';
-    while (--i) dir[i] = file[i]; 
+    while (--i >= 0) dir[i] = file[i]; 
   } 
   return dir;
 }
