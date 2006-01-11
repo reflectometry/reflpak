@@ -279,13 +279,13 @@ proc graph_select_press {w x y} {
     if { ![info exists where(x)] } { return }
     if { [info exists ::graph_select(points,$w)] } {
 	#ptrace "setting [lindex $::graph_select(points,$w) 0] $where(x)"
+	lappend ::graph_select(active$where(name),$w) [expr $where(index)]
 	foreach {x y el i} [lindex $::graph_select(points,$w) 0] break
 	set ::graph_select(points,$w) [lrange $::graph_select(points,$w) 1 end]
 	if {![string equal $x {}]}  { uplevel \#0 [list set $x $where(x)] }
 	if {![string equal $y {}]}  { uplevel \#0 [list set $y $where(y)] }
 	if {![string equal $el {}]} { uplevel \#0 [list set $el $where(name)] }
 	if {![string equal $i {}]}  { uplevel \#0 [list set $i $where(index)] }
-	lappend ::graph_select(active$where(name),$w) [expr $where(index)]
     } else {
 	lappend ::graph_select(list,$w) \
 	    [list $where(x) $where(y) $where(name) $where(index)]
