@@ -177,7 +177,7 @@ proc axis_toggle {w} {
 }
 
 # HELP developer
-# Usage: graph_select w {x1 y1 name1} {x2 y2 name2} ...
+# Usage: graph_select w {x1 y1 name1 idx1} {x2 y2 name2 idx2} ...
 #
 # Lets the user select a number of points off a graph, saving the result
 # in the named variables x1 y1 name1, x2 y2 name2, etc.  Uses the
@@ -203,7 +203,7 @@ proc graph_select { w args } {
     # XXX FIXME XXX is there a way to save and restore stacking order?
     raise [winfo toplevel $w]
     $w marker create text -name selectPointText \
-	    -text "Click to select [lindex $args 0]\nRight-Click to cancel"
+	    -text "Click to select\nRight-Click to cancel"
     grab set $w
 }
 
@@ -233,8 +233,6 @@ proc graph_select_list { w var {n 0}} {
     bindtags $w [concat graph_select [bindtags $w]]
     # XXX FIXME XXX is there a way to save and restore stacking order?
     raise [winfo toplevel $w]
-    $w marker create text -name selectPointText \
-	    -text "Click to select the next $var\nRight-Click to cancel"
     grab set $w
 }
 
@@ -310,9 +308,6 @@ proc graph_select_release {w x y} {
 	}
     } elseif {[llength $::graph_select(points,$w)] == 0} {
 	graph_select_cancel $w
-    } else {
-	$w marker conf selectPointText \
-		-text "Click to select [lindex $::graph_select(points,$w) 0]\nRight-Click to cancel"
     }
 
 }
