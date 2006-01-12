@@ -1,13 +1,36 @@
-#include "mx.h"
+/* To compile the test program, modify the configuration information at
+   the start of this file for your compiler and type:
+
+      cc slice.c -o slice
+
+*/
+
+#define TEST
+#define HAVE_INLINE
+#define HAVE___FUNCTION__
+#undef HAVE_MXTYPE
+
+/* ==== end configurate information === */
+
+#ifdef HAVE_MXTYPE  /* Whether we need mx.h */
+# include "mx.h"
+#else
+# define mxtype double
+#endif
+
+#ifndef HAVE___FUNCTION__
+# define __FUNCTION__ "slice.c"
+#endif
+
+#ifndef HAVE_INLINE
+# define inline
+#endif
+
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-/* To compile the test program:
-
-  gcc -Dtest slice.c
-
-*/
 
 /* Slice a 2D mesh with a straight line.
  *
@@ -307,13 +330,14 @@ void do_test(const size_t m, const size_t n,
 	     const mxtype Lx, const mxtype Ly, 
 	     const mxtype Ldx, const mxtype Ldy,
 	     const char *name, 
-	     const size_t Nexpected, const size_t expected[])
+	     size_t Nexpected, const size_t expected[])
 {
   const size_t Nidx = 10;
   size_t idx[Nidx], k, i;
   mxtype L[4];
   int success;
 
+  if (expected == NULL) { Nexpected = 0; } 
   printf("%s (x,y)=(%g,%g) (dx,dy)=(%g,%g)\n",name,Lx,Ly,Ldx,Ldy);
 
   // Try forward
@@ -378,7 +402,7 @@ void test_regular(void)
   const mxtype y[] = { 4,3,2,1,0,4,3,2,1,0,4,3,2,1,0,4,3,2,1,0 };
 
   printf("\n\n=== line intersects segment in the middle ===\n");
-  { size_t E[]= {};        DO_TEST(miss,-1,-1,-1,1);     }
+  { size_t *E= NULL;        DO_TEST(miss,-1,-1,-1,1);     }
   { size_t E[]= {3,2,1,0}; DO_TEST(vert,0.5,0,0,1);      }
   { size_t E[]= {3,8,13};  DO_TEST(horz,0,0.5,1,0);      }
   { size_t E[]= {3,2,1,6,5}; DO_TEST(slope 2.1,0,0,1,2.1);      }
@@ -396,7 +420,7 @@ void test_regular(void)
   { size_t E[]= {3,7,11};  DO_TEST(diag,0,0,1,1);        }
   { size_t E[]= {3,7,11};  DO_TEST(diag2,-1,-1,1,1);     }
   { size_t E[]= {1,7,13};  DO_TEST(adiag,0,3,1,-1);      }
-  { size_t E[]= {};        DO_TEST(corner,0,0,-1,1);     }
+  { size_t *E= NULL;        DO_TEST(corner,0,0,-1,1);     }
   { size_t E[]= {3,2,6,5}; DO_TEST(slope 2,0,0,1,2);      }
 }
 
@@ -518,7 +542,7 @@ Twisted mesh with twist between the quads.
   printf("\n\n=== twisted mesh (some edges have zero length) ===\n");
   { size_t E[]= {1,6,11};      DO_TEST(twist1,0,0.5,1,0); }
   { size_t E[]= {12,7,2};      DO_TEST(twist2,0,-0.5,1,0); }
-  { size_t E[]= {};            DO_TEST(origin,0,0,1,1); }
+  { size_t *E=NULL;            DO_TEST(origin,0,0,1,1); }
   { size_t E[]= {13,12,11,10}; DO_TEST(twist3,0,0,-1,4); }
   { size_t E[]= {3,8,7,6,5,0}; DO_TEST(twist4,0,0,-3,2); }
   { size_t E[]= {8,7,6,5};     DO_TEST(edge,0,0,-1,1); }
