@@ -84,6 +84,16 @@ proc plist { list } { foreach l $list { puts $l } }
 # TODO: registry keys for application settings if HOME
 # TODO: does not exist.
 proc HOME { args } {
+    # USERPROFILE is guaranteed to be local (for NT at least)
+    # even if the home directory is a network share.  It would 
+    # be better to use HOMEDRIVE HOMEPATH environment variables 
+    # concatenated, though in some cases this might end up dumping 
+    # HOME to C:/
+    #
+    # For now, just return ~ which Tcl seems to be handling properly
+    # on both Unix and Windows.
+    return [file nativename ~]
+
     if { [llength $args] == 1 } {
 	set ::HOME [lindex $args 0]
     } elseif { [llength $args] > 1 } {
@@ -96,6 +106,7 @@ proc HOME { args } {
 	# tilde substitution to work even when $HOME contains
 	# a path with a symbolic link.  The pwd command returns the
 	# actual path rather than linked path.
+	
 	set startdir [ pwd ]
 	if { [catch { cd $::env(USERPROFILE) }] } {
 	    if { [catch { cd $::env(HOME) }] } {
