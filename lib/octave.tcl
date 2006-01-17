@@ -135,10 +135,10 @@ proc octave::Open { args } {
     # setup the communication with octave, including determining the
     # endianish translation requirements.
     set state(swap) {}
-    octave::eval $f { page_screen_output = 0 }
+    octave::eval $f { page_screen_output = 0; }
     blt::vector create ::octave_swap$f
     ::octave_swap$f set 1.0
-    octave::eval $f "send('octave_swap$f',1.0)"
+    octave::eval $f "send('octave_swap$f',1.0);"
 
     # while waiting for sync, send the additional function definitions we need
     variable home
@@ -388,7 +388,7 @@ proc octave::sync { f args } {
     variable syncid
     set v sync[incr syncid]
     array set ::octave::$f [list $v 1]
-    octave::eval $f "send('array unset ::octave::$f $v')"
+    octave::eval $f "send('array unset ::octave::$f $v');"
     vwait ::octave::${f}($v)
     if { ![info exists ::octave::$f] } { 
 	# close connection
@@ -416,13 +416,13 @@ proc octave::eval {f cmd} {
 proc octave::recv { f tclname {octaverhs {}} } {
     if { [string equal {} $octaverhs] } { set octaverhs $tclname }
     if { [llength [blt::vector names ::$tclname]] == 1 } {
-	octave::eval $f "send('$tclname',$octaverhs)"
+	octave::eval $f "send('$tclname',$octaverhs);"
     } elseif { [lsearch [::image names] $tclname] >= 0 } {
 	# XXX FIXME XXX can we avoid searching the entire image
 	# list every time?
-	octave::eval $f "tclphoto('$tclname',$octaverhs)"
+	octave::eval $f "tclphoto('$tclname',$octaverhs);"
     } else {
-	octave::eval $f "tclsend('$tclname',$octaverhs)"
+	octave::eval $f "tclsend('$tclname',$octaverhs);"
     }
 }
 
@@ -433,14 +433,14 @@ proc octave::recv { f tclname {octaverhs {}} } {
 proc octave::send { f tclname {octavelhs {}} } {
     if { [string equal {} $octavelhs] } { set octavelhs $tclname }
     if { [llength [blt::vector names $tclname]] == 1 } {
-	octave::eval $f "$octavelhs=sscanf('[set ${tclname}(:)]','%f ',Inf)"
+	octave::eval $f "$octavelhs=sscanf('[set ${tclname}(:)]','%f ',Inf);"
     } else {
 	error "can only send a blt vector"
     }
 }
 
 proc octave::image { f name expr } {
-    octave::eval $f tclphoto('$name',$expr)
+    octave::eval $f "tclphoto('$name',$expr);"
 }
 
 proc octave::mfile { f name } {
