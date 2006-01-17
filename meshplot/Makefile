@@ -88,6 +88,9 @@ OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o
 
 all: plot$(LDEXT)
 
+slice_test$(EXE): slice.c
+	$(CC) -DTEST slice.c -oslice_test$(EXE)
+
 plot$(EXE): plot.c
 	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
 	      $(GLUTLIBS) $(GLLIBS) -lm
