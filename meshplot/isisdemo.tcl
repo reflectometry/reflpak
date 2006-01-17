@@ -1,5 +1,5 @@
 namespace eval isis {
-variable DATADIR [file join $HOME data test]
+variable DATADIR [file nativename [file join ~ data test]]
 
 proc demo {{mesh_style QxQz}} {
     puts "starting demo"
