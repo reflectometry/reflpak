@@ -1,7 +1,6 @@
 namespace eval graph {
 
 
-
 # Bindings and options for graph_select and graph_select_list
 bind graphselect <Motion> [namespace code {_select_activate %W %x %y}]
 bind graphselect <Button-1> [namespace code {_select_choose %W %x %y; break}]
@@ -19,43 +18,42 @@ option add *Graph.selectText.Under 1 widgetDefault
 # activeLine pen to indicate the symbol under the mouse.
 #
 # Any of the names can be omitted using {} instead.  The label for the
-# point is x or y or idx or name, whichever is the first non-blank label
+# point is x, y, name or index, whichever is the first non-blank label
 #
 # Returns true if points were selected, false otherwise
 #
 # Examples
 #
-# graph_select .graph x_min x_max
+# graph::select .graph x_min x_max
 #   selects an x-range and stores it in x_min, x_max.
-# graph_select .graph {x y}
+# graph::select .graph {x y}
 #   selects a single point and stores it in x, y
-# graph_select .graph {x y name idx}
+# graph::select .graph {x y name idx}
 #   selects a single point and stores it in x, y.  The name of the line
 #   element containing the point is stored in name and the index is stored
 #   in idx
-#
-# TODO should be able to restrict the points to a subset of the
-# available elements.
+
+# TODO restrict points to a given subset of the available elements
+# TODO restrict points to the first line selected
+# TODO restrict selection to entire lines
+# TODO restrict selection to distinct points
 proc select { w args } {
-    # Determine the names for each point
+    # Simple argument checking
     set fn "[namespace current]::select"
     if {[llength $args] == 0} { 
 	error "$fn expects graph {x1 y1 name1 idx1} ..." 
     }
+
+    # Determine the names for each point
     set names {}
     foreach p $args {
 	if {[llength $p] < 1 || [llength $p] > 4} {
 	    error "$fn expects graph {x1 y1 name1 idx1} ..."
 	}
-	foreach {vx vy vel vidx} $p break
-	if { $vx ne "" } {
-	    lappend names $vx
-	} elseif { $vy ne "" } {
-	    lappend names $vy
-	} elseif { $vidx ne "" } {
-	    lappend names $vidx
-	} elseif { $vel ne "" } {
-	    lappend names $vel
+        # find first non-blank name and append it to list
+        set name [lindex $p [lsearch $p ?*]]
+	if { $name ne "" } {
+	    lappend names $name
 	} else {
 	    error "$fn expects one of x,y,name,idx to be non-blank"
 	}
@@ -108,7 +106,7 @@ proc _select_points {w names} {
     set info($w,n) [llength $names]
     set info($w,pts) {}
 
-    #set ::graph_select(focus,$w) [focus]
+    #set info($w,focus) [focus]
     # ptrace "adding tag to [bindtags $w] for $w"
     bindtags $w [concat graphselect [bindtags $w]]
     # XXX FIXME XXX is there a way to save and restore stacking order?
@@ -239,8 +237,8 @@ proc _select_done {w} {
     bindtags $w [_ldelete [bindtags $w] graphselect]
     #grab release $w
     catch {
-	#raise [winfo toplevel $::graph_select(focus,$w)]
-	#focus $::graph_select(focus,$w)
+	#raise [winfo toplevel $info($w,focus)]
+	#focus $info($w,focus)
     }
     eval $w element deactivate [$w elem names]
     set info($w,done) 1
