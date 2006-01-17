@@ -604,8 +604,8 @@ proc imagefromppm { name data } {
 		set tmpdir $env(TRASH_FOLDER)  ;# a better place?
 	    } default {
 		set tmpdir [pwd]
-		catch {set tmpdir $env(TMP)}
-		catch {set tmpdir $env(TEMP)}
+		catch {set tmpdir $::env(TMP)}
+		catch {set tmpdir $::env(TEMP)}
 	    }
 	}
 	
