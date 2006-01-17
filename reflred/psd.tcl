@@ -44,6 +44,7 @@ proc psd {id} {
 
     # send Qz index
     octave send ::x_$id Qz
+    ::x_$id dup ::psd_Qz
 
     # correct matrix if presented in reverse order
     octave eval "
@@ -696,7 +697,6 @@ proc ::psd::draw_slice {action skew Qzcross bincross} {
 	    qzy(qzy==0) = min(qzy(qzy!=0))/2;
 	    send(sprintf('.psd.binslice elem conf slice -label "bin = %d"',binidx));
 	}
-	octave recv psd_Qz Qz
 	octave recv psd_Qz_counts qzy
 	octave recv psd_Qz_err qzdy
     }
