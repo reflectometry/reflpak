@@ -96,15 +96,18 @@
 /* t = intersect(L,P1x,P1y,P2x,P2y,&u)
  *
  * Return true if the line segment defined by points P1 = (P1x,P1y) 
- * and P2 = (P2x,P2y) intersects the line L = [x,y,dx,dy].
- * Sets the position on the line u as follows:
- *   u < 0: intersection is before (x,y)
- *   u = 0: intersection is at (x,y)
- *   0<u<1: intersection is within (x,y) and (x+dx,y+dy)
- *   u = 1: intersection is at (x+dx,y+dy)
- *   u > 1: intersection is after (x+dx,y+dy)
+ * and P2 = (P2x,P2y) intersects the line L = [Lx,Ly,Ldx,Ldy].
+ *
+ * Sets the position u on the line L as follows:
+ *   u < 0: intersection is before (Lx,Ly)
+ *   u = 0: intersection is at (Lx,Ly)
+ *   0<u<1: intersection is within (Lx,Ly) and (Lx+Ldx,Ly+Ldy)
+ *   u = 1: intersection is at (Lx+Ldx,Ly+Ldy)
+ *   u > 1: intersection is after (Lx+Ldx,Ly+Ldy)
  * If P1=P2 then the line segment is a point, and no intersection is returned.
  *
+ * Algorithm:
+ * 
  * Nearest point on a line L to point P:
  *   u = ((P.x - L.x) * L.dx + (P.y-L.y) * L.dy)/(L.dx^2 + L.dy^2)
  *   x = L.x + u*L.dx
@@ -128,6 +131,7 @@ inline int
 intersect(const mxtype L[], 
 	  const mxtype P1x, const mxtype P1y,
 	  const mxtype P2x, const mxtype P2y,
+	  double *position_on_segment,
 	  double *position_on_line)
 {
   const double Lx = L[0];
@@ -144,12 +148,12 @@ intersect(const mxtype L[],
   if (denominator != 0) {
     /* P1-P2 defines a line segment that may or may not intersect L */
     const double numeratorP = Ldx * crossY - Ldy * crossX;
-    const double position_on_segment = numeratorP/denominator;
-    if (position_on_segment >= 0. && position_on_segment < 1.) {
+    *position_on_segment = numeratorP/denominator;
+    if (*position_on_segment > 0. && *position_on_segment <= 1.) {
       /* P1-P2 intersects L */
       const double numeratorL = Pdx * crossY - Pdy * crossX;
       *position_on_line = numeratorL/denominator;
-      LOG3(printf(" intersect at Pu=%g, Lu=%g",position_on_segment,*position_on_line));
+      LOG3(printf(" intersect at Pu=%g, Lu=%g",*position_on_segment,*position_on_line));
       return 1;
     }
     // printf(" intersect at Pu=%g (off segment)\n",position_on_segment);
@@ -161,6 +165,7 @@ intersect(const mxtype L[],
     if (Nx == P1x && Ny == P1y) {
       /* P1-P2 lies on L, return position of far end */
       *position_on_line = (fabs(Ldx)>fabs(Ldy)?(P2x-Lx)/Ldx:(P2y-Ly)/Ldy);
+// HELP! What do we return if the lines overlap!!
       LOG3(printf(" overlap (Lu=%g)",*position_on_line));
       return 1;
     }
@@ -186,18 +191,18 @@ step_through_mesh(size_t m, size_t n,
   const size_t rstep = 1;
   const size_t bstep = rstep+cstep;
   int il, it, ir, ib;
-  double l=u, t=u, r=u, b=u;
+  double p, l=u, t=u, r=u, b=u;
   LOG2(printf("start stepping through mesh"));
   while (1) {
     LOG2(printf("stepping %d from position %d",step,i));
     il = step!=STEP_RIGHT 
-      && intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&l);
+      && intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&p,&l);
     it = step!=STEP_DOWN 
-      && intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&t);
+      && intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&p,&t);
     ir = step!=STEP_LEFT 
-      && intersect(L,x[i+cstep],y[i+cstep],x[i+bstep],y[i+bstep],&r);
+      && intersect(L,x[i+cstep],y[i+cstep],x[i+bstep],y[i+bstep],&p,&r);
     ib = step!=STEP_UP 
-      && intersect(L,x[i+rstep],y[i+rstep],x[i+bstep],y[i+bstep],&b);
+      && intersect(L,x[i+rstep],y[i+rstep],x[i+bstep],y[i+bstep],&p,&b);
     if (l > u || t > u || r > u || b > u) {
       il = il && l > u;
       it = it && t > u;
@@ -258,7 +263,7 @@ mx_slice(const size_t m, const size_t n,
   const size_t bottom = (m-1)*rstep;
   const size_t right = (n-1)*cstep;
   size_t i, last = 0;
-  double u;
+  double p,u;
 
   // Note: we want the assignment of point on the boundary of
   // the rectangle to edge be a unique mapping. To do this, we
@@ -272,17 +277,17 @@ mx_slice(const size_t m, const size_t n,
   // Traverse left border
   LOG2(printf("== left"));
   for (i=0; i < bottom; i+=rstep) {
-    if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&u))
+    if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&p,&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i,STEP_RIGHT);
   }
 
   // Traverse top border
   LOG2(printf("== top"));
   for (i=0; i < right; i+=cstep) {
-    if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&u)) {
+    if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&p,&u)) {
       double v;
       /* Avoid contention for left corner */
-      if (i!=0 || intersect(L,x[i+cstep],y[i+cstep],x[i],y[i],&v))
+      if (i!=0 || intersect(L,x[i+cstep],y[i+cstep],x[i],y[i],&p,&v))
 	step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i,STEP_DOWN);
     }
   }
@@ -290,14 +295,14 @@ mx_slice(const size_t m, const size_t n,
   // Traverse bottom border
   LOG2(printf("== bottom"));
   for (i=bottom; i < bottom+right; i+=cstep) {
-    if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&u))
+    if (intersect(L,x[i],y[i],x[i+cstep],y[i+cstep],&p,&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i-rstep,STEP_UP);
   }
 
   // Traverse right boundary
   LOG2(printf("== right"));
   for (i=right; i < bottom+right; i+=rstep) {
-    if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&u))
+    if (intersect(L,x[i],y[i],x[i+rstep],y[i+rstep],&p,&u))
       step_through_mesh(m,n,x,y,L,Nidx,idx,&last,u,i-cstep,STEP_LEFT);
   }
 
@@ -320,7 +325,7 @@ void list_quads(const char name[], int k, const size_t idx[],
     printf("]");
   } else {
     for (i=0; i < k; i++) printf("%d%c",idx[i],(i<k-1?' ':']'));
-    for (i=0; i < k; i++) printf(" (%g,%g)",x[idx[i]],y[idx[i]]);
+//    for (i=0; i < k; i++) printf(" (%g,%g)",x[idx[i]],y[idx[i]]);
   }
   printf("\n");
 }
@@ -426,30 +431,29 @@ void test_regular(void)
 
 void test_warped(void)
 {
-  /* irregularly mesh
-
-x----------x
-|0        . \
-x--------x   \
-|1      . \  5\
-x------x   \   \
-|2    . \ 6 \   \
-x----x   \   \   x
-|3  . \7  \   x  |
-x--x 8 \   x  |  |
-    \   x  |  |  |
-     x  |  |  |  |
-     |13|12|11|10|
-     x--x--x--x--X
-
-  */
 
   const size_t m=5,n=4;
   const mxtype x[] = {  0,0,0,0,0,  5,4,3,2,1, 10,8,6,4,2, 10,8,6,4,2 };
   const mxtype y[] = { 10,8,6,4,2, 10,8,6,4,2,  5,4,3,2,1,  0,0,0,0,0 };
 
   printf("\n\n=== warped mesh ===\n");
+printf("\n\
+x----------x\n\
+|0        . \\\n\
+x--------x   \\\n\
+|1      . \\  5\\\n\
+x------x   \\   \\\n\
+|2    . \\ 6 \\   \\\n\
+x----x   \\   \\   x\n\
+|3  . \\7  \\   x  |\n\
+x--x 8 \\   x  |  |\n\
+    \\   x  |  |  |\n\
+     x  |  |  |  |\n\
+     |13|12|11|10|\n\
+     x--x--x--x--X\n");
+
   { size_t E[]= {2,3,8,13,12};  DO_TEST(connected,0,4.5,1,-1);  }
+  printf("The next test could go either way since it is two separate segments\n");
   { size_t E[]= {3,13};         DO_TEST(disjoint,0,2.5,1,-1); }
   { size_t E[]= {2,7,6,5};      DO_TEST(borderpoint,0,4,2,1); }
   { size_t E[]= {5};            DO_TEST(borderline,15,0,1,-1); }
@@ -510,7 +514,8 @@ Twisted mesh with twist inside the quads
   printf("\n\n=== twisted mesh (some edges have negative length) ===\n");
   { size_t E[]= {1,5,8};      DO_TEST(twist1,0,0.5,1,0); }
   { size_t E[]= {8,5,1};      DO_TEST(twist2,0,-0.5,1,0); }
-  { size_t E[]= {1,5,8};      DO_TEST(origin,0,0,1,1); } /* may not be the right "expected" */
+  printf("the following may not be the right 'expected'\n");
+  { size_t E[]= {1,5,8};      DO_TEST(origin,0,0,1,1); }
   { size_t E[]= {10,9,8};     DO_TEST(twist3,0,0,-1,4); }
   { size_t E[]= {2,6,5,4,0};  DO_TEST(twist4,0,0,-3,2); }
   { size_t E[]= {6,5,4};      DO_TEST(edge,0,0,-1,1); }
@@ -577,7 +582,7 @@ Mesh with non-convex node #5
 
   printf("\n\n=== non-concave quad in mesh ===\n");
   { size_t E[] = {10,6,2,1,0};    DO_TEST(miss,1.5,0,0,1); }
-  /* Should 5 appear twice ?? */
+  printf("Should 5 appear twice ??\n");
   { size_t E[] = {9,5,6,2,1,5,4}; DO_TEST(reenter,3,0,0,1); }
   { size_t E[] = {9,5,4};         DO_TEST(corner,4,0,0,1); }
   { size_t E[] = {9,5,4};         DO_TEST(center,5,0,0,1); }
