@@ -17,7 +17,7 @@ init_cmd {
     # FIXME turn these into resources
     set ::logaddrun 0
     set ::erraddrun y
-    set ::psdstyle fvector
+    set ::psdstyle octave
 }
 
 # HELP internal
