@@ -290,6 +290,13 @@ proc ::psd::init_select {} {
     .psd.matrix marker bind handle <ButtonRelease-1> { zoom %W on; ::psd::select %x %y drag_end }
 
     foreach h { select1 select2 } {
+        # This ugliness is because Windows does not accept the fill argument
+        # to marker lines like in unix, so we need to force xor'd black.
+	if { $::tcl_platform(platform) eq "windows" } {
+	    option add *psd.matrix.$h.outline black userDefault
+	    option add *psd.matrix.$h.fill white userDefault
+	    option add *psd.matrix.$h.xor yes userDefault
+	}
 	.psd.matrix marker create line -name $h -mapx bin -mapy Qz -bindtags handle
 	.psd.binslice elem create $h -xdata ::psd_Qz \
 		-ydata ::psd_${h}_counts -mapx Qz -mapy counts

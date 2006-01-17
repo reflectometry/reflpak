@@ -216,12 +216,12 @@ testviewrun.geometry: 700x500
  *psd.matrix.select1.outline: black
  *psd.matrix.select1.fill: white
  *psd.matrix.select1.dashes: 12 6
- *psd.matrix.select1.xor: 0
+ *psd.matrix.select1.xor: no
  *psd.binslice.select1.dashes: 6 2 
- *psd.matrix.select2.outline: white
- *psd.matrix.select2.fill: black
+ *psd.matrix.select2.outline: black
+ *psd.matrix.select2.fill: white
  *psd.matrix.select2.dashes: 8 6
- *psd.matrix.select2.xor: 0
+ *psd.matrix.select2.xor: no
  *psd.binslice.select2.dashes: 3 2
 
 ## Use solid colors for left/right select lines
