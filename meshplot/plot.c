@@ -1106,14 +1106,12 @@ void drawwarp(int stack[],int m, int n)
   int numQmesh = (m+1)*(n+1);
   int i,k;
 
-  printf("numQ = %d*%d\n",m,n);
   Wx = (PReal *)malloc(numQmesh * sizeof(PReal));
   if (Wx == NULL) return;
   Wy = (PReal *)malloc(numQmesh * sizeof(PReal));
   if (Wy == NULL) { free(Wx); return; }
   Wv = (PReal *)malloc(numQ * sizeof(PReal));
   if (Wv == NULL) { free(Wx); free(Wy); return; }
-  printf("allocating %p,%p,%p\n",Wx,Wy,Wv);
 
   iter++;
   buildwarp(m,n,Wx,Wy,Wv);
@@ -1135,9 +1133,7 @@ void drawwarp(int stack[],int m, int n)
 #else  /* Don't use vertex arrays */
   plot_mesh(k,m,n,Wx,Wy,Wv);
 #endif
-  printf("freeing %p,%p,%p\n",Wx,Wy,Wv);
   free(Wx); free(Wy); free(Wv);
-  printf("Done\n");
 }
 
 void drawline(int stack[])
