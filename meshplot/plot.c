@@ -1097,8 +1097,8 @@ void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
   }
 }
 
-#define WARP_M 1000
-#define WARP_N 304
+#define WARP_M 56
+#define WARP_N 86
 #define Q (WARP_M*WARP_N)
 #define QM ((WARP_M+1)*(WARP_N+1))
 void drawwarp(int stack[])
@@ -1190,6 +1190,9 @@ int stack[20];
 PReal limits[6];
 PReal tics[4];
 int force_redraw = 0;
+int panning=0;
+int pan_x, pan_y;
+int pan_call=0;
 
 void init(void) 
 {
@@ -1244,10 +1247,26 @@ void keyboard(unsigned char key, int x, int y)
    }
 }
 
+void show_pan(int call)
+{
+  if (pan_call == call) display();
+}
+
 void drag(int x, int y)
 {
-  if (force_redraw) display();
   // printf("drag to %d %d\n", x, y);
+  if (panning) {
+    int dims[4];
+    double dx,dy;
+    glGetIntegerv(GL_VIEWPORT, dims);
+    dx = (pan_x-x)*(limits[1]-limits[0])/dims[2];
+    dy = -(pan_y-y)*(limits[3]-limits[2])/dims[3];
+    limits[0] += dx; limits[1] += dx;
+    limits[2] += dy; limits[3] += dy;
+    pan_x = x; pan_y = y;
+    glutTimerFunc(25,show_pan,++pan_call);
+  }
+  else if (force_redraw) display();
 }
 
 void move(int x, int y)
@@ -1260,12 +1279,16 @@ void move(int x, int y)
 void click(int button, int state, int x, int y)
 {
   // printf("mouse %d %d at %d %d\n",button,state,x,y);
+  panning = 0;
   if (button == 3 && state == GLUT_DOWN) {
     /* zoom in */
   } else if (button == 4 && state == GLUT_DOWN) {
     /* zoom out */
   } else if (button == 1 && state == GLUT_DOWN) {
     /* pan */
+    panning = 1;
+    pan_x = x;
+    pan_y = y;
   } else if (button == 0 && state == GLUT_DOWN) {
     /* pick */
     printf("picking at %d,%d\n",x,y);
