@@ -1097,37 +1097,47 @@ void buildwarp(int m, int n, PReal *x, PReal *y, PReal *v)
   }
 }
 
-#define WARP_M 56
-#define WARP_N 86
-#define Q (WARP_M*WARP_N)
-#define QM ((WARP_M+1)*(WARP_N+1))
-void drawwarp(int stack[])
+void drawwarp(int stack[],int m, int n)
 {
-  static PReal Wx[QM], Wy[QM], Wv[Q], *qs;
   static PReal Wmap[4*PLOT_COLORMAP_LEN];
   static int iter=-1;
+  PReal *Wx, *Wy, *Wv, *qs;
+  int numQ = m*n;
+  int numQmesh = (m+1)*(n+1);
   int i,k;
 
+  printf("numQ = %d*%d\n",m,n);
+  Wx = (PReal *)malloc(numQmesh * sizeof(PReal));
+  if (Wx == NULL) return;
+  Wy = (PReal *)malloc(numQmesh * sizeof(PReal));
+  if (Wy == NULL) { free(Wx); return; }
+  Wv = (PReal *)malloc(numQ * sizeof(PReal));
+  if (Wv == NULL) { free(Wx); free(Wy); return; }
+  printf("allocating %p,%p,%p\n",Wx,Wy,Wv);
+
   iter++;
-  buildwarp(WARP_M,WARP_N,Wx,Wy,Wv);
-  for (i=0; i < QM; i++) { Wx[i] += 3*iter; Wy[i] += 2*iter; }
+  buildwarp(m,n,Wx,Wy,Wv);
+  for (i=0; i < numQmesh; i++) { Wx[i] += 3*iter; Wy[i] += 2*iter; }
   k = plot_add(stack);
   plot_valmap(PLOT_COLORMAP_LEN,Wmap,iter/10.);
   plot_colors(PLOT_COLORMAP_LEN,Wmap);
 
 #if 0  /* Use vertex arrays */
-  qs = qsnew(WARP_M,WARP_N);
-  qscoords(WARP_M,WARP_N,Wx,Wy,qs);
-  qscolor(WARP_M,WARP_N,Wv,qs);
+  qs = qsnew(m,n);
+  qscoords(m,n,Wx,Wy,qs);
+  qscolor(m,n,Wv,qs);
 # if 0 /* Use vertex arrays with display lists */
-  plot_qs(k,WARP_M,WARP_N,qs);
+  plot_qs(k,m,n,qs);
   qsdelete(qs);
 # else /* Use vertex arrays without display lists */
-  qsadd(WARP_M,WARP_N,qs);
+  qsadd(m,n,qs);
 # endif
 #else  /* Don't use vertex arrays */
-  plot_mesh(k,WARP_M,WARP_N,Wx,Wy,Wv);
+  plot_mesh(k,m,n,Wx,Wy,Wv);
 #endif
+  printf("freeing %p,%p,%p\n",Wx,Wy,Wv);
+  free(Wx); free(Wy); free(Wv);
+  printf("Done\n");
 }
 
 void drawline(int stack[])
@@ -1139,15 +1149,15 @@ void drawline(int stack[])
   plot_lines(k,2,x,3.,0,plot_black);
 }
 
-void plot_demo(PReal limits[6], int stack[])
+void plot_demo(PReal limits[6], int stack[], int m, int n)
 {
   // printf("entering plotdemo\n");
   limits[4] = 0.1;
   limits[5] = 0.9;
   plot_vrange(0,limits[4],limits[5]);
   drawsquares(stack);
-  drawwarp(stack);
-  drawwarp(stack);
+  drawwarp(stack,m,n);
+  drawwarp(stack,m,n);
   drawline(stack);
   limits[0] = 0.;
   limits[1] = 15.;
@@ -1193,12 +1203,13 @@ int force_redraw = 0;
 int panning=0;
 int pan_x, pan_y;
 int pan_call=0;
+int demo_m=86, demo_n=56;
 
 void init(void) 
 {
   plot_init();
   plot_clearstack(stack,sizeof(stack)/sizeof(int));
-  plot_demo(limits,stack);
+  plot_demo(limits,stack,demo_m,demo_n);
 }
 
 void display(void)
@@ -1284,7 +1295,7 @@ void click(int button, int state, int x, int y)
     /* zoom in */
   } else if (button == 4 && state == GLUT_DOWN) {
     /* zoom out */
-  } else if (button == 1 && state == GLUT_DOWN) {
+  } else if (button == 2 && state == GLUT_DOWN) {
     /* pan */
     panning = 1;
     pan_x = x;
@@ -1313,6 +1324,13 @@ void idle(void)
 
 int main(int argc, char** argv)
 {
+  if (argc > 1) demo_m = demo_n = atoi(argv[1]);
+  if (argc > 2) demo_n = atoi(argv[2]);
+  if (demo_m <= 0 || demo_n <= 0) {
+    fprintf(stderr,"%s: expected dimensions m n\n",argv[0]);
+    return 1;
+  }
+
    glutInit(&argc, argv);
 #if PLOT_DOUBLE_BUFFER
    glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGBA);

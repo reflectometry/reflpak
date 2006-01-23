@@ -162,7 +162,7 @@ void tp_create( Togl *togl )
   plot->log = 0;
   plot->grid = 0;
   plot_grid_tics(plot->limits,plot->tics,5,5);
-  //  plot_demo(plot->limits, plot->stack);
+  //  plot_demo(plot->limits, plot->stack,85,56);
 }
 
 
@@ -204,7 +204,7 @@ int tp_demo(Togl *togl, int argc, CONST84 char *argv[])
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   // printf("demo with plot=%p\n",plot);
   Togl_MakeCurrent(togl);
-  plot_demo(plot->limits, plot->stack);
+  plot_demo(plot->limits, plot->stack,85,56);
   Togl_PostRedisplay(togl);
   return TCL_OK;
 }

@@ -76,7 +76,7 @@ void meshredraw(void);
 #endif /* 0 */
 
 #ifdef DEMO
-void plot_demo(PReal limits[6], int stack[]);
+void plot_demo(PReal limits[6], int stack[], int m, int n);
 #endif
 
 #endif /* _PLOT_H */
