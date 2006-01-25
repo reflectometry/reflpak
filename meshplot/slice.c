@@ -5,10 +5,10 @@
 
 */
 
-#define TEST
-#define HAVE_INLINE
-#define HAVE___FUNCTION__
-#undef HAVE_MXTYPE
+#define TEST                /* Build test program */
+#define HAVE_INLINE         /* If inline works on your compiler */
+#define HAVE___FUNCTION__   /* If your compiler defines the __FUNCTION__ macro */
+#undef HAVE_MXTYPE          /* If you are including "mx.h" */
 
 /* ==== end configurate information === */
 
@@ -93,10 +93,11 @@
 #define LOG2(msg) do {} while (0)
 #endif
 
-/* t = intersect(L,P1x,P1y,P2x,P2y,&u)
+/* t = intersect(L,P1x,P1y,P2x,P2y,&v,&u)
  *
  * Return true if the line segment defined by points P1 = (P1x,P1y) 
- * and P2 = (P2x,P2y) intersects the line L = [Lx,Ly,Ldx,Ldy].
+ * and P2 = (P2x,P2y) intersects but does not overlay the line
+ * L = [Lx,Ly,Ldx,Ldy].
  *
  * Sets the position u on the line L as follows:
  *   u < 0: intersection is before (Lx,Ly)
@@ -104,7 +105,19 @@
  *   0<u<1: intersection is within (Lx,Ly) and (Lx+Ldx,Ly+Ldy)
  *   u = 1: intersection is at (Lx+Ldx,Ly+Ldy)
  *   u > 1: intersection is after (Lx+Ldx,Ly+Ldy)
- * If P1=P2 then the line segment is a point, and no intersection is returned.
+ * The postion v on the segment is defined similarly:
+ *   v < 0: intersection is before (P1x,P1y)
+ *   v = 0: intersection is at (P1x,P1y)
+ *   0 < v < 1: intersection is between (P1x,P1y) and (P2x,P2y)
+ *   v = 1: intersection is at (P2x,P2y)
+ *   v > 1: intersection is after (P2x,P2y)
+ *
+ * If the line L overlays the line P1P2, then intersect returns
+ * false, but v is 0 and u is defined as if the intersection were
+ * at point P1.  This is true even if P1P2 defines a point.
+ *
+ * If the line L is parallel but not overlapping the line P1P2
+ * then intersect returns false and v is -1.
  *
  * Algorithm:
  * 
@@ -149,13 +162,13 @@ intersect(const mxtype L[],
     /* P1-P2 defines a line segment that may or may not intersect L */
     const double numeratorP = Ldx * crossY - Ldy * crossX;
     *position_on_segment = numeratorP/denominator;
-    if (*position_on_segment > 0. && *position_on_segment <= 1.) {
+    if (*position_on_segment >= 0. && *position_on_segment <= 1.) {
       /* P1-P2 intersects L */
       const double numeratorL = Pdx * crossY - Pdy * crossX;
       *position_on_line = numeratorL/denominator;
       LOG3(printf(" intersect at Pu=%g, Lu=%g",*position_on_segment,*position_on_line));
       return 1;
-    }
+    } 
     // printf(" intersect at Pu=%g (off segment)\n",position_on_segment);
   } else {
     /* P1-P2 defines a line segment parallel to L */
@@ -164,12 +177,14 @@ intersect(const mxtype L[],
     const double Ny = Ly + u * Ldy;
     if (Nx == P1x && Ny == P1y) {
       /* P1-P2 lies on L, return position of far end */
-      *position_on_line = (fabs(Ldx)>fabs(Ldy)?(P2x-Lx)/Ldx:(P2y-Ly)/Ldy);
-// HELP! What do we return if the lines overlap!!
+      *position_on_segment = 0.;
+      *position_on_line = (fabs(Ldx)>fabs(Ldy)?(P1x-Lx)/Ldx:(P1y-Ly)/Ldy);
       LOG3(printf(" overlap (Lu=%g)",*position_on_line));
-      return 1;
+    } else {
+      *position_on_segment = -1.;
+      *position_on_line = -1.;
+      LOG3(printf(" are parallel"));
     }
-    LOG3(printf(" are parallel"));
   }
   return 0;
 }
