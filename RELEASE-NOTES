@@ -3,7 +3,11 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
-2005-01-17
+2006-01-27
+
+* RED: Force scroll bars on text box
+
+2006-01-17
 
 * RED: Support for network share home directory on Windows
 
