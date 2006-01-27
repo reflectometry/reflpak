@@ -175,7 +175,7 @@ proc init_selector { } {
     pack .filename -side top -in $filepane
 
     text .text -state disabled -wrap none
-    pack [scroll .text] -side top -in $filepane -fill both -expand yes
+    pack [scroll .text -auto none] -side top -in $filepane -fill both -expand yes
 
     graph .graph
 #    vector create ::x_data ::y_data
