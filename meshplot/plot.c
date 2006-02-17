@@ -1234,18 +1234,24 @@ void display(void)
 #endif
 }
 
-void reshape(int w, int h)
+void regrid(int w, int h)
 {
   int xtics, ytics;
   xtics = (2*w)/100; /* 100 dpi */
   ytics = (2*h)/100; /* 100 dpi */
   plot_grid_tics(limits,tics,xtics,ytics);
+}
+
+void reshape(int w, int h)
+{
+  regrid(w,h);
   plot_reshape(w,h);
 }
 
 
 void keyboard(unsigned char key, int x, int y)
 {
+  /* printf("Shift state = %d\n",glutGetModifiers()); */
   if (force_redraw) display();
    switch (key) {
       case 27:
@@ -1257,6 +1263,32 @@ void keyboard(unsigned char key, int x, int y)
 void show_pan(int call)
 {
   if (pan_call == call) display();
+}
+
+void zoom(int x, int y, int step)
+{
+  int dims[4];
+  double dx,dy,xbalance,ybalance;
+  glGetIntegerv(GL_VIEWPORT, dims);
+
+  xbalance = (double)x/(double)dims[2];
+  ybalance = (double)(dims[3]-y)/(double)dims[3];
+  if (step > 0) {
+    dx = (limits[1]-limits[0])*step/100.;
+    dy = (limits[3]-limits[2])*step/100.;
+  } else {
+    dx = (limits[1]-limits[0])*step/(100.-step);
+    dy = (limits[3]-limits[2])*step/(100.-step);
+  }
+
+  limits[0] -= dx*xbalance;
+  limits[1] += dx*(1-xbalance);
+  limits[2] -= dy*ybalance;
+  limits[3] += dy*(1-ybalance);
+
+  regrid(dims[2],dims[3]);
+
+  glutTimerFunc(25,show_pan,++pan_call);
 }
 
 void drag(int x, int y)
@@ -1289,10 +1321,15 @@ void click(int button, int state, int x, int y)
   panning = 0;
   if (button == 3 && state == GLUT_DOWN) {
     /* zoom in */
+    zoom(x,y,5);
   } else if (button == 4 && state == GLUT_DOWN) {
     /* zoom out */
+    zoom(x,y,-5);
+  } else if (button == 1) {
+    /* printf("button 1\n"); */
   } else if (button == 2 && state == GLUT_DOWN) {
     /* pan */
+    /* printf("Shift state = %d\n",glutGetModifiers()); */
     panning = 1;
     pan_x = x;
     pan_y = y;
