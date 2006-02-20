@@ -15,6 +15,20 @@
 ##   Na = 7, Ma=2000, Nb=13, Mb=4000, test_run_avg(Na,Ma,Nb,Mb)
 ## * counts in Poisson region
 ##   Na = 3, Ma=2000, Nb=8, Mb=4000, test_run_avg(Na,Ma,Nb,Mb)
+##
+## Also try counting in lots of little chunks and combining the result
+##   N = randp(5,50,1);
+##   M = randp(25,50,1);
+##   y=N./M; dy=sqrt((1+N./M).*N./M.^2); dy(N==0) = 1./M(N==0);
+##   r=y(1); dr=dy(1);
+##   for i=2:length(y)
+##     w = r/dr^2 + y(i)/dy(i)^2;
+##     r = ((r/dr)^2 + (y(i)/dy(i))^2)/w;
+##     dr = sqrt(r/w);
+##   end
+##   Nt=sum(N); Mt=sum(M); t=Nt/Mt; dt=sqrt((1+Nt/Mt)*Nt/Mt^2);
+##   [t,dt,r,dr,norm(t-r)/t,norm(dt-dr)/dt]
+
 function test_run_avg(Na,Ma,Nb,Mb)
   ## target value
   rc=(Na+Nb)/(Ma+Mb); 
