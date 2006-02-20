@@ -851,6 +851,79 @@ Click "Cancel" to close the choose window.
 2002-09-13}
 
 # ----------------------------------------------------------------------
+hpage {Algorithm: Joining lines} {When joining multiple measurements
+into a single measurement, nearby points are combined.  Nearby is defined
+as having a Q value with 2e-14 of each other.  Ideally, points with 
+different resolution would be kept separate but as of this writing they
+are not.
+
+To average rates y1, ..., yn, selected from use:
+
+     w = sum{ y_i/dy_i^2 }
+     y = sum{ (y_i/dy_i)^2 }/w
+     dy = sqrt( y_i/w )
+
+where yi is the rate ni/mi computed from the counts over the monitor
+and dyi is the uncertainty sqrt(ni)/mi due to Poisson statistics.
+Note that avg(y1,...,yn) == avg(y1,avg(y2, ..., avg(yn-1,yn)...)),
+and the order in which the lines are added does not matter.  This
+formula does not apply to values selected from Gaussian distributions.
+
+For a pair of points, this expands to the following:
+
+   measure N counts during M monitors
+   rate:                   r = N/M
+   rate uncertainty:      dr = sqrt(N)/M
+   weighted rate:          r/dr^2 = (N/M) / (N/M^2) =  M
+   weighted rate squared:  r^2/dr^2 = (N^2/M) / (N/M^2) = N
+
+   for two measurements N_a, N_b
+   w = r_a/dr_a^2 + r_b/dr_b^2 = M_a + M_b
+   y = ((r_a/dr_a)^2 + (r_b/dr_b)^2)/w = (N_a + N_b)/(M_a + M_b)
+   dy = sqrt(y/w) = sqrt( (N_a + N_b)/ w^2 ) = sqrt(N_a+N_b)/(M_a + M_b)
+
+We are actually using a more complicated expression for rate which
+includes attenuators and for rate uncertainty which includes attenuator
+and monitor uncertainty propogated using Gaussian statistics, so in
+practice it will be:
+
+   r = A*N/M
+  dr = sqrt( A^2*(1+N/M)*N + (dA*N)^2 )/M
+
+As a check for the formula, the rate and uncertainty for two separate
+measurements Na and Nb averaged together should match the rate and
+uncertainty for the combined value N = N_a + N_b.  Doing this for a
+high Q measurement such as e.g., 
+
+   N_a = 7, M_a=2000, N_b=13, M_b=4000, A_a=A_b=1, dA_a=dA_b=0
+
+ields a relative error on the order of 1e-6.  Measuring a direct
+beam, with the monitor rate 10% of the detector rate, e.g.,
+
+   N_a=20400, M_a=2000, N_b=39500, M_b=4000
+
+yields a relative error on the order of 0.02%.
+
+The additional factor sqrt(1+N/M) due to monitor uncertainty is
+significant to the calculation.  For example, the error bars 
+are wrong by a factor of 3 in the direct beam example above if
+monitor uncertainty is not included.
+
+The use of Poisson error propogation is significant in low count regions 
+only, and there only marginally so. Elsewhere the traditional Gaussian
+propogation of error formulas:
+
+     w = sum( 1/dy^2 )
+     y = sum( y/dy^2 )/w
+     dy = sqrt( 1/w )
+
+could be used.  We use Poisson error propogation thoughout when
+averaging data points.
+
+
+2006-02-20}
+
+# ----------------------------------------------------------------------
 hpage {NG7 PSD} {Here's the current code for psd reduction on NG-7:
 
  # measured monitor M
