@@ -827,6 +827,71 @@ proc MoveSlice {w x y} {
     }
 }
 
+
+proc transpose {L} {
+
+    #  Usage:  transpose lists 
+    #  tranposes a matrix (a list of lists) 
+    #  From http://philip.greenspun.com/doc/proc-one?proc_name=transpose
+    #  No copyright notice indicated.
+    #  FIXME  replace with something fast and free
+    set num_lists [llength $lists]
+    if !$num_lists { return "" }
+    
+    for {set i 0} {$i<$num_lists} {incr i} {
+	set l($i) [lindex $lists $i]
+    }
+    
+    set result {}
+    while {1} {
+	set element {}
+	for {set i 0} {$i<$num_lists} {incr i} {
+	    if [null_p $l($i)] { return $result }
+	    lappend element [head $l($i)]
+	    set l($i) [tail $l($i)]
+	}
+	lappend result $element
+    }
+    
+    # Note: This function takes about n*n seconds
+    #       to transpose a (100*n) x (100*n) matrix.
+}
+
+proc getregions {id} {
+    upvar \#0 $id rec
+    proc region_fn {S1 S2 S3 S4 A B d1 d2 d3} $plot(integration_region)
+    set d1 $rec(d1)
+    set d2 $rec(d2)
+    set d3 $rec(d3)
+    set L {}
+    for {set i 0} { $i < $rec(points) } { incr i } {
+	lappend L [region_fn $S1 $S2 $S3 $S4 $A $B $d1 $d2 $d3]
+    }
+    return [ltranspose $L]
+}
+	
+proc integrate {rec left right} {
+
+    set v $rec(psddata)
+    set dv $rec(psderr)
+    set Iv {}
+    set Idv {}
+    foreach lo $left hi $right {
+	set sum 0.
+	set err 0.
+	while {$lo <= $hi} {
+	    set vi [findex $v $lo]
+	    set dvi [findex $dv $lo]
+	    set sum [expr {$sum + $vi}]
+	    set err [expr {$err + $dvi*$dvi}]
+	    incr lo
+	}
+	lappend Iv $sum
+	lappend Idv [expr {sqrt($err)}]
+    }
+    return [list $Iv $Idv]
+}
+
 proc plot_window {{w .plot}} {
     if {![winfo exists $w]} {
 	toplevel $w -width 400 -height 500
@@ -846,8 +911,8 @@ proc plot_window {{w .plot}} {
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
     $w.c bind <<ZoomClick>> [namespace code {MoveSlice %W %x %y}]
-    $w.c bind <Alt-ButtonPress-3> [namespace code {MoveSlice %W %x %y}]
-    $w.c bind <Alt-B3-Motion> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Control-ButtonPress-3> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Control-B3-Motion> [namespace code {MoveSlice %W %x %y}]
 
     # Create a control panel
     set f $w.controls
@@ -884,19 +949,53 @@ proc plot_window {{w .plot}} {
 
     label $w.message -relief ridge -anchor w
 
+
+    # Slice plot
     vector create ::x_$w.c ::y_$w.c ::dy_$w.c
-    foreach g {psdslice psdcompose} {
-        graph $w.$g
-        active_legend $w.$g
-        active_graph $w.$g
-	active_axis $w.$g y
-    }
-    $w.psdslice element create data -xdata ::x_$w.c -ydata ::y_$w.c -yerror ::dy_$w.c
-    set plot(compose) $w.psdcompose
-    set plot(slice) $w.psdslice
- 
+    set g [graph $w.psdslice]
+    active_legend $g
+    active_graph $g
+    active_axis $g y
+    set plot(slice) $g
+    $w.psdslice element create data \
+	-xdata ::x_$w.c -ydata ::y_$w.c -yerror ::dy_$w.c -label ""
+
+    # Compose plot
+    set g [graph $w.psdcompose]
+    active_legend $g
+    active_graph $g
+    active_axis $g y
+    set plot(compose) $g
+
+    # Compose controls
+    set plot(integration_region) {
+set a [expr {1.5*atan2($S1/2,$d3)}]
+set a2 [expr {$a*2}]
+return [list -$a $a -$a2 -$a $a $a2]
+
+# Define the integration formula for selecting the 
+# specular ridge and background for an instrument 
+# configuration.  
+#
+# Available variables:
+#   S1,S2,S3,S4: slit widths (mm)
+#   A,B: sample and detector angles (degrees)
+#   d1: distance from S1 to S2 (mm)
+#   d2: distance from S2 to sample (mm)
+#   d3: distance from sample to detector (mm)
+#   rec: structure for the current record
+#
+# Return the region for the specular ridge and plus and minus
+# backgound as pairs of 2theta angles.  Set them to {} if you don't
+# want to use them.
+}
+    text $w.integration_region -wrap no
+    text_replace $w.integration_region $plot(integration_region)
+
+
+    # Bind everything together
     grid $w.c $w.cb $w.psdcompose -sticky news
-    grid $w.psdslice - ^ -sticky news
+    grid $w.psdslice - $w.integration_region -sticky news
     grid $w.controls - - -sticky w
     grid $w.message - - -sticky ew
     grid rowconfigure $w {0 1} -weight 1
