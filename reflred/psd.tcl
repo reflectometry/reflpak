@@ -192,9 +192,9 @@ proc ::psd::init {} {
     # pasting images into .psd.colorbar
     bind_slice
 
-    bind .psd.matrix <Motion> { ::psd::coords %x %y }
+    bind .psd.matrix   <Motion> { ::psd::coords %x %y }
     bind .psd.binslice <Motion> { ::psd::slice_coords %W %y %x }
-    bind .psd.qzslice <Motion> { ::psd::slice_coords %W %x %y }
+    bind .psd.qzslice  <Motion> { ::psd::slice_coords %W %x %y }
 
     # if user zooms in image, then zoom in slices
     bind .psd.matrix <ButtonPress-3> { ::psd::zoom_slice }
