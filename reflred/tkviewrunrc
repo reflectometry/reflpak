@@ -124,6 +124,15 @@ testviewrun.geometry: 700x500
 *Dialog.msg.font: Times -14
 *Dialog.msg.wrapLength: 6i
 
+# ================= New PSD options ================
+
+*psdslice.leftMargin: 75
+*psdslice.rightMargin: 100
+*psdslice.height: 4c
+*psdcompose.width: 8c
+*psdcompose.legend.position: plotarea
+*psdcompose.legend.anchor: ne
+
 # ================= PSD options ==================
 
 # Colormap for PSD array. You can change colormaps on the fly using 

@@ -43,6 +43,16 @@ proc dtheta_edges {pixels pixelwidth distance centerpixel} {
   return $edges
 }
 
+proc dtheta_centers {pixels pixelwidth distance centerpixel} {
+  variable pi_over_180
+  set c {}
+  for {set p 0} {$p < $pixels} {incr p} {
+    lappend c [expr {atan2(($centerpixel-$p+0.5)*$pixelwidth, $distance) \
+			     / $pi_over_180}]
+  }
+  return $c
+}
+
 proc set_center_pixel {id {c {}}} {
     upvar \#0 $id rec
     # default to center of the detector
@@ -50,6 +60,8 @@ proc set_center_pixel {id {c {}}} {
     set rec(centerpixel) $c
     fvector rec(dtheta) \
 	[dtheta_edges $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
+    fvector rec(column,dtheta) \
+	[dtheta_centers $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
 }
 
 proc parse_data {id data} {
@@ -107,7 +119,27 @@ proc set_axes {id theta twotheta slit1} {
     }
 }
 
-# XXX FIXME XXX don't store mesh with the record otherwise we can't
+proc ABL {id row A B L} {
+    upvar \#0 $id rec
+    upvar $A alpha
+    upvar $B beta
+    upvar $L lambda
+    if {[isTOF]} {
+	set alpha $rec(A)
+	set beta $rec(B)
+	set lambda [findex rec(column,lambda) $row]
+    } else {
+	# FIXME standardize names for Theta, TwoTheta
+        catch { set alpha [findex rec(column,A3) $row] }
+        catch { set alpha [findex rec(column,Theta) $row] }
+        catch { set beta [findex rec(column,A4) $row] }
+        catch { set beta [findex rec(column,TwoTheta) $row] }
+        set lambda $rec(L)
+    }
+}
+    
+
+# FIXME don't store mesh with the record otherwise we can't
 # plot the same record in multiple plots with different axes.
 proc mesh_QxQz {id} {
     upvar \#0 $id rec
@@ -124,6 +156,17 @@ proc mesh_QxQz {id} {
     set rec(ylabel) "Qz (inv Angstroms)"
     set rec(xcoord) "Qx"
     set rec(ycoord) "Qz"
+}
+
+proc row_QxQz {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$::pitimes2/$L*(cos($::piover180*($d+$B-$A)) \
+	    - cos($::piover180*$A))}]
+    }
+    return $x
 }
 
 proc find_QxQz {id x y} {
@@ -150,6 +193,16 @@ proc mesh_TiTd {id} {
     set rec(xcoord) "Td"
 }
 
+proc row_TiTd {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$d+$B-2*$A}]
+    }
+    return $x
+}
+
 proc find_TiTd {id x y} {
     upvar \#0 $id rec
     return [findmesh -d \
@@ -166,6 +219,16 @@ proc mesh_TiTf {id} {
     set rec(ylabel) "theta_i (degrees)"
     set rec(ycoord) "Ti"
     set rec(xcoord) "Tf"
+}
+
+proc row_TiTf {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$d+$B-$A}]
+    }
+    return $x
 }
 
 proc find_TiTf {id x y} {
@@ -186,6 +249,16 @@ proc mesh_AB {id} {
     set rec(xcoord) "B"
 }
 
+proc row_AB {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$d+$B}]
+    }
+    return $x
+}
+
 proc find_AB {id x y} {
     upvar \#0 $id rec
     return [findmesh -b \
@@ -202,6 +275,16 @@ proc mesh_slit {id} {
     set rec(ylabel) "slit 1 (mm)"
     set rec(ycoord) "S1"
     set rec(xcoord) "Td"
+}
+
+proc row_slit {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$d+$B-2*$A}]
+    }
+    return $x
 }
 
 proc find_slit {id x y} {
@@ -222,6 +305,16 @@ proc mesh_LTd {id} {
     set rec(ycoord) "L"    
 }
 
+proc row_LTd {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    foreach d [fvector rec(column,dtheta)] {
+ 	lappend x [expr {$d+$B-2*$A}]
+    }
+    return $x
+}
+
 proc find_LTd {id x y} {
     upvar \#0 $id rec
     return [findmesh \
@@ -240,6 +333,16 @@ proc mesh_pixel {id {base 0}} {
     set rec(ylabel) "scan points"
     set rec(xcoord) "pixel"
     set rec(ycoord) "point"
+}
+
+proc row_pixel {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    for {set p 1} {$p <= $rec(pixels)} {incr p} {
+ 	lappend x $p
+    }
+    return $x
 }
 
 proc find_pixel {id x y} {
@@ -287,7 +390,7 @@ proc auto_vrange {path} {
     upvar plot plot
     if {[llength $plot(records)] == 0} { return }
     foreach {vlo vhi} [vlimits $plot(records)] {}
-    # XXX FIXME XXX should we automatically select decades?
+    # FIXME should we automatically select decades?
     if {$vlo < $vhi*1e-5} { set vlo [expr {$vhi*1e-5}]}
     set plot(vlim) [list $vlo $vhi]
     $path configure -vrange $plot(vlim)
@@ -552,7 +655,7 @@ proc center {path center} {
 	}
 	calc_transform $path $plot(mesh)
     }
-    # XXX FIXME XXX center shouldn't know about center_entry
+    # FIXME center shouldn't know about center_entry
     set plot(center_entry) $center
     $path draw
 }
@@ -689,6 +792,41 @@ proc ShowCoordinates { w x y } {
     $wmsg conf -text ""
 }
 
+proc MoveSlice {w x y} {
+    findplot $w
+    foreach {X Y} [$w coords $x $y] break
+    foreach id $plot(records) {
+        upvar \#0 $id rec
+
+        set idx -1
+	catch { set idx [find_$plot(mesh) $id $X $Y] }
+	if { $idx >= 0 } {
+	    set j [expr {$idx/$rec(pixels)}]
+            set x {}
+            set data {}
+            set err {}
+            set min 1e300
+            for {set i 0} {$i < $rec(pixels)} {incr i} {
+                set idx [expr {$i + $j*$rec(pixels)}]
+		set v [findex rec(psddata) $idx]
+		if {$v > 0. && $v < $min} { set min $v }
+	        lappend x $i
+                lappend data $v
+                lappend err [findex rec(psderr) $idx]
+            }
+	    set floor [expr {$min/2.}]
+	    set d {}
+	    foreach v $data {
+		if { $v <= 0. } { lappend d $floor } { lappend d $v }
+	    }
+	    ::x_$w set [row_$plot(mesh) $id $j]
+	    ::y_$w set $d
+            ::dy_$w set $err
+	}
+	$plot(slice) axis configure x -title $rec(xlabel)
+    }
+}
+
 proc plot_window {{w .plot}} {
     if {![winfo exists $w]} {
 	toplevel $w -width 400 -height 500
@@ -702,11 +840,14 @@ proc plot_window {{w .plot}} {
     # Create a plot window
     plot2d new $w.c
     meshcolorbar $w.cb
-    $w.cb configure -pady 1cm
+    $w.cb configure -pady 5m
     $w.c configure -colorbar $w.cb -logdata on
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
+    $w.c bind <<ZoomClick>> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Alt-ButtonPress-3> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Alt-B3-Motion> [namespace code {MoveSlice %W %x %y}]
 
     # Create a control panel
     set f $w.controls
@@ -715,6 +856,8 @@ proc plot_window {{w .plot}} {
     set plot(center_entry) $plot(center)
     label $f.lcenter -text "Qz=0 pixel"
     entry $f.center -textvariable ${pid}(center_entry) -width 4
+#    button $f.select -text "From graph..." \
+#        -command [namespace code {SelectCenter %W}]
     bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
     bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
 
@@ -740,12 +883,24 @@ proc plot_window {{w .plot}} {
     grid $f.lcenter $f.center $f.ltransform $f.transform
 
     label $w.message -relief ridge -anchor w
+
+    vector create ::x_$w.c ::y_$w.c ::dy_$w.c
+    foreach g {psdslice psdcompose} {
+        graph $w.$g
+        active_legend $w.$g
+        active_graph $w.$g
+	active_axis $w.$g y
+    }
+    $w.psdslice element create data -xdata ::x_$w.c -ydata ::y_$w.c -yerror ::dy_$w.c
+    set plot(compose) $w.psdcompose
+    set plot(slice) $w.psdslice
  
-    grid $w.c $w.cb -sticky news
-    grid $w.controls - -sticky w
-    grid $w.message - -sticky ew
-    grid rowconfigure $w 0 -w 1
-    grid columnconfigure $w 0 -w 1
+    grid $w.c $w.cb $w.psdcompose -sticky news
+    grid $w.psdslice - ^ -sticky news
+    grid $w.controls - - -sticky w
+    grid $w.message - - -sticky ew
+    grid rowconfigure $w {0 1} -weight 1
+    grid columnconfigure $w 0 -weight 1
     return $w.c
 }
 

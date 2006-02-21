@@ -216,7 +216,8 @@ catch { package require snit }
         } elseif { $which eq "move" } {
 	    # if zooming update bounding box
 	} elseif { $which eq "end" } {
-            if { $zoom_x ne {} && $zoom_x != $x && $zoom_y != $y } {
+            if { $zoom_x ne {} } {
+              if { $zoom_x != $x && $zoom_y != $y } {
 		foreach {l t} [$self coords $zoom_x $zoom_y] {}
 		foreach {r b} [$self coords $x $y] {}
 	        if { $l > $r } { foreach {l r} [list $r $l] {} }
@@ -224,7 +225,10 @@ catch { package require snit }
 		if { $dir == "x" || $dir == "xy" } { $self configure -xmin $l -xmax $r }
                 if { $dir == "y" || $dir == "xy" } { $self configure -ymin $b -ymax $t }
 		$self draw
-	    }
+	      } else {
+                event generate $win.c <<ZoomClick>> -x $zoom_x -y $zoom_y
+              }
+            }
 	    set zoom_x {}
 	    set zoom_y {}
 	}
