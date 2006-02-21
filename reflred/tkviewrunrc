@@ -132,6 +132,8 @@ testviewrun.geometry: 700x500
 *psdcompose.width: 8c
 *psdcompose.legend.position: plotarea
 *psdcompose.legend.anchor: ne
+*integration_region.width: 30
+*integration_region.height: 8
 
 # ================= PSD options ==================
 
