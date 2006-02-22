@@ -71,10 +71,11 @@ ifdef USE_STUBS
   CFLAGS += -DUSE_TCL_STUBS -DUSE_TK_STUBS
 endif
 
-CFLAGS += -DPRECISION=float
-
 # font support is needed for demos (recommend ftgl instead)
 #DEFS	+= -DTOGL_USE_FONTS
+
+## For double precision OpenGL functions use the following.
+# CFLAGS += -DUSE_DOUBLE
 
 CFLAGS += -DUSE_TCL
 

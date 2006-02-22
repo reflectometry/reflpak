@@ -1,11 +1,11 @@
 #ifndef _PLOT_H
 #define _PLOT_H
 
-#ifndef PRECISION
-#define PRECISION float
+#ifdef USE_DOUBLE
+#define PReal double
+#else
+#define PReal float
 #endif
-
-#define PReal PRECISION
 
 extern const PReal 
 plot_black[4], plot_white[4], plot_shadow[4], plot_invisible[4];
@@ -24,8 +24,13 @@ void plot_colors(int n, PReal *colors);
 void plot_vrange(int islog, PReal lo, PReal hi);
 void plot_mesh(int k, int m, int n, 
 	       const PReal x[], const PReal y[], const PReal v[]);
-void plot_lines(int k, int n, const PReal v[], PReal width, int stipple,
-		const PReal color[]);
+void plot_outline(int k, int m, int n, 
+		  const PReal x[], const PReal y[],
+		  PReal width, int stipple, const PReal color[]);
+void plot_curve(int k, int n, const PReal x[], const PReal y[], 
+		PReal width, int stipple, const PReal color[]);
+void plot_lines(int k, int n, const PReal v[], 
+		PReal width, int stipple, const PReal color[]);
 void plot_display(const PReal limits[], const int stack[]);
 void plot_reshape (int w, int h);
 void plot_grid_tics(const PReal limits[], PReal tics[], int numx, int numy);

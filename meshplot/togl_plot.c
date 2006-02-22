@@ -486,6 +486,39 @@ int tp_mesh(Togl *togl, int argc, CONST84 char *argv[])
   return TCL_OK;
 }
 
+/* Add a curve object to the plot */
+
+int tp_curve(Togl *togl, int argc, CONST84 char *argv[])
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+  int n,id;
+  const PReal *x,*y;
+
+  if (argc != 5) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName mesh n x y\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetInt(interp,argv[2],&n) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  
+  x = get_tcl_vector(interp,argv[3],"curve","x",n);
+  if (x == NULL) return TCL_ERROR;
+  y = get_tcl_vector(interp,argv[4],"curve","y",n);
+  if (y == NULL) return TCL_ERROR;
+
+  Togl_MakeCurrent(togl);
+  id=plot_add(plot->stack);
+  plot_curve(id,n,x,y,1.,0,black);
+  Tcl_SetObjResult (interp, Tcl_NewIntObj(id));
+
+  return TCL_OK;
+}
+
 /* List all objects on the plot */
 int tp_list(Togl *togl, int argc, CONST84 char *argv[])
 {
@@ -660,6 +693,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "delete", tp_delete );
   Togl_CreateCommand( "mesh", tp_mesh );
   Togl_CreateCommand( "line", tp_line );
+  Togl_CreateCommand( "curve", tp_curve );
   Togl_CreateCommand( "raise", tp_raise );
   Togl_CreateCommand( "lower", tp_lower );
   Togl_CreateCommand( "hide", tp_hide );

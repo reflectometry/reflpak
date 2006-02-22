@@ -117,6 +117,9 @@ proc set_axes {id theta twotheta slit1} {
 	fvector rec(beta) [edges [fvector rec(column,$twotheta)] 0.01]
 	fvector rec(slit1) [edges [fvector rec(column,$slit1)] 0.001]
     }
+    set rec(column,alpha) $rec(column,$theta)
+    set rec(column,beta) $rec(column,$twotheta)
+    set rec(column,slit1) $rec(column,$slit1)
 }
 
 proc ABL {id row A B L} {
@@ -129,11 +132,8 @@ proc ABL {id row A B L} {
 	set beta $rec(B)
 	set lambda [findex rec(column,lambda) $row]
     } else {
-	# FIXME standardize names for Theta, TwoTheta
-        catch { set alpha [findex rec(column,A3) $row] }
-        catch { set alpha [findex rec(column,Theta) $row] }
-        catch { set beta [findex rec(column,A4) $row] }
-        catch { set beta [findex rec(column,TwoTheta) $row] }
+	set alpha [findex rec(column,alpha) $row]
+	set beta [findex rec(column,beta) $row]
         set lambda $rec(L)
     }
 }
@@ -828,49 +828,79 @@ proc MoveSlice {w x y} {
 }
 
 
-proc transpose {L} {
+proc transpose {lists} {
 
-    #  Usage:  transpose lists 
-    #  tranposes a matrix (a list of lists) 
-    #  From http://philip.greenspun.com/doc/proc-one?proc_name=transpose
-    #  No copyright notice indicated.
-    #  FIXME  replace with something fast and free
-    set num_lists [llength $lists]
-    if !$num_lists { return "" }
-    
-    for {set i 0} {$i<$num_lists} {incr i} {
-	set l($i) [lindex $lists $i]
+    set m [llength $lists]
+    set n [llength [lindex $lists 0]]
+
+    # Initialize transpose
+    for {set i 0} {$i < $n} {incr i} {
+	set T($i) {}
     }
-    
-    set result {}
-    while {1} {
-	set element {}
-	for {set i 0} {$i<$num_lists} {incr i} {
-	    if [null_p $l($i)] { return $result }
-	    lappend element [head $l($i)]
-	    set l($i) [tail $l($i)]
+
+    # Distribute lists into transpose
+    foreach L $lists {
+        set i 0
+	foreach el $L {
+	    lappend T($i) $el
+	    incr i
 	}
-	lappend result $element
     }
-    
-    # Note: This function takes about n*n seconds
-    #       to transpose a (100*n) x (100*n) matrix.
+
+    # Join results
+    set result {}
+    for {set i 0} {$i < $n} {incr i} {
+	if { [llength $T($i)] != $m } { error "not square" }
+	lappend result $T($i)
+    }
+
+    return $result
 }
 
-proc getregions {id} {
-    upvar \#0 $id rec
-    proc region_fn {S1 S2 S3 S4 A B d1 d2 d3} $plot(integration_region)
-    set d1 $rec(d1)
-    set d2 $rec(d2)
-    set d3 $rec(d3)
-    set L {}
-    for {set i 0} { $i < $rec(points) } { incr i } {
-	lappend L [region_fn $S1 $S2 $S3 $S4 $A $B $d1 $d2 $d3]
+# Convert from theta offset from specular and detector angle to detector
+# pixel, keeping the pixel on the detector
+proc Td_to_pixel {Td_list beta} {
+    upvar rec rec
+    set result {}
+    foreach el $L {
+	if { $el ne {} } {
+	    # Convert angle to distance from detector center
+	    set delta [expr {$rec(distance)*tan($el-$beta*$::piover180)}]
+	    # Convert distance from center to pixel
+	    set el [expr {$delta/$rec(pixelwidth) + $rec(centerpixel)}]
+	    # Make the pixel lies on the detector
+	    if {$el < 0} { 
+		set el 0
+	    } elseif {$el >= $rec(pixels)} { 
+		set el $rec(pixels) 
+	    }
+	}
+	lappend result $el
     }
-    return [ltranspose $L]
+    return $result
+}
+
+proc get_regions {id fn} {
+    upvar \#0 $id rec
+    if {![isTOF]} {
+	set L {}
+	for {set i 0} { $i < $rec(points) } { incr i } {
+	    # Look up slits and angles for the measurement
+	    set A [findex rec(column,alpha) $i]
+	    set B [findex rec(column,beta) $i]
+	    set S1 [findex rec(column,slit1) $i]
+	    # Ask user for the corresponding angles between the regions
+	    # on the detector and convert those angles to pixels
+	    lappend L [$fn $A $B $S1 $rec(distance) $rec(pixelwidth)]
+	}
+	# Rather than returning a list of {lo hi lo hi lo hi} tuples
+	# return a tuple of lists
+	return [transpose $L]
+    }
 }
 	
-proc integrate {rec left right} {
+proc integrate_region {id left right} {
+    upvar \#0 $id rec
 
     set v $rec(psddata)
     set dv $rec(psderr)
@@ -890,6 +920,21 @@ proc integrate {rec left right} {
 	lappend Idv [expr {sqrt($err)}]
     }
     return [list $Iv $Idv]
+}
+
+proc integrate_measurement {id} {
+    set regions [get_regions $id region_fn]
+    foreach {lo hi} $regions curve {spec backm backp} {
+	foreach {v dv} [integrate_region $id $lo $hi] break
+        ::${curve}_y_${id} set $v
+        ::${curve}_dy_${id} set $dv
+    }
+}
+
+proc integrate {} {
+    upvar plot plot
+    set text [$plot(integration_region) get 0.0 end]
+    proc region_fn {A B S1 dd w} $text
 }
 
 proc plot_window {{w .plot}} {
@@ -968,29 +1013,30 @@ proc plot_window {{w .plot}} {
     set plot(compose) $g
 
     # Compose controls
-    set plot(integration_region) {
-set a [expr {1.5*atan2($S1/2,$d3)}]
+    set text {
+set a [expr {1.5*$S1/$w}]
 set a2 [expr {$a*2}]
 return [list -$a $a -$a2 -$a $a $a2]
 
-# Define the integration formula for selecting the 
-# specular ridge and background for an instrument 
-# configuration.  
+# Define the integration formula for selecting the specular ridge 
+# and background for an instrument configuration.  Return pixel ranges
+# to integrate over:
+#
+#      {spec_lo spec_hi bkgm_lo bkgm_hi bkgp_lo bkgp_hi}
+# 
+# To suppress the backgrounds, use {} {} instead.
 #
 # Available variables:
-#   S1,S2,S3,S4: slit widths (mm)
+#   S1: slit widths (mm)
 #   A,B: sample and detector angles (degrees)
-#   d1: distance from S1 to S2 (mm)
-#   d2: distance from S2 to sample (mm)
-#   d3: distance from sample to detector (mm)
-#   rec: structure for the current record
+#   dd: distance from sample to detector (mm)
+#   w: pixel width (mm)
 #
-# Return the region for the specular ridge and plus and minus
-# backgound as pairs of 2theta angles.  Set them to {} if you don't
-# want to use them.
+# Use [Td_to_pixel $result $B] to convert offset from specular into pixel
 }
     text $w.integration_region -wrap no
-    text_replace $w.integration_region $plot(integration_region)
+    text_replace $w.integration_region $text
+    set plot(integration_region) $w.integration_region
 
 
     # Bind everything together

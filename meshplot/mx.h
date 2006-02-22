@@ -1,9 +1,9 @@
-#ifndef PRECISION
-#define PRECISION float
-#endif
-
 #include <stddef.h>
-#define mxtype PRECISION
+#ifdef USE_DOUBLE
+#define mxtype double
+#else
+#define mxtype float
+#endif
 
 void mx_transpose(int m, int n, mxtype *a, mxtype *b);
 void mx_integrate(int m, int n, const mxtype *a, int dim, mxtype *b);

@@ -324,7 +324,7 @@ void plot_lines(int k, int n, const PReal x[],
        * another clipping technique such as scissor regions or stencil buffers
        * will render it properly.
        */
-      /* XXX FIXME XXX this technique only works for limits in the range
+      /* FIXME this technique only works for limits in the range
        * [-1e5,1e5]; the only workable solution may be to handle this like
        * grid, and set the line limits explicitly when needed according to
        * the available window. This will also solve the problem of keeping
@@ -337,6 +337,33 @@ void plot_lines(int k, int n, const PReal x[],
     }
   }
   glPopName();
+  glPopName();
+  glDisable(GL_LINE_SMOOTH);
+  if (stipple) glDisable(GL_LINE_STIPPLE);
+  glEndList();
+}
+
+/* Generate a curve object in list k */
+void plot_curve(int k, int n, const PReal x[], const PReal y[],
+		PReal width, int stipple, const PReal* color)
+{
+  const int pattern=stipple&0xFFFF, factor=stipple>>16;
+  int i;
+
+  if (k < 0) return;
+  glNewList(k,GL_COMPILE);
+  glPushName(k);
+  if (stipple) {
+    glEnable(GL_LINE_STIPPLE);
+    glLineStipple(factor,pattern);
+  }
+  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+  glEnable(GL_LINE_SMOOTH);
+  glLineWidth(width*DPI/72.);
+  glColor4v(color);
+  glBegin(GL_LINE_STRIP);
+  for (i=0; i < n; i++) glVertex2(x[i],y[i]);
+  glEnd();
   glPopName();
   glDisable(GL_LINE_SMOOTH);
   if (stipple) glDisable(GL_LINE_STIPPLE);
@@ -407,6 +434,76 @@ void plot_mesh(int k, int m, int n,
   glPopName();
   glEndList();
 #endif
+}
+
+/* Generate a mesh object in list k */
+void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
+		  PReal width, int stipple, const PReal* color)
+{
+  const int pattern=stipple&0xFFFF, factor=stipple>>16;
+  int i,j;
+
+  if (k < 0) return;
+  glNewList(k,GL_COMPILE);
+  glPushName(k);
+  if (stipple) {
+    glEnable(GL_LINE_STIPPLE);
+    glLineStipple(factor,pattern);
+  }
+  glEnable(GL_LINE_SMOOTH);
+  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+  glLineWidth(width*DPI/72.);
+  glColor4v(color);
+#if 1
+  /* This is an outline around the whole mesh.
+     On my linux box: 
+        GL_LINE_SMOOTH, outline only: gaps in outline
+	GL_LINE_SMOOTH, points at vertices: still some gaps in outline, 
+	but better
+	GL_LINE_SMOOTH, disable for points at vertices: no gaps, but outline
+	some points are too thick
+	no GL_LINE_SMOOTH: no gaps, but no antialiasing on diagonal lines
+  */
+  glBegin(GL_LINE_STRIP);
+  i = 0;
+  while (i < n) { glVertex2(x[i],y[i]); i++; }
+  while (i < m*(n+1)) { glVertex2(x[i],y[i]); i+=n+1; }
+  while (i > m*(n+1)) { glVertex2(x[i],y[i]); i--; }
+  while (i >= 0) { glVertex2(x[i],y[i]); i-=n+1; }
+  glEnd();
+#if 1
+  /* glDisable(GL_LINE_SMOOTH); */
+  glBegin(GL_POINTS);
+  i = 0;
+  while (i < n) { glVertex2(x[i],y[i]); i++; }
+  while (i < m*(n+1)) { glVertex2(x[i],y[i]); i+=n+1; }
+  while (i > m*(n+1)) { glVertex2(x[i],y[i]); i--; }
+  while (i >= 0) { glVertex2(x[i],y[i]); i-=n+1; }
+  glEnd();
+#endif
+#else
+  /* This is a mesh outline around each quadrilateral --- works great! */
+  /* Vertical mesh */
+  for (i = 0; i <= m; i++) {
+    glBegin(GL_LINE_STRIP);
+    for (j = 0; j <= n; j++) {
+      glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
+    }
+    glEnd();
+  }
+  /* Horizontal mesh */
+  for (j = 0; j <= n; j++) {
+    glBegin(GL_LINE_STRIP);
+    for (i = 0; i <= m; i++) {
+      glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
+    }
+    glEnd();
+  }
+#endif
+  glDisable(GL_LINE_SMOOTH);
+  if (stipple) glDisable(GL_LINE_STIPPLE);
+  glPopName();
+  glEndList();
 }
 
 static void 
@@ -1065,6 +1162,7 @@ void plot_qs(int k, int m, int n, const PReal *qs)
 /* ===================================================== */
 /* Demo code */ 
 #if defined(DEMO) || defined(TEST)
+static PReal outline_color[4] = {0.,0.,0.,0.5};
 
 void drawsquares(int stack[])
 {
@@ -1101,7 +1199,10 @@ void drawwarp(int stack[],int m, int n)
 {
   static PReal Wmap[4*PLOT_COLORMAP_LEN];
   static int iter=-1;
-  PReal *Wx, *Wy, *Wv, *qs;
+  PReal *Wx, *Wy, *Wv;
+#if 0 /* Use vertex arrays */
+  PReal *qs;
+#endif
   int numQ = m*n;
   int numQmesh = (m+1)*(n+1);
   int i,k;
@@ -1115,7 +1216,7 @@ void drawwarp(int stack[],int m, int n)
 
   iter++;
   buildwarp(m,n,Wx,Wy,Wv);
-  for (i=0; i < numQmesh; i++) { Wx[i] += 3*iter; Wy[i] += 2*iter; }
+  for (i=0; i < numQmesh; i++) { Wx[i] += 3.1*iter; Wy[i] += 2*iter; }
   k = plot_add(stack);
   plot_valmap(PLOT_COLORMAP_LEN,Wmap,iter/10.);
   plot_colors(PLOT_COLORMAP_LEN,Wmap);
@@ -1132,6 +1233,8 @@ void drawwarp(int stack[],int m, int n)
 # endif
 #else  /* Don't use vertex arrays */
   plot_mesh(k,m,n,Wx,Wy,Wv);
+  k = plot_add(stack);
+  plot_outline(k,m,n,Wx,Wy,1.,0,outline_color);
 #endif
   free(Wx); free(Wy); free(Wv);
 }
