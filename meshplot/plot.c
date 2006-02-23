@@ -137,8 +137,13 @@ const PReal plot_invisible[4] = {0.,0.,0.,0.};
 const PReal plot_shadow[4] = {0.,0.,0.,0.1};
 const PReal plot_black[4] = {0.,0.,0.,1.};
 const PReal plot_white[4] = {1.,1.,1.,1.};
+static PReal outline_color[4] = {0.,0.,0.,0.5};
 static PReal grid_color[4] = {0.5,0.5,0.5,0.5};
 static PReal plot_default_colors[4*PLOT_COLORMAP_LEN];
+/* Min/max width for smoothed lines; without smoothing, lines must have
+ * integer widths corresponding directly to pixels. */
+PReal plot_min_line_width = 1.;
+PReal plot_max_line_width = 1.;
 
 static void mapcalc(void)
 {
@@ -189,17 +194,64 @@ static const PReal *mapcolor(PReal v)
   return c;
 }
 
+/* Set the line drawing parameters: width, stipple and color.
+   If stipple is 0, then use solid lines, otherwise stipple is
+   stored as factor<<16 + pattern.
+   If width is positive, use antialiasing to draw line widths between
+   plot_min_line_width and plot_max_line_width.
+   If width is negative, then don't use antialiasing; widths in that
+   case correspond to pixels rather than points.
+   If width is 0., then the caller should avoid drawing the line.
+   Color is RGBA.
+
+   FIXME consider using negative widths for non-antialiased and
+   positive widths for antialiased, and a constant for minimum
+*/
+static void format_line(PReal width, int stipple, const PReal* color)
+{
+  const int pattern=stipple&0xFFFF, factor=(stipple>>16);
+  if (stipple) {
+    /* Note: stipple is given in pixels, but I want points.  A crude
+       approximation can be achieved by scaling by the screen resolution */
+    glEnable(GL_LINE_STIPPLE);
+    glLineStipple((int)floor(factor*DPI/72.+0.5),pattern);
+  } else {
+    glDisable(GL_LINE_STIPPLE);
+  }
+  if (width > 0.) {
+    /* Anti-aliased line: scale from points to pixels using DPI. */
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+    glLineWidth(width*DPI/72.);
+  } else {
+    /* Aliased line: use pixels directly. */
+    glDisable(GL_LINE_SMOOTH);
+    glLineWidth(-width);
+  }
+  glColor4v(color);
+}
+
 #if 0
 static PlotSwapfn swapfn;
 void plot_init(PlotSwapfn fn)
 {
+  float sizes[2];
+
   swapfn = fn;
   mapinit();
+  glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
+  plot_min_line_width = sizes[0];
+  plot_max_line_width = sizes[1];
 }
 #else
 void plot_init(void)
 {
+  float sizes[2];
+
   mapinit();
+  glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
+  plot_min_line_width = sizes[0];
+  plot_max_line_width = sizes[1];
 }
 #endif
 void plot_set_dpi(double dpi) 
@@ -283,21 +335,13 @@ void drawquadrants(const PReal limits[], int pick)
 void plot_lines(int k, int n, const PReal x[], 
 		PReal width, int stipple, const PReal* color)
 {
-  const int pattern=stipple&0xFFFF, factor=stipple>>16;
   const PReal z=0;
   int i;
 
   if (k < 0) return;
   glNewList(k,GL_COMPILE);
   glPushName(k);
-  if (stipple) {
-    glEnable(GL_LINE_STIPPLE);
-    glLineStipple(factor,pattern);
-  }
-  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-  glEnable(GL_LINE_SMOOTH);
-  glLineWidth(width*DPI/72.);
-  glColor4v(color);
+  format_line(width,stipple,color);
   glPushName(0);
   for (i=0; i < n; i++) {
     double x1=x[4*i],   y1=x[4*i+1];
@@ -338,8 +382,6 @@ void plot_lines(int k, int n, const PReal x[],
   }
   glPopName();
   glPopName();
-  glDisable(GL_LINE_SMOOTH);
-  if (stipple) glDisable(GL_LINE_STIPPLE);
   glEndList();
 }
 
@@ -347,26 +389,16 @@ void plot_lines(int k, int n, const PReal x[],
 void plot_curve(int k, int n, const PReal x[], const PReal y[],
 		PReal width, int stipple, const PReal* color)
 {
-  const int pattern=stipple&0xFFFF, factor=stipple>>16;
   int i;
 
   if (k < 0) return;
   glNewList(k,GL_COMPILE);
+  format_line(width,stipple,color);
   glPushName(k);
-  if (stipple) {
-    glEnable(GL_LINE_STIPPLE);
-    glLineStipple(factor,pattern);
-  }
-  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-  glEnable(GL_LINE_SMOOTH);
-  glLineWidth(width*DPI/72.);
-  glColor4v(color);
   glBegin(GL_LINE_STRIP);
   for (i=0; i < n; i++) glVertex2(x[i],y[i]);
   glEnd();
   glPopName();
-  glDisable(GL_LINE_SMOOTH);
-  if (stipple) glDisable(GL_LINE_STIPPLE);
   glEndList();
 }
 
@@ -380,6 +412,11 @@ void plot_mesh(int k, int m, int n,
   if (k < 0) return;
 
   glNewList(k,GL_COMPILE);
+
+  /* Draw quad strips with pick names k,i for each strip */
+  /* Note: triangle fans perform just as well as quad strips for me. */
+  /* Note: Tried using individual quads with names k,i,j for picking
+     but this was unreliable on my box. */
   glPushName(k);
   glPushName(0);
   for (i = 0; i < m; i++) {
@@ -397,72 +434,51 @@ void plot_mesh(int k, int m, int n,
   }
   glPopName();
   glPopName();
-  glEndList();
 
 #if 0
-  /* Use this code for a pick list which returns a triple containing
-     the array id and the row/column of the array. Assume that array
-     ids are pairs of odd/even.  You will need to change plot_add so
-     that glGenList will generate 2 lists and plot_pick so that it will
-     use the 2nd list of the pair.
-
-     For my test box, this code was not reliable, so I am only picking
-     rows instead of individual quads.  The calling program will have
-     to sort out which column was clicked.
-  */
-  x-=m*n; y-=m*n; v-=m*n;
-  glNewList(k+1,GL_COMPILE);
-  glPushName(k);
-  glPushName(0);
-  for (i = 0; i < m-1; i++) {
-    glLoadName(i);
-    glPushName(0);
-    for (j = 1; j < n; j++) {
-      glLoadName(j);
-      glBegin(GL_QUADS);
-      glColor4v(mapcolor(v[j]));
-      glVertex2(x[j-1],y[j-1]);
-      glVertex2(x[j+n-1],y[j+n-1]);
-      glVertex2(x[j],y[j]);
-      glVertex2(x[j+n],y[j+n]);
+  /* Draw an outline around each quadrilateral. */
+  /* FIXME check if OpenGL supports this directly with PolygonMode */
+  if (outline_width != 0.) {
+    format_line(outline_width,outline_stipple,outline_color);
+    /* Vertical lines */
+    for (i = 0; i <= m; i++) {
+      glBegin(GL_LINE_STRIP);
+      for (j = 0; j <= n; j++) glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
       glEnd();
     }
-    glPopName();
-    x+=n; y+=n; v+= n;
+    /* Horizontal lines */
+    for (j = 0; j <= n; j++) {
+      glBegin(GL_LINE_STRIP);
+      for (i = 0; i <= m; i++) glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
+      glEnd();
+    }
   }
-  glPopName();
-  glPopName();
-  glEndList();
 #endif
+
+  glEndList();
 }
 
-/* Generate a mesh object in list k */
+/* Draw an outline around the entire mesh. */
 void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
 		  PReal width, int stipple, const PReal* color)
 {
-  const int pattern=stipple&0xFFFF, factor=stipple>>16;
   int i,j;
 
   if (k < 0) return;
   glNewList(k,GL_COMPILE);
+  format_line(width,stipple,color);
   glPushName(k);
-  if (stipple) {
-    glEnable(GL_LINE_STIPPLE);
-    glLineStipple(factor,pattern);
-  }
-  glEnable(GL_LINE_SMOOTH);
-  glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-  glLineWidth(width*DPI/72.);
-  glColor4v(color);
-#if 1
-  /* This is an outline around the whole mesh.
-     On my linux box: 
-        GL_LINE_SMOOTH, outline only: gaps in outline
-	GL_LINE_SMOOTH, points at vertices: still some gaps in outline, 
-	but better
-	GL_LINE_SMOOTH, disable for points at vertices: no gaps, but outline
-	some points are too thick
-	no GL_LINE_SMOOTH: no gaps, but no antialiasing on diagonal lines
+  /* Buggy driver note: With GL_LINE_SMOOTH enabled on my Linux box there
+     are occasional pixels showing through the outline.  This does not
+     happen on my Windows box.  These can be eliminated by disabling
+     GL_LINE_SMOOTH, but then the outlines are not antialiased.  Drawing
+     points at every vertex looks better on my Linux box, but it looks bad 
+     on my Windows.  For now, ignore the issue.  If it is a problem on too 
+     many platforms, uncomment the following:
+
+           glDisable(GL_LINE_SMOOTH);
+
+     Another solution is to use a stippled line so the gaps are unnoticed.
   */
   glBegin(GL_LINE_STRIP);
   i = 0;
@@ -471,37 +487,6 @@ void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
   while (i > m*(n+1)) { glVertex2(x[i],y[i]); i--; }
   while (i >= 0) { glVertex2(x[i],y[i]); i-=n+1; }
   glEnd();
-#if 1
-  /* glDisable(GL_LINE_SMOOTH); */
-  glBegin(GL_POINTS);
-  i = 0;
-  while (i < n) { glVertex2(x[i],y[i]); i++; }
-  while (i < m*(n+1)) { glVertex2(x[i],y[i]); i+=n+1; }
-  while (i > m*(n+1)) { glVertex2(x[i],y[i]); i--; }
-  while (i >= 0) { glVertex2(x[i],y[i]); i-=n+1; }
-  glEnd();
-#endif
-#else
-  /* This is a mesh outline around each quadrilateral --- works great! */
-  /* Vertical mesh */
-  for (i = 0; i <= m; i++) {
-    glBegin(GL_LINE_STRIP);
-    for (j = 0; j <= n; j++) {
-      glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
-    }
-    glEnd();
-  }
-  /* Horizontal mesh */
-  for (j = 0; j <= n; j++) {
-    glBegin(GL_LINE_STRIP);
-    for (i = 0; i <= m; i++) {
-      glVertex2(x[i*(n+1)+j],y[i*(n+1)+j]);
-    }
-    glEnd();
-  }
-#endif
-  glDisable(GL_LINE_SMOOTH);
-  if (stipple) glDisable(GL_LINE_STIPPLE);
   glPopName();
   glEndList();
 }
@@ -533,22 +518,18 @@ plot_grid_tics(const PReal limits[], PReal tics[], int numx, int numy)
   linear_tics(limits+2,tics+2,numy);
 }
 
+/* This draws the grid as just another overlay object. */
+#if 0
+/* this code is superceded by the direct drawing code in plot_grid. */
 void plot_grid_object(int k, const PReal limits[], 
 		      int Mx, int mx, int My, int my, const PReal v[])
 {
   int i,start,stop;
-  float sizes[2];
 
   glNewList(k,GL_COMPILE);
 
-  glColor4v(grid_color);
-
-  /* Minor tics */
-  glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
-  glLineWidth(sizes[0]); /* Minimum width line allowed for minor tics */
-  glLineStipple(1,0x5555); /* dotted lines for minor tics */
-
-  glEnable(GL_LINE_STIPPLE);
+  /* Minor tics, 1 pixel wide and dotted */
+  format_line(-1.,0x15555,grid_color);
   glBegin(GL_LINES);
   start = Mx; stop = Mx+mx;
   for (i = start; i < stop; i++) {
@@ -562,8 +543,9 @@ void plot_grid_object(int k, const PReal limits[],
   }
   glEnd();
   glDisable(GL_LINE_STIPPLE);
-  /* Major tics */
-  glLineWidth(1.); /* Standard width line for major tics */
+
+  /* Major tics, 1 point wide and solid */
+  format_line(1.,0,grid_color);
   glBegin(GL_LINES);
   start = 0; stop = Mx;
   for (i = start; i < stop; i++) {
@@ -579,6 +561,7 @@ void plot_grid_object(int k, const PReal limits[],
 
   glEndList();
 }
+#endif
 
 void plot_grid(const PReal limits[], const PReal grid[])
 {
@@ -588,15 +571,9 @@ void plot_grid(const PReal limits[], const PReal grid[])
   glPushMatrix();
   glOrtho(limits[0],limits[1],limits[2],limits[3],-1.,1.);
 
-  glColor4v(grid_color);
-
+  /* Minor tics: 1 pixel wide and dotted */
   if (grid[1]>0. || grid[3]>0.) {
-    /* Minor tics */
-    glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
-    glLineWidth(sizes[0]); /* Minimum width line allowed for minor tics */
-    glLineStipple(1,0x5555); /* dotted lines for minor tics */
-
-    glEnable(GL_LINE_STIPPLE);
+    format_line(-1.,0x15555,grid_color);
     glBegin(GL_LINES);
     if (grid[1]>0.) {
       int sub = grid[1];
@@ -623,13 +600,11 @@ void plot_grid(const PReal limits[], const PReal grid[])
       }
     }
     glEnd();
-    glDisable(GL_LINE_STIPPLE);
   }
 
-
-  /* Major tics */
+  /* Major tics; 1pt wide and solid */
   if (grid[0] > 0. || grid[2] > 0.) {
-    glLineWidth(1.); /* Standard width line for major tics */
+    format_line(1.,0,grid_color);
     glBegin(GL_LINES);
     if (grid[0] > 0.) {
       PReal d = grid[0];
@@ -648,8 +623,8 @@ void plot_grid(const PReal limits[], const PReal grid[])
 	glVertex3(limits[0],i*d,0.);
 	glVertex3(limits[1],i*d,0.);
       }    
-      glEnd();
     }
+    glEnd();
   }
 
   glPopMatrix();
@@ -1162,7 +1137,6 @@ void plot_qs(int k, int m, int n, const PReal *qs)
 /* ===================================================== */
 /* Demo code */ 
 #if defined(DEMO) || defined(TEST)
-static PReal outline_color[4] = {0.,0.,0.,0.5};
 
 void drawsquares(int stack[])
 {
@@ -1234,7 +1208,7 @@ void drawwarp(int stack[],int m, int n)
 #else  /* Don't use vertex arrays */
   plot_mesh(k,m,n,Wx,Wy,Wv);
   k = plot_add(stack);
-  plot_outline(k,m,n,Wx,Wy,1.,0,outline_color);
+  plot_outline(k,m,n,Wx,Wy,1.,0x27777,outline_color);
 #endif
   free(Wx); free(Wy); free(Wv);
 }
