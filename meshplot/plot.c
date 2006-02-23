@@ -462,7 +462,7 @@ void plot_mesh(int k, int m, int n,
 void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
 		  PReal width, int stipple, const PReal* color)
 {
-  int i,j;
+  int i;
 
   if (k < 0) return;
   glNewList(k,GL_COMPILE);
@@ -566,7 +566,6 @@ void plot_grid_object(int k, const PReal limits[],
 void plot_grid(const PReal limits[], const PReal grid[])
 {
   int i,start,stop;
-  float sizes[2];
 
   glPushMatrix();
   glOrtho(limits[0],limits[1],limits[2],limits[3],-1.,1.);
@@ -1208,9 +1207,28 @@ void drawwarp(int stack[],int m, int n)
 #else  /* Don't use vertex arrays */
   plot_mesh(k,m,n,Wx,Wy,Wv);
   k = plot_add(stack);
-  plot_outline(k,m,n,Wx,Wy,1.,0x27777,outline_color);
+  plot_outline(k,m,n,Wx,Wy,-1.,0x27777,outline_color);
 #endif
   free(Wx); free(Wy); free(Wv);
+}
+
+void drawcurve(int stack[], int n)
+{
+  static PReal color[4] = {0.0,0.8,0.0,0.8};
+  PReal *x, *y;
+  int i,k;
+
+  x = (PReal *)malloc(2*n*sizeof(*x));
+  if (x == NULL) { return; }
+  y = x+n;
+
+  for (i=0; i < n; i++) {
+    x[i] = 20.*(PReal)i/(PReal)n - 5.;
+    y[i] = 10.*sin(x[i]);
+  }
+  k = plot_add(stack);
+  plot_curve(k,n,x,y,1.,0,color);
+  free(x);
 }
 
 void drawline(int stack[])
@@ -1231,6 +1249,7 @@ void plot_demo(PReal limits[6], int stack[], int m, int n)
   drawsquares(stack);
   drawwarp(stack,m,n);
   drawwarp(stack,m,n);
+  drawcurve(stack,n);
   drawline(stack);
   limits[0] = 0.;
   limits[1] = 15.;
