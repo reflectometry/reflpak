@@ -1214,7 +1214,7 @@ void drawwarp(int stack[],int m, int n)
 
 void drawcurve(int stack[], int n)
 {
-  static PReal color[4] = {0.0,0.8,0.0,0.8};
+  static PReal color[4] = {0.0,0.8,0.0,1.};
   PReal *x, *y;
   int i,k;
 
@@ -1227,7 +1227,7 @@ void drawcurve(int stack[], int n)
     y[i] = 10.*sin(x[i]);
   }
   k = plot_add(stack);
-  plot_curve(k,n,x,y,1.,0,color);
+  plot_curve(k,n,x,y,0.5,0,color);
   free(x);
 }
 
