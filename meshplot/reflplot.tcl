@@ -274,7 +274,21 @@ proc find_AB {id x y} {
 
 proc mesh_slit {id} {
     upvar \#0 $id rec
+
+    # Generate integration region boundaries
     array unset rec curve,*
+    set rec(curvex) $rec(column,slit1)
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) {
+	    lappend result [expr {
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$::piover180
+            }]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
+
+    # Generate mesh
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(points) $rec(pixels) \
 				 rec(slit1) rec(dtheta)] {}
@@ -332,9 +346,9 @@ proc find_LTd {id x y} {
 
 proc mesh_pixel {id {base 0}} {
     upvar \#0 $id rec
+
+    # Generate integration region boundaries
     array unset rec curve,*
-    fvector rec(xv) [integer_edges $rec(pixels)]
-    fvector rec(yv) [integer_edges $rec(points) $base]
     fvector rec(curvex) [integer_centers $rec(points) $base]
     foreach region_edge [array names rec edge,*] {
 	set result {}
@@ -344,6 +358,10 @@ proc mesh_pixel {id {base 0}} {
 	fvector rec(curve,$region_edge) $result
 #puts "Transform: $rec($region_edge)\nTo: [fvector rec(curve,$region_edge)]"
     }
+
+    # Generate mesh
+    fvector rec(xv) [integer_edges $rec(pixels)]
+    fvector rec(yv) [integer_edges $rec(points) $base]
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(points) $rec(pixels) \
 				 rec(yv) rec(xv)] {}
@@ -429,6 +447,8 @@ proc calc_transform {path type} {
     set plot(points) 0
     foreach id $plot(records) {
 	upvar \#0 $id rec
+
+	# Update mesh
 	if { $type == "pixel" } {
 	    mesh_$type $id $plot(points)
 	    incr plot(points) $rec(points)
@@ -439,6 +459,8 @@ proc calc_transform {path type} {
 	$path delete $plot($id)
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
+
+	# Update integration regions
         foreach curve [array names plot $id,*] {
 	    $path delete $plot($curve) 
 	}
@@ -447,8 +469,10 @@ proc calc_transform {path type} {
 		[$path.c curve $rec(points) rec($curve) rec(curvex)]
 #puts "k=$plot($id,$curve) x: [fvector rec(curvex)]\ny: [fvector rec($curve)]"
 	}
+
 	set plot(title) "$rec(ylabel) vs. $rec(xlabel)"
     }
+    $path draw
 }
 
 proc setdiff {a b} {
@@ -849,6 +873,10 @@ proc ShowCoordinates { w x y } {
 proc MoveSlice {w x y} {
     findplot $w
     foreach {X Y} [$w coords $x $y] break
+    foreach id [$plot(slice) el names] {
+	$plot(slice) el delete $id
+        catch { vector destroy ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id} }
+    }
     foreach id $plot(records) {
         upvar \#0 $id rec
 
@@ -868,14 +896,19 @@ proc MoveSlice {w x y} {
                 lappend data $v
                 lappend err [findex rec(psderr) $idx]
             }
-	    set floor [expr {$min/2.}]
+	    set floor [expr {$min < 1e300 ? $min/2. : 0.5}]
 	    set d {}
 	    foreach v $data {
 		if { $v <= 0. } { lappend d $floor } { lappend d $v }
 	    }
-	    ::x_$w set [row_$plot(mesh) $id $j]
-	    ::y_$w set $d
-            ::dy_$w set $err
+	    vector create ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id}
+	    ::x${w}_${id} set [row_$plot(mesh) $id $j]
+	    ::y${w}_${id} set $d
+            ::dy${w}_${id} set $err
+	    $plot(slice) el create $id \
+		-xdata ::x${w}_${id} -ydata ::y${w}_${id} \
+		-yerror ::dy${w}_${id} -color [nextcolor] \
+		-label $rec(legend)
 	}
 	$plot(slice) axis configure x -title $rec(xlabel)
     }
@@ -1000,6 +1033,7 @@ proc integrate_measurement {id} {
 
     ::counts_${id} expr "::spec_y_${id}-(::backp_y_${id}+::backm_y_${id})"
     ::dcounts_${id} expr "sqrt(::spec_y_${id}+::backp_y_${id}+::backm_y_${id})"
+    ::idx_${id} expr "::idx_$id && !::counts_${id}"
 
     # FIXME hack to get around broken log scales in BLT
     foreach curve {spec backm backp} {
@@ -1014,6 +1048,9 @@ proc integrate {w} {
     proc region_fn {A B S1 dd w} $text
 
     foreach id $plot(records) {	integrate_measurement $id }
+    # Show new integration regions
+    calc_transform $w $plot(mesh)
+    # Show new integrated curves
     atten_set $::addrun
 }
 
@@ -1079,14 +1116,11 @@ proc plot_window {{w .plot}} {
 
 
     # Slice plot
-    vector create ::x_$w.c ::y_$w.c ::dy_$w.c
     set g [graph $w.psdslice]
     active_legend $g
     active_graph $g
     active_axis $g y
     set plot(slice) $g
-    $w.psdslice element create data \
-	-xdata ::x_$w.c -ydata ::y_$w.c -yerror ::dy_$w.c -label ""
 
     # Compose plot
     set plot(linecolor) 0
