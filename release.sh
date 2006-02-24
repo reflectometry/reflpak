@@ -37,7 +37,7 @@ makejazz="gmake"
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagick
 # and tclsh.
-htmlmachine=h122045
+htmlmachine=h122045.ncnr.nist.gov
 
 # Each machine has already been set up with a build directory 
 # in ~/cvs/reflfit and the appropriate Makeconf.
@@ -45,7 +45,7 @@ builddir="~/cvs/reflfit"
 
 # The results are stored and shared in the following directories.
 # These may be local or remote since scp doesn't care:
-WEBDIR=webster:software/release
+WEBDIR=webster.ncnr.nist.gov:software/release
 WEBCP=scp
 
 # The following directory will contain $arch/reflpak$VERSION and 
