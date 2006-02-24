@@ -3,6 +3,10 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2006-02-24
+
+* RED: Support integration and slicing in newpsd
+
 2006-01-27
 
 * RED: Force scroll bars on text box
