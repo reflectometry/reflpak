@@ -708,7 +708,7 @@ proc redraw {path} {
 }
 
 proc showall {path} {
-    upvar plot plot
+    findplot $path
     auto_axes $path
     auto_vrange $path
     $path draw
@@ -1145,7 +1145,7 @@ proc plot_window {{w .plot}} {
     $w.c configure -colorbar $w.cb -logdata on
     $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
     $w.c menu "Log scale" [namespace code {ToggleLog %W}]
-    $w.c menu "Unzoom" [namespace code {showall %W}]
+    $w.c menu "Reset axes" [namespace code {showall %W}]
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
