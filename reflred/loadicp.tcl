@@ -23,7 +23,7 @@ array set ::inst {
   cg1,psdsaturation 8000
   cg1,minbin         1
   cg1,maxbin       608
-  cg1,width        211.
+  cg1,width       -211.
   cg1,distance    1600.
 }
 
