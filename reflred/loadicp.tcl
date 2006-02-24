@@ -1068,7 +1068,7 @@ proc XRAYmark {file} {
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,3)] || ![info exists rec(start,4)] } {
 	marktype ?
-    } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 && $fixed } {
+    } elseif { abs($rec(start,4))<.001 && abs($rec(stop,4))<.001 && $fixed } {
 	# direct beam with no motors moving => intensity measurement
 	marktype slit $rec(start,1) $rec(stop,1) $rec(polarization)
     } elseif { $fixed } {
@@ -1146,26 +1146,26 @@ proc NG1mark {file} {
 	    || ![info exists rec(start,4)] } {
 	marktype ? 0 0 $rec(polarization)
     } elseif { $rec(psd) } { 
-	if { $rec(step,3) != 0.0 } {
+	if { abs($rec(step,3))>=.001 } {
 	    marktype spec $rec(start,3) $rec(stop,3) $rec(polarization)
-	} elseif { $rec(step,4) != 0.0 } {
+	} elseif { abs($rec(step,4))>=.001 } {
 	    marktype spec [expr {$rec(start,4)/2}] \
 		[expr {$rec(stop,4)/2}] $rec(polarization)
-	} elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
-		       && ($fixed || $rec(step,1) != 0.0) } {
+	} elseif { abs($rec(start,4))<.001 && abs($rec(stop,4))<.001 \
+		       && ($fixed || abs($rec(step,1))>=.001) } {
 	    # direct beam with no motors moving => slit measurement
 	    # direct beam with spreading slits => slit scan
 	    marktype slit $rec(start,1) $rec(stop,1) $rec(polarization)
 	} else {
 	    marktype time 0 [runtime $id] $rec(polarization)
 	}
-    } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
-		   && ($fixed || $rec(step,1) != 0.0) } {
+    } elseif { abs($rec(start,4))<.001 && abs($rec(stop,4))<.001 \
+		   && ($fixed || abs($rec(step,1))>=.001) } {
 	# direct beam with no motors moving => slit measurement
 	# direct beam with spreading slits => slit scan
 	marktype slit $rec(start,1) $rec(stop,1) $rec(polarization)
-    } elseif { $rec(start,4) == 0.0 && $rec(stop,4) == 0.0 \
-		   && $rec(step,3) != 0.0 } {
+    } elseif { abs($rec(start,4))<.001 && abs($rec(stop,4))<.001 \
+		   && abs($rec(step,3))>=.001 } {
 	# direct beam with rotating A3 and fixed slits => absorption scan
 	marktype absorption $rec(start,3) $rec(stop,3) $rec(polarization)
     } elseif { $rec(step,3) == 0.0 && $rec(step,4) == 0.0 } {
