@@ -24,10 +24,10 @@ export VERSION
 # isn't set up for ssh operations.
 
 # Here are my architecture specific build machines:
-irix=jazz
-osx=macng7
-linux3=h122045
-linux4=dave
+irix=jazz.ncnr.nist.gov
+osx=macng7.ncnr.nist.gov
+linux3=h122045.ncnr.nist.gov
+linux4=dave.ncnr.nist.gov
 win=localhost
 BUILD="$irix $osx $linux3 $linux4"
 
