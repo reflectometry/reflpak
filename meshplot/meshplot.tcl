@@ -186,22 +186,30 @@ catch { package require snit }
 	#bind $win.c <ButtonRelease-2> [subst {pan stop $win; break }]
 	#bind $win.c <B2-Motion> [subst {pan move $win %X %Y; break }]
 
-	bind $win.c <<ContextMenu>> [subst {$win contextmenu %X %Y}]
+	bind $win.c <<ContextMenu>> [subst {$win contextmenu %X %Y %x %y}]
 
 	if 0 {
 	    # Don't know how to manage data limits yet
 	    $Menu add command -label "Show all" \
 		-command "$win autoaxes; $win.c draw"
 	}
-	$Menu add command -label "Pan" \
-	    -command "pan start $win"
-	$Menu add command -label "Grid" \
-	    -command "$win.c grid toggle; $win.c draw"
-#	$Menu add command -label "Log(data)" \
-#	    -command "$win.c logdata toggle; $win.c draw"
+	$self menu "Pan" {pan start %W}
+	$self menu "Grid" {%W grid toggle}
     }
 
-    method contextmenu {X Y} {
+    method menu {label command} {
+	$Menu add command -label $label \
+	    -command [list $self invokemenu $command]
+    }
+    method invokemenu {command} {
+	variable menu
+	eval [string map [list %x $menu(x) %y $menu(y) %W $self] $command]
+    }
+
+    method contextmenu {X Y x y} {
+	variable menu
+	set menu(x) $x
+	set menu(y) $y
 	tk_popup $Menu $X $Y
     }
 
@@ -217,7 +225,7 @@ catch { package require snit }
 	    # if zooming update bounding box
 	} elseif { $which eq "end" } {
             if { $zoom_x ne {} } {
-              if { $zoom_x != $x && $zoom_y != $y } {
+              if { abs($zoom_x-$x)>2 && abs($zoom_y-$y)>2 } {
 		foreach {l t} [$self coords $zoom_x $zoom_y] {}
 		foreach {r b} [$self coords $x $y] {}
 	        if { $l > $r } { foreach {l r} [list $r $l] {} }
@@ -320,6 +328,7 @@ catch { package require snit }
     }
 
     method draw {args} {
+# puts "Invoking draw"
 	$XAxis configure -min $options(-xmin) -max $options(-xmax)
 	$YAxis configure -min $options(-ymin) -max $options(-ymax)
 	$Mesh grid $options(-grid)
@@ -340,7 +349,7 @@ catch { package require snit }
     method autoaxes {args} {
 	# Determine axis limits.  If the y-range is empty then we
 	# expand the limits to make a non-trivial range.
-	# XXX FIXME XXX to keep data points from the edge of the
+	# FIXME to keep data points from the edge of the
 	# graph, we should automatically pad the range a bit.
 	set min $options(-min)
 	set max $options(-max)
@@ -391,7 +400,8 @@ catch { package require snit }
 	}
     }
 
-    # Cycle through all mesh objects */
+    # Cycle through all mesh objects; if x,y is given then only
+    # cycle object under x,y
     method cycle {} {
 	foreach k [$Mesh list] { 
 	    $Mesh raise $k
@@ -402,7 +412,16 @@ catch { package require snit }
 
     method raise {id} {
 	$Mesh raise $id
-	$Mesh draw $id
+	$Mesh draw
+    }
+
+    method lower {id} {
+	$Mesh lower $id
+	$Mesh draw
+    }
+
+    method order {} {
+ 	return [$Mesh list]
     }
 
     method plot_demo {} { 
@@ -419,22 +438,27 @@ catch { package require snit }
 	} else {
 	    $self configure -grid $state
 	}
+	$self draw
     }
 
     method logdata {state} {
+#puts "processing logdata"
 	if { $state == "toggle" } {
 	    $self configure -logdata [string is false $options(-logdata)]
 	} else {
 	    $self configure -logdata $state
 	}
+#puts "logdata is now $options(-logdata)"
+# FIXME for some reason $self draw is invoked between here and the
+# return to the caller.
     }
 
     method Logdata {op v} {
+	set options(-logdata) [string is true $v]
 	if { $options(-colorbar) != "" } {
-#puts "Logdata with colorbar $options(-colorbar) and v=$v"
 	    $options(-colorbar) configure -logscale $v
 	}
-	$Mesh logdata $v
+	$Mesh logdata $options(-logdata)
     }
 
     method Vrange {op v} {

@@ -163,11 +163,12 @@ proc mesh_QxQz {id} {
 
 proc row_QxQz {id row} {
     upvar \#0 $id rec
+    variable pi_over_180
     ABL $id $row A B L
     set x {}
     foreach d [fvector rec(column,dtheta)] {
- 	lappend x [expr {$::pitimes2/$L*(cos($::piover180*($d+$B-$A)) \
-	    - cos($::piover180*$A))}]
+ 	lappend x [expr {$::pitimes2/$L*(cos($pi_over_180*($d+$B-$A)) \
+	    - cos($pi_over_180*$A))}]
     }
     return $x
 }
@@ -274,6 +275,7 @@ proc find_AB {id x y} {
 
 proc mesh_slit {id} {
     upvar \#0 $id rec
+    variable pi_over_180
 
     # Generate integration region boundaries
     array unset rec curve,*
@@ -282,7 +284,7 @@ proc mesh_slit {id} {
 	set result {}
 	foreach el $rec($region_edge) {
 	    lappend result [expr {
-		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$::piover180
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$pi_over_180
             }]
 	}
 	fvector rec(curve,$region_edge) $result
@@ -440,6 +442,8 @@ proc auto_axes {path} {
 }
 
 # ==== Plotting operations ====
+
+# calc_transform sets up plot but does not draw
 proc calc_transform {path type} {
     upvar plot plot
     set plot(mesh) $type
@@ -472,7 +476,6 @@ proc calc_transform {path type} {
 
 	set plot(title) "$rec(ylabel) vs. $rec(xlabel)"
     }
-    $path draw
 }
 
 proc setdiff {a b} {
@@ -678,16 +681,24 @@ proc monitor {id} {
 #            -ydata [fvector rec(column,monitor)]
 }
 
-proc nextcolor {} {
-    upvar plot plot
+proc colorlist {} {
     variable colorlist
     if { [llength $colorlist] == 0 } {
 	set colorlist [option get .graph lineColors LineColors]
     }
-    if { [incr plot(linecolor)] >= [llength $colorlist] } {
-	set plot(linecolor) 0
-    }
-    set color [lindex $colorlist $plot(linecolor)]
+    return $colorlist
+}
+
+proc color {i} {
+    set c [colorlist]
+    return [lindex $c [expr {$i%[llength $c]}]]
+}
+
+proc nextcolor {} {
+    upvar plot plot
+    set c [colorlist]
+    incr plot(linecolor)
+    return [lindex $c [expr {$plot(linecolor)%[llength $c]}]]
 }
 
 proc redraw {path} {
@@ -870,6 +881,54 @@ proc ShowCoordinates { w x y } {
     $wmsg conf -text ""
 }
 
+proc ToggleLog {w} {
+    findplot $w
+    $w logdata toggle
+    redraw $w
+}
+
+proc Cycle {w x y} {
+    findplot $w
+    foreach {X Y} [$w coords $x $y] break
+
+    # Find meshes under the current point
+    set under {}
+    foreach id $plot(records) {
+        upvar \#0 $id rec
+	set idx [find_$plot(mesh) $id $X $Y]
+	if { $idx >= 0 } { lappend under $id }
+    }
+    if { [llength $under] == 0 } { return }
+
+    # Find which mesh is on top
+    set order [$w order]
+    set top -1
+    foreach id $under {	
+        set position [lsearch $order $plot($id)]
+	if { $position > $top } {
+	    set top $position
+	    set index $id
+        }
+    }
+
+    # Lower the best to the bottom
+    if { $top > 0 } { $w lower $plot($index) }
+
+    # Identify the new top
+    set order [$w order]
+    set top -1
+    foreach id $under {
+	set position [lsearch $order $plot($id)]
+	if { $position > $top } {
+	    set top $position
+	    set index $id
+        }
+    }
+    set wmsg [winfo toplevel $w].message
+    upvar #0 $index rec
+    $wmsg conf -text "$rec(dataset):$rec(run) $rec(comment)"
+}
+
 proc MoveSlice {w x y} {
     findplot $w
     foreach {X Y} [$w coords $x $y] break
@@ -877,6 +936,10 @@ proc MoveSlice {w x y} {
 	$plot(slice) el delete $id
         catch { vector destroy ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id} }
     }
+    foreach id [$plot(slice) marker names] { 
+	$plot(slice) marker delete $id 
+    }
+    set n 0
     foreach id $plot(records) {
         upvar \#0 $id rec
 
@@ -907,8 +970,14 @@ proc MoveSlice {w x y} {
             ::dy${w}_${id} set $err
 	    $plot(slice) el create $id \
 		-xdata ::x${w}_${id} -ydata ::y${w}_${id} \
-		-yerror ::dy${w}_${id} -color [nextcolor] \
+		-yerror ::dy${w}_${id} -color [color [incr n]] \
 		-label $rec(legend)
+	    foreach edge [array names rec curve,*] {
+		set pos [findex rec($edge) $j]
+	        $plot(slice) marker create line -dashes {6 2} -linewidth 2 \
+			-coords [list $pos -Inf $pos Inf]
+	    }
+	     
 	}
 	$plot(slice) axis configure x -title $rec(xlabel)
     }
@@ -948,11 +1017,12 @@ proc transpose {lists} {
 # pixel, keeping the pixel on the detector
 proc Td_to_pixel {Td_list beta} {
     upvar rec rec
+    variable pi_over_180
     set result {}
     foreach el $L {
 	if { $el ne {} } {
 	    # Convert angle to distance from detector center
-	    set delta [expr {$rec(distance)*tan($el-$beta*$::piover180)}]
+	    set delta [expr {$rec(distance)*tan($el-$beta*$pi_over_180)}]
 	    # Convert distance from center to pixel
 	    set el [expr {$delta/$rec(pixelwidth) + $rec(centerpixel)}]
 	    # Make the pixel lies on the detector
@@ -978,7 +1048,7 @@ proc get_regions {id fn} {
 	    set S1 [findex rec(column,slit1) $i]
 	    # Ask user for the corresponding angles between the regions
 	    # on the detector and convert those angles to pixels
-	    lappend L [$fn $A $B $S1 $rec(distance) $rec(pixelwidth)]
+	    lappend L [$fn $id $i $A $B $S1 $rec(distance) $rec(pixelwidth)]
 	}
 	# Rather than returning a list of {lo hi lo hi lo hi} tuples
 	# return a tuple of lists
@@ -1023,8 +1093,8 @@ proc integrate_measurement {id} {
     array unset rec edge,*
     set regions [get_regions $id region_fn]
     foreach {lo hi} $regions curve {spec backm backp} {
-	set rec(edge,$curve,$lo) [empty_to_zero $lo]
-	set rec(edge,$curve,$hi) [empty_to_zero $hi]
+	set rec(edge,$curve,lo) [empty_to_zero $lo]
+	set rec(edge,$curve,hi) [empty_to_zero $hi]
     }
     foreach {lo hi} $regions curve {spec backm backp} {
 	set v [integrate_region $id $lo $hi]
@@ -1033,7 +1103,7 @@ proc integrate_measurement {id} {
 
     ::counts_${id} expr "::spec_y_${id}-(::backp_y_${id}+::backm_y_${id})"
     ::dcounts_${id} expr "sqrt(::spec_y_${id}+::backp_y_${id}+::backm_y_${id})"
-    ::idx_${id} expr "::idx_$id && !::counts_${id}"
+    ::idx_${id} expr "::counts_${id}!=0"
 
     # FIXME hack to get around broken log scales in BLT
     foreach curve {spec backm backp} {
@@ -1045,11 +1115,14 @@ proc integrate_measurement {id} {
 proc integrate {w} {
     findplot $w
     set text [$plot(integration_region) get 0.0 end]
-    proc region_fn {A B S1 dd w} $text
+    proc region_fn {id point A B S1 dd w} [subst {
+	upvar #0 \$id rec 
+	$text
+    }]
 
     foreach id $plot(records) {	integrate_measurement $id }
     # Show new integration regions
-    calc_transform $w $plot(mesh)
+    redraw $w
     # Show new integrated curves
     atten_set $::addrun
 }
@@ -1070,12 +1143,16 @@ proc plot_window {{w .plot}} {
     meshcolorbar $w.cb
     $w.cb configure -pady 5m
     $w.c configure -colorbar $w.cb -logdata on
+    $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
+    $w.c menu "Log scale" [namespace code {ToggleLog %W}]
+    $w.c menu "Unzoom" [namespace code {showall %W}]
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
     $w.c bind <<ZoomClick>> [namespace code {MoveSlice %W %x %y}]
     $w.c bind <Control-ButtonPress-3> [namespace code {MoveSlice %W %x %y}]
     $w.c bind <Control-B3-Motion> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Double-1> [namespace code {Cycle %W %x %y}]
 
     # Create a control panel
     set f $w.controls
@@ -1132,7 +1209,10 @@ proc plot_window {{w .plot}} {
 
     # Compose controls
     set text {
-set a [expr {1.5*$S1/$w}]
+set rec(index) A; # uncomment to save as 'A' crosssection
+return [list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
+
+set a [expr {1.5*$S1/$w}]; # Integration width depends on slits
 set a2 [expr {$a*2}]
 return [list -$a $a -$a2 -$a $a $a2]
 
@@ -1149,6 +1229,8 @@ return [list -$a $a -$a2 -$a $a $a2]
 #   A,B: sample and detector angles (degrees)
 #   dd: distance from sample to detector (mm)
 #   w: pixel width (mm)
+#   rec: the record structure
+#   point: the current point
 #
 # Use [Td_to_pixel $result $B] to convert offset from specular into pixel
 }
