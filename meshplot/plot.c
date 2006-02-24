@@ -140,10 +140,12 @@ const PReal plot_white[4] = {1.,1.,1.,1.};
 static PReal outline_color[4] = {0.,0.,0.,0.5};
 static PReal grid_color[4] = {0.5,0.5,0.5,0.5};
 static PReal plot_default_colors[4*PLOT_COLORMAP_LEN];
+#if 0
 /* Min/max width for smoothed lines; without smoothing, lines must have
  * integer widths corresponding directly to pixels. */
 PReal plot_min_line_width = 1.;
 PReal plot_max_line_width = 1.;
+#endif
 
 static void mapcalc(void)
 {
@@ -239,19 +241,23 @@ void plot_init(PlotSwapfn fn)
 
   swapfn = fn;
   mapinit();
+#if 0  /* OS X complains */
   glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
   plot_min_line_width = sizes[0];
   plot_max_line_width = sizes[1];
+#endif
 }
 #else
 void plot_init(void)
 {
-  float sizes[2];
+  float sizes[4];
 
   mapinit();
+#if 0 /* OS X complains */
   glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
   plot_min_line_width = sizes[0];
   plot_max_line_width = sizes[1];
+#endif
 }
 #endif
 void plot_set_dpi(double dpi) 
