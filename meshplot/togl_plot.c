@@ -132,7 +132,7 @@ get_private_tcl_vector(Tcl_Interp *interp, const char *name,
 
 /* end lib */
 
-#define STACK_SIZE 100
+#define STACK_SIZE 500
 #define COLORMAP_LENGTH 64
 typedef struct PLOTINFO {
   PReal limits[6];
@@ -143,6 +143,7 @@ typedef struct PLOTINFO {
   PReal colors[4*COLORMAP_LENGTH];
 } PlotInfo;
 PReal black[4] = { 0., 0., 0., 1.};
+PReal green[4] = { 0., 0.8, 0., 1.};
 
 /* New scene */
 void tp_create( Togl *togl )
@@ -513,7 +514,8 @@ int tp_curve(Togl *togl, int argc, CONST84 char *argv[])
 
   Togl_MakeCurrent(togl);
   id=plot_add(plot->stack);
-  plot_curve(id,n,x,y,1.,0,black);
+  /* {int i; for(i=0;i<n;i++) printf("(%g,%g) ",x[i],y[i]); printf("\n");} */
+  plot_curve(id,n,x,y,1.,0x27777,black);
   Tcl_SetObjResult (interp, Tcl_NewIntObj(id));
 
   return TCL_OK;

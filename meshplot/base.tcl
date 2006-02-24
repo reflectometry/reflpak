@@ -99,11 +99,19 @@ proc edges {centers delta} {
 }
 
 proc integer_edges {n {base 0}} {
-  set edges {}
+  set v {}
   for {set p 0} {$p <= $n} {incr p} {
-    lappend edges [expr {$base+$p+0.5}]
+    lappend v [expr {$base+$p+0.5}]
   }
-  return $edges
+  return $v
+}
+
+proc integer_centers {n {base 0}} {
+  set v {}
+  for {set p 1} {$p <= $n} {incr p} {
+    lappend v [expr {$base+$p}]
+  }
+  return $v
 }
 
 proc linspace {start stop steps} {
