@@ -32,7 +32,7 @@ win=localhost
 BUILD="$irix $osx $linux3 $linux4"
 
 # Grrr... irix machines need gmake rather than make...
-makejazz="gmake"
+gmake=$irix
 
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagick
@@ -90,8 +90,8 @@ make srcdist
 for machine in $BUILD; do
     echo; echo "== build on $machine ========================"
     # if make$machine is a defined variable use it, otherwise use 'make'
-    par=make$machine
-    ssh $machine "cd $builddir && VERSION='$VERSION' ${!par:-make} dist"
+    if test $machine -eq $gmake; then make=gmake; else make=make; fi
+    ssh $machine "cd $builddir && VERSION='$VERSION' $make dist"
 done
 
 # Do the local build last since you need to type exit in the interpreter
