@@ -90,7 +90,7 @@ make srcdist
 for machine in $BUILD; do
     echo; echo "== build on $machine ========================"
     # if make$machine is a defined variable use it, otherwise use 'make'
-    if test $machine -eq $gmake; then make=gmake; else make=make; fi
+    if test $machine == $gmake; then make=gmake; else make=make; fi
     ssh $machine "cd $builddir && VERSION='$VERSION' $make dist"
 done
 
