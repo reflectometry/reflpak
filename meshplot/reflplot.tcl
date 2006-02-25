@@ -1066,7 +1066,7 @@ proc get_regions {id fn} {
 	return [transpose $L]
     }
     if { $center != $rec(centerpixel) } { 
-	set_center_pixel $rec(centerpixel)
+	set_center_pixel $id $rec(centerpixel)
     }
 }
 	
@@ -1079,8 +1079,8 @@ proc integrate_region {id left right} {
 	set sum 0.
 	if { $lo ne {} && $hi ne {} } {
 	    if {$lo > $hi} { foreach {hi lo} [list $lo $hi] break }
-	    set k [expr {round($lo+$rec(centerpixel))}]
-	    set kend [expr {round($hi+$rec(centerpixel))}]
+	    set k [expr {round($lo+$rec(centerpixel))-1}]
+	    set kend [expr {round($hi+$rec(centerpixel))-1}]
 	    if {$k < 0} { set k 0 }
 	    if {$kend > $rec(pixels)} { set kend $rec(pixels) }
 	    # puts "integrating $rec(legend)($i,$k:$kend-1)"
