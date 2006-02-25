@@ -656,6 +656,81 @@ footprint scan.
 2003-11-03}
 
 # ----------------------------------------------------------------------
+hpage {newpsd} .newpsd {See also [newpsd controls]
+
+This dialog is too much in flux to document correctly at this time.
+
+As of this writing:
+
+Enter the center pixel on the detector (that for which Qz = 0).  This
+can be sub-pixel level accuracy.
+
+Use transform to change between data representations.
+
+Click integrate to calculate the integrated intensities.  The formula
+
+
+2006-02-24}
+
+# ----------------------------------------------------------------------
+hpage {newpsd controls} {} {See also [newpsd]
+
+Graph controls:
+
+>click+move+release: select region to view
+
+>wheel or shift+click/control+click: zoom; on axis, zoom only that axis
+
+>right click: menu for reset, pan
+
+>middle click: pan
+
+>click: Show slice
+
+>control+right click+motion: Show slice as cursor moves
+
+>rapid click: Cycle through overlaid frames
+
+2006-02-24}
+
+# ----------------------------------------------------------------------
+hpage {integration} .newpsd.integration_region {See also [newpsd]
+
+Define the integration formula for selecting the specular ridge 
+and background for an instrument configuration.  Return pixel ranges
+to integrate over:
+
+>{spec_lo spec_hi bkgm_lo bkgm_hi bkgp_lo bkgp_hi}
+ 
+To suppress the backgrounds, use {} {} instead.
+
+Available variables:
+>S1: slit widths (mm)
+>A,B: sample and detector angles (degrees)
+>dd: distance from sample to detector (mm)
+>w: pixel width (mm)
+>rec: the record structure
+>point: the current point
+
+Use \[Td_to_pixel $result $B] to convert offset from specular into pixel
+
+For detectors with multiple simultaneous beams, use:
+
+>set rec(index) A; # uncomment to save as 'A' crosssection
+
+Regions can be fixed:
+
+>return \[list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
+
+Or they can be opening according to various formulas:
+
+>set a \[expr {1.5*$S1/$w}]; # Integration width depends on slits
+>set a2 \[expr {$a*2}]
+>return \[list -$a $a -$a2 -$a $a $a2]
+
+2006-02-24}
+
+# ----------------------------------------------------------------------
 hpage {psd} .psd {See also [psd controls].
 
 Position sensitive detector data is a 2-D array.  Instead of a single

@@ -1215,24 +1215,6 @@ return [list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
 set a [expr {1.5*$S1/$w}]; # Integration width depends on slits
 set a2 [expr {$a*2}]
 return [list -$a $a -$a2 -$a $a $a2]
-
-# Define the integration formula for selecting the specular ridge 
-# and background for an instrument configuration.  Return pixel ranges
-# to integrate over:
-#
-#      {spec_lo spec_hi bkgm_lo bkgm_hi bkgp_lo bkgp_hi}
-# 
-# To suppress the backgrounds, use {} {} instead.
-#
-# Available variables:
-#   S1: slit widths (mm)
-#   A,B: sample and detector angles (degrees)
-#   dd: distance from sample to detector (mm)
-#   w: pixel width (mm)
-#   rec: the record structure
-#   point: the current point
-#
-# Use [Td_to_pixel $result $B] to convert offset from specular into pixel
 }
     text $w.integration_region -wrap no
     text_replace $w.integration_region $text
