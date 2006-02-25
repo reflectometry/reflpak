@@ -929,9 +929,9 @@ proc Cycle {w x y} {
     $wmsg conf -text "$rec(dataset):$rec(run) $rec(comment)"
 }
 
-proc MoveSlice {w x y} {
+proc drawslice {w x y} {
     findplot $w
-    foreach {X Y} [$w coords $x $y] break
+
     foreach id [$plot(slice) el names] {
 	$plot(slice) el delete $id
         catch { vector destroy ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id} }
@@ -939,12 +939,16 @@ proc MoveSlice {w x y} {
     foreach id [$plot(slice) marker names] { 
 	$plot(slice) marker delete $id 
     }
+
+    # Handle case of no slice
+    if { $x eq {} || $y eq {} } { return }
+
     set n 0
     foreach id $plot(records) {
         upvar \#0 $id rec
 
         set idx -1
-	catch { set idx [find_$plot(mesh) $id $X $Y] }
+	catch { set idx [find_$plot(mesh) $id $x $y] }
 	if { $idx >= 0 } {
 	    set j [expr {$idx/$rec(pixels)}]
             set x {}
@@ -981,6 +985,12 @@ proc MoveSlice {w x y} {
 	}
 	$plot(slice) axis configure x -title $rec(xlabel)
     }
+}
+
+proc MoveSlice {w x y} {
+    findplot $w
+    foreach {plot(slice,x) plot(slice,y)} [$w coords $x $y] break
+    drawslice $w $plot(slice,x) $plot(slice,y)
 }
 
 
@@ -1039,6 +1049,7 @@ proc Td_to_pixel {Td_list beta} {
 
 proc get_regions {id fn} {
     upvar \#0 $id rec
+    set center $rec(centerpixel)
     if {![isTOF]} {
 	set L {}
 	for {set i 0} { $i < $rec(points) } { incr i } {
@@ -1054,6 +1065,9 @@ proc get_regions {id fn} {
 	# return a tuple of lists
 	return [transpose $L]
     }
+    if { $center != $rec(centerpixel) } { 
+	set_center_pixel $rec(centerpixel)
+    }
 }
 	
 proc integrate_region {id left right} {
@@ -1064,6 +1078,7 @@ proc integrate_region {id left right} {
     foreach lo $left hi $right {
 	set sum 0.
 	if { $lo ne {} && $hi ne {} } {
+	    if {$lo > $hi} { foreach {hi lo} [list $lo $hi] break }
 	    set k [expr {round($lo+$rec(centerpixel))}]
 	    set kend [expr {round($hi+$rec(centerpixel))}]
 	    if {$k < 0} { set k 0 }
@@ -1123,6 +1138,7 @@ proc integrate {w} {
     foreach id $plot(records) {	integrate_measurement $id }
     # Show new integration regions
     redraw $w
+    drawslice $w $plot(slice,x) $plot(slice,y)
     # Show new integrated curves
     atten_set $::addrun
 }
@@ -1198,6 +1214,8 @@ proc plot_window {{w .plot}} {
     active_graph $g
     active_axis $g y
     set plot(slice) $g
+    set plot(slice,x) {}
+    set plot(slice,y) {}
 
     # Compose plot
     set plot(linecolor) 0
@@ -1209,16 +1227,15 @@ proc plot_window {{w .plot}} {
 
     # Compose controls
     set text {
-set rec(index) A; # uncomment to save as 'A' crosssection
-return [list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
-
-set a [expr {1.5*$S1/$w}]; # Integration width depends on slits
-set a2 [expr {$a*2}]
+set a [expr 1.5*$S1/$w]
+set a2 [expr $a*2]
 return [list -$a $a -$a2 -$a $a $a2]
 }
     text $w.integration_region -wrap no
     text_replace $w.integration_region $text
     set plot(integration_region) $w.integration_region
+    bind $w.integration_region <Control-Return> \
+	[namespace code "integrate $w.c ; break"]
 
 
     # Bind everything together

@@ -691,6 +691,8 @@ Graph controls:
 
 >rapid click: Cycle through overlaid frames
 
+>control+enter: Update integration region
+
 2006-02-24}
 
 # ----------------------------------------------------------------------
@@ -714,19 +716,38 @@ Available variables:
 
 Use \[Td_to_pixel $result $B] to convert offset from specular into pixel
 
-For detectors with multiple simultaneous beams, use:
+Here is an example from a detector with simultaneous beams:
 
->set rec(index) A; # uncomment to save as 'A' crosssection
+># slit D
+>set rec(centerpixel) 354
+>set rec(index) D
+>set lo \[expr -3.2*\$S1-9]
+>set hi \[expr 5.5*\$S1+3]
+>return \[list \$lo \$hi {} {} {} {}]
 
-Regions can be fixed:
+Note that the integration region expands with the slit opening.  Since
+the formula is intimately tied with the center pixel for the beam, also
+set the center pixel.  Background for the slit scan is ignored.
+
+The following example defines the corresponding specular:
+
+># spec D
+>set_center_pixel \$rec(id) 354
+>set rec(index) D
+>set lo \[expr -3.2*\$S1-9]
+>set hi \[expr 5.5*\$S1+3]
+>return \[list \$lo \$hi \[expr \$lo-64] \[expr \$hi-64] {} {}]
+
+Note that the background is the same width as the specular and shifted
+by a multiple of 32.  The particular detector in use when this documentation
+was written happened to have a periodic nonuniformity 32 pixels across.
+
+Regions can also be fixed:
 
 >return \[list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
 
-Or they can be opening according to various formulas:
-
->set a \[expr {1.5*$S1/$w}]; # Integration width depends on slits
->set a2 \[expr {$a*2}]
->return \[list -$a $a -$a2 -$a $a $a2]
+Use the key combination control+enter to update the integration after
+editing the integration region formula.
 
 2006-02-24}
 
