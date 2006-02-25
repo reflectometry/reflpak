@@ -48,9 +48,15 @@ char *basename(char *file)
 #endif
 
 #ifdef NEED_DIRNAME
+
+#include <limits.h>
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
 char *dirname(char *file)
 {
-  static char dir[1000];
+  static char dir[PATH_MAX];
   int i = strlen(file);
   while (i--) { if (file[i]=='/' || file[i]=='\\') break; }
   if (i > sizeof(dir)-1 || i < 0) {
