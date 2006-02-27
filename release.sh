@@ -139,6 +139,12 @@ test "$ans" != "y" && exit
 echo; echo "== updating $WEBDIR and $BINDIR =="
 
 echo; echo "Copying to $WEBDIR"
+if test -d $WEBDIR/reflpak$VERSION; then
+    echo; echo "Replace $WEBDIR/reflpak$VERSION? [y for yes]: "
+    read ans
+    test "$ans" != "y" && exit
+    rm -rf $WEBDIR/reflpak$VERSION
+fi
 $WEBCP -r web "$WEBDIR/reflpak$VERSION"
 echo; echo "Copying to $BINDIR"
 $BINCP bin/* "$BINDIR"
