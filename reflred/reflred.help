@@ -702,28 +702,29 @@ Define the integration formula for selecting the specular ridge
 and background for an instrument configuration.  Return pixel ranges
 to integrate over:
 
->{spec_lo spec_hi bkgm_lo bkgm_hi bkgp_lo bkgp_hi}
+  {spec_lo spec_hi bkgm_lo bkgm_hi bkgp_lo bkgp_hi}
  
 To suppress the backgrounds, use {} {} instead.
 
 Available variables:
->S1: slit widths (mm)
->A,B: sample and detector angles (degrees)
->dd: distance from sample to detector (mm)
->w: pixel width (mm)
->rec: the record structure
->point: the current point
+
+  S1: slit widths (mm)
+  A,B: sample and detector angles (degrees)
+  dd: distance from sample to detector (mm)
+  w: pixel width (mm)
+  rec: the record structure
+  point: the current point
 
 Use \[Td_to_pixel $result $B] to convert offset from specular into pixel
 
 Here is an example from a detector with simultaneous beams:
 
-># slit D
->set rec(centerpixel) 354
->set rec(index) D
->set lo \[expr -3.2*\$S1-9]
->set hi \[expr 5.5*\$S1+3]
->return \[list \$lo \$hi {} {} {} {}]
+  # slit D
+  set rec(centerpixel) 354
+  set rec(index) D
+  set lo \[expr -3.2*$S1-9]
+  set hi \[expr 5.5*$S1+3]
+  return \[list $lo $hi {} {} {} {}]
 
 Note that the integration region expands with the slit opening.  Since
 the formula is intimately tied with the center pixel for the beam, also
@@ -731,12 +732,12 @@ set the center pixel.  Background for the slit scan is ignored.
 
 The following example defines the corresponding specular:
 
-># spec D
->set_center_pixel \$rec(id) 354
->set rec(index) D
->set lo \[expr -3.2*\$S1-9]
->set hi \[expr 5.5*\$S1+3]
->return \[list \$lo \$hi \[expr \$lo-64] \[expr \$hi-64] {} {}]
+  # spec D
+  set rec(centerpixel) 354
+  set rec(index) D
+  set lo \[expr -3.2*$S1-9]
+  set hi \[expr 5.5*$S1+3]
+  return \[list $lo $hi \[expr $lo-64] \[expr $hi-64] {} {}]
 
 Note that the background is the same width as the specular and shifted
 by a multiple of 32.  The particular detector in use when this documentation
@@ -744,10 +745,27 @@ was written happened to have a periodic nonuniformity 32 pixels across.
 
 Regions can also be fixed:
 
->return \[list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
+  return \[list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
 
 Use the key combination control+enter to update the integration after
 editing the integration region formula.
+
+The following reduction formula is used for each detector line:
+
+    S: specular pixels
+    B: background pixels 
+    |S|:   number of specular pixels
+    |B|:   number of background pixels
+    D(k): detector pixel k
+    counts = sum_{k in S} D(k) - |S|/|B| sum_{k in B} D(k)
+    dcounts = sqrt( sum_{k in S} D(k) + (|S|/|B|)^2 sum_{k in B} D(k) )
+
+The counts are then scaled by detector or monitor count and by 
+attenuators as usual on the [compose] window.
+
+The formula internally is a little messier than that to protect against
+an empty set of background pixels.  The B^+ and B^- plots displayed 
+alongside the specular are scaled by |S|/|B^+| and |S|/|B^-| respectively.
 
 2006-02-24}
 
