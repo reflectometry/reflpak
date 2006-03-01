@@ -148,7 +148,6 @@ proc ABL {id row A B L} {
 # plot the same record in multiple plots with different axes.
 proc mesh_QxQz {id} {
     upvar \#0 $id rec
-    array unset rec curve,*
     if {[isTOF]} {
 	foreach {rec(x) rec(y)} [buildmesh -L rec(lambda) \
 				     $rec(points) $rec(pixels) \
@@ -312,7 +311,6 @@ proc find_TiTf {id x y} {
 
 proc mesh_AB {id} {
     upvar \#0 $id rec
-    array unset rec curve,*
     foreach {rec(x) rec(y)} [buildmesh -b \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -410,7 +408,6 @@ proc find_slit {id x y} {
 
 proc mesh_LTd {id} {
     upvar \#0 $id rec
-    array unset rec curve,*
     foreach {rec(x) rec(y)} [buildmesh \
 				$rec(points) $rec(pixels) \
 				rec(lambda) rec(dtheta)] {}
@@ -546,8 +543,9 @@ proc calc_transform {path type} {
     set plot(mesh) $type
     set plot(mesh_entry) $type
     set plot(points) 0
+    array unset plot from,*
 
-    # Clear all curves
+    # Clear all items from the graph
     $path delete
 
     foreach id $plot(records) {
@@ -909,9 +907,11 @@ proc delete {path records} {
 	if { $n < 0 } { continue }
 	set plot(records) [lreplace $plot(records) $n $n]
 
-	# remove record from the plot
-	$path delete $plot($id)
-	array unset plot $id
+	# remove objects from the mesh plot
+	foreach p [array names plot $id*] { 
+           $path delete $plot($p)
+	   array unset plot $p
+        }
 
 	foreach curve {spec backm backp} {
 	    catch { vector destroy ::${curve}_y_${id} ::${curve}_dy_${id} }
@@ -940,6 +940,7 @@ proc new {w} {
 }
 
 # ===== plot window functions =====
+
 
 # Helper function which returns tuples {depth record_id index row pixel}
 # underneath the cursor position x,y.  This is used for things such as
@@ -992,7 +993,14 @@ proc uncertainty { val err } {
     return "${val}($err)"
 }
 
+proc SetOrigin {w x y} {
+    findplot $w
+    foreach {plot(from,x) plot(from,y)} [$w coords $x $y] break
+}
+
 proc ShowCoordinates { w x y } {
+    findplot $w
+    foreach {X Y} [$w coords $x $y] break
     set wmsg [winfo toplevel $w].message
     set mesh [lindex [FindUnder $w $x $y] 0]
     if { [llength $mesh] > 0 } {
@@ -1005,12 +1013,14 @@ proc ShowCoordinates { w x y } {
 	} else {
 	    set err {}
 	}
-	foreach {X Y} [$w coords $x $y] break
-	$wmsg conf -text \
-	    "[file tail $rec(file)]($r,$c)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
+	set msg "[file tail $rec(file)]($r,$c)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
     } else {
-	$wmsg conf -text ""
+	set msg ""
     }
+    if { [info exists plot(from,x)] } {
+        append msg "  distance: [fix [expr {$X-$plot(from,x)}]] [fix [expr {$Y-$plot(from,y)}]]"
+    }
+    $wmsg conf -text $msg
 }
 
 
@@ -1151,6 +1161,7 @@ proc Td_to_pixel {Td_list beta} {
 proc get_regions {id fn} {
     upvar \#0 $id rec
     set center $rec(centerpixel)
+puts "center was $center"
     if {![isTOF]} {
 	set L {}
 	for {set i 0} { $i < $rec(points) } { incr i } {
@@ -1170,11 +1181,12 @@ proc get_regions {id fn} {
 	}
 	# Rather than returning a list of {lo hi lo hi lo hi} tuples
 	# return a tuple of lists
-	return [transpose $L]
+	set ret [transpose $L]
     }
     if { $center != $rec(centerpixel) } { 
 	set_center_pixel $id $rec(centerpixel)
     }
+    return $ret
 }
 	
 proc integrate_region {id left right} {
@@ -1295,6 +1307,7 @@ proc plot_window {{w .plot}} {
     $w.c menu "Log scale" [namespace code {ToggleLog %W}]
     $w.c menu "Reset axes" [namespace code {showall %W}]
     $w.c menu "Center pixel" [namespace code {SelectCenter %W %x %y}]
+    $w.c menu "Distance" [namespace code {SetOrigin %W %x %y}]
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
