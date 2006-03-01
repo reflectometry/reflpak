@@ -1161,7 +1161,6 @@ proc Td_to_pixel {Td_list beta} {
 proc get_regions {id fn} {
     upvar \#0 $id rec
     set center $rec(centerpixel)
-puts "center was $center"
     if {![isTOF]} {
 	set L {}
 	for {set i 0} { $i < $rec(points) } { incr i } {
@@ -1183,9 +1182,12 @@ puts "center was $center"
 	# return a tuple of lists
 	set ret [transpose $L]
     }
+    # Center pixel may have changed
     if { $center != $rec(centerpixel) } { 
 	set_center_pixel $id $rec(centerpixel)
     }
+    # Index may have changed
+    set rec(legend) "$rec(run)$rec(index)"
     return $ret
 }
 	
@@ -1349,7 +1351,9 @@ proc plot_window {{w .plot}} {
     }
     button $f.integrate -text "Integrate" \
 	-command [namespace code [list integrate $w.c]]
-    grid $f.lcenter $f.center $f.ltransform $f.transform $f.integrate
+    button $f.accept -text "Accept" -command addrun_accept
+    grid $f.lcenter $f.center $f.ltransform $f.transform \
+	$f.integrate $f.accept
 
     label $w.message -relief ridge -anchor w
 
@@ -1379,9 +1383,9 @@ proc plot_window {{w .plot}} {
 
     # Compose controls
     set text {
-set a [expr 1.5*$S1/$w]
-set a2 [expr $a*2]
-return [list -$a $a -$a2 -$a $a $a2]
+set a [expr abs(1.5*$S1/$w)+5]
+if { $rec(type)==slit } { return [list -$a $a {} {} {} {}] }
+return [list -$a $a -2*$a -$a $a 2*$a]
 }
     opt $w.integration_region width 30 height 8
     text $w.integration_region -wrap no

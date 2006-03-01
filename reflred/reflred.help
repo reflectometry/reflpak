@@ -711,41 +711,48 @@ Available variables:
   S1: slit widths (mm)
   A,B: sample and detector angles (degrees)
   dd: distance from sample to detector (mm)
-  w: pixel width (mm)
+  w: pixel width (mm)  \[negative if detector is reversed]
   rec: the record structure
   point: the current point
 
 Use \[Td_to_pixel $result $B] to convert offset from specular into pixel
 
-Here is an example from a detector with simultaneous beams:
+Here is a simple example in which the width of the integration region is
+defined by the slits, and the background is an equal width region on either
+side.  For slit scans don't subtract a background.
 
-  # slit D
-  set rec(centerpixel) 354
-  set rec(index) D
-  set lo \[expr -3.2*$S1-9]
-  set hi \[expr 5.5*$S1+3]
-  return \[list $lo $hi {} {} {} {}]
+  set a \[expr 1.5*abs($S1/$w)+5]
+  if {$rec(type)=="slit"} { return \[list -$a $a {} {} {} {}] }
+  return \[list -$a $a -2*$a -$a $a 2*$a]
 
-Note that the integration region expands with the slit opening.  Since
-the formula is intimately tied with the center pixel for the beam, also
-set the center pixel.  Background for the slit scan is ignored.
+Here is an example from a detector with simultaneous beams.  Since the
+formula is intimately tied with the center pixel for the beam, it sets
+the center pixel and the corresponding A/D cross section.  Select between
+cross sections by toggling the condition from 0 to 1.  Note that the active
+region is clipped to +/- 32 pixels from the center of the beam.
 
-The following example defines the corresponding specular:
+  set clip 32
+  set lo \[expr -1.5*abs($S1/$w)-5]
+  set hi \[expr -$lo]
+  if 0 {
+    set rec(index) D
+    set rec(centerpixel) 481
+  } else {
+    set rec(index) A
+    set rec(centerpixel) 354
+  }
+  set bklo \[expr 2*$lo]
+  set bkhi \[expr 2*$hi]
+  if { $lo < -$clip } { set lo -$clip }
+  if { $hi > $clip } { set hi $clip }
+  if {$rec(type)=="slit"} { return \[list $lo $hi {} {} {} {}] }
+  if { $bklo < -$clip } { set bklo -$clip }
+  if { $bkhi > $clip } { set bkhi $clip }
+  return \[list $lo $hi $bklo $lo $hi $bkhi]
 
-  # spec D
-  set rec(centerpixel) 354
-  set rec(index) D
-  set lo \[expr -3.2*$S1-9]
-  set hi \[expr 5.5*$S1+3]
-  return \[list $lo $hi \[expr $lo-64] \[expr $hi-64] {} {}]
-
-Note that the background is the same width as the specular and shifted
-by a multiple of 32.  The particular detector in use when this documentation
-was written happened to have a periodic nonuniformity 32 pixels across.
-
-Regions can also be fixed:
-
-  return \[list -16 16 -64 -48 {} {}]; # uncomment for fixed integration width
+Note that as of this writing the legends on the graph in the [compose] 
+window are not updated when rec(index) changes, but the lines are kept 
+separate in the reduce screen.
 
 Use the key combination control+enter to update the integration after
 editing the integration region formula.

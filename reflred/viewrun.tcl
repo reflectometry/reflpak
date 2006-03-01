@@ -723,9 +723,6 @@ proc addrun_accept {} {
 	savescan $scanid
     }
 
-    # clear the runs
-    addrun clear
-
     # add the scans
     foreach scan $scanlist { addrun_addscan $scan }
 
@@ -749,9 +746,10 @@ proc addrun { command args } {
 	load {}
 	accept {
 	    addrun_accept
+	    addrun clear
+	    atten_table_reset
 	    event generate .graph <<Elements>>
 	    event generate .reduce.graph <<Elements>>
-	    atten_table_reset
 	}
 	save {
 	    addrun clear
