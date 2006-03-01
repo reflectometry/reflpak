@@ -408,16 +408,11 @@ void plot_curve(int k, int n, const PReal x[], const PReal y[],
   glEndList();
 }
 
-/* Generate a mesh object in list k */
-void plot_mesh(int k, int m, int n, 
-	       const PReal x[], const PReal y[], const PReal v[])
+static void 
+fill_mesh(int k, int m, int n,
+	  const PReal x[], const PReal y[], const PReal v[])
 {
   int i, j;
-
-  /* XXX FIXME XXX what to do when out of lists? */
-  if (k < 0) return;
-
-  glNewList(k,GL_COMPILE);
 
   /* Draw quad strips with pick names k,i for each strip */
   /* Note: triangle fans perform just as well as quad strips for me. */
@@ -440,12 +435,19 @@ void plot_mesh(int k, int m, int n,
   }
   glPopName();
   glPopName();
+}
 
-#if 0
+static void
+outline_quads(int k, int m, int n,
+	      const PReal x[], const PReal y[],
+	      PReal width, int stipple, const PReal* color)
+{
+  int i, j;
+
   /* Draw an outline around each quadrilateral. */
   /* FIXME check if OpenGL supports this directly with PolygonMode */
-  if (outline_width != 0.) {
-    format_line(outline_width,outline_stipple,outline_color);
+  if (width != 0.) {
+    format_line(width,stipple,color);
     /* Vertical lines */
     for (i = 0; i <= m; i++) {
       glBegin(GL_LINE_STRIP);
@@ -459,21 +461,15 @@ void plot_mesh(int k, int m, int n,
       glEnd();
     }
   }
-#endif
-
-  glEndList();
 }
 
-/* Draw an outline around the entire mesh. */
-void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
-		  PReal width, int stipple, const PReal* color)
+static void 
+outline_mesh(int m, int n, const PReal x[], const PReal y[],
+	     PReal width, int stipple, const PReal* color)
 {
   int i;
 
-  if (k < 0) return;
-  glNewList(k,GL_COMPILE);
   format_line(width,stipple,color);
-  glPushName(k);
   /* Buggy driver note: With GL_LINE_SMOOTH enabled on my Linux box there
      are occasional pixels showing through the outline.  This does not
      happen on my Windows box.  These can be eliminated by disabling
@@ -493,7 +489,28 @@ void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
   while (i > m*(n+1)) { glVertex2(x[i],y[i]); i--; }
   while (i >= 0) { glVertex2(x[i],y[i]); i-=n+1; }
   glEnd();
-  glPopName();
+}
+
+/* Generate a mesh object in list k */
+void plot_mesh(int k, int m, int n,
+	       const PReal x[], const PReal y[], const PReal v[])
+{
+  /* XXX FIXME XXX what to do when out of lists? */
+  if (k < 0) return;
+
+  glNewList(k,GL_COMPILE);
+  fill_mesh(k,m,n,x,y,v);
+  outline_quads(k,m,n,x,y,0.,0,outline_color);
+  glEndList();
+}
+
+/* Draw an outline around the entire mesh. */
+void plot_outline(int k, int m, int n, const PReal x[], const PReal y[],
+		  PReal width, int stipple, const PReal* color)
+{
+  if (k < 0) return;
+  glNewList(k,GL_COMPILE);
+  outline_mesh(m,n,x,y,width,stipple,color);
   glEndList();
 }
 
@@ -633,7 +650,6 @@ void plot_grid(const PReal limits[], const PReal grid[])
   }
 
   glPopMatrix();
-
 }
 
 void plot_display(const PReal limits[], const int stack[])
