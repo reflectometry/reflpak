@@ -13,6 +13,7 @@ if {![namespace exists reflplot]} {
 namespace eval reflplot {
 
     variable pi_over_180 [expr {atan(1.)/45.}]
+    variable pi_times_2 [expr {8.*atan(1.)}]
     variable transforms {QxQz TiTf TiTd AB slit pixel LTd}
     variable colorlist {}
 
@@ -140,6 +141,8 @@ proc ABL {id row A B L} {
     }
 }
     
+# ----------------------------------------------
+
 
 # FIXME don't store mesh with the record otherwise we can't
 # plot the same record in multiple plots with different axes.
@@ -159,6 +162,29 @@ proc mesh_QxQz {id} {
     set rec(ylabel) "Qz (inv Angstroms)"
     set rec(xcoord) "Qx"
     set rec(ycoord) "Qz"
+}
+
+proc integration_QxQz {id} {
+    upvar \#0 $id rec
+    variable pi_over_180
+    variable pi_times_2
+
+    # Generate integration region boundaries
+    foreach region_edge [array names rec edge,*] {
+	set Qx {}
+	set Qz {}
+	foreach el $rec($region_edge) \
+	    A [fvector rec(column,alpha)] B [fvector rec(column,beta)] \
+	    {
+	    set Ti [expr {$A*$pi_over_180}]
+	    set Td [expr {atan2($rec(pixelwidth)*$el,$rec(distance))}]
+	    lappend Qz [expr {$pi_times_2/$rec(L)*(sin($Ti+$Td)+sin($Ti))}]
+	    lappend Qx [expr {$pi_times_2/$rec(L)*(cos($Ti+$Td)-cos($Ti))}]
+	}
+	fvector rec(curve,$region_edge) $Qx
+	fvector rec(x,curve,$region_edge) $Qz
+	       
+    }
 }
 
 proc row_QxQz {id row} {
@@ -186,9 +212,10 @@ proc find_QxQz {id x y} {
     }
 }
 
+# ----------------------------------------------
+
 proc mesh_TiTd {id} {
     upvar \#0 $id rec
-    array unset rec curve,*
     foreach {rec(x) rec(y)} [buildmesh -d \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -196,6 +223,23 @@ proc mesh_TiTd {id} {
     set rec(ylabel) "theta_i (degrees)"
     set rec(ycoord) "Ti"
     set rec(xcoord) "Td"
+}
+
+proc integration_TiTd {id} {
+    upvar \#0 $id rec
+    variable pi_over_180
+
+    # Generate integration region boundaries
+    set rec(curvex) $rec(column,alpha)
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) {
+	    lappend result [expr {
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$pi_over_180
+            }]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
 }
 
 proc row_TiTd {id row} {
@@ -215,9 +259,10 @@ proc find_TiTd {id x y} {
 		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
+# ----------------------------------------------
+
 proc mesh_TiTf {id} {
     upvar \#0 $id rec
-    array unset rec curve,*
     foreach {rec(x) rec(y)} [buildmesh -f \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
@@ -225,6 +270,25 @@ proc mesh_TiTf {id} {
     set rec(ylabel) "theta_i (degrees)"
     set rec(ycoord) "Ti"
     set rec(xcoord) "Tf"
+}
+
+proc integration_TiTf {id} {
+    upvar \#0 $id rec
+    variable pi_over_180
+
+    # Generate integration region boundaries
+    set rec(curvex) $rec(column,alpha)
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) \
+	    A [fvector rec(column,alpha)] B [fvector rec(column,beta)] \
+	    {
+	    lappend result [expr {
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$pi_over_180+$B-$A
+            }]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
 }
 
 proc row_TiTf {id row} {
@@ -244,6 +308,8 @@ proc find_TiTf {id x y} {
 		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
+# ----------------------------------------------
+
 proc mesh_AB {id} {
     upvar \#0 $id rec
     array unset rec curve,*
@@ -254,6 +320,23 @@ proc mesh_AB {id} {
     set rec(ylabel) "theta_i (degrees)"
     set rec(ycoord) "A"
     set rec(xcoord) "B"
+}
+
+proc integration_AB {id} {
+    upvar \#0 $id rec
+    variable pi_over_180
+
+    # Generate integration region boundaries
+    set rec(curvex) $rec(column,alpha)
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) B [fvector rec(column,beta)] {
+	    lappend result [expr {
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$pi_over_180 + $B
+            }]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
 }
 
 proc row_AB {id row} {
@@ -273,12 +356,27 @@ proc find_AB {id x y} {
 		rec(alpha) rec(beta) rec(dtheta) $x $y]
 }
 
+# ----------------------------------------------
+
 proc mesh_slit {id} {
+    upvar \#0 $id rec
+
+    # Generate mesh
+    foreach {rec(x) rec(y)} [buildmesh \
+				 $rec(points) $rec(pixels) \
+				 rec(slit1) rec(dtheta)] {}
+    set rec(xlabel) "theta_f - theta_i (degrees)"
+    set rec(ylabel) "slit 1 (mm)"
+    set rec(ycoord) "S1"
+    set rec(xcoord) "Td"
+}
+
+
+proc integration_slit {id} {
     upvar \#0 $id rec
     variable pi_over_180
 
     # Generate integration region boundaries
-    array unset rec curve,*
     set rec(curvex) $rec(column,slit1)
     foreach region_edge [array names rec edge,*] {
 	set result {}
@@ -289,15 +387,6 @@ proc mesh_slit {id} {
 	}
 	fvector rec(curve,$region_edge) $result
     }
-
-    # Generate mesh
-    foreach {rec(x) rec(y)} [buildmesh \
-				 $rec(points) $rec(pixels) \
-				 rec(slit1) rec(dtheta)] {}
-    set rec(xlabel) "theta_f - theta_i (degrees)"
-    set rec(ylabel) "slit 1 (mm)"
-    set rec(ycoord) "S1"
-    set rec(xcoord) "Td"
 }
 
 proc row_slit {id row} {
@@ -316,6 +405,8 @@ proc find_slit {id x y} {
 		$rec(points) $rec(pixels) \
 		rec(slit1) rec(dtheta) $x $y]
 }
+
+# ----------------------------------------------
 
 proc mesh_LTd {id} {
     upvar \#0 $id rec
@@ -346,20 +437,10 @@ proc find_LTd {id x y} {
 		rec(lambda) rec(dtheta) $x $y]
 }
 
+# ----------------------------------------------
+
 proc mesh_pixel {id {base 0}} {
     upvar \#0 $id rec
-
-    # Generate integration region boundaries
-    array unset rec curve,*
-    fvector rec(curvex) [integer_centers $rec(points) $base]
-    foreach region_edge [array names rec edge,*] {
-	set result {}
-	foreach el $rec($region_edge) {
-	    lappend result [expr {$el + $rec(centerpixel)}]
-	}
-	fvector rec(curve,$region_edge) $result
-#puts "Transform: $rec($region_edge)\nTo: [fvector rec(curve,$region_edge)]"
-    }
 
     # Generate mesh
     fvector rec(xv) [integer_edges $rec(pixels)]
@@ -371,6 +452,20 @@ proc mesh_pixel {id {base 0}} {
     set rec(ylabel) "scan points"
     set rec(xcoord) "pixel"
     set rec(ycoord) "point"
+}
+
+proc integration_pixel {id {base 0}} {
+    upvar \#0 $id rec
+
+    # Generate integration region boundaries
+    fvector rec(curvex) [integer_centers $rec(points) $base]
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) {
+	    lappend result [expr {$el + $rec(centerpixel)}]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
 }
 
 proc row_pixel {id row} {
@@ -389,6 +484,8 @@ proc find_pixel {id x y} {
 		$rec(points) $rec(pixels) \
 		rec(yv) rec(xv) $x $y]
 }
+
+# ----------------------------------------------
 
 proc limits {records} {
     set xlim {}
@@ -449,29 +546,42 @@ proc calc_transform {path type} {
     set plot(mesh) $type
     set plot(mesh_entry) $type
     set plot(points) 0
+
+    # Clear all curves
+    $path delete
+
     foreach id $plot(records) {
 	upvar \#0 $id rec
+
+	# Clear old integration lines
+	array unset rec curvex 
+	array unset rec curve,*
+	array unset rec x,curve,*
+        # foreach curve [array names plot $id,*] { $path delete $plot($curve) }
 
 	# Update mesh
 	if { $type == "pixel" } {
 	    mesh_$type $id $plot(points)
+	    integration_$type $id $plot(points)
 	    incr plot(points) $rec(points)
 	    incr plot(points)
 	} else {
 	    mesh_$type $id
+	    integration_$type $id
 	}
-	$path delete $plot($id)
+	# $path delete $plot($id)
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
 
 	# Update integration regions
-        foreach curve [array names plot $id,*] {
-	    $path delete $plot($curve) 
-	}
 	foreach curve [array names rec curve,*] {
-	    set plot($id,$curve) \
-		[$path.c curve $rec(points) rec($curve) rec(curvex)]
-#puts "k=$plot($id,$curve) x: [fvector rec(curvex)]\ny: [fvector rec($curve)]"
+	    if {[info exists rec(x,$curve)]} {
+		set plot($id,$curve) \
+		    [$path.c curve $rec(points) rec($curve) rec(x,$curve)]
+	    } else {
+		set plot($id,$curve) \
+		    [$path.c curve $rec(points) rec($curve) rec(curvex)]
+	    }
 	}
 
 	set plot(title) "$rec(ylabel) vs. $rec(xlabel)"
@@ -776,8 +886,8 @@ if {[vector_exists ::x_${id}]} { # don't kill isis demo just yet
 	foreach curve {spec backm backp} index { {} - + } {
 	    vector create ::${curve}_y_${id} ::${curve}_dy_${id}
 	    $plot(compose) element create ${id}_${curve} \
-		-xdata ::x_${id} -ydata ::${curve}_y_${id} \
-		-yerror ::${curve}_dy_${id} \
+		-ydata ::x_${id} -xdata ::${curve}_y_${id} \
+		-xerror ::${curve}_dy_${id} -showerrorbars x \
 		-label "$rec(legend)$index" -color [nextcolor]
 	}
 }
@@ -830,11 +940,45 @@ proc new {w} {
 }
 
 # ===== plot window functions =====
+
+# Helper function which returns tuples {depth record_id index row pixel}
+# underneath the cursor position x,y.  This is used for things such as
+# ShowCoordinates, SelectCenter and Cycle
+proc FindUnder {w x y} {
+    findplot $w
+    foreach {X Y} [$w coords $x $y] break
+
+    # Find mesh order
+    set order [$w order]
+
+    # Find pixels which lie under the cursor; prefix each with it's
+    # position in the mesh stack
+    set under {}
+    foreach id $plot(records) {
+        upvar \#0 $id rec
+	set idx [find_$plot(mesh) $id $X $Y]
+	if { $idx >= 0 } { 
+	    set row [expr {$idx/$rec(pixels)}]
+	    set pixel [expr {$idx%$rec(pixels)}]
+	    lappend under [list [lsearch $order $plot($id)] \
+			       $id $idx $row $pixel]
+	}
+    }
+
+    # Sort pixels
+    return [lsort -index 0 -decreasing $under]
+}
+
 proc UpdateCenter {w} {
     findplot $w
     if { $plot(center_entry) != $plot(center) } {
 	plot2d center $w $plot(center_entry)
     }
+}
+
+proc SelectCenter {w x y} {
+    set under [lindex [FindUnder $w $x $y] 0]
+    if {[llength $under] > 0} {	plot2d center $w [lindex $under 4] }
 }
 
 proc UpdateMesh {w} {
@@ -849,37 +993,26 @@ proc uncertainty { val err } {
 }
 
 proc ShowCoordinates { w x y } {
-    findplot $w
     set wmsg [winfo toplevel $w].message
-
-    foreach {X Y} [$w coords $x $y] break
-    # puts "Coordinates for $x $y -> $X $Y"
-    
-    # FIXME: traverse the plots in stack order, stopping at
-    # the first one which matches
-    foreach id $plot(records) {
+    set mesh [lindex [FindUnder $w $x $y] 0]
+    if { [llength $mesh] > 0 } {
+	foreach {k id idx r c} $mesh break
 	upvar \#0 $id rec
-
-	set idx -1
-	catch { set idx [find_$plot(mesh) $id $X $Y] }
-	if { $idx >= 0 } { 
-	    set counts [findex rec(psdraw) $idx]
-	    set val [findex rec(psddata) $idx]
-	    if { [info exists rec(psderr)] } {
-		set err [findex rec(psderr) $idx]
-	    } else {
-		set err {}
-	    }
-	    set j [expr {$idx/$rec(pixels)}]
-	    set k [expr {$idx%$rec(pixels)}]
-	    $wmsg conf -text \
-		"[file tail $rec(file)]($j,$k)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
-	    return
+	set counts [findex rec(psdraw) $idx]
+	set val [findex rec(psddata) $idx]
+	if { [info exists rec(psderr)] } {
+	    set err [findex rec(psderr) $idx]
+	} else {
+	    set err {}
 	}
+	foreach {X Y} [$w coords $x $y] break
+	$wmsg conf -text \
+	    "[file tail $rec(file)]($r,$c)   counts: [expr {int($counts)}]   normalized: [fix $val]   $rec(ycoord): [fix $Y]    $rec(xcoord): [fix $X]"
+    } else {
+	$wmsg conf -text ""
     }
-
-    $wmsg conf -text ""
 }
+
 
 proc ToggleLog {w} {
     findplot $w
@@ -889,44 +1022,12 @@ proc ToggleLog {w} {
 
 proc Cycle {w x y} {
     findplot $w
-    foreach {X Y} [$w coords $x $y] break
-
-    # Find meshes under the current point
-    set under {}
-    foreach id $plot(records) {
-        upvar \#0 $id rec
-	set idx [find_$plot(mesh) $id $X $Y]
-	if { $idx >= 0 } { lappend under $id }
+    set mesh [lindex [FindUnder $w $x $y] 0]
+    if { [llength $mesh] > 0 } {
+	foreach {k id idx i j} $mesh break
+	upvar \#0 $id rec
+	$w lower $plot($id)
     }
-    if { [llength $under] == 0 } { return }
-
-    # Find which mesh is on top
-    set order [$w order]
-    set top -1
-    foreach id $under {	
-        set position [lsearch $order $plot($id)]
-	if { $position > $top } {
-	    set top $position
-	    set index $id
-        }
-    }
-
-    # Lower the best to the bottom
-    if { $top > 0 } { $w lower $plot($index) }
-
-    # Identify the new top
-    set order [$w order]
-    set top -1
-    foreach id $under {
-	set position [lsearch $order $plot($id)]
-	if { $position > $top } {
-	    set top $position
-	    set index $id
-        }
-    }
-    set wmsg [winfo toplevel $w].message
-    upvar #0 $index rec
-    $wmsg conf -text "$rec(dataset):$rec(run) $rec(comment)"
 }
 
 proc drawslice {w x y} {
@@ -1059,7 +1160,13 @@ proc get_regions {id fn} {
 	    set S1 [findex rec(column,slit1) $i]
 	    # Ask user for the corresponding angles between the regions
 	    # on the detector and convert those angles to pixels
-	    lappend L [$fn $id $i $A $B $S1 $rec(distance) $rec(pixelwidth)]
+	    # Grr... must evaluate each element as an expression first
+	    set pt {}
+	    foreach el [$fn $id $i $A $B $S1 $rec(distance) $rec(pixelwidth)] {
+		lappend pt [expr $el]
+	    }
+	    lappend L $pt
+	    
 	}
 	# Rather than returning a list of {lo hi lo hi lo hi} tuples
 	# return a tuple of lists
@@ -1092,9 +1199,10 @@ proc integrate_region {id left right} {
 	    }
 	}
 	lappend v $sum
+	lappend w [expr {$hi-$lo}]
         incr i
     }
-    return $v
+    return [list $v $w]
 }
 
 proc empty_to_zero {L} {
@@ -1105,6 +1213,7 @@ proc empty_to_zero {L} {
 
 proc integrate_measurement {id} {
     upvar \#0 $id rec
+    set uid 0
     array unset rec edge,*
     set regions [get_regions $id region_fn]
     foreach {lo hi} $regions curve {spec backm backp} {
@@ -1112,19 +1221,42 @@ proc integrate_measurement {id} {
 	set rec(edge,$curve,hi) [empty_to_zero $hi]
     }
     foreach {lo hi} $regions curve {spec backm backp} {
-	set v [integrate_region $id $lo $hi]
+	foreach {v w} [integrate_region $id $lo $hi] break
         ::${curve}_y_${id} set $v
+	set vec($curve,n) [vector create ::v[incr uid]]
+	$vec($curve,n) set $w
     }
 
-    ::counts_${id} expr "::spec_y_${id}-(::backp_y_${id}+::backm_y_${id})"
-    ::dcounts_${id} expr "sqrt(::spec_y_${id}+::backp_y_${id}+::backm_y_${id})"
+    # Background is back+ and back- added together and scaled to be an
+    # equivalent number of pixels to the specular.
+    foreach v {back scale} { set vec($v) [vector create ::v[incr uid]] }
+    $vec(back) expr "::backp_y_$id+::backm_y_$id"
+    $vec(scale) expr "$vec(spec,n)/($vec(backp,n) + $vec(backm,n) + !($vec(backp,n) + $vec(backm,n)))"
+
+    # Counts is specular minus scaled background
+    # FIXME what to do with dropped frames?
+    ::counts_${id} expr "::spec_y_$id-$vec(back)*$vec(scale)"
+    ::dcounts_${id} expr "sqrt(::spec_y_$id+$vec(back)*$vec(scale)^2)"
     ::idx_${id} expr "::counts_${id}!=0"
+
+    # Uncertainty in specular
+    ::spec_dy_$id expr "sqrt(::spec_y_$id)"
+
+    # Scale background and compute uncertainty
+    foreach curve {backm backp} {
+	set vec($curve,scale) [vector create ::v[incr uid]]
+	$vec($curve,scale) expr "$vec(spec,n)/($vec($curve,n)+!$vec($curve,n))"
+	::${curve}_y_${id} expr "::${curve}_y_${id}*$vec($curve,scale)"
+	::${curve}_dy_${id} expr "sqrt(::${curve}_y_${id})*$vec($curve,scale)"
+    }
 
     # FIXME hack to get around broken log scales in BLT
     foreach curve {spec backm backp} {
 	::${curve}_y_${id} expr "::${curve}_y_${id}+0.9*!::${curve}_y_${id}"
-	::${curve}_dy_${id} expr "sqrt(::${curve}_y_${id})"
     }
+
+    # Clean up temporary vectors
+    foreach name [array names vec] { vector destroy $vec($name) }
 }
 
 proc integrate {w} {
@@ -1162,6 +1294,7 @@ proc plot_window {{w .plot}} {
     $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
     $w.c menu "Log scale" [namespace code {ToggleLog %W}]
     $w.c menu "Reset axes" [namespace code {showall %W}]
+    $w.c menu "Center pixel" [namespace code {SelectCenter %W %x %y}]
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
@@ -1209,7 +1342,9 @@ proc plot_window {{w .plot}} {
 
 
     # Slice plot
-    set g [graph $w.psdslice]
+    set g $w.slice
+    opt $g leftMargin 75 rightMargin 100 height 4c
+    graph $g
     active_legend $g
     active_graph $g
     active_axis $g y
@@ -1219,10 +1354,14 @@ proc plot_window {{w .plot}} {
 
     # Compose plot
     set plot(linecolor) 0
-    set g [graph $w.psdcompose]
-    active_legend $g
+    set g $w.compose
+    opt $g width 8c Legend.hide 1 \
+	y.title "Qz (inv Anstroms)" y.rotate 90 \
+	x.title "Intensity"
+    graph $g
+    # active_legend $g
     active_graph $g
-    active_axis $g y
+    active_axis $g x
     set plot(compose) $g
 
     # Compose controls
@@ -1231,6 +1370,7 @@ set a [expr 1.5*$S1/$w]
 set a2 [expr $a*2]
 return [list -$a $a -$a2 -$a $a $a2]
 }
+    opt $w.integration_region width 30 height 8
     text $w.integration_region -wrap no
     text_replace $w.integration_region $text
     set plot(integration_region) $w.integration_region
@@ -1239,8 +1379,8 @@ return [list -$a $a -$a2 -$a $a $a2]
 
 
     # Bind everything together
-    grid $w.c $w.cb $w.psdcompose -sticky news
-    grid $w.psdslice - $w.integration_region -sticky news
+    grid $w.c $w.cb $w.compose -sticky news
+    grid $w.slice - $w.integration_region -sticky news
     grid $w.controls - - -sticky w
     grid $w.message - - -sticky ew
     grid rowconfigure $w {0 1} -weight 1
