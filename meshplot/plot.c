@@ -652,6 +652,33 @@ void plot_grid(const PReal limits[], const PReal grid[])
   glPopMatrix();
 }
 
+void plot_selection (int x1, int y1, int x2, int y2)
+{
+  static int bx1=-1, by1, bx2, by2;
+  int dims[4];
+  glGetIntegerv(GL_VIEWPORT, dims);
+
+  /* printf("plotting at %d %d %d %d\n",x1,y1,x2,y2); fflush(stdout); */
+#if PLOT_DOUBLE_BUFFER
+  glDrawBuffer(GL_FRONT);
+#endif
+  glPushMatrix();
+  glLoadIdentity();
+  gluOrtho2D(0,dims[2],0,dims[3]);
+  glEnable(GL_COLOR_LOGIC_OP);
+  glLogicOp(GL_XOR);
+  glColor3f(1.,1.,1.);
+  if (bx1 >= 0) glRecti(bx1,dims[3]-by1,bx2,dims[3]-by2);
+  bx1=x1; by1=y1; bx2=x2; by2=y2;
+  if (bx1 >= 0) glRecti(bx1,dims[3]-by1,bx2,dims[3]-by2);
+  glDisable(GL_COLOR_LOGIC_OP);
+  glPopMatrix();
+  glFlush();
+#if PLOT_DOUBLE_BUFFER
+  glDrawBuffer(GL_BACK);
+#endif
+}
+
 void plot_display(const PReal limits[], const int stack[])
 {
   int i;
@@ -663,6 +690,7 @@ void plot_display(const PReal limits[], const int stack[])
   glClearColor (1.0, 1.0, 1.0, 0.0);
   glClear (GL_COLOR_BUFFER_BIT);
   glLoadIdentity ();
+  plot_selection(-1,-1,-1,-1); /* Clear rubberbanding, if any */
 
 #if 1
 #ifdef PLOT_AXES
@@ -699,24 +727,6 @@ void plot_display(const PReal limits[], const int stack[])
   glEnd();
 #endif
 }
-
-#if 0
-void drawbox(int x1, int y1, int x2, int y2)
-{
-}
-
-void rubberband (int x1, int y1, int x2, int y2)
-{
-  glEnable(GL_SCISSOR_TEST);
-  glEnable(GL_COLOR_LOGIC_OP);
-  glLogicOp(GL_XOR);
-  drawbox(x1,y1,x2,y2);
-  glutSwapBuffers();
-  drawbox(x1,y1,x2,y2);
-  glDisable(GL_COLOR_LOGIC_OP);
-  glDisable(GL_SCISSOR_TEST);
-}
-#endif
 
 void plot_reshape (int w, int h)
 {
@@ -1314,7 +1324,7 @@ int stack[20];
 PReal limits[6];
 PReal tics[4];
 int force_redraw = 0;
-int panning=0;
+int panning=0, zooming=0;
 int pan_x, pan_y;
 int pan_call=0;
 int demo_m=86, demo_n=56;
@@ -1409,12 +1419,36 @@ void zoom(int x, int y, int step)
   glutTimerFunc(25,show_pan,++pan_call);
 }
 
+void zoombox(int x1, int y1, int x2, int y2)
+{
+  int dims[4];
+  double wx1, wy1, wx2, wy2;
+  glGetIntegerv(GL_VIEWPORT, dims);
+
+  wx1 = limits[0] + (double)x1/(double)dims[2]*(limits[1]-limits[0]);
+  wx2 = limits[0] + (double)x2/(double)dims[2]*(limits[1]-limits[0]);
+  wy1 = limits[2] + (double)(dims[3]-y1)/(double)dims[3]*(limits[3]-limits[2]);
+  wy2 = limits[2] + (double)(dims[3]-y2)/(double)dims[3]*(limits[3]-limits[2]);
+  if (wx1 < wx2) {
+    limits[0] = wx1; limits[1] = wx2;
+  } else {
+    limits[0] = wx2; limits[1] = wx1;
+  }
+  if (wy1 < wy2) {
+    limits[2] = wy1; limits[3] = wy2;
+  } else {
+    limits[2] = wy2; limits[3] = wy1;
+  }
+
+  display();
+}
+
 void drag(int x, int y)
 {
   // printf("drag to %d %d\n", x, y);
   if (panning) {
-    int dims[4];
     double dx,dy;
+    int dims[4];
     glGetIntegerv(GL_VIEWPORT, dims);
     dx = (pan_x-x)*(limits[1]-limits[0])/dims[2];
     dy = -(pan_y-y)*(limits[3]-limits[2])/dims[3];
@@ -1422,8 +1456,9 @@ void drag(int x, int y)
     limits[2] += dy; limits[3] += dy;
     pan_x = x; pan_y = y;
     glutTimerFunc(25,show_pan,++pan_call);
-  }
-  else if (force_redraw) display();
+  } else if (zooming) {
+    plot_selection(pan_x, pan_y, x, y);
+  } else if (force_redraw) display();
 }
 
 void move(int x, int y)
@@ -1447,23 +1482,37 @@ void click(int button, int state, int x, int y)
     /* printf("button 1\n"); */
   } else if (button == 2 && state == GLUT_DOWN) {
     /* pan */
-    /* printf("Shift state = %d\n",glutGetModifiers()); */
-    panning = 1;
+    int mods = glutGetModifiers();
+    if (mods == 1) zoom(x,y,5);
+    else if (mods == 2) zoom(x,y,-5); 
+    else {
+      panning = 1;
+      pan_x = x;
+      pan_y = y;
+    }
+  } else if (button == 0 && state == GLUT_DOWN) {
+    zooming = 1;
     pan_x = x;
     pan_y = y;
-  } else if (button == 0 && state == GLUT_DOWN) {
-    /* pick */
-    printf("picking at %d,%d\n",x,y);
-    plot_pick(limits,stack,x,y);
-    pick_debug = 1;
-    plot_pick(limits,stack,x,y);
-    pick_debug = 0;
-    force_redraw = 1;
+  } else if (button == 0 && state == GLUT_UP) {
+    plot_selection(-1,-1,-1,-1); /* shut off rubberband box */
+    if (zooming && pan_x != x && pan_y != y) {
+       zooming=0;
+       zoombox(pan_x,pan_y,x,y);
+    } else {
+       /* pick */
+       printf("picking at %d,%d\n",x,y);
+       plot_pick(limits,stack,x,y);
+       pick_debug = 1;
+       plot_pick(limits,stack,x,y);
+       pick_debug = 0;
+       force_redraw = 1;
 #if PLOT_DOUBLE_BUFFER
-    glutSwapBuffers();
+       glutSwapBuffers();
 #else
-    glFlush();
+       glFlush();
 #endif
+    }
   }
 }
 

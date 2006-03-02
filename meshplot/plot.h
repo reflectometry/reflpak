@@ -35,6 +35,7 @@ void plot_display(const PReal limits[], const int stack[]);
 void plot_reshape (int w, int h);
 void plot_grid_tics(const PReal limits[], PReal tics[], int numx, int numy);
 void plot_grid(const PReal limits[], const PReal tics[]);
+void plot_selection(int x1, int y1, int x2, int y2);
 
 void plot_clearstack(int stack[], int n);
 int plot_add(int stack[]);

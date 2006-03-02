@@ -602,6 +602,32 @@ int tp_limits(Togl *togl, int argc, CONST84 char *argv[])
 }
 
 
+int tp_selection(Togl *togl, int argc, CONST84 char *argv[])
+{
+  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  Tcl_Interp *interp = Togl_Interp(togl);
+  double xmin, xmax, ymin, ymax;
+
+  // printf("limits with plot=%p\n",plot);
+  if (argc != 6) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"pathName selection xmin ymin xmax ymax\"",
+		   TCL_STATIC );
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetDouble(interp,argv[2],&xmin) != TCL_OK
+      || Tcl_GetDouble(interp,argv[3],&ymin) != TCL_OK
+      || Tcl_GetDouble(interp,argv[4],&xmax) != TCL_OK
+      || Tcl_GetDouble(interp,argv[5],&ymax) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  plot_selection((int)xmin,(int)ymin,(int)xmax,(int)ymax);
+  return TCL_OK;
+}
+
+
 int tp_pick(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
@@ -694,6 +720,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   Togl_CreateCommand( "colormap", tp_colormap );
   Togl_CreateCommand( "delete", tp_delete );
   Togl_CreateCommand( "mesh", tp_mesh );
+  Togl_CreateCommand( "selection", tp_selection );
   Togl_CreateCommand( "line", tp_line );
   Togl_CreateCommand( "curve", tp_curve );
   Togl_CreateCommand( "raise", tp_raise );

@@ -152,7 +152,7 @@ catch { package require snit }
 
 	#event add <<Pick>> <Button-1>
 	event add <<Zoom>> <ButtonPress-1>
-	event add <<ZoomMove>> <Motion>
+	event add <<ZoomMove>> <B1-Motion>
 	event add <<ZoomEnd>> <ButtonRelease-1>
 	event add <<Navigate>> <Shift-ButtonPress-1>
 	event add <<Navigate>> <Control-ButtonPress-1>
@@ -222,10 +222,15 @@ catch { package require snit }
             set zoom_x $x
 	    set zoom_y $y
         } elseif { $which eq "move" } {
-	    # if zooming update bounding box
+	    # if zooming, update the selection
+            if { $zoom_x ne {} } { $Mesh selection $zoom_x $zoom_y $x $y }
 	} elseif { $which eq "end" } {
             if { $zoom_x ne {} } {
-              if { abs($zoom_x-$x)>2 && abs($zoom_y-$y)>2 } {
+              # Clear the selection
+	      $Mesh selection -1 -1 -1 -1
+              # If the cursor has moved far enough then zoom
+              # otherwise pretend it was a simple left click.
+              if { abs($zoom_x-$x)>10 && abs($zoom_y-$y)>10 } {
 		foreach {l t} [$self coords $zoom_x $zoom_y] {}
 		foreach {r b} [$self coords $x $y] {}
 	        if { $l > $r } { foreach {l r} [list $r $l] {} }
@@ -241,7 +246,6 @@ catch { package require snit }
 	    set zoom_y {}
 	}
     }
-
     method navigate { which {n 5} {x {}} {y {}} } {
 	variable afterid
 	if { [string equal $which "halt"] } {
