@@ -250,8 +250,8 @@ catch { package require snit }
 	      } else {
                 event generate $win.c <<ZoomClick>> -x $zoom(x) -y $zoom(y)
               }
+	      unset zoom
             }
-	    unset zoom
 	}
     }
     method navigate { which {n 5} {x {}} {y {}} } {
