@@ -1263,10 +1263,13 @@ proc integrate_measurement {id} {
 	::${curve}_dy_${id} expr "sqrt(::${curve}_y_${id})*$vec($curve,scale)"
     }
 
-    # FIXME hack to get around broken log scales in BLT
+    # FIXME may want to normalize by monitor/time and attenuator.
+
+    # FIXME hack to get around broken log scales in BLT; need to fix BLT
     foreach curve {spec backm backp} {
 	::${curve}_y_${id} expr "::${curve}_y_${id}+0.9*!::${curve}_y_${id}"
     }
+
 
     # Clean up temporary vectors
     foreach name [array names vec] { vector destroy $vec($name) }
@@ -1384,7 +1387,7 @@ proc plot_window {{w .plot}} {
     # Compose controls
     set text {
 set a [expr abs(1.5*$S1/$w)+5]
-if { $rec(type)==slit } { return [list -$a $a {} {} {} {}] }
+if { $rec(type)=="slit" } { return [list -$a $a {} {} {} {}] }
 return [list -$a $a -2*$a -$a $a 2*$a]
 }
     opt $w.integration_region width 30 height 8
