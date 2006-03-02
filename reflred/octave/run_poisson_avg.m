@@ -74,18 +74,25 @@ function [ run ] = run_poisson_avg (run1, run2)
     tol = run_tol(run1.x,run2.x);
   endif
 
-  [x, idx] = sort(run.x);
+  ## First sort by m then sort by x.
+  use_m = struct_contains(run,'m');
+  if use_m, [v, idx] = sortrows([run.x,run.m]);
+  else [v,idx] = sort(run.x);
+  endif
+  
+  x = run.x(idx);
   y = run.y(idx);
   dy = run.dy(idx);
-  use_m = struct_contains(run,'m');
-  if use_m, m = run.m(idx); endif
-  
-  
-  ## merge values with nearly identical x coordinates
+  if use_m, m = run.m(idx); end
+
+  ## Find values with nearly identical x and m coordinates
   ## XXX FIXME XXX clusters are formed when consecutive x-values
   ## are within some tolerance.  Consider the points x-tol, x, x+tol
   ## which are in the same cluster even though (x+tol)-(x-tol) > tol.
-  near = diff(x) <= tol;
+  if use_m, near = diff(x) <= tol & diff(m) <= tol;
+  else near = diff(x) <= tol;
+  end
+  
   if any(near)
     ## put each value in a different row
     r = [1:length(x)]';
