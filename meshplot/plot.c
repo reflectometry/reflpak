@@ -641,6 +641,28 @@ void plot_grid(const PReal limits[], const PReal grid[])
   glPopMatrix();
 }
 
+/* plot_selection(x,y,x1,y1,x2,y2)
+ *
+ * Update the selection on the plot.
+ *
+ *   x,y is the anchor point in the selection
+ *   x1,y1 is the last extent
+ *   x2,y2 is the current extent
+ *
+ * If the mouse moves through points k0,k1,k2,...,kn during the selection,
+ * the following sequence of calls should be made:
+ *
+ *   plot_selection(x0,y0,x0,y0,x1,y1);   // Initialize selection
+ *   plot_selection(x0,y0,x1,y1,x2,y2);   // Update selection
+ *   ...
+ *   plot_selection(x0,y0,xn,yn,x0,y0);   // Clear selection
+ *
+ * The selection will be cleared whenever plot_display is called.  At that
+ * point, if you need to restore it, you will need to call:
+ *   plot_selection(x0',y0',x0',y0',xk',yk');
+ * where the primed values are the pixels transformed to the new coordinates
+ * after the display.
+ */
 void plot_selection (int x, int y, int x1, int y1, int x2, int y2)
 {
   /* Convert from screen coordinates to graph coordinates. */
