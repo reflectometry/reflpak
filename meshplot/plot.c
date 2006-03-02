@@ -129,6 +129,11 @@ typedef struct PLOT_COLORMAP {
   PReal *colors;
   int n, log;
 } PlotColormap;
+
+/* FIXME there may be multiple contexts so globals should not be used.
+ * The mesh itself should contain the converted colors so that
+ * the basic OpenGL functions don't need to support colormap operations.
+ */
 static PlotColormap plot_colormap;
 
 #define PLOT_COLORMAP_LEN 64
@@ -233,33 +238,17 @@ static void format_line(PReal width, int stipple, const PReal* color)
   glColor4v(color);
 }
 
-#if 0
-static PlotSwapfn swapfn;
-void plot_init(PlotSwapfn fn)
-{
-  float sizes[2];
-
-  swapfn = fn;
-  mapinit();
-#if 0  /* OS X complains */
-  glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
-  plot_min_line_width = sizes[0];
-  plot_max_line_width = sizes[1];
-#endif
-}
-#else
 void plot_init(void)
 {
-  float sizes[4];
+#if 0  /* OS X complains */
+  float sizes[2];
 
-  mapinit();
-#if 0 /* OS X complains */
   glGetFloatv(GL_LINE_WIDTH_RANGE,sizes);
   plot_min_line_width = sizes[0];
   plot_max_line_width = sizes[1];
 #endif
+  mapinit();
 }
-#endif
 void plot_set_dpi(double dpi) 
 { 
   DPI = dpi; 
@@ -652,31 +641,56 @@ void plot_grid(const PReal limits[], const PReal grid[])
   glPopMatrix();
 }
 
-void plot_selection (int x1, int y1, int x2, int y2)
+void plot_selection (int x, int y, int x1, int y1, int x2, int y2)
 {
-  static int bx1=-1, by1, bx2, by2;
+  /* Convert from screen coordinates to graph coordinates. */
   int dims[4];
   glGetIntegerv(GL_VIEWPORT, dims);
-
-  /* printf("plotting at %d %d %d %d\n",x1,y1,x2,y2); fflush(stdout); */
-#if PLOT_DOUBLE_BUFFER
-  glDrawBuffer(GL_FRONT);
-#endif
-  glPushMatrix();
+  y = dims[3]-y;
+  y1 = dims[3]-y1;
+  y2 = dims[3]-y2;
   glLoadIdentity();
-  gluOrtho2D(0,dims[2],0,dims[3]);
-  glEnable(GL_COLOR_LOGIC_OP);
+  glOrtho(0,dims[2],0,dims[3],-1.,1.);
+
+  /* Prepare to paint inverses on the current context */
+  glPushAttrib(GL_COLOR_BUFFER_BIT); /* glDrawBuffer and glLogicOp settings */
+  glDrawBuffer(GL_FRONT);
+  glPushMatrix();
+  glEnable(GL_COLOR_LOGIC_OP); 
   glLogicOp(GL_XOR);
   glColor3f(1.,1.,1.);
-  if (bx1 >= 0) glRecti(bx1,dims[3]-by1,bx2,dims[3]-by2);
-  bx1=x1; by1=y1; bx2=x2; by2=y2;
-  if (bx1 >= 0) glRecti(bx1,dims[3]-by1,bx2,dims[3]-by2);
-  glDisable(GL_COLOR_LOGIC_OP);
+
+  /* A change in selection with a fixed corner can be done by inverting
+   * two rectangles. Figure out which ones.
+   */
+  if ( (x-x1)*(x-x2) < 0 || (y-y1)*(y-y2) < 0 ) {
+    /* Independent rectangles */
+    glRecti(x,y,x1,y1);
+    glRecti(x,y,x2,y2);
+  } else if ( (x1-x)*(x2-x1)*(y1-y)*(y2-y1) < 0) {
+    /* wide-short <=> narrow-tall */
+    if ((x1-x)*(x2-x1) < 0) { /* x < x2 < x1 */
+      glRecti(x1,y,x2,y1);
+      glRecti(x,y1,x2,y2);
+    } else {
+      glRecti(x1,y,x2,y2);
+      glRecti(x,y2,x1,y1);
+    }
+  } else {
+    /* wide-tall <=> narrow-short */
+    if ((x1-x)*(x2-x1) < 0) { /* x < x2 < x1 */
+      glRecti(x2,y,x1,y1);
+      glRecti(x,y1,x2,y2);
+    } else {
+      glRecti(x1,y,x2,y1);
+      glRecti(x,y1,x2,y2);
+    }
+  }
+
+  /* Restore state and update screen */
   glPopMatrix();
+  glPopAttrib();
   glFlush();
-#if PLOT_DOUBLE_BUFFER
-  glDrawBuffer(GL_BACK);
-#endif
 }
 
 void plot_display(const PReal limits[], const int stack[])
@@ -690,7 +704,6 @@ void plot_display(const PReal limits[], const int stack[])
   glClearColor (1.0, 1.0, 1.0, 0.0);
   glClear (GL_COLOR_BUFFER_BIT);
   glLoadIdentity ();
-  plot_selection(-1,-1,-1,-1); /* Clear rubberbanding, if any */
 
 #if 1
 #ifdef PLOT_AXES
@@ -1325,7 +1338,7 @@ PReal limits[6];
 PReal tics[4];
 int force_redraw = 0;
 int panning=0, zooming=0;
-int pan_x, pan_y;
+int pan_x, pan_y, zoom_x, zoom_y;
 int pan_call=0;
 int demo_m=86, demo_n=56;
 
@@ -1457,7 +1470,9 @@ void drag(int x, int y)
     pan_x = x; pan_y = y;
     glutTimerFunc(25,show_pan,++pan_call);
   } else if (zooming) {
-    plot_selection(pan_x, pan_y, x, y);
+    plot_selection(pan_x, pan_y, zoom_x, zoom_y, x, y);
+    zoom_x = x;
+    zoom_y = y;
   } else if (force_redraw) display();
 }
 
@@ -1492,10 +1507,11 @@ void click(int button, int state, int x, int y)
     }
   } else if (button == 0 && state == GLUT_DOWN) {
     zooming = 1;
-    pan_x = x;
-    pan_y = y;
+    zoom_x = pan_x = x;
+    zoom_y = pan_y = y;
   } else if (button == 0 && state == GLUT_UP) {
-    plot_selection(-1,-1,-1,-1); /* shut off rubberband box */
+    /* Clear the selection */
+    if (zooming) plot_selection(pan_x,pan_y,zoom_x,zoom_y,pan_x,pan_y);
     if (zooming && pan_x != x && pan_y != y) {
        zooming=0;
        zoombox(pan_x,pan_y,x,y);

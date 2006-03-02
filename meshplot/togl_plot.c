@@ -606,24 +606,26 @@ int tp_selection(Togl *togl, int argc, CONST84 char *argv[])
 {
   PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
-  double xmin, xmax, ymin, ymax;
+  double x0,y0,xold,yold,xnew,ynew;
 
   // printf("limits with plot=%p\n",plot);
-  if (argc != 6) {
+  if (argc != 8) {
     Tcl_SetResult( interp,
-		   "wrong # args: should be \"pathName selection xmin ymin xmax ymax\"",
+		   "wrong # args: should be \"pathName selection x0 y0 xold yold xnew ynew\"",
 		   TCL_STATIC );
     return TCL_ERROR;
   }
 
-  if (Tcl_GetDouble(interp,argv[2],&xmin) != TCL_OK
-      || Tcl_GetDouble(interp,argv[3],&ymin) != TCL_OK
-      || Tcl_GetDouble(interp,argv[4],&xmax) != TCL_OK
-      || Tcl_GetDouble(interp,argv[5],&ymax) != TCL_OK) {
+  if (Tcl_GetDouble(interp,argv[2],&x0) != TCL_OK
+      || Tcl_GetDouble(interp,argv[3],&y0) != TCL_OK
+      || Tcl_GetDouble(interp,argv[4],&xold) != TCL_OK
+      || Tcl_GetDouble(interp,argv[5],&yold) != TCL_OK
+      || Tcl_GetDouble(interp,argv[6],&xnew) != TCL_OK
+      || Tcl_GetDouble(interp,argv[7],&ynew) != TCL_OK) {
     return TCL_ERROR;
   }
 
-  plot_selection((int)xmin,(int)ymin,(int)xmax,(int)ymax);
+  plot_selection((int)x0,(int)y0,(int)xold,(int)yold,(int)xnew,(int)ynew);
   return TCL_OK;
 }
 

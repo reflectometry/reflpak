@@ -68,6 +68,7 @@ catch { package require snit }
 ::snit::widget meshcolorbar {
     option -min
     option -max
+    option -colormap
     component Color
     component ZAxis
     delegate option -padx to hull
@@ -85,15 +86,6 @@ catch { package require snit }
 	grid rowconfigure $win 0 -weight 1
 	$self configure -min 0 -max 1
 
-	# Add mesh to colorbar
-	set n 1024
-	fvector xv [linspace 0 1 [expr {$n+1}]]
-	fvector yv [linspace 0 1 2]
-	foreach {x y} [buildmesh $n 1 xv yv] {}
-	fvector z [linspace 0 1 $n]
-	$Color vrange 0. 1.
-	$Color limits 0. 1. 0. 1.
-	$Color mesh $n 1 x y z
     }
     method draw {args} {
 	# $Color draw
@@ -104,7 +96,19 @@ catch { package require snit }
     method vrange {min max} { $self configure -min $min -max $max }
 
     method colormap {map} { 
-	# $Color colormap map 
+	set options(-colormap) $map
+
+	# Add mesh to colorbar
+	set n [flength options(-colormap)]
+	fvector xv [linspace 0 1 [expr {$n+1}]]
+	fvector yv [linspace 0 1 2]
+	foreach {x y} [buildmesh $n 1 xv yv] {}
+	fvector z [linspace 0 1 $n]
+
+	$Color vrange 0. 1.
+	$Color limits 0. 1. 0. 1.
+	$Color colormap options(-colormap)
+	$Color mesh $n 1 x y z
     }
 
 }
@@ -124,6 +128,7 @@ catch { package require snit }
     option -logdata -configuremethod Logdata
     option -legend -default {}
     option -colorbar -default {}
+    option -colormap -default {}
 
     component XAxis
     component YAxis
@@ -213,25 +218,29 @@ catch { package require snit }
 	tk_popup $Menu $X $Y
     }
 
-    variable zoom_x {} 
-    variable zoom_y {}
     method zoombox { which dir x y } {
-	variable zoom_x 
-	variable zoom_y
+	variable zoom
 	if { $which eq "start" } {
-            set zoom_x $x
-	    set zoom_y $y
+            set zoom(x) $x
+	    set zoom(y) $y
+	    set zoom(xold) $x
+	    set zoom(yold) $y
         } elseif { $which eq "move" } {
 	    # if zooming, update the selection
-            if { $zoom_x ne {} } { $Mesh selection $zoom_x $zoom_y $x $y }
+            if { [info exists zoom] } { 
+		$Mesh selection $zoom(x) $zoom(y) $zoom(xold) $zoom(yold) $x $y
+		set zoom(xold) $x
+		set zoom(yold) $y
+	    }
 	} elseif { $which eq "end" } {
-            if { $zoom_x ne {} } {
+            if { [info exists zoom] } {
               # Clear the selection
-	      $Mesh selection -1 -1 -1 -1
+	      $Mesh selection $zoom(x) $zoom(y) $zoom(xold) $zoom(yold) \
+		  $zoom(x) $zoom(y)
               # If the cursor has moved far enough then zoom
               # otherwise pretend it was a simple left click.
-              if { abs($zoom_x-$x)>10 && abs($zoom_y-$y)>10 } {
-		foreach {l t} [$self coords $zoom_x $zoom_y] {}
+              if { abs($zoom(x)-$x)>10 && abs($zoom(y)-$y)>10 } {
+		foreach {l t} [$self coords $zoom(x) $zoom(y)] {}
 		foreach {r b} [$self coords $x $y] {}
 	        if { $l > $r } { foreach {l r} [list $r $l] {} }
 	        if { $b > $t } { foreach {t b} [list $b $t] {} }
@@ -239,11 +248,10 @@ catch { package require snit }
                 if { $dir == "y" || $dir == "xy" } { $self configure -ymin $b -ymax $t }
 		$self draw
 	      } else {
-                event generate $win.c <<ZoomClick>> -x $zoom_x -y $zoom_y
+                event generate $win.c <<ZoomClick>> -x $zoom(x) -y $zoom(y)
               }
             }
-	    set zoom_x {}
-	    set zoom_y {}
+	    unset zoom
 	}
     }
     method navigate { which {n 5} {x {}} {y {}} } {
@@ -344,6 +352,7 @@ catch { package require snit }
 	    $options(-colorbar) vrange $options(-vmin) $options(-vmax)
 	    $options(-colorbar) draw
 	}
+	$Mesh colormap options(-colormap)
 	$Mesh draw
 
 	$XAxis draw
@@ -379,10 +388,10 @@ catch { package require snit }
 
     method hue {h} { $Mesh valmap $h }
 
-    method colormap {map} { 
-	$Mesh colormap map 
+    method colormap {map} {
+	set options(-colormap) $map
 	if { $options(-colorbar) != "" } {
-	    $options(-colorbar) colormap map
+	    $options(-colorbar) colormap $map
 	}
     }
 

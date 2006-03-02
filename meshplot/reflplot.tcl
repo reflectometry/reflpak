@@ -932,7 +932,6 @@ proc delete {path records} {
 proc new {w} {
     meshplot $w -borderwidth 4
     $w delete
-    $w colormap [colormap_bright 64]
     $w configure -logdata on -grid on -vrange {0.0002 2}
     variable P$w
     array set P$w {mesh TiTd records {} center 100 title {}}
@@ -1305,6 +1304,7 @@ proc plot_window {{w .plot}} {
     meshcolorbar $w.cb
     $w.cb configure -pady 5m
     $w.c configure -colorbar $w.cb -logdata on
+    $w.c colormap [colormap_bright 64]
     $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
     $w.c menu "Log scale" [namespace code {ToggleLog %W}]
     $w.c menu "Reset axes" [namespace code {showall %W}]
