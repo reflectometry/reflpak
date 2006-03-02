@@ -688,9 +688,9 @@ void plot_selection (int x, int y, int x1, int y1, int x2, int y2)
   }
 
   /* Restore state and update screen */
+  glFlush();
   glPopMatrix();
   glPopAttrib();
-  glFlush();
 }
 
 void plot_display(const PReal limits[], const int stack[])
