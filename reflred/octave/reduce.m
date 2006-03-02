@@ -86,7 +86,7 @@ function [div,slit] = slitdivide(sub,slit)
     slit.x = sub.x;
     slit.y = y;
     slit.dy = dy;
-    slit = run_interp(slit,sub);
+    #slit = run_interp(slit,sub);
     ## XXX FIXME XXX put in qlfit code here.
     div = run_div(sub,slit);
 
@@ -95,7 +95,7 @@ function [div,slit] = slitdivide(sub,slit)
     slit.y = slit.y*ones(size(sub.m));
     slit.dy = slit.dy*ones(size(sub.m));
     slit.x = sub.x;
-    slit = run_interp(slit,sub);
+    #slit = run_interp(slit,sub);
     div = run_div(sub,slit);
 
   else
