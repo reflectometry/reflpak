@@ -1172,7 +1172,7 @@ proc get_regions {id fn} {
 	    # Grr... must evaluate each element as an expression first
 	    set pt {}
 	    foreach el [$fn $id $i $A $B $S1 $rec(distance) $rec(pixelwidth)] {
-		lappend pt [expr $el]
+		if {$el eq ""} { lappend pt $el } { lappend pt [expr $el] }
 	    }
 	    lappend L $pt
 	    
@@ -1212,7 +1212,7 @@ proc integrate_region {id left right} {
 	    }
 	}
 	lappend v $sum
-	lappend w [expr {$hi-$lo}]
+	if { $hi eq "" } { lappend w 0 } { lappend w [expr {$hi-$lo}] }
         incr i
     }
     return [list $v $w]
