@@ -36,6 +36,18 @@ the octave server using the command
 	listen(1515)
 </pre></code>
 
+<p>Note that listen() is known to fail on some versions of Windows XP.
+In that case you need to download a special version of 
+<a href="http://www.ncnr.nist.gov/reflpak/listen.oct">listen.oct</a>
+into the directory
+<code><pre>
+	C:/Program Files/GNU Octave 2.1.50/opt/octave/libexec/octave/2.1.50/exec/oct/i686-pc-cygwin/otave-forge/listen.oct</a>
+</pre></code>
+and start the octave server using the command
+<code><pre>
+	listen(1515,"nofork")
+</pre></code>
+
 <a name="macosx"><h2>Mac OS X</h2></a>
 
 <p>Copy <a href="reflpak@VERSION@.dmg">reflpak@VERSION@.dmg</a> to your home directory. 
