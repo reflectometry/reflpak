@@ -777,8 +777,6 @@ proc layer_check { depth mu qcsq ro } {
 	message "Depth $depth must be more than 1"
     } elseif { $ro < 1 || $ro > $depth } {
 	message "Roughness must be between 1 and depth"
-    } elseif { $qcsq < 0 } {
-	message "Qc^2 must be greater than 0"
     } else {
 	return 1
     }
@@ -801,8 +799,6 @@ proc layer_magnetic { mdepth theta mqcsq mro } {
 	message "Magnetic depth $mdepth must be more than 1"
     } elseif { $mro < 1 || $mro > $mdepth } {
 	message "Magnetic roughness must be between 1 and magnetic depth"
-    } elseif { $mqcsq < 0 } {
-	message "Qm^2 must be greater than 0"
     } elseif { $theta <= -360 || $theta >= 360 } {
 	message "Theta must be in [-360,360]"
     } else {
