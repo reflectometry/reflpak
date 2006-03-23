@@ -80,9 +80,9 @@ using the command
 <a name="unix"><h2>Linux/Irix</h2></a>
 
 <p>We have prebuilt binaries for Linux with gcc-3.x
-(<a href="reflpak@VERSION@-linux.tar.gz">reflpak@VERSION@-linux3.tar.gz</a>),
+(<a href="reflpak@VERSION@-linux3.tar.gz">reflpak@VERSION@-linux3.tar.gz</a>),
 Linux with gcc-4.x
-(<a href="reflpak@VERSION@-linux.tar.gz">reflpak@VERSION@-linux4.tar.gz</a>),
+(<a href="reflpak@VERSION@-linux4.tar.gz">reflpak@VERSION@-linux4.tar.gz</a>),
 and Irix
 (<a href="irix/reflpak@VERSION@-irix.tar.gz">reflpak@VERSION@-irix.tar.gz</a>).
 Untar and install reflpak@VERSION@/refl* somewhere in your path. E.g., as root:
