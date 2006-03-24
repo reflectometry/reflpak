@@ -81,15 +81,16 @@ namespace eval integrate_peak {
     }
 
     # Add peak to the list of peaks
-    proc show_results {peak theta A dA range_error} {
+    proc show_results {peak theta Qz A dA range_error} {
 	set w .peaks
 	if { [winfo exists $w] } {
 	    wm state $w normal
 	} else {
 	    toplevel $w
 	    text $w.text -wrap no -undo 1 -width 70
-	    set header [format {%-15s %9s %16s %16s} "Peak" \
+	    set header [format {%-15s %9s %9s %16s %16s} "Peak" \
 			    "Center($::symbol(degree))" \
+			    "Qz ($::symbol(invangstrom))" \
 			    "Area(normalized)" \
 			    "uncertainty"]
 	    text_append $w.text "$header\n"
@@ -111,7 +112,7 @@ namespace eval integrate_peak {
 
 	set TH [fix $theta 0 10 3]; # 2 digits after the decimal
 	set msg "$peak: center $TH$::symbol(degree), area ${A}([fix $dA])"
-	set row [format {%-15s %9.2f %16g %16g} $peak $theta $A $dA]
+	set row [format {%-15s %9.2f %9.3f %16g %16g} $peak $theta $Qz $A $dA]
 	if { $range_error } {
 	    message "$msg, truncated"
 	    $w.text insert end "$row (truncated)\n"
@@ -182,7 +183,8 @@ namespace eval integrate_peak {
 	set theta [expr {asin($rec(L)*$center/$::pitimes4)/$::piover180}]
 
 	# send results to the peak list
-	show_results "$rec(run)($lo:$hi)" $theta $A $dA $range_error
+	show_results "$rec(run)([expr $lo+1]:[expr $hi+1])" \
+		$theta $center $A $dA $range_error
     }
 
     # Initialize the peak integrator if not reloading
