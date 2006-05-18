@@ -82,7 +82,7 @@ CFLAGS += -DUSE_TCL
 #CFLAGS += -g
 #LDFLAGS += -g
 
-OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o tclvector.o
 
 %.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
 %.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
@@ -100,11 +100,12 @@ plot$(LDEXT): $(OBJS)
 	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
 
 plot.o: plot.h
-togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h
+togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h tclvector.h
 togl.o: togl.h
 mx.o: mx.c mx.h
 refl.o: refl.c refl.h mx.h
 isis_read.o: isis_read.cc isis_read.h
+tclvector.o: tclvector.h
 
 clean:
 	rm -f $(TOGL) *.o plot$(LDEXT) plot$(EXE) *~
