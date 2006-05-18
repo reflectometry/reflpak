@@ -1377,7 +1377,7 @@ proc plot_window {{w .plot}} {
     set g $w.compose
     opt $g width 8c Legend.hide 1 \
 	y.title "Qz (inv Anstroms)" y.rotate 90 \
-	x.title "Intensity"
+	x.title "Integrated counts"
     graph $g
     # active_legend $g
     active_graph $g
@@ -1387,8 +1387,10 @@ proc plot_window {{w .plot}} {
     # Compose controls
     set text {
 set a [expr abs(1.5*$S1/$w)+5]
-if { $rec(type)=="slit" } { return [list -$a $a {} {} {} {}] }
-return [list -$a $a -2*$a -$a $a 2*$a]
+set lo -$a
+set hi $a
+if { $rec(type)=="slit" } { return [list $lo $hi {} {} {} {}] }
+return [list $lo $hi 2*$lo $lo $hi 2*$hi]
 }
     opt $w.integration_region width 30 height 8
     text $w.integration_region -wrap no
