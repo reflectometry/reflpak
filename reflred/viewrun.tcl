@@ -1238,4 +1238,6 @@ proc app_source { f } {
 }
 
 init_cmd { app_source [file join [HOME] .reflred.tcl] }
+# Include peak integration in the main distribution
+init_cmd { app_source [file join $::VIEWRUN_HOME peakint.tcl] }
 init_cmd { setdirectory [initial_pattern] }
