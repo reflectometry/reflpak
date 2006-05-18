@@ -586,7 +586,7 @@ where theta is computed from the linear approximation
 
 The convolution at Qj is computed by the normalized sum over i of
 
->Ri * exp(-ln(16)*(Qj - Qi)**2/w**2)
+>Ri * exp(-(Qj - Qi)**2 / (2 (w / sqrt(8 ln 2))**2)
     
 as long as the contribution to the convolution at your measured datapoint
 Qi is greater than 0.1%.  To handle the boundary points, the data set
