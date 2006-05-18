@@ -330,7 +330,7 @@ proc addrun_point_info { w x y name idx msg } {
 	Fresnel { set y [Fresnel_unscale_point $x $y] }
     }
     # display Q and normalized counts
-    append msg " ([fix $x {} {} 5], [fix $y {} {} 5])"
+    append msg " ([format %.4f $x], [fix $y {} {} 5])"
     # display raw counts
     if { [vector_exists ::counts_$name]} {
 	append msg "  counts: [expr int([set ::counts_${name}($idx)])]"
