@@ -488,11 +488,13 @@ void SURF::normalize_counts(void)
 // Must load all frames at once with ISIS file format
 void SURF::load_all_frames(void)
 {
+#if 0 /* Dead code? */
   std::vector<double> xdet(Nx), ydet(Ny);
 
   // Set detector indices
   xdet.resize(Nx); for (int i=0; i < Nx; i++) xdet[i] = i+1;
   ydet.resize(Ny); for (int i=0; i < Ny; i++) ydet[i] = i+1;
+#endif
 
   // Load frames
   getframes(all_frames,0,Nx*Ny);
