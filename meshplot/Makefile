@@ -123,8 +123,8 @@ distclean: clean
 # Various experimental and test codes
 
 # Slicing code --- not yet used in the interface
-slice_test$(EXE): slice.c
-	$(CC) -DTEST slice.c -oslice_test$(EXE)
+slicetest$(EXE): slice.c
+	$(CC) -DTEST slice.c -oslicetest$(EXE)
 
 
 # Support for reading ISIS binary files

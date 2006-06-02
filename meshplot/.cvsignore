@@ -1,1 +1,3 @@
-GL plot *.dylib *.dll
+GL plot isistest nexustest slicetest *.dylib *.dll 
+
+*.dat
