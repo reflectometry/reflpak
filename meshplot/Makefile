@@ -8,6 +8,9 @@ GLINC    = -I/usr/X11R6/include
 GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
 GLUTINC  = 
 GLUTLIBS = -lglut
+NEXUSINC = -I$(NEXUS)/include
+NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -lz -ldl
+
 
 OS = $(shell uname -s)
 ifeq ($(OS),CYGWIN_NT-5.0)
@@ -82,32 +85,68 @@ CFLAGS += -DUSE_TCL
 #CFLAGS += -g
 #LDFLAGS += -g
 
-OBJS=togl_plot.o togl.o refl.o mx.o plot.o isis_read.o tclvector.o
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o \
+	NXtofnref.o nexus_helper.o NXtofnref_tcl.o
 
-%.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
-%.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(GLINC) -c $< -o $@
+%.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
+%.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
 
-all: plot$(LDEXT)
-
-slice_test$(EXE): slice.c
-	$(CC) -DTEST slice.c -oslice_test$(EXE)
-
-plot$(EXE): plot.c
-	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
-	      $(GLUTLIBS) $(GLLIBS) -lm
+all: plot$(LDEXT) isis2nexus$(EXE)
 
 plot$(LDEXT): $(OBJS)
-	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(LIBS)
+	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(NEXUSLIBS) $(LIBS)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h tclvector.h
 togl.o: togl.h
 mx.o: mx.c mx.h
 refl.o: refl.c refl.h mx.h
-isis_read.o: isis_read.cc isis_read.h
 tclvector.o: tclvector.h
 
+
+# Support for reading NeXus binary files
+NXtofnref.o: NXtofnref.cc nexus_helper.h
+NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h
+nexus_helper.o: nexus_helper.c nexus_helper.h
+
+
+
 clean:
-	rm -f $(TOGL) *.o plot$(LDEXT) plot$(EXE) *~
+	rm -f *.o plot$(LDEXT) *~ \
+	plottest$(EXE) isistest$(EXE) nexustest$(EXE) slice_test$(EXE)
 
 distclean: clean
+
+
+
+# =============================================
+# Various experimental and test codes
+
+# Slicing code --- not yet used in the interface
+slice_test$(EXE): slice.c
+	$(CC) -DTEST slice.c -oslice_test$(EXE)
+
+
+# Support for reading ISIS binary files
+
+isis_tofnref.o: isis_tofnref.cc isis_tofnref.h
+isis_tofnref_tcl.o: isis_tofnref_tcl.cc isis_tofnref.h
+isistest$(EXE): isis_tofnref.cc isis_tofnref.h
+	$(CXX) $(CFLAGS) -DSTANDALONE $< -o $@ -lm
+
+# ISIS to NeXus converter
+isis2nexus.o: isis2nexus.cc nexus_helper.h isis_tofnref.h
+isis2nexus$(EXE): isis2nexus.o isis_tofnref.o nexus_helper.o
+	$(CXX) $(LDFLAGS) -o $@ isis2nexus.o isis_tofnref.o nexus_helper.o \
+	    $(NEXUSLIB) -lm
+
+# Test NeXus reader
+nexustest.o: NXtofnref.cc NXtofnref.h nexus_helper.h
+	$(CXX) $(CFLAGS) $(NEXUSINC) -DSTANDALONE -c $< -o $@
+nexustest$(EXE): nexustest.o nexus_helper.o
+	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIB) -lm
+
+plottest$(EXE): plot.c
+	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
+	      $(GLUTLIBS) $(GLLIBS) -lm
+

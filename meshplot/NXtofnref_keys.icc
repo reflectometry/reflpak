@@ -1,0 +1,53 @@
+/* To convert TOF to Q we need distances and angles */
+const char MODERATOR_DISTANCE[] =
+  "NXinstrument:instrument/NXmoderator:moderator/distance";
+const char DETECTOR_DISTANCE[] =
+  "NXinstrument:instrument/NXdetector:detector/distance";
+const char TIME_CHANNEL_BOUNDARIES[] =
+  "NXinstrument:instrument/NXdetector:detector/time_of_flight";
+const char SAMPLE_ANGLE[] =
+  "NXsample:sample/polar_angle";
+const char DETECTOR_ANGLE[] =
+  "NXinstrument:instrument/NXdetector:detector/polar_angle";
+const char DETECTOR_DATA[] = 
+  "NXinstrument:instrument/NXdetector:detector/data";
+
+/* Some time bins will be garbage depending on how the choppers are set up */  
+/* Use the following fields to trim the bins and correct the time. */
+const char T0_WAVELENGTH_RANGE[] =
+  "NXinstrument:instrument/NXchopper:T0_chopper/wavelength_range";
+const char FRAME_OVERLAP_WAVELENGTH_RANGE[] = 
+  "NXinstrument:instrument/NXchopper:frame_overlap_chopper/wavelength_range";
+const char FRAME_OVERLAP_CUTOFF_WAVELENGTH[] =
+  "NXinstrument:instrument/NXmirror:frame_overlap_mirror/cutoff_wavelength";
+const char FRAME_OVERLAP_MODE[] =
+  "NXinstrument:instrument/NXmirror:frame_overlap_mirror/cutoff_wavelength.mode";
+
+/* Whether we are a specular, background or intensity measurement. */
+const char SCAN_TYPE[] =
+  "NXdata:data/scan_type";
+
+/* To calculate resolution we need slits. */
+/* nexus_read/writeslit will probe the geometry for the correct info. */
+const char PRE_SLIT1[] =
+  "NXinstrument:instrument/NXaperture:presample_slit1/";
+const char PRE_SLIT2[] =
+  "NXinstrument:instrument/NXaperture:presample_slit2/";
+const char POST_SLIT1[] =
+  "NXinstrument:instrument/NXaperture:postsample_slit1/";
+const char POST_SLIT2[] =
+  "NXinstrument:instrument/NXaperture:postsample_slit2/";
+
+
+/* Detector characteristics. */
+const char PIXEL_WIDTH[] =
+  "NXinstrument:instrument/NXdetector:detector/x_pixelsize";
+const char PIXEL_HEIGHT[] =
+  "NXinstrument:instrument/NXdetector:detector/y_pixelsize";
+
+/* Monitor data */
+const char MONITOR_DATA[] =
+  "NXmonitor:monitor/data";
+const char MONITOR_DISTANCE[] =
+  "NXmonitor:monitor/distance";
+
