@@ -30,7 +30,7 @@ bool convert(const char infile[], const char outfile[])
   data.getframes((int *)&frames[0],0,pixels);
   int2double((double *)&frames[0],pixels*channels);
   int dims[3];
-  dims[0]=data.nTimeChannels; dims[1]=data.Nx; dims[2]=data.Ny;
+  dims[0]=data.nTimeChannels; dims[1]=data.Ny; dims[2]=data.Nx;
   
   
   /* Create nexus file */

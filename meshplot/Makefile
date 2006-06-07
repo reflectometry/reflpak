@@ -9,7 +9,7 @@ GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
 GLUTINC  = 
 GLUTLIBS = -lglut
 NEXUSINC = -I$(NEXUS)/include
-NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -lz -ldl
+NEXUSLIBS = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -lz -ldl
 
 
 OS = $(shell uname -s)
@@ -113,7 +113,7 @@ nexus_helper.o: nexus_helper.c nexus_helper.h
 
 clean:
 	rm -f *.o plot$(LDEXT) *~ \
-	plottest$(EXE) isistest$(EXE) nexustest$(EXE) slice_test$(EXE)
+	plottest$(EXE) isistest$(EXE) nexustest$(EXE) slicetest$(EXE)
 
 distclean: clean
 
@@ -138,13 +138,13 @@ isistest$(EXE): isis_tofnref.cc isis_tofnref.h
 isis2nexus.o: isis2nexus.cc nexus_helper.h isis_tofnref.h
 isis2nexus$(EXE): isis2nexus.o isis_tofnref.o nexus_helper.o
 	$(CXX) $(LDFLAGS) -o $@ isis2nexus.o isis_tofnref.o nexus_helper.o \
-	    $(NEXUSLIB) -lm
+	    $(NEXUSLIBS) -lm
 
 # Test NeXus reader
 nexustest.o: NXtofnref.cc NXtofnref.h nexus_helper.h
 	$(CXX) $(CFLAGS) $(NEXUSINC) -DSTANDALONE -c $< -o $@
 nexustest$(EXE): nexustest.o nexus_helper.o
-	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIB) -lm
+	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIBS) -lm
 
 plottest$(EXE): plot.c
 	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
