@@ -74,9 +74,11 @@ array set field_help {
     vacuum "Vacuum or incident medium.  The thickness is assumed to be semi-infinite."
     bi 	"Intensity of incoming beam.  If the reflectivity signal is properly normalized, then this will be 1.0.  If however there is a scaling factor such as an attenuator that is not accounted for by the data reduction process, then some other value should be used.  An initial guess can be further refined by fitting the variable BI."
     bk "Background signal.  This is the level of background noise expected in the signal.  Any data below this level will be ignored by the fit.  An initial guess can be further refined by fitting the variable BK."
+    eps "Angle between the laboratory guide field or quantization axis and the sample axis of quantization, defined to be the z-axis, which is parallel to Q: note that the x-axes of the laboratory and sample coordinate systems are taken to be coincident.  The sense of rotation is the following: EPS is the angle FROM the sample z-axis TO the lab z-axis rotationg CCW about the x-axis as viewed from the positive side of the x-axis.  For the lab z-axis to be aligned with the positive y-axis of the sample (the usual case), the angle should be -90"
     wl "Incident wavelength."
     dl "wavelength divergence"
     dt "angular divergence"
+    to "Correct for misalignment in the sample."
 }
 
 
@@ -201,11 +203,10 @@ proc set_vars_from_pars {} {
     }
 
     # beam characteristics
-    set ::bi         $::pars([incr ::layer_offset])
-    set ::bk         $::pars([incr ::layer_offset])
-    set ::dt         $::pars([incr ::layer_offset])
-    set ::dl         $::pars([incr ::layer_offset])
-    set ::wl         $::pars([incr ::layer_offset])
+    foreach id $::beampars {
+	set ::$id $::pars([incr ::layer_offset])
+	# puts "Receiving $id from $::pars($::layer_offset)"
+    }
 
     # roughness profile
     set ::roughwidth $::pars([incr ::layer_offset])
@@ -247,11 +248,9 @@ proc set_pars_from_vars { pars_name } {
     }
 
     # beam characteristics
-    set pars([incr ::layer_offset]) $::bi
-    set pars([incr ::layer_offset]) $::bk
-    set pars([incr ::layer_offset]) $::dt
-    set pars([incr ::layer_offset]) $::dl
-    set pars([incr ::layer_offset]) $::wl
+    foreach id $::beampars {
+	set pars([incr ::layer_offset]) [set ::$id]
+    }
 
     # roughness profile
     set pars([incr ::layer_offset]) $::roughwidth
@@ -300,14 +299,13 @@ proc default_pars {} {
 
     if {$::MAGNETIC} {
 	::pars set { 2.0 \
-		1.0 1.0e-10 0.00001 0.05 4.75  \
+		1.0 1.0e-10 0.00001 0.05 4.75 -90.0 \
 		0.0 7.0 \
 		0.0 0.0 0.0 0.0 0.0  0.0  0.0  0.0 \
 		1.0e-5 1.0e-9 1.0 30.0 1.0e-5 0.0  1.0 30.0 }
     } else {
-	::pars set { 4.0 \
-		1.0 1.0 1.0 1.0 \
-		1.0 1.0e-10 0.00001 0.05 4.75 \
+	::pars set { 4.0 1.0 1.0 1.0 1.0 \
+		1.0 1.0e-10 0.00001 0.05 4.75 0.0 \
 		0.0 7.0 \
 		0.0 0.0 0.0  0.0 \
                 1.0e-5 1.0e-9 1.0 10.0 \
@@ -942,11 +940,10 @@ proc send_fresnel {} {
         gmlayer nbl 1
         gmlayer nmr 1
     }
-    gmlayer bi [makereal $::bi]
-    gmlayer bk [makereal $::bk]
-    gmlayer dt [makereal $::dt]
-    gmlayer dl [makereal $::dl]
-    gmlayer wl [makereal $::wl]
+    foreach id $::beampars { 
+	# puts "sending $id as [set ::$id]"
+	gmlayer $id [makereal [set ::$id]] 
+    }
     gmlayer vqc [makereal [expr {$::sld_scale*[layer 0 qcsq]}]]
     gmlayer vmu [makereal [layer 0 mu]]
     gmlayer nr $::nrough
@@ -990,11 +987,10 @@ proc send_layout {} {
 	gmlayer nbl $::nbl
 	gmlayer nmr $::nmr
     }
-    gmlayer bi  [makereal $::bi]
-    gmlayer bk  [makereal $::bk]
-    gmlayer dt  [makereal $::dt]
-    gmlayer dl  [makereal $::dl]
-    gmlayer wl  [makereal $::wl]
+    foreach id $::beampars { 
+	# puts "sending $id as [set ::$id]"
+	gmlayer $id [makereal [set ::$id]] 
+    }
     gmlayer vqc [makereal [expr {$::sld_scale*[layer 0 qcsq]}]]
     gmlayer vmu [makereal [layer 0 mu]]
     # XXX FIXME XXX do we really want to force erf() profile?
@@ -1837,23 +1833,33 @@ grid rowconfigure $fitbox 2 -weight 0
 # ==================== Beam box =========================
 
 # input form for the various beam characteristics
-addfields $beambox [subst {
+set beamfields {
     {real bi "intensity"             {} "$::field_help(bi)" }
     {real bk "background"            {} "$::field_help(bk)" }
     {real wl "wavelenth"             "Angstroms" "$::field_help(wl)" }
     {real dl "wavelength divergence" "Angstroms" "$::field_help(dl)" }
-    {real dt "angular divergence"    "radians" "$::field_help(dt)" }}]
-bind $beambox.bi <Return> update_gmlayer
-bind $beambox.bk <Return> update_gmlayer
-bind $beambox.wl <Return> update_gmlayer
-bind $beambox.dl <Return> update_gmlayer
-bind $beambox.dt <Return> update_gmlayer
+    {real dt "angular divergence"    "radians" "$::field_help(dt)" }
+}
 
-bind $beambox.bi <FocusOut> update_gmlayer
-bind $beambox.bk <FocusOut> update_gmlayer
-bind $beambox.wl <FocusOut> update_gmlayer
-bind $beambox.dl <FocusOut> update_gmlayer
-bind $beambox.dt <FocusOut> update_gmlayer
+# Alternate between guide angle for magnetic systems and theta offset for
+# non-magnetic systems
+if {$::MAGNETIC} {
+    lappend beamfields \
+	{real eps "guide angle"          "degrees" "$::field_help(eps)"}
+    set beampars {bi bk dt dl wl eps}
+} else {
+    lappend beamfields \
+	{real to  "theta offset"  "degrees" "$::field_help(to)" }
+    set beampars {bi bk dt dl wl to}
+}
+
+# guide angle is only present in magnetic systems
+addfields $beambox [subst $beamfields]
+foreach id $::beampars {
+    bind $beambox.$id <Return> reset_all
+    bind $beambox.$id <FocusOut> reset_all
+}
+
 
 proc focus_beambox {} {
     $::notebook raise Beam
@@ -2718,7 +2724,11 @@ proc set_chisq { { value {} } } {
     if { [string equal {} $value] || $value < 0. } {
 	set text {}
     } else {
-	set text "$::symbol(chi)$::symbol(squared) = [ fix $value ]"
+	if {[catch {
+	    set text "$::symbol(chi)$::symbol(squared) = [ fix $value ]"
+	} msg]} {
+	    set text "$::symbol(chi)$::symbol(squared) = NaN"
+	}
     }
     .reflectivity marker conf chisq -text $text
 }
@@ -3158,16 +3168,19 @@ proc guess_beam_characteristics { filename } {
 	# together or spaced apart.  The search is case insensitive.
 	# Keyword is separated from value by spaces and possibly = or :
 	# Values may be wrapped in quotes.
+	# ::eps comes from "guideangle"
 	# ::wl comes from "wavelength", "lambda" or "L"
 	# ::dl comes from <wavelength> divergence or dispersion,
 	#      delta <wavelength> or d<wavelength> where <wavelength>
 	#      is any of the forms of wavelength above.
 	# ::dt comes from angular or theta divergence or dispersion,
 	#      delta theta or dtheta
+	set epspat "(?:guideangle)"
 	set wlpat "(?:wavelength|lambda|L)"
 	set dlpat "(?:$wlpat\\s*di\\w*|d(?:elta)?\\s*$wlpat)"
 	set dtpat "(?:(?:angular|theta)\\s*di\\w*|d(?:elta)?\\s*theta)"
 	set havewl [scanpar $data $wlpat ::wl]
+	set haveeps [scanpar $data $epspat ::eps]
 	set havedl [scanpar $data $dlpat ::dl]
 	set havedt [scanpar $data $dtpat ::dt]
 
@@ -3175,7 +3188,7 @@ proc guess_beam_characteristics { filename } {
 	# instrument, which is NG1 by default, or XRAY if wavelength<4.
 	if { ![scanparstr $data {inst\w*} instrument] } {
 	    if { $havewl } {
-		if { $::wl < 4. } {
+		if { $::wl < 2. } {
 		    set instrument XRAY
 		} else {
 		    set instrument NG1
@@ -3184,6 +3197,7 @@ proc guess_beam_characteristics { filename } {
 		set instrument {}
 	    }
 	}
+	if { !$haveeps } { set ::eps -90 }
 	switch -glob -- [string toupper $instrument] {
 	    NG7 {
 		if { !$havewl } { set ::wl 4.768 }
@@ -3694,13 +3708,13 @@ proc reset_all {} {
     # XXX FIXME XXX check all uses of reset_all; not everything is being
     # reset that may need it, and somethings are being reset that don't
     # need to be
-    read_data
     # send_fresnel
     # read_reflectivity
     # ::reflect_q dup ::fresnel_q
     # ::reflect_r dup ::fresnel_r
     draw_layers
     send_layout
+    read_data
     read_profile
     read_reflectivity
     reset_table
