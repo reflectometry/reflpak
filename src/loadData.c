@@ -9,6 +9,7 @@
 #include <cparms.h>
 #include <cdata.h>
 #include <genpsc.h>
+#include <genpsd.h>
 
 /* Local function prototypes */
 #include <static.h>
@@ -86,6 +87,8 @@ int loadData(char *infile)
 	   loaded = TRUE;
 	   log2lin(npnts, ydat, srvar);
 	   isrealR(npnts, ydat);
+	   /* FIXME not the right place for this... */
+	   apply_theta_offset(npnts, xdat, lambda, theta_offset);
 	   qmin = xdat[0];
 	   qmax = xdat[npnts - 1]; /*ARRAY*/
 	 } else {
@@ -98,4 +101,16 @@ int loadData(char *infile)
    return retval;
 }
 
+static void
+apply_theta_offset(int n, double q[], double lambda, double theta_offset)
+{
+  const double dtheta = theta_offset*M_PI/180.;
+  int i;
 
+  if (theta_offset != 0.) {
+    /* printf("theta_offset is %g\n",theta_offset); */
+    for (i=0; i < n; i++) {
+      q[i] = 4*M_PI/lambda*sin(dtheta + asin(lambda*q[i]/(4*M_PI)));
+    }
+  }
+}

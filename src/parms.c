@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <parms.h>
+#include <ctype.h>
 
 #include <cparms.h>
 
@@ -36,7 +37,7 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
           double trough[], double mrough[], double brough[],
           double tmu[], double mmu[], double bmu[],
           int maxlay, double *lambda,
-          double *lamdel, double *thedel,
+          double *lamdel, double *thedel, double *theta_offset,
           int *ntlayer, int *nmlayer, int *nblayer, int *nrepeat,
           double *qmin, double *qmax, int *npnts,
           char *infile, char *outfile,
@@ -55,8 +56,8 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
          fprintf(unit1, "%13d%13d%13d%13d%13d%13d\n",
              *ntlayer, *nmlayer, *nblayer, *nrepeat, *mfit, *nrough);
 
-         fprintf(unit1, "%#15.6G%#15.6G%#15.6G\n",
-             *lambda, *lamdel, *thedel);
+         fprintf(unit1, "%#15.6G%#15.6G%#15.6G%#15.6G\n",
+             *lambda, *lamdel, *thedel, *theta_offset);
          fprintf(unit1, "%#15.6G%#15.6G%#15.6G%#15.6G%15d\n",
              *bmintns, *bki, *qmin, *qmax, *npnts);
          fprintf(unit1, "%s\n", proftyp);
@@ -92,7 +93,9 @@ int parms(double tqcsq[], double mqcsq[], double bqcsq[], double tqcmsq[],
       } else line++;
       if (*nrepeat < 1) *nrepeat = 1;
       fgets(filebuf, FBUFFLEN, unit1);
-      if (sscanf(filebuf, "%lf %lf %lf", lambda, lamdel, thedel) != 3) {
+      *theta_offset = 0.;
+      if (sscanf(filebuf, "%lf %lf %lf %lf", 
+		 lambda, lamdel, thedel, theta_offset) < 3) {
          parmFileError(parfile, line);
          return BADPARMDATA;
       } else line++;

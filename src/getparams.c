@@ -125,6 +125,12 @@ int setWavelength(double *lambda)
 }
 
 
+int setThetaoffset(double *theta_offset)
+{
+   return setParam(theta_offset, "theta offset", onefloatfield);
+}
+
+
 int setNLayer(int *nlayer)
 {
    int failed = FALSE;

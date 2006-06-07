@@ -73,8 +73,7 @@ void mlayer_init(void)
    /* XXX FIXME XXX why code? why not npnts? */
    ret = parms(tqcsq, mqcsq, bqcsq, tqcmsq, mqcmsq, bqcmsq, td, md, bd,
 	       trough, mrough, brough, tmu, mmu, bmu,
-	       MAXLAY, &lambda,
-	       &lamdel, &thedel,
+	       MAXLAY, &lambda, &lamdel, &thedel, &theta_offset,
 	       &ntlayer, &nmlayer, &nblayer, &nrepeat, &qmin, &qmax, &code,
 	       infile, outfile,
 	       &bmintns, &bki, listA, &mfit, NA, &nrough, proftyp,
@@ -135,7 +134,19 @@ void mlayer(void)
 
       /* Wavelength */
       } else if (strcmp(command, "WL") == 0) {
-         setWavelength(&lambda);
+	 double v = lambda;
+         if (setWavelength(&lambda)==0 && lambda != v) {
+	   /* May need to recalculate Q for the new wavelength */
+	   if (theta_offset != 0. && loaded) loadData(infile); 
+	 }
+
+      /* Theta offset */
+      } else if (strcmp(command, "TO") == 0) {
+	 double v = theta_offset;
+	 if (setThetaoffset(&theta_offset)==0 && theta_offset != v) {
+	   /* May need to recalculate Q for the new theta offset */
+	   if (loaded) loadData(infile); 
+	 }
 
       /* Number of layers */
       } else if (
@@ -260,8 +271,7 @@ void mlayer(void)
       } else if (strcmp(command, "SP") == 0) {
          parms(tqcsq, mqcsq, bqcsq, tqcmsq, mqcmsq, bqcmsq, td, md, bd,
                trough, mrough, brough, tmu, mmu, bmu,
-               MAXLAY, &lambda,
-               &lamdel, &thedel,
+               MAXLAY, &lambda, &lamdel, &thedel, &theta_offset,
                &ntlayer, &nmlayer, &nblayer, &nrepeat, &qmin, &qmax, &npnts,
                infile, outfile,
                &bmintns, &bki, listA, &mfit, NA, &nrough, proftyp,
@@ -335,8 +345,7 @@ void mlayer(void)
       } else if (strcmp(command, "EX") == 0) {
          parms(tqcsq, mqcsq, bqcsq, tqcmsq, mqcmsq, bqcmsq, td, md, bd,
                trough, mrough, brough, tmu, mmu, bmu,
-               MAXLAY, &lambda,
-               &lamdel, &thedel,
+               MAXLAY, &lambda, &lamdel, &thedel, &theta_offset,
                &ntlayer, &nmlayer, &nblayer, &nrepeat, &qmin, &qmax, &npnts,
                infile, outfile,
                &bmintns, &bki, listA, &mfit, NA, &nrough, proftyp,

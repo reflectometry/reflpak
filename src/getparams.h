@@ -10,6 +10,7 @@ int setMU(int n, double *mu, double *unc);
 int setD(int n, double *d, double *unc);
 int setRO(int n, double *rough, double *unc);
 int setWavelength(double *lambda);
+int setThetaoffset(double *theta_offset);
 int setNLayer(int *nlayer);
 int setNRough(int *nrough);
 int setProfile(char *proftype, int proftyplen);

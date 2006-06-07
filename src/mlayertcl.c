@@ -271,8 +271,8 @@ static void sendpars(Tcl_Interp *interp)
 	  ntlayer, nmlayer, nblayer, nrepeat);
   Tcl_AppendResult(interp, value, NULL);
 
-  sprintf(value, " %15g %15g %15g %15g %15g",
-	  bmintns, bki, thedel, lamdel, lambda);
+  sprintf(value, " %15g %15g %15g %15g %15g %15g",
+	  bmintns, bki, thedel, lamdel, lambda, theta_offset);
   Tcl_AppendResult(interp, value, NULL);
 
   t = 0.0;

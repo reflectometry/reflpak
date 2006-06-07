@@ -30,6 +30,7 @@ MODEL=calcStep.c delparm.c derf.c extres.c fgen.c fsgen.c gAverage.c genderiv.c 
 CCOMPL=complex.c grefint.c grefamp.c makeQn.c
 
 NONTCL=gmlayer.c queryString.c
+ONONTCL=$(NONTCL:.c=.o)
 
 CSRC=$(DATA) $(HELPERS) $(MAIN) $(MODEL)
 FSRC=grefamp.f grefint.f newgrefint.f
@@ -58,6 +59,9 @@ OOBJS=$(CSRC:.c=.o) $(FSRC:.f=.o)
 
 
 all: ../tcl/gmlayer$(LDEXT)
+
+gmlayer$(EXE): $(ONONTCL) $(OOBJS)
+	$(CC) $(LDFLAGS) -o $@ $(ONONTCL) $(OOBJS) $(FLIBS) $(LIBS)
 
 ../tcl/gmlayer$(LDEXT): mlayertcl.o $(OOBJS)
 	$(LD) $(LDFLAGS) -o $@ mlayertcl.o $(OOBJS) $(FLIBS) $(LIBS)

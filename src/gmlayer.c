@@ -1,14 +1,30 @@
 #include <stdio.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <stdarg.h>
+
 #include <mlayer.h>
 #include <lenc.h>
-
 #include <genpsc.h>
 #include <cparms.h>
+#include <cleanUp.h>
 
 
 /* Local function prototypes */
 #include <static.h>
+
+int ipc_fitupdate(void) { return 1; }
+void *gmlayer_alloc(size_t n) { return malloc(n); }
+void gmlayer_free(void *p) { free(p); }
+
+void ERROR(const char *fmt, ...) {
+  va_list ap;
+
+  va_start(ap, fmt);
+  vprintf (fmt, ap);
+  va_end(ap);
+}
+
 
 STATIC void exitMlayer(int signum)
 {
