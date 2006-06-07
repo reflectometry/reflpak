@@ -21,7 +21,7 @@
 #define r4xa r4xa_
 
 void r4xa(double q[], complex yaa[], complex yba[], complex yca[],
-   complex yda[], int *npnts, double *lambda,
+   complex yda[], int *npnts, double *lambda, double *aguide,
    double *gqcsq, double *gmu, double *gd, double *gqmsq,
    double *gthe, int *nglay);
 

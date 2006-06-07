@@ -87,8 +87,7 @@ void magblocks4_init(void)
    /* Retrieve parameters from disk */
    mfit = 0;
    parms(qcsq, qcmsq, d, dm, rough, mrough, mu, the,
-         MAXLAY, &lambda,
-        &lamdel, &thedel,
+         MAXLAY, &lambda, &lamdel, &thedel, &aguide,
         &nlayer, &qmina, &qmaxa, &npntsa,
         &qminb, &qmaxb, &npntsb, &qminc, &qmaxc, &npntsc,
         &qmind, &qmaxd, &npntsd,
@@ -220,6 +219,10 @@ void magblocks4(void)
       } else if (strcmp(command, "WL") == 0) {
          setWavelength(&lambda);
 
+      /* Guide angle */
+      } else if (strcmp(command, "EPS") == 0) {
+         setGuideangle(&aguide);
+
       /* Number of layers */
       } else if (strcmp(command, "NL") == 0) {
          if (!setNlayer(&nlayer))
@@ -332,8 +335,7 @@ void magblocks4(void)
       /* Save parameters to parameter file */
       } else if (strcmp(command, "SP") == 0) {
          parms(qcsq, qcmsq, d, dm, rough, mrough, mu, the,
-               MAXLAY, &lambda,
-              &lamdel, &thedel,
+               MAXLAY, &lambda, &lamdel, &thedel, &aguide,
               &nlayer, &qmina, &qmaxa, &npntsa,
               &qminb, &qmaxb, &npntsb, &qminc, &qmaxc, &npntsc,
               &qmind, &qmaxd, &npntsd,
@@ -409,8 +411,7 @@ void magblocks4(void)
          strcmp(command, "EXS") == 0
       ) {
          parms(qcsq, qcmsq, d, dm, rough, mrough, mu, the,
-               MAXLAY, &lambda,
-              &lamdel, &thedel,
+               MAXLAY, &lambda, &lamdel, &thedel, &aguide,
               &nlayer, &qmina, &qmaxa, &npntsa,
               &qminb, &qmaxb, &npntsb, &qminc, &qmaxc, &npntsc,
               &qmind, &qmaxd, &npntsd,

@@ -9,7 +9,8 @@
 
 int parms(double *qcsq, double *qcmsq, double *d, double *dm, double *rough,
    double *mrough, double *mu, double *the, int maxlay,
-   double *lambda, double *lamdel, double *thedel, int *nlayer,
+   double *lambda, double *lamdel, double *thedel, double *aguide,
+   int *nlayer,
    double *qmina, double *qmaxa, int *npntsa,
    double *qminb, double *qmaxb, int *npntsb,
    double *qminc, double *qmaxc, int *npntsc,

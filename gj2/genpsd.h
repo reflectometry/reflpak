@@ -42,7 +42,7 @@ COMMON union {
 
 #define DA (fitunc.a)
 
-COMMON double thedel, lamdel, lambda;
+COMMON double thedel, lamdel, lambda, aguide;
 
 #endif /* _GENPSD_H */
 

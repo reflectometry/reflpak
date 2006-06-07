@@ -33,7 +33,7 @@ C result is the same.
 #define R4X R4XA
 #endif
 
-        subroutine R4X(Q,YA,YB,YC,YD,NPNTS,LAMBDA,
+        subroutine R4X(Q,YA,YB,YC,YD,NPNTS,LAMBDA,AGUIDE,
      *                 GQCSQ,GMU,GD,GQMSQ,GTHE,NGLAY)
 
 c       implicit double precision (A-H,O-Z)
@@ -49,7 +49,7 @@ C       paramters
         integer NGLAY,NPNTS,NQ,I,J,L
         double precision GQCSQ(MAXGEN),GMU(MAXGEN),GD(MAXGEN)
         double precision GQMSQ(MAXGEN),GTHE(MAXGEN)
-        double precision LAMBDA,Q(NPNTS)
+        double precision LAMBDA,AGUIDE,Q(NPNTS)
 #ifdef AMPLITUDE
         double complex YA(NPNTS),YB(NPNTS),YC(NPNTS),YD(NPNTS)
 #else
@@ -73,7 +73,7 @@ C       completely unrolled matrices for B=A*B update
 c       variables for translating resulting B into a signal
         double complex W11,W12,W21,W22,V11,V12,V21,V22
         double complex DETW
-        double complex ZI,ZS,X,Y
+        double complex ZI,ZS,X,Y,SCI,SS,CC
 
 c       constants
         double precision PI
@@ -157,7 +157,7 @@ c normal to a boundary surface be continuous.  Neither the program
 c nor the wave equation itself automatically insure that this is so:
 c this condition must be satisfied by appropriate selection of the
 c magnetic field direction in the incident and substrate media, 
-c defined by the angle "EPS", and by the values of PN(J), THE(J),
+c defined by the angle "AGUIDE", and by the values of PN(J), THE(J),
 c and PHI(J) specified in the input.
 c
 c                  reflectivity = Re(r)**2 + Im(r)**2
@@ -175,7 +175,7 @@ C   S/- = sinh(D*S1)/S1 - sinh(D*S3)/S3
 C   pth = e^(j pi theta/180)
 C   mth = e^(-j pi theta/180)
 C   S1 = sqrt(Qc^2 + mQc^2 - j pi (8 mu/lambda) - Q^2)/2
-C   S2 = sqrt(Qc^2 - mQc^2 - j pi (8 mu/lambda) - Q^2)/2
+C   S3 = sqrt(Qc^2 - mQc^2 - j pi (8 mu/lambda) - Q^2)/2
 C   D, theta, mu, Qc^2 and mQc^2 are the parameters for layer L
 C
 C Construct the following matrix A(L)
@@ -311,24 +311,28 @@ C             CLOSE (1)
 C          ENDIF
 C         Done computing B = A(NGLAY)*...*A(2)*A(1)*I
 
-C         Rotate polarization axis to lab frame
+C         Rotate polarization axis to lab frame (angle AGUIDE)
 C         Note: reusing A instead of creating CST
-          A12=B12+B21+CI*(B11-B22)
-          A21=B21+B12+CI*(B22-B11)
-          A11=B11+B22+CI*(B12-B21)
-          A22=B22+B11+CI*(B21-B12)
-          A14=B14+B23+CI*(B13-B24)
-          A23=B23+B14+CI*(B24-B13)
-          A13=B13+B24+CI*(B14-B23)
-          A24=B24+B13+CI*(B23-B14)
-          A32=B32+B41+CI*(B31-B42)
-          A41=B41+B32+CI*(B42-B31)
-          A31=B31+B42+CI*(B32-B41)
-          A42=B42+B31+CI*(B41-B32)
-          A34=B34+B43+CI*(B33-B44)
-          A43=B43+B34+CI*(B44-B33)
-          A33=B33+B44+CI*(B34-B43)
-          A44=B44+B33+CI*(B43-B34)
+
+          CC = COS(-AGUIDE/2.*PI/180.)**2
+          SS = SIN(-AGUIDE/2.*PI/180.)**2
+          SCI = CI*COS(-AGUIDE/2.*PI/180.)*SIN(-AGUIDE/2*PI/180.)
+          A11 = CC*B11 + SS*B22 + SCI*(B12-B21)
+          A12 = CC*B12 + SS*B21 + SCI*(B11-B22)
+          A21 = CC*B21 + SS*B12 + SCI*(B22-B11)
+          A22 = CC*B22 + SS*B11 + SCI*(B21-B12)
+          A13 = CC*B13 + SS*B24 + SCI*(B14-B23)
+          A14 = CC*B14 + SS*B23 + SCI*(B13-B24)
+          A23 = CC*B23 + SS*B14 + SCI*(B24-B13)
+          A24 = CC*B24 + SS*B13 + SCI*(B23-B14)
+          A31 = CC*B31 + SS*B42 + SCI*(B32-B41)
+          A32 = CC*B32 + SS*B41 + SCI*(B31-B42)
+          A41 = CC*B41 + SS*B32 + SCI*(B42-B31)
+          A42 = CC*B42 + SS*B31 + SCI*(B41-B32)
+          A33 = CC*B33 + SS*B44 + SCI*(B34-B43)
+          A34 = CC*B34 + SS*B43 + SCI*(B33-B44)
+          A43 = CC*B43 + SS*B34 + SCI*(B44-B33)
+          A44 = CC*B44 + SS*B33 + SCI*(B43-B34)
 
 C         Use corrected versions of X,Y,ZI, and ZS to account for effect
 C         of incident and substrate media

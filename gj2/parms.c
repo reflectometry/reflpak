@@ -28,7 +28,8 @@ static char filebuf[FBUFFLEN + 1];
 
 int parms(double *qcsq, double *qcmsq, double *d, double *dm, double *rough,
    double *mrough, double *mu, double *the, int maxlay,
-   double *lambda, double *lamdel, double *thedel, int *nlayer,
+   double *lambda, double *lamdel, double *thedel, double *aguide,
+   int *nlayer,
    double *qmina, double *qmaxa, int *npntsa,
    double *qminb, double *qmaxb, int *npntsb,
    double *qminc, double *qmaxc, int *npntsc,
@@ -62,7 +63,7 @@ int parms(double *qcsq, double *qcmsq, double *d, double *dm, double *rough,
 
    if (store) {
       unit1 = fopen (parfile, "w");
-      fprintf(unit1, writethreefloats, *lambda, *lamdel, *thedel);
+      fprintf(unit1, writefourfloats, *lambda, *lamdel, *thedel, *aguide);
       fprintf(unit1, writetwofloats, *bmintns, *bki);
       fprintf(unit1, "%13d%13d%13d\n", *nlayer, *nrough, *mfit);
       fprintf(unit1, writeTwoFloatsOneInt, *qmina, *qmaxa, *npntsa);
@@ -101,7 +102,9 @@ int parms(double *qcsq, double *qcmsq, double *d, double *dm, double *rough,
          return NOPARMFILE;
       } else line++;
       fgets(filebuf, FBUFFLEN, unit1);
-      if (sscanf(filebuf, readthreefloats, lambda, lamdel, thedel) != 3) {
+      /* Extended format --- aguide may be absent from input */
+      *aguide = -90.;
+      if (sscanf(filebuf, readfourfloats, lambda, lamdel, thedel, aguide) < 3) {
          parmFileError(parfile, line);
          return BADPARMDATA;
       } else line++;

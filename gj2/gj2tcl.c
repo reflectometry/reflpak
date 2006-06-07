@@ -118,6 +118,11 @@ static int parsevar(const char name[], int **pi, double **pd)
     if (strcmp(name,"bk") == 0) *pd = &bki;
     else if (strcmp(name,"bi") == 0) *pd = &bmintns;
     else return 0;
+#if 0
+  } else if (name[0] == 'e') {
+    if (strcmp(name,"eps") == 0) *pd = &aguide;
+    else return 0;
+#endif
   } else if (name[0] == 'v') {
     if (strcmp(name,"vqc") == 0) *pd = qcsq;
     else if (strcmp(name,"vqm") == 0) *pd = qcmsq;
@@ -261,8 +266,8 @@ static void sendpars(Tcl_Interp *interp)
   sprintf(value, "%d", nlayer+1);
   Tcl_AppendResult(interp, value, NULL);
 
-  sprintf(value, " %15g %15g %15g %15g %15g",
-	  bmintns, bki, thedel, lamdel, lambda);
+  sprintf(value, " %15g %15g %15g %15g %15g %15g",
+	  bmintns, bki, thedel, lamdel, lambda, aguide);
   Tcl_AppendResult(interp, value, NULL);
 
   t = 0.0;

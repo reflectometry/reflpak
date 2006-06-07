@@ -20,7 +20,7 @@
 #define r4x r4x_
 
 void r4x(double q[], double ya[], double yb[], double yc[], double yd[],
-   int *npnts, double *lambda,
+   int *npnts, double *lambda, double *aguide,
    double *gqcsq, double *gmu, double *gd, double *gqmsq,
    double *gthe, int *nglay);
 

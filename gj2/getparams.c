@@ -111,6 +111,12 @@ int setWavelength(double *lambda)
 }
 
 
+int setGuideangle(double *aguide)
+{
+   return setParam(aguide, "guide angle", onefloatfield);
+}
+
+
 int setNrough(int *nrough)
 {
    return setParam(nrough, "number of interfacial layers", intfield);

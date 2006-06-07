@@ -23,8 +23,7 @@ int loadParms(char *command, char *parfile, char *scriptfile, char *objectfile)
    if (command[2] != 'C') scriptfile = devnull;
 
    result = parms(qcsq, qcmsq, d, dm, rough, mrough, mu, the,
-                  MAXLAY, &lambda,
-                 &lamdel, &thedel,
+                  MAXLAY, &lambda, &lamdel, &thedel, &aguide,
                  &nlayer, &qmina, &qmaxa, &npntsa,
                  &qminb, &qmaxb, &npntsb, &qminc, &qmaxc, &npntsc,
                  &qmind, &qmaxd, &npntsd,

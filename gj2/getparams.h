@@ -9,6 +9,7 @@ int setVMU(double *mu);
 int setLamdel(double *lamdel);
 int setThedel(double *thedel);
 int setWavelength(double *lambda);
+int setGuideangle(double *aguide);
 int setNrough(int *nrough);
 int setNpnts(int *npnts);
 int setBeamIntens(double *bmintns, double *unc);

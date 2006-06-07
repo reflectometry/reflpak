@@ -92,7 +92,7 @@ void calcReflec(double qtemp[], void *y, int npnts, int intens)
             yptrs[xsec] = NULL;
       }
       r4x(qtemp, yptrs[0], yptrs[1], yptrs[2], yptrs[3], &npnts, &lambda, 
-          gqcsq, gmu, gd, gqmsq, gthe, &nglay); 
+          &aguide, gqcsq, gmu, gd, gqmsq, gthe, &nglay); 
    } else {
       complex *yptrsa[4];
       complex *Y = (complex *)y;
@@ -106,7 +106,7 @@ void calcReflec(double qtemp[], void *y, int npnts, int intens)
             yptrsa[xsec] = NULL;
       }
       r4xa(qtemp, yptrsa[0], yptrsa[1], yptrsa[2], yptrsa[3], &npnts, &lambda,
-          gqcsq, gmu, gd, gqmsq, gthe, &nglay); 
+          &aguide, gqcsq, gmu, gd, gqmsq, gthe, &nglay); 
    }
 }
 
