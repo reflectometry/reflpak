@@ -379,6 +379,7 @@ The following are valid parameters for reflfit:
     nmr - number of repeats
     bk  - background 
     bi  - beam intensity
+    to  - theta offset
     vqc - vacuum scattering length density (16 pi N b units)
     tdi troi tmui tqci for i in 1 to 9
     mdi mroi mmui mqci for i in 1 to 9
@@ -389,6 +390,7 @@ The following are valid parameters for reflpol:
     nl  - number of layers
     bk  - background
     bi  - beam intensity
+    eps - polarization angle relative to the guide field
     vqc - vacuum scattering length density (16 pi N b units)
     di  roi mui qci for i > 0
     dmi rmi thi qmi for i > 0
@@ -556,6 +558,28 @@ Wavelength is available in the header of the reflred data file and
 eventually reflfit will be clever enough to read it, but for
 now you must enter it yourself.  
 
+Polarization angle is the angle between the laboratory guide field or 
+quantization axis and the sample axis of quantization, defined to be 
+the z-axis, which is parallel to Q: note that the x-axes of the 
+laboratory and sample coordinate systems are taken to be coincident.  
+The sense of rotation is the following: it is the angle FROM the sample 
+z-axis TO the lab z-axis rotationg CCW about the x-axis as viewed from 
+the positive side of the x-axis.  For the lab z-axis to be aligned with 
+the positive y-axis of the sample (the usual case), the angle should 
+be -90.  This value is only present for magnetic system.
+
+Theta offset is an alignment correction factor.  X-ray instruments in
+particular can be difficult to align precisely.  Instead, the offset from
+perfect alignment can be determined from the peak of a rocking curve
+(in angle, not in Q) and this value can be entered.  The correction
+will be applied uniformly to all data points by first transforming them
+from Q to angle, applying the correction and transforming back.  Given
+this correction, fits should yield the predicted Qc for the sample.
+Further adjustments should only be done under the guidance of an
+experienced reflectometer who can provide an alternative explanation
+of why the data may be shifted.  This value is not yet available for
+magnetic systems.
+    
 Wavelength divergence in Angstroms is the spread of neutron velocities.
 It does not vary with Q.  Typical values are characteristic of the 
 monochromator at the instrument:
@@ -592,7 +616,7 @@ as long as the contribution to the convolution at your measured datapoint
 Qi is greater than 0.1%.  To handle the boundary points, the data set
 Q values are extended towards positive infinity and towards negative
 infinity using the Q-spacing at the appropriate boundary of the data set.
-    
+
 2003-09-22}
 
 

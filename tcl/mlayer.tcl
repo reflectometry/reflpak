@@ -1845,7 +1845,7 @@ set beamfields {
 # non-magnetic systems
 if {$::MAGNETIC} {
     lappend beamfields \
-	{real eps "guide angle"          "degrees" "$::field_help(eps)"}
+	{real eps "polarization angle"          "degrees" "$::field_help(eps)"}
     set beampars {bi bk dt dl wl eps}
 } else {
     lappend beamfields \
