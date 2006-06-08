@@ -37,3 +37,18 @@ LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=
 EXE=
 LDEXT=$(TCL_SHLIB_SUFFIX)
+
+
+# Open GL + Togl
+GLDEF    = -DTOGL_X11
+GLINC    = -I/usr/X11R6/include
+GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
+GLUTINC  = -I/usr/freeware/include
+GLUTLIBS = -L/usr/freeware/lib32 -lglut
+
+# NeXus
+NEXUS    = ~/cvs/nexus
+NEXUSINC = -I$(NEXUS)/include
+NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -lz -ldl
+
+

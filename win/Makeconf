@@ -7,9 +7,11 @@ drive=C:
 # DEBUG=-DEBUG
 
 # Things from tclConfig.sh
-TCL_PREFIX=/Tcl
-TCL_INCLUDE_SPEC=-I$(drive)$(TCL_PREFIX)/include
-TCL_STUB_LIB_SPEC=-L$(drive)$(TCL_PREFIX)/lib -ltclstub84
+#TCL_PREFIX=/Tcl
+#TCL_INCLUDE_SPEC=-I$(drive)$(TCL_PREFIX)/include
+#TCL_STUB_LIB_SPEC=-L$(drive)$(TCL_PREFIX)/lib -ltclstub84
+TCL_STUB_LIB_SPEC=-ltclstub84
+TK_STUB_LIB_SPEC=-ltkstub84
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.dll
 WISH=/c$(TCL_PREFIX)/bin/bltwish.exe
@@ -33,9 +35,32 @@ FPP=-x f77-cpp-input
 CC=gcc
 CXX=g++
 CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC)
-LIBS:=$(TCL_STUB_LIB_SPEC) $(FLIBS)
+LIBS:=$(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=$(CC) -pipe -shared
 LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=
 EXE=.exe
 LDEXT=$(TCL_SHLIB_SUFFIX)
+
+# Open GL + Togl
+# You will need to find glut.h and glut32.dll to run the
+# simple plot test which does not use Togl or Tcl/Tk.  I
+# put glut32.dll in the current directory and glut.h in
+# the /mingw/include/GL directory.
+GLDEF = -DTOGL_WGL
+GLINC = 
+GLLIBS = -lglu32 -lopengl32 -lgdi32
+GLUTINC = 
+GLUTLIBS = -lglut32
+
+OS = $(shell uname -s)
+ifeq ($(OS),CYGWIN_NT-5.0)
+  GLINC = -I/usr/include/w32api
+endif
+
+# NeXus
+HDF5 = -L/c/home/pkienzle/hdf5/lib -lhdf5 -lwsock32
+HDF4 = -L/c/home/pkienzle/hdf/lib -lhd421 -llibjpeg -lszlib -lz
+NEXUS = /c/home/pkienzle/src/nexus
+NEXUSINC = -I$(NEXUS)/include
+NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus $(HDF5) $(HDF4)

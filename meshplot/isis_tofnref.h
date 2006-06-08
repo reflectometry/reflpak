@@ -1,9 +1,10 @@
 #ifndef _ISIS_TOFNREF_H
 #define _ISIS_TOFNREF_H
 
-#include <assert.h>
+#include <cassert>
 #include <vector>
 #include <iostream>
+#include <io.h>
 
 
 #if 0

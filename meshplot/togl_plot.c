@@ -609,7 +609,9 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 
   mx_init(interp);
   refl_init(interp);
+#ifdef USE_NEXUS
   NXtofnref_init(interp);
+#endif
 
   return TCL_OK;
 }
