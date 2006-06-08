@@ -3,6 +3,11 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2006-06-07 release
+* FIT: Support alignment correction
+* POL: Support guide field angle
+* RED: Experimental support for NeXus datafiles
+
 2006-05-18 release
 * RED: Support multibeam detector reduction
 * RED: Move peak integrator from contrib to main
