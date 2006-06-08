@@ -101,7 +101,7 @@ int loadData(char *infile)
    return retval;
 }
 
-static void
+void
 apply_theta_offset(int n, double q[], double lambda, double theta_offset)
 {
   const double dtheta = theta_offset*M_PI/180.;
