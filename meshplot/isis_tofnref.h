@@ -4,7 +4,6 @@
 #include <cassert>
 #include <vector>
 #include <iostream>
-#include <io.h>
 
 
 #if 0
