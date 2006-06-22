@@ -93,10 +93,12 @@ void NXtofnref::load_instrument(void)
   NexusDim dims;
 
   if (!nexus_dims(file, DETECTOR_DATA, &dims)) return;
-  nTimeChannels = dims.size[0];
+  nTimeChannels = dims.size[dims.rank-1];
   Nx = Ny = 1;
-  if (dims.rank > 1) Ny = dims.size[1];
-  if (dims.rank > 2) Nx = dims.size[2];
+  if (dims.rank > 1) Ny = dims.size[0];
+  if (dims.rank > 2) Nx = dims.size[1];
+
+  // std::cout << "dims = " << Ny << "x" << Nx << "x" << nTimeChannels << std::endl;
 
   nexus_read(file, DETECTOR_DISTANCE, &sample_to_detector, 1);
   nexus_read(file, PIXEL_WIDTH, &pixel_width, 1);
@@ -107,7 +109,8 @@ void NXtofnref::load_instrument(void)
   // Items before the sample have negative distance, so subtract.
   moderator_to_detector = sample_to_detector - moderator_distance;
   moderator_to_monitor = monitor_distance - moderator_distance;
-  
+
+  // std::cout << "instrument loaded\n";
 }
 
 
@@ -116,6 +119,7 @@ void NXtofnref::load_instrument(void)
 // Result: nTimeChannels, tcb
 void NXtofnref::load_time_channel_boundaries(void)
 {
+  // std::cout << "loading time channels\n";
   NexusDim dims;
   if (nexus_dims(file, TIME_CHANNEL_BOUNDARIES, &dims)) {
     assert(dims.rank == 1);
@@ -123,6 +127,7 @@ void NXtofnref::load_time_channel_boundaries(void)
     if (nexus_read(file, TIME_CHANNEL_BOUNDARIES, &tcb[0], dims.size[0]))
       nTimeChannels = dims.size[0]-1;
   }
+  // std::cout << "loading time channels done\n";
 }
 
 // Load the monitor values.  Computes monitor uncertainty and bin wavelengths.
@@ -130,6 +135,7 @@ void NXtofnref::load_time_channel_boundaries(void)
 // Result: monitor_raw, dmonitor_raw, monitor_raw_lambda
 void NXtofnref::load_monitor(void)
 {
+  // std::cout << "loading monitor\n";
   // Load raw monitor counts
   monitor_raw.resize(nTimeChannels);
   dmonitor_raw.resize(nTimeChannels);
@@ -147,17 +153,25 @@ void NXtofnref::load_monitor(void)
   const double scale = TOF_to_wavelength(moderator_to_monitor); 
   for (int i=0; i < nTimeChannels; i++) 
     monitor_raw_lambda[i] = (tcb[i]+tcb[i+1])*scale/2.;
+  // std::cout << "loading monitor done\n";
 }
 
 // Load all detector frames
 //
 // Result: frames
+// Frames are Ny by Nx, with x varying fastest.  
+//   00 01 02 ... 0Nx 10 11 12 ... 1Nx ...
+// Integrate along x to simulate a linear detector.
+// Frames are stored one after the other.
 void NXtofnref::load_all_frames(void)
 {
+  // std::cout << "loading frames\n";
   all_frames.resize(Nx*Ny*nTimeChannels);
   if (nexus_read(file, DETECTOR_DATA, &all_frames[0], Nx*Ny*nTimeChannels)) {
-    transpose(nTimeChannels, Nx*Ny, &all_frames[0], &all_frames[0]);
+    // std::cout << "transposing\n";
+    transpose(nTimeChannels, Nx*Ny, &all_frames[0]);
   }
+  // std::cout << "loading frames done\n";
 }
 
 
