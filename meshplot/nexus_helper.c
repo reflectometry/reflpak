@@ -584,6 +584,7 @@ nexus_open(const char name[], const char modestr[])
     /* Grab original file name */
     len = sizeof(file->name);
     type = NX_CHAR;
+    file->name[0] = '\0';
     status = NXgetattr(file->fid, "file_name", file->name, &len, &type);
     if (status != NX_OK) file->name[0] = '\0';
     else file->name[len] = '\0';
