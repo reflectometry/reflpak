@@ -77,13 +77,13 @@ isistest$(EXE): isis_tofnref.cc isis_tofnref.h
 isis2nexus.o: isis2nexus.cc nexus_helper.h isis_tofnref.h
 isis2nexus$(EXE): isis2nexus.o isis_tofnref.o nexus_helper.o
 	$(CXX) $(LDFLAGS) -o $@ isis2nexus.o isis_tofnref.o nexus_helper.o \
-	    $(NEXUSLIBS) -lm
+	    $(NEXUSLIB) -lm
 
 # Test NeXus reader
 nexustest.o: NXtofnref.cc NXtofnref.h nexus_helper.h
 	$(CXX) $(CFLAGS) $(NEXUSINC) -DSTANDALONE -c $< -o $@
 nexustest$(EXE): nexustest.o nexus_helper.o
-	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIBS) -lm
+	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIB) -lm
 
 plottest$(EXE): plot.c
 	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
