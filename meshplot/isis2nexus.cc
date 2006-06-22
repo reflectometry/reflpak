@@ -29,8 +29,14 @@ bool convert(const char infile[], const char outfile[])
   std::vector<double> frames(pixels*channels);
   data.getframes((int *)&frames[0],0,pixels);
   int2double((double *)&frames[0],pixels*channels);
+
+  /* Convert data from isis order to NeXus order.
+   * In NeXus, time is fastest varying, then y, then x.
+   * In ISIS, time is fastest varying, then y, then x.
+   * So we don't need any transform and can write the data directly.
+   */
   int dims[3];
-  dims[0]=data.nTimeChannels; dims[1]=data.Ny; dims[2]=data.Nx;
+  dims[2]=data.nTimeChannels; dims[1]=data.Nx; dims[0]=data.Ny;
   
   
   /* Create nexus file */
