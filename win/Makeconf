@@ -1,15 +1,13 @@
 ARCH=win
 
 topdir=$(shell pwd -W | sed -e 's,^.:,,')
-drive=C:
 
 # Debugging statements?
 # DEBUG=-DEBUG
 
 # Things from tclConfig.sh
-#TCL_PREFIX=/Tcl
-#TCL_INCLUDE_SPEC=-I$(drive)$(TCL_PREFIX)/include
-#TCL_STUB_LIB_SPEC=-L$(drive)$(TCL_PREFIX)/lib -ltclstub84
+#TCL_INCLUDE_SPEC=-Ic:/Tcl/include
+#TCL_LIB_DIR=-L$c:/Tcl/lib
 TCL_STUB_LIB_SPEC=-ltclstub84
 TK_STUB_LIB_SPEC=-ltkstub84
 TCL_SHLIB_LD=gcc -pipe -shared
@@ -35,7 +33,7 @@ FPP=-x f77-cpp-input
 CC=gcc
 CXX=g++
 CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC)
-LIBS:=$(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) $(FLIBS)
+LIBS:=$(TCL_LIB_DIR) $(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) $(FLIBS)
 LD=$(CC) -pipe -shared
 LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=
