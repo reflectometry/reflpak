@@ -95,17 +95,17 @@ proc QxQz_to_AB {id} {
     #   theta = atan2(Qx,Qz) * 180/pi
     #   if theta > 90, theta -= 360
     #   alpha = theta + beta/2
-    #   if Qz < 0, add 180 to alpha
+    #   if Qz < 0, alpha += 180
     vector create ::alpha_$id ::beta_$id
     ::beta_$id expr "asin($rec(L)*sqrt(::Qx_$id^2+::Qz_$id^2)/$::pitimes4)/$::piover360"
     ::beta_$id expr "::beta_$id*(::Qz_$id>=0) - ::beta_$id*(::Qz_$id<0)"
     ## No atan2 in BLT so replace <<
-    #    ::alpha_$id expr "atan2(::Qx_$id,::Qz_$id)/$::piover360)"
+    #    ::alpha_$id expr "atan2(::Qx_$id,::Qz_$id)/$::piover180)"
     # >> with <<
     set y ::Qx_$id
     set x ::Qz_$id
     ::alpha_$id expr "atan($y/($x+!$x*1e-100)) + $::pi*($x<0)*$y/abs($y+!$y)"
-    ::alpha_$id expr "::alpha_$id/$::piover360"
+    ::alpha_$id expr "::alpha_$id/$::piover180"
     # >>
 
     ::alpha_$id expr "::alpha_$id - 360*(::alpha_$id>90) + ::beta_$id/2"
