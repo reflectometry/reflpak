@@ -1298,7 +1298,7 @@ proc plot_window {{w .plot}} {
     } else {
 	wm deiconify $w
 	raise $w
-	return
+	return $w.c
     }
 
 

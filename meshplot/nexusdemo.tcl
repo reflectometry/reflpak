@@ -1,19 +1,21 @@
 namespace eval NXtofnref {
 variable DATADIR [file nativename [file join ~ data test]]
 
-proc demo {{mesh_style QxQz}} {
+proc demo {{data SRF65478} {mesh_style QxQz}} {
     puts "starting demo"
     set w [reflplot::plot_window]
     variable DATADIR
-    #isis::read_data [file join $DATADIR nexus SRF25115.nxs] rec2000
-    NXtofnref::read_data [file join $DATADIR nexus SRF25149.nxs] rec2000
+    set file [file join $DATADIR nexus $data.nxs]
+    set rec rec_$data
+    #isis::read_data $file $rec
+    NXtofnref::read_data $file $rec
 
     plot2d transform $w $mesh_style
     plot2d center $w 25
-    plot2d add $w { rec2000 }
+    plot2d add $w $rec
     $w configure -vmin 0.002 -vmax 2.
-    reflplot::monitor rec2000
-    reflplot::frameplot rec2000
+    reflplot::monitor $rec
+    reflplot::frameplot $rec
     reflplot::setframe
     tkcon show
 }
