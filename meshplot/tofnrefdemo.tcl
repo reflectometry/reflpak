@@ -1,44 +1,52 @@
 namespace eval tofnref {
 variable DATADIR [file nativename [file join ~ data test]]
 
-proc demo {{data SRF65478} {datatype nexus} {mesh_style QxQz}} {
+proc demo {{datatype nexus} {data SRF65478}} {
     variable DATADIR
-    set rec rec_$data
     if { $datatype == "nexus" } {
 	set file [file join $DATADIR nexus $data.nxs]
-	read_data $file $rec $datatype
     } else {
 	set file [file join $DATADIR isis $data.RAW]
-	read_data $file $rec $datatype
     }
-
-    set w [reflplot::plot_window]
-    plot2d transform $w $mesh_style
-    plot2d center $w 25
-    plot2d add $w $rec
-    $w configure -vmin 0.002 -vmax 2.
-    reflplot::monitor $rec
-    reflplot::frameplot $rec
-    reflplot::setframe
+    set id [mark_data $file]
+    set ::${id}(instrument) datatype
+    load_data $file $id
+    plot_data $id
     tkcon show
 }
 
-proc read_data { file id } {
-    upvar \#0 $id rec
-    if {[array exists rec]} { unset rec }
+proc plot_data {id {mesh_style pixel}} {
+    set w [reflplot::plot_window]
+    plot2d transform $w $mesh_style
+    plot2d center $w 25
+    plot2d add $w $id
+    $w configure -vmin 0.002 -vmax 2.
+    reflplot::monitor $id
+    reflplot::frameplot $id
+    reflplot::setframe
+}
 
+proc mark_data {file} {
+    upvar \#0 [new_rec $file] rec
+    foreach {rec(dataset) rec(run)} [splitname [file tail $file]] { break }
+    set rec(TOF) 1
+    return $rec(id)
+}
+
+proc load_data { file id} {
+    upvar \#0 $id rec
+ 
     # read file
-    if {$datatype == "nexus"} {
+    if {$rec(instrument) == "nexus"} {
 	set fid [NXtofnref $file]
+	set rec(A) [$fid sample_angle]
+	set rec(B) [$fid detector_angle]
     } else {
 	set fid [isis $file]
     }
     set rec(fid) $fid
-    set rec(file) [file root $file]
+    set rec(date) 0
     set rec(legend) [file root [file tail $file]]
-    set rec(TOF) 1
-    set rec(A) 1.5
-    set rec(B) 3.0
     set rec(distance) [$fid sampletodetector]
     set rec(pixelwidth) [$fid pixelwidth]
     set rec(pixels) [$fid Ny]
@@ -46,6 +54,7 @@ proc read_data { file id } {
     set rec(column,monitor_raw_lambda) [$fid monitor_raw_lambda]
 
     $fid proportional_binning 0.55 5.8 1.
+    marktype spec 0.55 5.8 {}
 
     set rec(points) [$fid Nt]
     set rec(lambda) [$fid lambda_edges]
@@ -54,5 +63,6 @@ proc read_data { file id } {
     set rec(psdraw) [$fid counts]
     set rec(psddata) [$fid I]
     set rec(psderr) [$fid dI]
+    fvector rec(slit1) [linspace 1.2 1.2 [$fid Nt]]
 }
 }

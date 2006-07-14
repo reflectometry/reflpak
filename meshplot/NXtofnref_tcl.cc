@@ -25,6 +25,9 @@
 //   lambda/dlambda    returns vector [Nt] as string
 //   counts/dcounts    returns matrix [Ny x Nt] as string
 //   I/dI              returns matrix [Ny x Nt] as string
+//   pixelwidth        returns double
+//   sampletodetector  returns double
+//   sample_angle/detector_angle  returns double
 //   Nmonitor_raw      returns int
 //   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
 //   
@@ -94,6 +97,10 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return real_result(interp, file->sample_to_detector);
   } else if (strcmp(method, "pixelwidth") == 0) {
     return real_result(interp, file->pixel_width);
+  } else if (strcmp(method, "detector_angle") == 0) {
+    return real_result(interp, file->sample_angle);
+  } else if (strcmp(method, "sample_angle") == 0) {
+    return real_result(interp, file->detector_angle);
   } else if (strcmp(method, "counts") == 0) {
     return vector_result(interp, file->counts);
   } else if (strcmp(method, "dcounts") == 0) {

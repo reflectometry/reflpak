@@ -1,6 +1,6 @@
 #include <tcl.h>
 #include "mx.h"
-#include "isis_read.h"
+#include "isis_tofnref.h"
 
 // command:
 //   isis "filename" returns object

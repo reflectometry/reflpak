@@ -1,5 +1,6 @@
 USE_STUBS = 1
 USE_X11 = 1
+USE_ISIS = 1
 include ../Makeconf
 
 ifdef USE_STUBS
@@ -26,6 +27,12 @@ else
   NEXUSINC=
   NEXUSLIB=
 endif
+
+ifdef USE_ISIS
+  OBJS += isis_tofnref.o isis_tofnref_tcl.o
+  CFLAGS += -DUSE_ISIS
+endif
+
 
 %.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
 %.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
