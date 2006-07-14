@@ -81,7 +81,8 @@ The [reduce] window lets you combine scans.
 The [footprint correction] window lets you set the footprint correction 
 parameters for the reduction.
 
-The [Tcl console] window lets you interact directly with Tcl/Tk.
+The [Tcl console] window lets you interact directly with Tcl/Tk.  Use it
+to help [configure] the application colors, etc.
 
 The [help] window lets you browse the help text.
 
@@ -775,6 +776,20 @@ an empty set of background pixels.  The B^+ and B^- plots displayed
 alongside the specular are scaled by |S|/|B^+| and |S|/|B^-| respectively.
 
 2006-02-24}
+
+hpage configure {} {See also [Tcl console].
+
+Many properties of the application can be set from the file ~/.tkviewrunrc.
+
+Start the [Tcl console] and type the following commands:
+
+   set orig \[open $::VIEWRUN_HOME/tkviewrunrc r]
+   set new \[open \[HOME]/.tkviewrunrc w]
+   puts $new \[read $orig]
+   close $new
+   close $orig
+   puts "\nModify \[HOME]/.tkviewrunrc with your editor and restart reflred."
+}
 
 # ----------------------------------------------------------------------
 hpage {psd} .psd {See also [psd controls].
