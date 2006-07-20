@@ -143,7 +143,6 @@ proc ABL {id row A B L} {
     
 # ----------------------------------------------
 
-
 # FIXME don't store mesh with the record otherwise we can't
 # plot the same record in multiple plots with different axes.
 proc mesh_QxQz {id} {
@@ -417,6 +416,23 @@ proc mesh_LTd {id} {
     set rec(ycoord) "L"    
 }
 
+proc integration_LTd {id} {
+    upvar \#0 $id rec
+    variable pi_over_180
+
+    # Generate integration region boundaries
+    set rec(curvex) $rec(lambda)
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) {
+	    lappend result [expr {
+		atan2(-$rec(pixelwidth)*$el,$rec(distance))/$pi_over_180
+            }]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
+}
+
 proc row_LTd {id row} {
     upvar \#0 $id rec
     ABL $id $row A B L
@@ -598,21 +614,10 @@ variable rebin_resolution
 proc rebin {id} {
     upvar #0 $id rec
     if {![info exist rec(TOF)]} { return }
-    set fid $rec(fid)
     variable rebin_lo
     variable rebin_hi
     variable rebin_resolution
-    # puts "rebin $id from $rebin_lo to $rebin_hi with $rebin_resolution"
-    $fid proportional_binning $rebin_lo $rebin_hi $rebin_resolution
-
-    set rec(points) [$fid Nt]
-    set rec(lambda) [$fid lambda_edges]
-    set rec(column,lambda) [$fid lambda]
-    set rec(column,monitor) [$fid monitor]
-    set rec(psdraw) [$fid counts]
-    set rec(psddata) [$fid I]
-    set rec(psderr) [$fid dI]
-
+    tofnref::rebin $id $rebin_lo $rebin_hi $rebin_resolution
     plot2d redraw .plot.c
 }
 
@@ -880,7 +885,6 @@ proc add {path records} {
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
 
-if {[vector_exists ::x_${id}]} { # don't kill isis demo just yet
 	foreach curve {spec backm backp} index { {} - + } {
 	    vector create ::${curve}_y_${id} ::${curve}_dy_${id}
 	    $plot(compose) element create ${id}_${curve} \
@@ -888,7 +892,6 @@ if {[vector_exists ::x_${id}]} { # don't kill isis demo just yet
 		-xerror ::${curve}_dy_${id} -showerrorbars x \
 		-label "$rec(legend)$index" -color [nextcolor]
 	}
-}
 
     }
     auto_axes $path
@@ -934,7 +937,7 @@ proc new {w} {
     $w delete
     $w configure -logdata on -grid on -vrange {0.0002 2}
     variable P$w
-    array set P$w {mesh TiTd records {} center 100 title {}}
+    array set P$w {mesh QxQz records {} center 0 title {}}
     bind <Destroy> $w [namespace code [list unset P$w]]
 }
 
@@ -1160,7 +1163,7 @@ proc Td_to_pixel {Td_list beta} {
 proc get_regions {id fn} {
     upvar \#0 $id rec
     set center $rec(centerpixel)
-    if {![isTOF]} {
+    if {1} { # was: if ![isTOF]
 	set L {}
 	for {set i 0} { $i < $rec(points) } { incr i } {
 	    # Look up slits and angles for the measurement

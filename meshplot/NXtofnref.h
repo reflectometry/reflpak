@@ -35,8 +35,11 @@ public:
   double sample_to_detector;    // (m)
   double moderator_to_monitor;  // (m)
   double pixel_width;           // (mm)
-  double detector_angle;
-  double sample_angle;
+  double detector_angle;        // (degrees)
+  double sample_angle;          // (degrees)
+  double slit_width[4];         // (mm)
+  double slit_distance[4];      // (mm)
+  double slit_height[4];        // (mm)
   std::vector<double> all_frames;
   std::vector<double> tcb;
   std::vector<double> lambda_edges;   // edges of the wavelength bins

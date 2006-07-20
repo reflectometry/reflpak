@@ -7,6 +7,13 @@
 
 #include "nexus_helper.h"
 
+#if 0
+#define DEBUG(a) do { printf(a); } while (0)
+#else
+#define DEBUG(a) do { } while (0)
+#endif
+
+
 
 void _print_status(Nexus *file, const char *where)
 {
@@ -100,7 +107,10 @@ _open_data(Nexus *file, const NXname field)
     _close_data(file);
     if (field[0] != '\0') {
       /* printf("opening field %s\n",field); */
-      if (NXopendata(file->fid,field) != NX_OK) return 0;
+      if (NXopendata(file->fid,field) != NX_OK) {
+	printf("could not open field %s\n",field);
+	return 0;
+      }
       strcpy(file->_field, field); /* _field and field are both NXname */
     }
   }
@@ -303,6 +313,7 @@ _create_key(Nexus *file, const char key[], NXname field)
       if (status == NX_OK) status = NXopengroup(file->fid, name, class);
       if (status != NX_OK) {
 	/* FIXME better error handling */
+	printf("Could not open group %s:%s\n",class,name);
 	_close_key(file);
 	return 0;
       }
@@ -336,6 +347,7 @@ _read_data_str(Nexus *file, int len, char value[])
 {
   int kind, rank;
   int dims[NX_MAXRANK];
+  DEBUG("_read_data_str");
 
   if (NXgetinfo(file->fid, &rank, dims, &kind) != NX_OK) return 0;
   if (kind != NX_CHAR) return 0;
@@ -359,6 +371,7 @@ _read_attr_str(Nexus *file, const char attr[], int len, char value[])
 {
   int kind, slen = len;
 
+  DEBUG("_read_attr_str");
   /* FIXME NXgetattr should accept "const char attr[]" */
   /* FIXME NXgetattr should accept "int kind" instead of "int *kind" */
   kind = NX_CHAR;
@@ -381,6 +394,7 @@ _read_data_vector(Nexus *file, int len, double value[])
   int kind, rank, i, n=1;
   int dims[NX_MAXRANK];
 
+  DEBUG("_read_data_vector...");
   if (NXgetinfo(file->fid, &rank, dims, &kind) != NX_OK) return 0;
   if (kind == NX_CHAR) return 0;
   for (i=0; i < rank; i++) n*=dims[i];
@@ -388,6 +402,7 @@ _read_data_vector(Nexus *file, int len, double value[])
   if (NXgetdata(file->fid, (void *)value) != NX_OK) return 0;
   /* Expand the data in place. */
   _kind_to_double(value, n, kind);
+  DEBUG("ok\n");
   return 1;
 }
 
@@ -404,6 +419,7 @@ _read_data_slab(Nexus *file, double value[],
 {
   int i, n=1, status, rank, kind, dims[NX_MAXRANK];
 
+  DEBUG("_read_data_slab");
   NXgetinfo(file->fid, &rank, dims, &kind);
   for (i=0; i < rank; i++) n*=size[i];
   /* FIXME allow const on size/start */
@@ -425,6 +441,7 @@ _read_attr_vector(Nexus *file, const char attr[], int len, double value[])
 {
   int kind, slen = len;
 
+  DEBUG("_read_attr_vector");
   /* FIXME NXgetattr should accept const attr */
   /* FIXME napi5 does not allow vector valued attributes */
   assert(len == 1);
@@ -625,6 +642,7 @@ int nexus_nextset(Nexus *file)
   if (file == NULL) return 0;
 
   /* Return to NXentry level */
+  DEBUG("nextset\n");
   _close_key(file);
   if (file->entry[0] != '\0') NXclosegroup(file->fid);
   file->entry[0] = '\0';
@@ -684,6 +702,7 @@ int nexus_read(Nexus *file, const char key[], double data[], int n)
   const char *attrsep;
 
   /* Open the correct group. */
+  DEBUG(key); DEBUG(": opening key\n");
   if (!_open_key(file, key)) return 0;
 
   /* Read data or attribute */ 

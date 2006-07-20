@@ -111,10 +111,6 @@ proc init_selector { } {
     .menu.options add separator
     .menu.options add command -label "Restart octave" -command restart_octave
     .menu.options add command -label "Tcl console" -command { tkcon show }
-    # FIXME not the place to add this
-    source $::VIEWRUN_HOME/../meshplot/tofnrefdemo.tcl
-    .menu.options add command -label "NeXus demo" -command { tofnref::demo nexus }
-    .menu.options add command -label "ISIS demo" -command { tofnref::demo isis }
     helpmenu .menu windows
 
     PanedWindow .treebydata -side top

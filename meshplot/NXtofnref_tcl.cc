@@ -101,6 +101,14 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return real_result(interp, file->sample_angle);
   } else if (strcmp(method, "sample_angle") == 0) {
     return real_result(interp, file->detector_angle);
+  } else if (strcmp(method, "preslit1") == 0) {
+    return real_result(interp, file->slit_width[0]);
+  } else if (strcmp(method, "preslit2") == 0) {
+    return real_result(interp, file->slit_width[1]);
+  } else if (strcmp(method, "postslit1") == 0) {
+    return real_result(interp, file->slit_width[2]);
+  } else if (strcmp(method, "postslit2") == 0) {
+    return real_result(interp, file->slit_width[3]);
   } else if (strcmp(method, "counts") == 0) {
     return vector_result(interp, file->counts);
   } else if (strcmp(method, "dcounts") == 0) {
@@ -208,6 +216,7 @@ NXtofnref_open(ClientData junk, Tcl_Interp *interp, int argc, Tcl_Obj *CONST arg
   }
   const char *filename = Tcl_GetString(argv[1]);
   NXtofnref *file = new NXtofnref;
+  std::cout << "NXtofnref opening " << filename << std::endl;
   if (file->open(filename)) {
     char name[30];
     sprintf(name, "NXtofnref%d", ++nexus_id);

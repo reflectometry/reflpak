@@ -16,7 +16,7 @@
 typedef int NXdims[NX_MAXRANK];  // Should be part of napi.h
 
 #if 0
-#include <stdint.h> // intptr_t
+#include <stdint.h> // intptr_t needed for some statements
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
 #define DEBUG(a) do { } while (0)
@@ -58,12 +58,14 @@ compute_pixel_angle(int n, double delta[], double pixelwidth,
 // Result: file
 bool NXtofnref::open(const char *filename)
 {
+  DEBUG("open " << filename);
   file = nexus_open(filename, "r");
   name = filename;
 
   while (1) {
     if (!nexus_nextset(file)) break;
     if (strcmp(file->definition,"NXtofnref")!=0) continue;
+    DEBUG("loading dataset " << filename);
     reload();
     return true;
   }
@@ -75,7 +77,9 @@ bool NXtofnref::open(const char *filename)
 void NXtofnref::reload(void)
 {
   title = file->entry;
+  DEBUG("load_instrument");
   load_instrument();
+  DEBUG("load_TCB");
   load_time_channel_boundaries();
   load_monitor();
   load_all_frames();
@@ -92,25 +96,44 @@ void NXtofnref::load_instrument(void)
   double moderator_distance, monitor_distance;
   NexusDim dims;
 
+  DEBUG("dims for " << DETECTOR_DATA);
   if (!nexus_dims(file, DETECTOR_DATA, &dims)) return;
   nTimeChannels = dims.size[dims.rank-1];
   Nx = Ny = 1;
   if (dims.rank > 1) Ny = dims.size[0];
   if (dims.rank > 2) Nx = dims.size[1];
 
-  // std::cout << "dims = " << Ny << "x" << Nx << "x" << nTimeChannels << std::endl;
+  DEBUG("dims = " << Ny << "x" << Nx << "x" << nTimeChannels);
 
+  DEBUG(DETECTOR_DISTANCE);
   nexus_read(file, DETECTOR_DISTANCE, &sample_to_detector, 1);
+  DEBUG(PIXEL_WIDTH);
   nexus_read(file, PIXEL_WIDTH, &pixel_width, 1);
+  DEBUG(DETECTOR_ANGLE);
   nexus_read(file, DETECTOR_ANGLE, &detector_angle, 1);
+  DEBUG(SAMPLE_ANGLE);
   nexus_read(file, SAMPLE_ANGLE, &sample_angle, 1);
+  DEBUG(MODERATOR_DISTANCE);
   nexus_read(file, MODERATOR_DISTANCE, &moderator_distance, 1);
+  DEBUG(MONITOR_DISTANCE);
   nexus_read(file, MONITOR_DISTANCE, &monitor_distance, 1);
+  DEBUG(PRE_SLIT1);
+  nexus_readslit(file, PRE_SLIT1, 
+		 &slit_distance[0], &slit_width[0], &slit_height[0]);
+  DEBUG(PRE_SLIT2);
+  nexus_readslit(file, PRE_SLIT2, 
+		 &slit_distance[1], &slit_width[1], &slit_height[1]);
+  DEBUG(POST_SLIT1);
+  nexus_readslit(file, POST_SLIT1, 
+		 &slit_distance[2], &slit_width[2], &slit_height[2]);
+  DEBUG(POST_SLIT2);
+  nexus_readslit(file, POST_SLIT2, 
+		 &slit_distance[3], &slit_width[3], &slit_height[3]);
   // Items before the sample have negative distance, so subtract.
   moderator_to_detector = sample_to_detector - moderator_distance;
   moderator_to_monitor = monitor_distance - moderator_distance;
 
-  // std::cout << "instrument loaded\n";
+  DEBUG("instrument loaded");
 }
 
 
