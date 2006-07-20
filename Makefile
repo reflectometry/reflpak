@@ -10,6 +10,7 @@ TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
+SNITPATH ?= snit1.0
 
 PRODUCT=reflpak$(VERSION)
 
@@ -50,7 +51,7 @@ octlib=common_values.m inputname.m polyconf.m qlfit.m wsolve.m \
 	confidence.m qlconf.m wpolyfit.m interp1err.m
 
 reflplotsrc=axis.tcl base.tcl meshplot.tcl pkgIndex.tcl  \
-	reflplot.tcl tofnrefdemo.tcl plot$(LDEXT) joh00909.cg1 joh00916.cg1
+	reflplot.tcl tofnref.tcl plot$(LDEXT) joh00909.cg1 joh00916.cg1
 snitsrc=snit.tcl pkgIndex.tcl
 
 fithelpdeps=$(patsubst %,tcl/%,$(fithelp) $(fitfig))
@@ -62,7 +63,7 @@ libfiles=$(patsubst %,lib/%,$(libsrc))
 fitfiles=$(patsubst %,tcl/%,$(fithelp) $(fitfig) $(fitsrc))
 redfiles=$(patsubst %,reflred/%,$(redhelp) $(redfig) $(redsrc))
 redoctavefiles=$(patsubst %,reflred/octave/%,$(redoctavesrc) $(octlib))
-snitfiles=$(patsubst %,snit0.97/%,$(snitsrc))
+snitfiles=$(patsubst %,$(SNITPATH)/%,$(snitsrc))
 reflplotfiles=$(patsubst %,meshplot/%,$(reflplotsrc))
 
 
