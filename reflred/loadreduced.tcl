@@ -55,6 +55,7 @@ proc guessindex {file} {
 }
 
 proc markreduced {file} {
+    if {[file size $file] > 100000} { return 0 }
     if {[ catch { open $file r } fid ] } { return 0 }
     set data [read $fid]
     close $fid
@@ -220,6 +221,8 @@ proc markother {file} {
 
 proc loadother {id} {
     upvar #0 $id rec
+
+    if {[file size $rec(file)] > 100000} { return 0 }
 
     # suck in the data file
     if {[ catch { open $rec(file) r } fid ] } { return 0 }

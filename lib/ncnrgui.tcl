@@ -151,11 +151,14 @@ proc text_clear {w} {
 # Usage: text_load .path_to_text_widget "filename"
 #
 # replace the text in the widget with the contents of the file
+# text is limited to 100k bytes
+
+# TODO check whether ascii or binary
 proc text_load {w file} {
     if [ catch { open $file r } fid ] {
 	text_replace $w {}
     } else {
-	text_replace $w [ read $fid ]
+	text_replace $w [ read $fid 100000 ]
 	close $fid
     }
     catch { $w edit reset } ;# Tk8.4 command to reset the undo stack
