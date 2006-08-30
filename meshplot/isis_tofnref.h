@@ -7,7 +7,7 @@
 #include <fcntl.h>
 
 
-#if 0
+#if 1
 #include <stdint.h> // intptr_t
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else

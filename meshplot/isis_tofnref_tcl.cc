@@ -111,10 +111,10 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
     return vector_result(interp, file->lambda);
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
-  } else if (strcmp(method, "frame") == 0) {
+  } else if (strcmp(method, "image") == 0) {
     if (argc != 3) {
       Tcl_AppendResult(interp, isis_name, 
-	 	    ": frame needs a frame number", NULL);
+	 	    ": image needs a frame number", NULL);
       return TCL_ERROR;
     }
 

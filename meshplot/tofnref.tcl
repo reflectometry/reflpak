@@ -1,7 +1,7 @@
 namespace eval tofnref {
 
 proc register {} {
-    puts "registering .RAW"
+    # puts "registering .RAW"
     set ::extfn(.raw) [namespace which summary_isis]
     set ::extfn(.nxs) [namespace which summary_nexus]
 }
@@ -27,6 +27,7 @@ proc summary_nexus {action {name {}}} {
 }
 
 proc mark_data {instrument file} {
+    puts "marking $file"
     # Create a new record
     upvar \#0 [new_rec $file] rec
     set rec(load) [namespace which load_data]
@@ -42,6 +43,7 @@ proc mark_data {instrument file} {
     set rec(view) [namespace which view]
     set rec(psdplot) 1
     marktype spec 0.55 5.8 {}
+    puts "marking done"
     return $rec(id)
 }
 
@@ -50,7 +52,10 @@ proc view {id w} {
     text_replace $w $rec(file)
 }
 
+# FIXME: dead code; plotting is handled by viewrun.tcl
+# monitor and frame are triggered by load_data
 proc plot_data {id {mesh_style pixel}} {
+    puts "plot_data"
     set w [reflplot::plot_window]
     plot2d transform $w $mesh_style
     plot2d center $w 25
@@ -65,8 +70,12 @@ proc load_data { id} {
     upvar \#0 $id rec
  
     # read file
+    puts "load_data"
+    flush stdout
     if {$rec(instrument) == "nexus"} {
+	puts "opening_nexus"
 	set fid [NXtofnref $rec(file)]
+	puts "gathering info from $fid"
 	set rec(A) [$fid sample_angle]
 	set rec(B) [$fid detector_angle]
         set rec(S1) [$fid preslit1]
@@ -92,6 +101,12 @@ proc load_data { id} {
 
     # rebin lambda from 0.55 to 5.8 with 1% resolution
     rebin $id 0.55 5.8 1.
+
+    # FIXME load_data should not trigger monitor and frame plot
+    reflplot::monitor $id
+    reflplot::frameplot $id
+    reflplot::setframe
+
     return 1
 }
 
@@ -100,6 +115,7 @@ proc rebin {id lo hi resolution} {
     if {![info exist rec(TOF)]} { return }
     set fid $rec(fid)
     
+    puts "rebinning using $lo $hi $resolution"
     $fid proportional_binning $lo $hi $resolution
     
     set rec(points) [$fid Nt]

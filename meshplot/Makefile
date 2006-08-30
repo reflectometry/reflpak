@@ -15,8 +15,9 @@ endif
 
 CFLAGS += -DUSE_TCL
 
-#CFLAGS += -g
-#LDFLAGS += -g
+## Turn on profiler
+#CFLAGS += -pg
+#LDFLAGS += -pg
 
 OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o 
 
@@ -51,7 +52,7 @@ tclvector.o: tclvector.h
 
 
 # Support for reading NeXus binary files
-NXtofnref.o: NXtofnref.cc nexus_helper.h
+NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc
 NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h
 nexus_helper.o: nexus_helper.c nexus_helper.h
 
@@ -87,7 +88,7 @@ isis2nexus$(EXE): isis2nexus.o isis_tofnref.o nexus_helper.o
 	    $(NEXUSLIB) -lm
 
 # Test NeXus reader
-nexustest.o: NXtofnref.cc NXtofnref.h nexus_helper.h
+nexustest.o: NXtofnref.cc NXtofnref.h nexus_helper.h NXtofnref_keys.icc
 	$(CXX) $(CFLAGS) $(NEXUSINC) -DSTANDALONE -c $< -o $@
 nexustest$(EXE): nexustest.o nexus_helper.o
 	$(CXX) $(LDFLAGS) -o $@ nexustest.o nexus_helper.o $(NEXUSLIB) -lm

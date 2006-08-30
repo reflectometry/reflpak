@@ -463,6 +463,7 @@ void SURF::load_monitor(void)
   // Rebin monitor to detector time boundaries.
   rebin_counts(monitor_edges,monitor_raw,dmonitor_raw,
 	       lambda_edges,monitor,dmonitor);
+  DEBUG("rebinned");
 }
 
 // Compute I,dI from counts and monitors
@@ -558,7 +559,7 @@ void SURF::add_frame(int from, int to)
 }
 
 // Given a list [b_1 b_2 ... b_{n+1}], sum all data from b_i to b_{i+1}-1
-// and save it if frame i.  Note that there are n+1 boundaries for n channels.
+// and save it to frame i.  Note that there are n+1 boundaries for n channels.
 //
 // The current implementation is defined to operate in-place, but there is
 // no performance reason to do so.  In fact, because it resizes the memory
@@ -566,10 +567,28 @@ void SURF::add_frame(int from, int to)
 void SURF::merge_frames(int n, int boundaries[])
 {
   for (int k=0; k < n; k++) {
+    // FIXME: can't do it in place if frames are split rather than merged
+    if (boundaries[k] <= k) {
+      std::cerr << "Invalid rebinning --- data after frame " 
+		<< k << " is bad" << std::endl;
+      break;
+    }
     copy_frame(boundaries[k], k);
 DEBUG("merging " << boundaries[k] << " to " << boundaries[k+1] << " into " << k);
     for (int i=boundaries[k]+1; i < boundaries[k+1]; i++) add_frame(i,k);
   }
+
+  // Throw away unneeded memory, or maybe extend with 0. in case the
+  // chosen rebinning was invalid.
+  all_frames.resize(n*Nx*Ny,0.);
+  I.resize(n*Ny,0.);
+  dI.resize(n*Ny,0.);
+  counts.resize(n*Ny,0.);
+  dcounts.resize(n*Ny,0.);
+  monitor.resize(n,1.);
+  dmonitor.resize(n,0.);
+  tcb.resize(n+1);
+
   // Adding in quadrature; take square roots
   for (int k=0; k < n; k++) {
     dmonitor[k] = sqrt(dmonitor[k]);
@@ -578,16 +597,7 @@ DEBUG("merging " << boundaries[k] << " to " << boundaries[k+1] << " into " << k)
     dI[k] = sqrt(dI[k]);
     dcounts[k] = sqrt(dcounts[k]);
   }
-  // Throw away unneeded memory (really only need to do this for all_frames)
-  all_frames.resize(n*Nx*Ny);
-  I.resize(n*Ny);
-  dI.resize(n*Ny);
-  counts.resize(n*Ny);
-  dcounts.resize(n*Ny);
-  monitor.resize(n);
-  dmonitor.resize(n);
   tcb[n] = tcb[boundaries[n]];
-  tcb.resize(n+1);
   nTimeChannels = n;
 DEBUG("rebin n=" << n << ", Ny=" << Ny);
   set_lambda();

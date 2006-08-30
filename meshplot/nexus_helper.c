@@ -1,3 +1,7 @@
+/* This is a work of the United States Government and is not
+ * subject to copyright protection in the United States.
+ */
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>

@@ -618,7 +618,12 @@ proc rebin {id} {
     variable rebin_hi
     variable rebin_resolution
     tofnref::rebin $id $rebin_lo $rebin_hi $rebin_resolution
-    plot2d redraw .plot.c
+
+    # FIXME: rebin needs a handle to the plot in order to redraw
+    # the image after rebinning.  This is not the correct way to
+    # deal with this problem.  Need to instead move to MVC with
+    # notifications to the viewer that the model has changed.
+    plot2d redraw .newpsd.c
 }
 
 proc FrameCoordinates {w x y} {
@@ -648,7 +653,7 @@ proc SetFrame {v} {
     fvector frame(xv) [integer_edges $frame(nx)]
     fvector frame(yv) [integer_edges $frame(ny)]
     foreach {frame(x) frame(y)} [buildmesh $frame(nx) $frame(ny) frame(xv) frame(yv)] {}
-    set frame(data) [$rec(fid) frame $v]
+    set frame(data) [$rec(fid) image $v]
     foreach {lo hi} [flimits frame(data)] {}
     if {$v != 0 } { set lo 1. }
     $frame(plot) configure -vrange [list $lo $hi]

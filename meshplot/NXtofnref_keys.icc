@@ -1,16 +1,30 @@
+const char DEFINITION_NAME[] =
+//  "NXtofnref";
+  "TOFRAW";
+
 /* To convert TOF to Q we need distances and angles */
 const char MODERATOR_DISTANCE[] =
   "NXinstrument:instrument/NXmoderator:moderator/distance";
 const char DETECTOR_DISTANCE[] =
-  "NXinstrument:instrument/NXdetector:detector/distance";
-const char TIME_CHANNEL_BOUNDARIES[] =
-  "NXinstrument:instrument/NXdetector:detector/time_of_flight";
+  "NXinstrument:instrument/NXdetector:bank1/distance";
+const char DETECTOR_TCB[] =
+  "NXinstrument:instrument/NXdetector:bank1/time_of_flight";
 const char SAMPLE_ANGLE[] =
   "NXsample:sample/polar_angle";
 const char DETECTOR_ANGLE[] =
-  "NXinstrument:instrument/NXdetector:detector/polar_angle";
+  "NXinstrument:instrument/NXdetector:bank1/polar_angle";
 const char DETECTOR_DATA[] = 
-  "NXinstrument:instrument/NXdetector:detector/data";
+  "NXinstrument:instrument/NXdetector:bank1/data";
+
+/* Detector characteristics. */
+const char PIXEL_WIDTH[] =
+  "NXinstrument:instrument/NXdetector:bank1/x_pixelsize";
+const char PIXEL_HEIGHT[] =
+  "NXinstrument:instrument/NXdetector:bank1/y_pixelsize";
+const char X_PIXEL_OFFSET[] =
+  "NXinstrument:instrument/NXdetector:bank1/x_pixel_offset";
+const char Y_PIXEL_OFFSET[] =
+  "NXinstrument:instrument/NXdetector:bank1/y_pixel_offset";
 
 /* Some time bins will be garbage depending on how the choppers are set up */  
 /* Use the following fields to trim the bins and correct the time. */
@@ -39,15 +53,11 @@ const char POST_SLIT2[] =
   "NXinstrument:instrument/NXaperture:postsample_slit2/";
 
 
-/* Detector characteristics. */
-const char PIXEL_WIDTH[] =
-  "NXinstrument:instrument/NXdetector:detector/x_pixelsize";
-const char PIXEL_HEIGHT[] =
-  "NXinstrument:instrument/NXdetector:detector/y_pixelsize";
-
 /* Monitor data */
 const char MONITOR_DATA[] =
   "NXmonitor:monitor/data";
 const char MONITOR_DISTANCE[] =
   "NXmonitor:monitor/distance";
+const char MONITOR_TCB[] =
+  "NXmonitor:monitor/time_of_flight";
 

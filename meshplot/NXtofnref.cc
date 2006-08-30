@@ -1,3 +1,7 @@
+// This is a work of the United States Government and is not
+// subject to copyright protection in the United States.
+
+#include <cassert>
 #include <cmath>
 #include <vector>
 #include <iomanip>
@@ -15,7 +19,7 @@
 #include <napi.h>
 typedef int NXdims[NX_MAXRANK];  // Should be part of napi.h
 
-#if 0
+#if 1
 #include <stdint.h> // intptr_t needed for some statements
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
@@ -27,7 +31,6 @@ typedef int NXdims[NX_MAXRANK];  // Should be part of napi.h
 
 // =======================================================================
 // Utility functions
-
 
 // Convert time of flight to wavelength
 const double Plancks_constant=6.62618e-27; // Planck constant (erg*sec)
@@ -50,6 +53,28 @@ compute_pixel_angle(int n, double delta[], double pixelwidth,
   }
 }
 
+int array_size(NexusDim& dims) 
+{
+  int t=1;
+  for (int i=0; i < dims.rank; i++) t*=dims.size[i];
+  return t;
+}
+
+void NXtofnref::find_channels(double vlo, double vhi, int &ilo, int &ihi)
+{
+  // find range of channels needed
+  for (ilo=1; ilo < Ndetector_channels; ilo++)
+    if (detector_edges[ilo]>vlo) break;
+  for (ihi=ilo; ihi < Ndetector_channels; ihi++)
+    if (detector_edges[ihi]>=vhi) break;
+  ilo--;
+  assert(ilo == 0 || detector_edges[ilo] <= vlo);
+  assert(ilo == Ndetector_channels || detector_edges[ilo+1] > vlo);
+  assert(ihi == Ndetector_channels || detector_edges[ihi] >= vhi);
+  assert(ihi == 0 || detector_edges[ihi-1] < vhi);
+}
+
+
 // ======================================================================
 // Nexus file handling functions
 
@@ -64,7 +89,9 @@ bool NXtofnref::open(const char *filename)
 
   while (1) {
     if (!nexus_nextset(file)) break;
-    if (strcmp(file->definition,"NXtofnref")!=0) continue;
+    DEBUG("checking definition " << file->definition);
+    // FIXME change this to definition NXtofnref?
+    if (strcmp(file->definition,DEFINITION_NAME)!=0) continue;
     DEBUG("loading dataset " << filename);
     reload();
     return true;
@@ -79,17 +106,16 @@ void NXtofnref::reload(void)
   title = file->entry;
   DEBUG("load_instrument");
   load_instrument();
-  DEBUG("load_TCB");
-  load_time_channel_boundaries();
+  DEBUG("load_detector_tcb");
+  load_detector_tcb();
+  DEBUG("load_monitor");
   load_monitor();
-  load_all_frames();
-  compute_pixel_angle();
-  compute_wavelength();
-  rebin_monitor();
-  integrate_counts();
-  normalize_counts();
+  DEBUG("load_pixel_angle");
+  load_pixel_angle();
+  DEBUG("load complete");
+  // integrate_counts();
+  // normalize_counts();
 }
-
 
 void NXtofnref::load_instrument(void)
 {
@@ -98,21 +124,50 @@ void NXtofnref::load_instrument(void)
 
   DEBUG("dims for " << DETECTOR_DATA);
   if (!nexus_dims(file, DETECTOR_DATA, &dims)) return;
-  nTimeChannels = dims.size[dims.rank-1];
+  Ndetector_channels = dims.size[dims.rank-1];
   Nx = Ny = 1;
   if (dims.rank > 1) Ny = dims.size[0];
   if (dims.rank > 2) Nx = dims.size[1];
 
-  DEBUG("dims = " << Ny << "x" << Nx << "x" << nTimeChannels);
+  DEBUG("dims = " << Ny << "x" << Nx << "x" << Ndetector_channels);
 
   DEBUG(DETECTOR_DISTANCE);
-  nexus_read(file, DETECTOR_DISTANCE, &sample_to_detector, 1);
+  sample_to_detector = 0;
+  if (nexus_dims(file, DETECTOR_DISTANCE, &dims)) {
+    int Ndistances = array_size(dims);
+    std::vector<double> pixel_distance(Ndistances);
+    if (nexus_read(file, DETECTOR_DISTANCE, &pixel_distance[0], Ndistances)) {
+      // Compute mean distance to the detector pixels.
+      double sum=0.;
+      for (int i=0; i < Ndistances; i++) sum += pixel_distance[i];
+      sample_to_detector = sum/Ndistances; 
+    }
+  }
+  
+
+#if 1
+
+  // pixel offsets, no pixel widths
+  std::vector<double> y_offset(Ny);
+  nexus_read(file, Y_PIXEL_OFFSET, &y_offset[0], Ny);
+  double sum = 0.;
+  for (int i=0; i < Ny; i++) sum += y_offset[i];
+  pixel_width = 1000.*sum/Ny; // Average pixel width in mm
+
+#else
+
+  // pixel width, no pixel offset
   DEBUG(PIXEL_WIDTH);
   nexus_read(file, PIXEL_WIDTH, &pixel_width, 1);
+
+#endif
+
   DEBUG(DETECTOR_ANGLE);
-  nexus_read(file, DETECTOR_ANGLE, &detector_angle, 1);
+  if (!nexus_read(file, DETECTOR_ANGLE, &detector_angle, 1))
+    detector_angle = 0;
   DEBUG(SAMPLE_ANGLE);
-  nexus_read(file, SAMPLE_ANGLE, &sample_angle, 1);
+  if (!nexus_read(file, SAMPLE_ANGLE, &sample_angle, 1))
+    sample_angle = 0;
   DEBUG(MODERATOR_DISTANCE);
   nexus_read(file, MODERATOR_DISTANCE, &moderator_distance, 1);
   DEBUG(MONITOR_DISTANCE);
@@ -129,6 +184,8 @@ void NXtofnref::load_instrument(void)
   DEBUG(POST_SLIT2);
   nexus_readslit(file, POST_SLIT2, 
 		 &slit_distance[3], &slit_width[3], &slit_height[3]);
+  // Note: test file REF_M_50.nxs has a positive moderator distance
+  if (moderator_distance > 0) moderator_distance = -moderator_distance;
   // Items before the sample have negative distance, so subtract.
   moderator_to_detector = sample_to_detector - moderator_distance;
   moderator_to_monitor = monitor_distance - moderator_distance;
@@ -137,73 +194,76 @@ void NXtofnref::load_instrument(void)
 }
 
 
-// Load the detector time channels into tcb and set nTimeChannels.
+// Load the detector time channel boundaries into detector_tcb.
 //
-// Result: nTimeChannels, tcb
-void NXtofnref::load_time_channel_boundaries(void)
+// Result: Ndetector_channels, detector_tcb, detector_edges
+void NXtofnref::load_detector_tcb(void)
 {
-  // std::cout << "loading time channels\n";
+  std::cout << "loading time channels\n";
   NexusDim dims;
-  if (nexus_dims(file, TIME_CHANNEL_BOUNDARIES, &dims)) {
+  if (nexus_dims(file, DETECTOR_TCB, &dims)) {
     assert(dims.rank == 1);
-    tcb.resize(dims.size[0]);
-    if (nexus_read(file, TIME_CHANNEL_BOUNDARIES, &tcb[0], dims.size[0]))
-      nTimeChannels = dims.size[0]-1;
+    detector_tcb.resize(dims.size[0]);
+    if (nexus_read(file, DETECTOR_TCB, &detector_tcb[0], dims.size[0]))
+      Ndetector_channels = dims.size[0]-1;
   }
-  // std::cout << "loading time channels done\n";
+  std::cout << "loading time channels done\n";
+
+  const double scale = TOF_to_wavelength(moderator_to_detector);
+  detector_edges.resize(Ndetector_channels+1);
+  for (int i=0; i <= Ndetector_channels; i++) 
+    detector_edges[i] = detector_tcb[i]*scale;
 }
 
 // Load the monitor values.  Computes monitor uncertainty and bin wavelengths.
 //
-// Result: monitor_raw, dmonitor_raw, monitor_raw_lambda
+// Result: monitor_counts, monitor_dcounts, monitor_edges, monitor_lambda
 void NXtofnref::load_monitor(void)
 {
   // std::cout << "loading monitor\n";
-  // Load raw monitor counts
-  monitor_raw.resize(nTimeChannels);
-  dmonitor_raw.resize(nTimeChannels);
 
-  nexus_read(file,MONITOR_DATA,&monitor_raw[0],nTimeChannels);
-  //for (int i=0;i<nTimeChannels;i+=100) DEBUG(i<<": "<<monitor_raw[i]<<" ");
+#if 1
 
-  // Compute monitor uncertainty
-  for (int i=0; i < nTimeChannels; i++) {
-    dmonitor_raw[i] = monitor_raw[i] != 0 ? sqrt(monitor_raw[i]) : 1.;
+  // Monitor tcb and detector tcb stored separately
+  // std::cout << "loading time channels\n";
+  NexusDim dims;
+  if (nexus_dims(file, MONITOR_TCB, &dims)) {
+    assert(dims.rank == 1);
+    monitor_tcb.resize(dims.size[0]);
+    if (nexus_read(file, MONITOR_TCB, &monitor_tcb[0], dims.size[0]))
+      Nmonitor_channels = dims.size[0]-1;
+  } else {
+    Nmonitor_channels = 0;
+    return;
   }
+  // std::cout << "loading time channels done\n";
+
+#else
+
+  // Monitor tcb and detector tcb are equivalent
+  Nmonitor_channels = Ndetector_channels;
+  monitor_tcb.resize(Nmonitor_channels+1);
+  for (int i = 0; i <= Ndetector_channels; i++)
+    monitor_tcb[i] = detector_tcb[i];
+
+#endif
+
+  // Load raw monitor counts
+  monitor_counts.resize(Nmonitor_channels);
+  nexus_read(file,MONITOR_DATA,&monitor_counts[0],Nmonitor_channels);
+  compute_uncertainty(monitor_counts, monitor_dcounts);
+
+  // Compute wavelength at the edges of the monitor bins
+  const double scale = TOF_to_wavelength(moderator_to_monitor); 
+  monitor_edges.resize(Nmonitor_channels+1);
+  for (int i = 0; i <= Nmonitor_channels; i++)
+    monitor_edges[i] = monitor_tcb[i]*scale;
 
   // Compute wavelength at the centers of the monitor bins
-  monitor_raw_lambda.resize(nTimeChannels);
-  const double scale = TOF_to_wavelength(moderator_to_monitor); 
-  for (int i=0; i < nTimeChannels; i++) 
-    monitor_raw_lambda[i] = (tcb[i]+tcb[i+1])*scale/2.;
+  monitor_lambda.resize(Nmonitor_channels);
+  for (int i=0; i < Nmonitor_channels; i++) 
+    monitor_lambda[i] = (monitor_tcb[i]+monitor_tcb[i+1])*scale/2.;
   // std::cout << "loading monitor done\n";
-}
-
-// Load all detector frames
-//
-// Result: frames
-// Frames are Ny by Nx, with x varying fastest.  
-//   00 01 02 ... 0Nx 10 11 12 ... 1Nx ...
-// Integrate along x to simulate a linear detector.
-// Frames are stored one after the other.
-void NXtofnref::load_all_frames(void)
-{
-  // std::cout << "loading frames\n";
-  all_frames.resize(Nx*Ny*nTimeChannels);
-  if (nexus_read(file, DETECTOR_DATA, &all_frames[0], Nx*Ny*nTimeChannels)) {
-    // std::cout << "transposing\n";
-    transpose(nTimeChannels, Nx*Ny, &all_frames[0]);
-  }
-  // std::cout << "loading frames done\n";
-}
-
-
-void NXtofnref::summary(std::ostream& out)
-{
-  out << name << ": "  << title << std::endl;
-  out << " Time channels: " << nTimeChannels
-      << " Spectra: " << Nx*Ny << std::endl
-      << std::endl;
 }
 
 
@@ -212,259 +272,290 @@ void NXtofnref::summary(std::ostream& out)
 // TOF calculations
 
 
-// Rebin monitor bins to match detector wavelength channels.
-//
-// Result: monitor, dmonitor
-//
-// Must be used in this sequence:
-//   load_time_channel_boundaries
-//   load_monitor
-//   compute_wavelength
-//   rebin_monitor
-// Will not work correcting after select/merge frames.
-void NXtofnref::rebin_monitor(void)
+// Reset binning.
+// Assigns the wavelength for the bin centers and edges, and rebins the
+// monitor to the new binning.
+// Stores the wavelength info in bin_edges, lambda, dlambda and the
+// monitor info in monitor, dmonitor.
+void NXtofnref::set_bins(const std::vector<double>& edges)
 {
-  // Compute wavelength at the time boundaries for the monitor
-  const double scale = TOF_to_wavelength(moderator_to_monitor); 
-  std::vector<double> monitor_edges(nTimeChannels+1);
-  for (int i = 0; i <= nTimeChannels; i++) 
-    monitor_edges[i] = tcb[i]*scale;
+  Nchannels = edges.size()-1;
+  bin_edges.resize(Nchannels+1);
+  lambda.resize(Nchannels);
+  dlambda.resize(Nchannels);
 
-  DEBUG("about to rebin");
+  // bin edges are wavelengths
+  for (int i=0; i <= Nchannels; i++) bin_edges[i] = edges[i];
+  for (int i=0; i < Nchannels; i++) {
+    lambda[i] = 0.5 * (edges[i] + edges[i+1]);
+    // FIXME incorrect formula for dlambda
+    dlambda[i] = (edges[i+1] - edges[i])/sqrt(log10(256.));
+  }
 
-  // Rebin monitor bins to detector bins of the same wavelength.
-  rebin_counts(monitor_edges,monitor_raw,dmonitor_raw,
-	       lambda_edges,monitor,dmonitor);
-}
-
-
-// Determine wavelength for each time channel from the center of the time bins.
-// Stores the result in lambda, dlambda and lambda_edges.
-void NXtofnref::compute_wavelength(void)
-{
-  // Use the usual formula for TOF to lambda, *100. for units.
-  lambda.resize(nTimeChannels);
-  dlambda.resize(nTimeChannels);
-  lambda_edges.resize(nTimeChannels+1);
+#if 0
+  // Dead code from when bin edges are times
   const double scale = TOF_to_wavelength(moderator_to_detector);
-  for (int i=0; i <= nTimeChannels; i++) lambda_edges[i] = tcb[i]*scale;
-  for (int i=0; i < nTimeChannels; i++) {
+  for (int i=0; i <= Nchannels; i++) bin_edges[i] = tcb[i]*scale;
+  for (int i=0; i < Nchannels; i++) {
     lambda[i] = 0.5 * (tcb[i] + tcb[i+1])*scale;
     // FIXME incorrect formula for dlambda
     dlambda[i] = (tcb[i+1] - tcb[i])/sqrt(log10(256.))*scale; 
   }
-  DEBUG("setting lambda(" << lambda.size() << ") at " << intptr_t(&lambda[0]));
+#endif
+
+  // Rebin monitor bins to detector bins of the same wavelength.
+  if (Nmonitor_channels) {
+    rebin_counts(monitor_edges,monitor_counts,bin_edges,monitor);
+    compute_uncertainty(monitor,dmonitor);
+  }
 }
 
 
-// for each frame applyDetectorEfficiencyCorrection(frame);
-
-
-// Return a particular frame
-void NXtofnref::get_frame(std::vector<double>& frame, int n)  
+// Set bin edges according to a vector of channel numbers.  Each bin
+// spans from the start of its channel to the start of the channel for
+// the next bin.  You will need one more channel than the number of
+// bins so that the width of the final bin is defined.  Channels should 
+// be monotonically increasing integers in the interval 0 to 
+// Ndetector_channels.
+//
+// E.g., group bins in sets of 10:
+//    [0, 10, 20, 30, 40, 50, ..., Ndetector_channels+1]
+void NXtofnref::set_bins(const std::vector<int>& channels)
 {
-  frame.resize(Nx*Ny);
-  const int offset = n * Nx*Ny;
-  for (int i=0; i < Nx*Ny; i++) frame[i] = all_frames[offset+i];
+  int n = channels.size();
+  std::vector<double> edges(n);
+  int last = 0;
+  for (int i=0; i < n; i++) {
+    if (channels[i] < last) 
+      edges[i] = detector_edges[last];
+    else if (channels[i] > Ndetector_channels) 
+      edges[i] = detector_edges[Ndetector_channels];
+    else {
+      edges[i] = detector_edges[channels[i]];
+      last = channels[i];
+    }
+  }
+
+  set_bins(edges);
 }
 
-// Compute pixel solid angle from pixel width and detector distance
-void NXtofnref::compute_pixel_angle(void)
+// Proportional binning from wavelengths lo to hi by percent.  If percent
+// is 0%, then use linear binning.
+void NXtofnref::set_bins(double vlo, double vhi, double percent)
 {
+  std::vector<double> edges;
+
+  if (percent <= 0.) {
+
+    int ilo, ihi;
+    find_channels(vlo, vhi, ilo, ihi);
+
+    // Set bin boundaries
+    int n = ihi-ilo;
+    edges.resize(n+1);
+    for (int i=0; i <= n; i++) edges[i] = detector_edges[ilo+i];
+
+  } else {
+
+    // Convert percent to step
+    const double step = percent/100.+1.;
+
+    // Count bins
+    int n=0;
+    double next=vlo;
+    while (next < vhi) { next*=step; n++; }
+    
+    // Set bin boundaries
+    edges.resize(n+1);
+    edges[0] = vlo;
+    for (int i=1; i <= n; i++) edges[i] = edges[i-1]*step;
+  }
+
+  set_bins(edges);
+}
+
+
+// FIXME for each image applyDetectorEfficiencyCorrection(image);
+
+// Return the rebinned detector image for a particular time
+void NXtofnref::get_image(std::vector<double>& image, int n)
+{ 
+  // TODO: ought to use caching rather than reading the image
+  // each time it is needed.
+
+  image.resize(Nx*Ny);
+  double edges[2] = { bin_edges[n], bin_edges[n+1] };
+  int lo, hi;
+  find_channels(edges[0], edges[1], lo, hi);
+  int k = hi-lo+1;
+
+  DEBUG("reading image " << n << " from channels " << lo << " to " << hi);
+  if (k*Ny*Nx > 10000000) {
+    DEBUG("processing individual channels");
+    // Too many channels to process the entire slab as one block;
+    // read individual time channels separately.
+    int start[3] = {lo, 0, 0};
+    int size[3] = {k, 1, 1};
+    std::vector<double> data(k);
+
+    for (int j=0; j < Ny; j++) {
+      for (int i=0; i < Nx; i++) {
+	start[1] = j; start[2] = i;
+	nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
+	rebin_counts(k, &detector_edges[lo], &data[0],
+		     1, edges, &image[i*Ny+j]);
+      }
+    }
+  } else {
+    DEBUG("processing entire slab");
+    // Read entire slab and process each pixel separately
+    int start[3] = {lo, 0, 0};
+    int size[3] = {k, Ny, Nx};
+    
+    // TODO: Should check for excessively large numbers of channels
+    // in that case, read and process each time channel separately.
+    std::vector<double> data(Nx*Ny*k);
+    nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
+    
+    for (int j=0; j < Ny; j++) {
+      for (int i=0; i < Nx; i++) {
+	rebin_counts(k, &detector_edges[lo],&data[(i*Ny+j)*k],
+		     1, edges, &image[i*Ny+j]);
+      }
+    }
+  }
+}
+
+// Get the pixel angle associated with each y bin of the detector
+void NXtofnref::load_pixel_angle(void)
+{
+  // If it is not stored in the nexus file like it should be, compute 
+  // pixel solid angle from pixel width and detector distance
   delta.resize(Ny);
-  ::compute_pixel_angle(Ny,&delta[0],pixel_width,sample_to_detector);
+  compute_pixel_angle(Ny,&delta[0],pixel_width,sample_to_detector);
 }
 
  
 void NXtofnref::integrate_counts(void)
 {
   // Reset counts vector
-  counts.resize(Ny*nTimeChannels, 0);
-  dcounts.resize(Ny*nTimeChannels);
+  counts.resize(Ny*Nchannels, 0);
+  image_sum.resize(Ny*Nx);
 
-  // Sum across x
-  std::vector<int> frame(nTimeChannels);
-  for (int k=0; k < nTimeChannels; k++) {
-    for (int j=0; j < Ny; j++) {
+  // Find channels we care about
+  int lo, hi;
+  find_channels(bin_edges[0], bin_edges[Nchannels], lo, hi);
+  int k = hi-lo+1;
+
+  // Process each channel for each pixel
+  int start[3] = {lo, 0, 0};
+  int size[3] = {k, 1, 1};
+  std::vector<double> data(k);
+  std::vector<double> binned_channels(Nchannels);
+  DEBUG("Integrating lines with Ny = " << Ny);
+  for (int j=0; j < Ny; j++) {
+    for (int i=0; i < Nx; i++) {
+      // Load and rebin counts for one pixel
+      start[1] = j; start[2] = i;
+      nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
+      rebin_counts(k, &detector_edges[lo], &data[0],
+		   Nchannels, &bin_edges[0], &binned_channels[0]);
+
+      // Accumulate bins across Nx and across times
       double sum = 0.;
-      const int offset = k*Nx*Ny + j;
-      for (int i=0; i < Nx; i++) sum += all_frames[offset+i*Ny];
-      counts[k*Ny+j] = sum;
+      for (int k=0; k < Nchannels; k++) {
+	counts[k*Ny+j] += binned_channels[k];
+	sum += binned_channels[k];
+      }
+      image_sum[i*Ny+j] = sum;
     }
-  }     
+    char ch = j%100==0 ? '#' : ( j%10==0 ? '0'+(j/10)%10 : '.');
+    std::cout << ch << std::flush;
+  }
+  std::cout << std::endl;
 
-  for (int i=0; i < Ny*nTimeChannels; i++) 
-    dcounts[i] = counts[i] != 0. ? sqrt(counts[i]) : 1.;
+  compute_uncertainty(counts, dcounts);
 }
 
 
 // Compute I,dI from counts and monitors
 void NXtofnref::normalize_counts(void)
 {
-  I.resize(Ny*nTimeChannels);
-  dI.resize(Ny*nTimeChannels);
-  for (int k=0; k < nTimeChannels; k++) {
-    const double mon = (monitor[k] == 0. ? 1. : monitor[k]);
-    const double dmon_mon_sq = dmonitor[k] / square(mon);
-    const int offset = k*Ny;
-    for (int j=0; j < Ny; j++) {
-      dI[offset+j] = sqrt(square(dcounts[offset+j]/mon) + square(counts[offset+j] * dmon_mon_sq));
-      I[offset+j] = counts[offset+j]/mon;
+  I.resize(Ny*Nchannels);
+  dI.resize(Ny*Nchannels);
+  if (Nmonitor_channels) {
+    // Divide detector images for each time channel by monitor
+    for (int k=0; k < Nchannels; k++) {
+      const double mon_inv = 1./(monitor[k] == 0. ? 1. : monitor[k]);
+      const double dmon_mon_sq = dmonitor[k] * square(mon_inv);
+      const int offset = k*Ny;
+      for (int j=0; j < Ny; j++) {
+	dI[offset+j] = sqrt(square(dcounts[offset+j] * mon_inv) 
+			    + square(counts[offset+j] * dmon_mon_sq));
+	I[offset+j] = counts[offset+j]*mon_inv;
+      }
+    }
+  } else {
+    // Can't normalize without the monitor
+    for (int k=0; k < Nchannels; k++) {
+      const int offset = k*Ny;
+      for (int j=0; j < Ny; j++) {
+	dI[offset+j] = dcounts[offset+j];
+	I[offset+j] = counts[offset+j];
+      }
     }
   }
 }
 
-// Must load all frames at once with ISIS file format; don't need to 
-// for NeXus, but keep life simple for now.
 std::vector<double> 
-NXtofnref::sum_all_frames(void)
+NXtofnref::sum_all_images(void)
 {
-  std::vector<double> frame(Nx*Ny,0);
-  for (int k = 0; k < nTimeChannels; k++) {
-    const int offset = k * Nx * Ny;
-    for (int i = 0; i < Nx*Ny; i++) frame[i] += all_frames[offset+i];
+  // image_sum is cheap to compute when integrating, so cache
+  // it and return it here.
+  return image_sum;
+}
+
+
+void NXtofnref::print_summary(std::ostream& out)
+{
+  out << name << ": "  << title << std::endl;
+  out << " detector dimensions " << Nx << " x " << Ny << std::endl;
+  out << " moderator to detector distance: " << moderator_to_detector
+      << " m" << std::endl;
+  out << " sample to detector distance:    " << sample_to_detector
+      << " m" << std::endl;
+  out << " detector angle: " << detector_angle << " degrees" << std::endl;
+  out << " sample angle:   " << sample_angle << " degrees" << std::endl;
+  out << " detector time channels (" << Ndetector_channels << "): " 
+      << detector_tcb[0] << " - " << detector_tcb[Ndetector_channels] << " us"
+      << std::endl;
+  out << " detector wavelength: " 
+      << detector_edges[0] << " - " << detector_edges[Ndetector_channels] 
+      << " Angstroms"
+      << std::endl;
+  if (Nchannels) {
+    out << " binned wavelength (" << Nchannels << "): " 
+	<< bin_edges[0] << " - " << bin_edges[Nchannels] << " Angstroms"
+	<< std::endl;
   }
-  return frame;
-}
-
-
-// ======================================================================
-// Rebinning frames
-template <class T>
-static void copy_chunk(int n, T* from, T* to)
-{
-  memcpy(to, from, n*sizeof(T));
-}
-template <class T>
-static void add_chunk(int n, T* from, T* to)
-{
-  for (int k=0; k < n; k++) to[k] += from[k];
-}
-template <class T>
-static void copy_chunk_square(int n, T* from, T* to)
-{
-  for (int k=0; k < n; k++) to[k] = from[k]*from[k];
-}
-template <class T>
-static void add_chunk_square(int n, T* from, T* to)
-{
-  for (int k=0; k < n; k++) to[k] += from[k]*from[k];
-}
-
-void NXtofnref::copy_frame(int from, int to)
-{
-  if (from == to) return;
-  copy_chunk(Nx*Ny,&all_frames[from*Nx*Ny],&all_frames[to*Nx*Ny]);
-  copy_chunk(Ny,&counts[from*Ny],&counts[to*Ny]);
-  copy_chunk_square(Ny,&dcounts[from*Ny],&dcounts[to*Ny]);
-  copy_chunk(Ny,&I[from*Ny],&I[to*Ny]);
-  copy_chunk_square(Ny,&dI[from*Ny],&dI[to*Ny]);
-  monitor[to] = monitor[from];
-  dmonitor[to] = square(dmonitor[from]);
-  tcb[to] = tcb[from];
-}
-
-void NXtofnref::add_frame(int from, int to)
-{
-  add_chunk(Nx*Ny,&all_frames[from*Nx*Ny],&all_frames[to*Nx*Ny]);
-  add_chunk(Ny,&counts[from*Ny],&counts[to*Ny]);
-  add_chunk_square(Ny,&dcounts[from*Ny],&dcounts[to*Ny]);
-  add_chunk(Ny,&I[from*Ny],&I[to*Ny]);
-  add_chunk_square(Ny,&dI[from*Ny],&dI[to*Ny]);
-  monitor[to] += monitor[from];
-  dmonitor[to] += square(dmonitor[from]);
-}
-
-// Given a list [b_1 b_2 ... b_{n+1}], sum all data from b_i to b_{i+1}-1
-// and save it if frame i.  Note that there are n+1 boundaries for n channels.
-//
-// The current implementation is defined to operate in-place, but there is
-// no performance reason to do so.  In fact, because it resizes the memory
-// down to the new size, it effectively does a copy.
-void NXtofnref::merge_frames(int n, int boundaries[])
-{
-  for (int k=0; k < n; k++) {
-    copy_frame(boundaries[k], k);
-DEBUG("merging " << boundaries[k] << " to " << boundaries[k+1] << " into " << k);
-    for (int i=boundaries[k]+1; i < boundaries[k+1]; i++) add_frame(i,k);
+  if (Nmonitor_channels) {
+    out << " monitor wavelength (" << Nmonitor_channels << "): " 
+	<< monitor_edges[0] << " - " << monitor_edges[Nmonitor_channels] 
+	<< " Angstroms"
+	<< std::endl;
   }
-  // Adding in quadrature; take square roots
-  for (int k=0; k < n; k++) {
-    dmonitor[k] = sqrt(dmonitor[k]);
-  }
-  for (int k=0; k < n*Ny; k++) {
-    dI[k] = sqrt(dI[k]);
-    dcounts[k] = sqrt(dcounts[k]);
-  }
-  // Throw away unneeded memory (really only need to do this for all_frames)
-  all_frames.resize(n*Nx*Ny);
-  I.resize(n*Ny);
-  dI.resize(n*Ny);
-  counts.resize(n*Ny);
-  dcounts.resize(n*Ny);
-  monitor.resize(n);
-  dmonitor.resize(n);
-  tcb[n] = tcb[boundaries[n]];
-  tcb.resize(n+1);
-  nTimeChannels = n;
-DEBUG("rebin n=" << n << ", Ny=" << Ny);
-  compute_wavelength();
+  out << std::endl;
 }
 
-void NXtofnref::select_frames(double lo, double hi)
-{
-  int ilo=1;
-  while (ilo <= nTimeChannels && lambda_edges[ilo] <= lo) ilo++;
-  ilo--;
-  int ihi=ilo+1;
-  while (ihi < nTimeChannels && lambda_edges[ihi] < hi) ihi++;
-
-  std::vector<int> ichannels(ihi-ilo+1);
-  for (int i=ilo; i <= ihi; i++) ichannels[i-ilo] = i;
-
-  merge_frames(ihi-ilo,&ichannels[0]);
-}
-
-void NXtofnref::merge_frames(double lo, double hi, double percent)
-{
-  if (percent == 0.) {
-    select_frames(lo,hi);
-    return;
-  }
-
-  // Convert percent to step
-  const double step = percent/100.+1.;
-
-  // Count bins
-  int n=0;
-  double next=lo;
-  while (next < hi) { next*=step; n++; }
-  std::vector<int> ichannels(n+1);
-
-  int i=1,k=0;
-  while (i <= nTimeChannels && lambda_edges[i] <= lo) i++;
-  ichannels[k++] = i-1;
-  next=lo*step;
-  while (i <= nTimeChannels && lambda_edges[i] <= hi) {
-    if (lambda_edges[i] > next) {
-      ichannels[k++] = i;
-      next *= step;
-    }
-    i++;
-  }
-  while (k <= n) ichannels[k++] = i; 
-
-  merge_frames(n, &ichannels[0]);
-}
-
-void NXtofnref::print_frame(int n, std::ostream& out)
+void NXtofnref::print_image(int n, std::ostream& out)
 {
   out << "# " << name << ": " << title << std::endl;
-  out << "# frame " << n << std::endl;
-  const int offset = n*Nx*Ny;
+  out << "# image " << n << std::endl;
+  std::vector<double> image;
+  get_image(image, n);
   for (int i=0; i < Nx; i++) {
     for (int j=0; j < Ny; j++) 
-      out << std::setw(10) << all_frames[offset+j+i*Ny];
+      out << std::setw(10) << image[j+i*Ny];
     out << std::endl;
   }
 }
@@ -480,14 +571,14 @@ void NXtofnref::print_counts(int n, std::ostream& out)
 
 #if defined(STANDALONE)
 static void
-print_sum_all_frames(NXtofnref& data, std::ostream& out = std::cout)
+print_sum_all_images(NXtofnref& data, std::ostream& out = std::cout)
 {
   out << "# " << data.name << ": " << data.title << std::endl;
-  out << "# sum of all frames" << std::endl;
-  std::vector<double> frame(data.sum_all_frames());
+  out << "# sum of all images" << std::endl;
+  std::vector<double> image(data.sum_all_images());
   for (int i=0; i < data.Nx; i++) {
     for (int j=0; j < data.Ny; j++) 
-      out << " " << std::setw(10) << frame[j+i*data.Ny];
+      out << " " << std::setw(10) << image[j+i*data.Ny];
     out << std::endl;
   }
 }
@@ -497,14 +588,14 @@ print_integrated_counts(NXtofnref& data, std::ostream& out = std::cout)
 {
   out << "# " << data.name << ": " << data.title << std::endl;
   out << "# integrated counts" << std::endl;
-  for (int i=0; i < data.nTimeChannels; i++) data.print_counts(i, out);
+  for (int i=0; i < data.Nchannels; i++) data.print_counts(i, out);
 }
 
 static void
 print_normalized_counts(NXtofnref& data, std::ostream& out = std::cout)
 {
   // Find the data floor before plotting log data
-  int start=std::min(data.nTimeChannels,80), stop=std::min(data.nTimeChannels,850);
+  int start=std::min(data.Nchannels,80), stop=std::min(data.Nchannels,850);
   double floor = 1e308;
   for (int i=start*data.Ny; i <= stop*data.Ny; i++) {
     const double d = data.I[i];
@@ -529,9 +620,12 @@ print_monitor(NXtofnref& data, std::ostream& out = std::cout)
   out << "# " << data.name << ": " << data.title << std::endl;
   out << "# rebinned monitor" << std::endl;
   out << "# lambda I dI" << std::endl;
-  for (int i=0; i < data.nTimeChannels; i++) {
-    out << std::setw(20) << data.lambda[i] << " " << std::setw(20) << data.monitor[i] 
-        << " " << std::setw(20) << data.dmonitor[i] << std::endl;
+  if (data.Nmonitor_channels) {
+    for (int i=0; i < data.Nchannels; i++) {
+      out << std::setw(20) << data.lambda[i] << " " 
+	  << std::setw(20) << data.monitor[i] 
+	  << " " << std::setw(20) << data.dmonitor[i] << std::endl;
+    }
   }
 }
 
@@ -540,16 +634,23 @@ int main(int argc, char *argv[])
 {
   NXtofnref data;
   if (argc > 1) {
+    DEBUG("Opening " << argv[1]); 
     data.open(argv[1]);
-    data.summary();
-    for (int i=0; i < data.nTimeChannels; i+=50) {
-      char filename[50]; sprintf(filename,"frame%03d.dat",i);
-      WRITE(filename, data.print_frame(i, out));
-    }
-    WRITE("framesum.dat", print_sum_all_frames(data, out));
-    WRITE("counts.dat", print_integrated_counts(data, out));
-    WRITE("norm.dat", print_normalized_counts(data, out));
+    // Note: avoiding 
+    DEBUG("Setting bins 5% bins between " << 0.1
+	  << " and " << data.detector_edges[data.Ndetector_channels]);
+    data.set_bins(0.1, data.detector_edges[data.Ndetector_channels], 5.);
+    data.print_summary();
     WRITE("monitor.dat", print_monitor(data, out));
+    for (int i=0; i < data.Nchannels; i+=50) {
+      char filename[50]; sprintf(filename,"image%03d.dat",i);
+      WRITE(filename, data.print_image(i, out));
+    }
+    data.integrate_counts();
+    WRITE("imagesum.dat", print_sum_all_images(data, out));
+    WRITE("counts.dat", print_integrated_counts(data, out));
+    data.normalize_counts();
+    WRITE("norm.dat", print_normalized_counts(data, out));
   }
 }
 

@@ -1,7 +1,10 @@
+// This is a work of the United States Government and is not
+// subject to copyright protection in the United States.
+
 #include <tcl.h>
 #include "mx.h"
 
-#if 0
+#if 1
 #include <stdint.h> // intptr_t
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
@@ -19,7 +22,7 @@
 //   Ny                returns int
 //   Nx                returns int
 //   Nt                returns int
-//   frame i           returns matrix [Nx x Ny] as string
+//   image i           returns matrix [Nx x Ny] as string
 //   channels n [v1 v2 ... vn+1] integrate channels v_i..v_{i+1}-1
 //   monitor/dmonitor  returns vector [Nt] as string
 //   lambda/dlambda    returns vector [Nt] as string
@@ -30,7 +33,6 @@
 //   sample_angle/detector_angle  returns double
 //   Nmonitor_raw      returns int
 //   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
-//   
 
 static int int_result(Tcl_Interp *interp, int k)
 {
@@ -87,12 +89,13 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
   const char *method = "";
   if (argc >= 2) method = Tcl_GetString(argv[1]);
   DEBUG(nexus_name << " (" << intptr_t(nexus_filep) <<") method is " << method);
+
   if (strcmp(method, "Nx") == 0) {
     return int_result(interp, file->Nx);
   } else if (strcmp(method, "Ny") == 0) {
     return int_result(interp, file->Ny);
   } else if (strcmp(method, "Nt") == 0) {
-    return int_result(interp, file->nTimeChannels);
+    return int_result(interp, file->Nchannels);
   } else if (strcmp(method, "sampletodetector") == 0) {
     return real_result(interp, file->sample_to_detector);
   } else if (strcmp(method, "pixelwidth") == 0) {
@@ -118,46 +121,46 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
   } else if (strcmp(method, "dI") == 0) {
     return vector_result(interp, file->dI);
   } else if (strcmp(method, "Nmonitor_raw") == 0) {
-    return int_result(interp, file->monitor_raw.size());
+    return int_result(interp, file->monitor_counts.size());
   } else if (strcmp(method, "monitor_raw") == 0) {
-    return vector_result(interp, file->monitor_raw);
+    return vector_result(interp, file->monitor_counts);
   } else if (strcmp(method, "dmonitor_raw") == 0) {
-    return vector_result(interp, file->dmonitor_raw);
+    return vector_result(interp, file->monitor_dcounts);
   } else if (strcmp(method, "monitor_raw_lambda") == 0) {
-    return vector_result(interp, file->monitor_raw_lambda);
+    return vector_result(interp, file->monitor_edges);
   } else if (strcmp(method, "monitor") == 0) {
     return vector_result(interp, file->monitor);
   } else if (strcmp(method, "dmonitor") == 0) {
     return vector_result(interp, file->dmonitor);
   } else if (strcmp(method, "lambda_edges") == 0) {
-    return vector_result(interp, file->lambda_edges);
+    return vector_result(interp, file->bin_edges);
   } else if (strcmp(method, "lambda") == 0) {
 DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]));
     return vector_result(interp, file->lambda);
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
-  } else if (strcmp(method, "frame") == 0) {
+  } else if (strcmp(method, "image") == 0) {
     if (argc != 3) {
       Tcl_AppendResult(interp, nexus_name, 
-	 	    ": frame needs a frame number", NULL);
+	 	    ": image needs an image number", NULL);
       return TCL_ERROR;
     }
 
     int k;
     if (Tcl_GetIntFromObj(interp,argv[2],&k) != TCL_OK) return TCL_ERROR;
 
-    if (k > file->nTimeChannels || k < 0) {
+    if (k > file->Nchannels || k < 0) {
       Tcl_AppendResult(interp, nexus_name,
-		    ": frame number must be 0 for sum or 1..Nt", NULL);
+		    ": image number must be 0 for sum or 1..Nt", NULL);
       return TCL_ERROR;
     }
 
     if (k > 0) {
-      std::vector<double> frame;
-      file->get_frame(frame, k-1);
-      return vector_result(interp, frame);
+      std::vector<double> image;
+      file->get_image(image, k-1);
+      return vector_result(interp, image);
     } else {
-      return vector_result(interp, file->sum_all_frames());
+      return vector_result(interp, file->sum_all_images());
     }
 
   } else if (strcmp(method, "proportional_binning") == 0) {
@@ -166,12 +169,11 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
 			": proportional_binning needs lo hi step%", NULL);
       return TCL_ERROR;
     }
-    double lo, hi, step;
+    double lo, hi, percent;
     if (Tcl_GetDoubleFromObj(interp,argv[2],&lo) != TCL_OK) return TCL_ERROR;
     if (Tcl_GetDoubleFromObj(interp,argv[3],&hi) != TCL_OK) return TCL_ERROR;
-    if (Tcl_GetDoubleFromObj(interp,argv[4],&step) != TCL_OK) return TCL_ERROR;
-    file->reload();
-    file->merge_frames(lo, hi, step);
+    if (Tcl_GetDoubleFromObj(interp,argv[4],&percent) != TCL_OK) return TCL_ERROR;
+    file->set_bins(lo, hi, percent);
   } else if (strcmp(method, "channels") == 0) {
     if (argc != 4) {
       Tcl_AppendResult( interp, nexus_name, 
@@ -187,12 +189,12 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
 
     std::vector<int> ichannels(k+1);
     for (int i=0; i <= k; i++) ichannels[i] = int(channels[i]);
-    file->merge_frames(k,&ichannels[0]);
+    file->set_bins(ichannels);
   } else if (strcmp(method,"close") == 0) {
     file->close();
   } else {
     Tcl_AppendResult( interp, nexus_name, 
-                      ": expects close, Nx, Ny, Nt, monitor, frame i, counts, dcounts, active start stop, distance, pixelwidth, lambda, I or dI",
+                      ": expects close, Nx, Ny, Nt, monitor, image i, counts, dcounts, active start stop, distance, pixelwidth, lambda, I or dI",
                       NULL);
      return TCL_ERROR;
   }
@@ -229,6 +231,7 @@ DEBUG("command created");
     delete file;
     Tcl_ResetResult(interp);
     Tcl_AppendResult( interp, "NXtofnref: could not open ", filename, NULL);
+    return TCL_ERROR;
   }
   return TCL_OK;
 }
