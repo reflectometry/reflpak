@@ -29,6 +29,8 @@ typedef int NXdims[NX_MAXRANK];  // Should be part of napi.h
 
 #include "NXtofnref.h"
 #include "NXtofnref_keys.icc"
+#include "rebin.h"
+#include "transpose.h"
 
 // =======================================================================
 // Utility functions

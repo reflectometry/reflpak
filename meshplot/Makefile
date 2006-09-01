@@ -16,8 +16,8 @@ endif
 CFLAGS += -DUSE_TCL
 
 ## Turn on profiler
-#CFLAGS += -pg
-#LDFLAGS += -pg
+CFLAGS += -pg
+LDFLAGS += -pg
 
 OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o 
 
@@ -52,7 +52,7 @@ tclvector.o: tclvector.h
 
 
 # Support for reading NeXus binary files
-NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc
+NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc rebin.h transpose.h
 NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h
 nexus_helper.o: nexus_helper.c nexus_helper.h
 
@@ -65,6 +65,8 @@ clean:
 distclean: clean
 
 
+check:	rebintest$(EXE)
+	./rebintest
 
 # =============================================
 # Various experimental and test codes
@@ -73,6 +75,8 @@ distclean: clean
 slicetest$(EXE): slice.c
 	$(CC) -DTEST slice.c -oslicetest$(EXE)
 
+rebintest$(EXE): rebin_test.cc
+	$(CXX) $(CFLAGS) $< -o $@ -lm
 
 # Support for reading ISIS binary files
 
