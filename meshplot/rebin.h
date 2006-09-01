@@ -20,12 +20,12 @@ rebin_counts(const int Nold, const Real xold[], const Real Iold[],
   // Traverse both sets of bin edges; if there is an overlap, add the portion 
   // of the overlapping old bin to the new bin.
 #if 0
-  int iold(1), inew(1);
   Real xold_lo = xold[0];
   Real xold_hi = xold[1];
   Real xnew_lo = xnew[0];
   Real xnew_hi = xnew[1];
-  while (inew < Nnew && iold < Nold) {
+  int iold(1), inew(1);
+  while (inew <= Nnew && iold <= Nold) {
     if ( xnew_hi <= xold_lo ) {
       // new must catch up to old
       xnew_lo = xnew_hi;
@@ -40,7 +40,7 @@ rebin_counts(const int Nold, const Real xold[], const Real Iold[],
       const Real width = xold_hi - xold_lo;
       const Real portion = delta/width;
 
-      Inew[inew] += Iold[iold]*portion;
+      Inew[inew-1] += Iold[iold-1]*portion;
       if ( xnew_hi > xold_hi ) {
 	xold_lo = xold_hi;
 	xold_hi = xold[++iold];

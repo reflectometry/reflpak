@@ -75,8 +75,11 @@ check:	rebintest$(EXE)
 slicetest$(EXE): slice.c
 	$(CC) -DTEST slice.c -oslicetest$(EXE)
 
-rebintest$(EXE): rebin_test.cc
+rebintest$(EXE): rebin_test.cc rebin.h
 	$(CXX) $(CFLAGS) $< -o $@ -lm
+
+rebinspeed$(EXE): rebin_test.cc rebin.h
+	$(CXX) $(CFLAGS) $< -o $@ -lm -DSPEED_CHECK
 
 # Support for reading ISIS binary files
 
