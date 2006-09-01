@@ -39,14 +39,14 @@ bool convert(const char infile[], const char outfile[],
    * So we don't need any transform and can write the data directly.
    */
   int dims[3];
-  dims[2]=data.nTimeChannels; dims[1]=data.Nx; dims[0]=data.Ny;
+  dims[2]=data.nTimeChannels; dims[1]=data.Ny; dims[0]=data.Nx;
   
   
   /* Create nexus file */
   Nexus *file = nexus_open(outfile, "w");
   if (file == NULL) return false;
 
-  nexus_addset(file,"data1","NXtofnref",1,0,
+  nexus_addset(file,"data1",DEFINITION_NAME,1,0,
 	       "http://www.nexus.anl.gov/instruments/xml/NXtofnref.xml");
 
   
@@ -80,16 +80,26 @@ bool convert(const char infile[], const char outfile[],
   if (data.Nx*data.Ny > 1) {
     /* Multidetector data. */
     nexus_write(file, DETECTOR_DATA, &frames[0], 3, dims, NX_INT32);
-    nexus_writescalar(file, PIXEL_WIDTH, 2.3, NX_FLOAT32);
-    nexus_writescalar(file, PIXEL_HEIGHT, 2.3, NX_FLOAT32);
+    nexus_writescalar(file, PIXEL_WIDTH, 0.0023, NX_FLOAT32);
+    nexus_writescalar(file, PIXEL_HEIGHT, 0.0023, NX_FLOAT32);
     nexus_writestr(file, SCAN_TYPE, "area");
+
+    std::vector<double> offsets;
+    offsets.resize(data.Nx);
+    for (int k=0; k < data.Nx; k++) offsets[k] = (k - data.Nx/2)*0.0023;
+    nexus_writevector(file, X_PIXEL_OFFSET, &offsets[0], data.Nx, NX_FLOAT32);
+    offsets.resize(data.Ny);
+    for (int k=0; k < data.Ny; k++) offsets[k] = (k - data.Ny/2)*0.0023;
+    nexus_writevector(file, Y_PIXEL_OFFSET, &offsets[0], data.Ny, NX_FLOAT32);
   } else {
     /* Point detector data. */
     nexus_write(file, DETECTOR_DATA, &frames[0], 1, dims, NX_INT32);
     /* Don't care about pixel width and height for pencil detectors. */
   }
 
-  nexus_writevector(file, TIME_CHANNEL_BOUNDARIES, &data.tcb[0],
+  nexus_writevector(file, DETECTOR_TCB, &data.tcb[0],
+		    data.tcb.size(), NX_FLOAT32);
+  nexus_writevector(file, MONITOR_TCB, &data.tcb[0],
 		    data.tcb.size(), NX_FLOAT32);
   nexus_writevector(file, MONITOR_DATA, &data.monitor_raw[0],
 		    data.nTimeChannels, NX_INT32);

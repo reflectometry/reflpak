@@ -95,9 +95,9 @@ proc load_data { id} {
     set rec(date) 0
     set rec(distance) [$fid sampletodetector]
     set rec(pixelwidth) [$fid pixelwidth]
-    set rec(pixels) [$fid Ny]
     set rec(column,monitor_raw) [$fid monitor_raw]
     set rec(column,monitor_raw_lambda) [$fid monitor_raw_lambda]
+    set rec(pixels) [$fid Npixels]
 
     # rebin lambda from 0.55 to 5.8 with 1% resolution
     rebin $id 0.55 5.8 1.
@@ -117,6 +117,7 @@ proc rebin {id lo hi resolution} {
     
     puts "rebinning using $lo $hi $resolution"
     $fid proportional_binning $lo $hi $resolution
+    $fid rebin
     
     set rec(points) [$fid Nt]
     set rec(lambda) [$fid lambda_edges]

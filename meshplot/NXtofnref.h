@@ -39,12 +39,16 @@ public:
 
   // Detector definition
   int Nx, Ny;                   // Detector dimensions
+  int data_rank;                // Number of data dimensions
+  int primary_dimension;        // Primary detector dimension
   double moderator_to_detector; // (m)
   double sample_to_detector;    // (m)
   double detector_angle;        // (degrees)
   double sample_angle;          // (degrees)
   double pixel_width;           // (mm)
-  std::vector<double> delta;    // detector relative angle (Ny)
+  double pixel_height;          // (mm)
+  std::vector<double> delta_x;    // detector relative angle (Nx)
+  std::vector<double> delta_y;    // detector relative angle (Ny)
 
   // TOF definition
   int Ndetector_channels;  // (m)
@@ -61,12 +65,13 @@ public:
   std::vector<double> monitor_dcounts; // raw monitor dcounts (q)
 
   // Processed data
-  int Nchannels;      // (n)
+  int Nchannels;      // Number of channels after integration (n)
+  int Npixels;        // Number of pixels across the detector (r)
   std::vector<double> bin_edges;      // wavelength at bin edges (n+1)
   std::vector<double> lambda, dlambda;   // wavelength of bins (n)
   std::vector<double> monitor, dmonitor; // binned monitor counts (n)
-  std::vector<double> counts, dcounts;   // binned detector counts (Ny x n)
-  std::vector<double> I, dI;             // normalized intensity   (Ny x n)
+  std::vector<double> counts, dcounts;   // binned detector counts (r x n)
+  std::vector<double> I, dI;             // normalized intensity   (r x n)
   std::vector<double> image_sum;         // sum over all bins (Ny x Nx)
 
 
@@ -79,6 +84,7 @@ public:
   void set_bins(const std::vector<double>& edges);
   void set_bins(const std::vector<int>& bins);
   void set_bins(double lo, double hi, double percentage=0.);
+  void set_primary_dimension(int dim) { primary_dimension = dim; }
   std::vector<double> sum_all_images(void);
   void integrate_counts(void);
   void normalize_counts(void);
@@ -154,8 +160,9 @@ rebin_counts(const int Nold, const Real xold[], const Real Iold[],
   // Clear the new bins
   for (int i=0; i < Nnew; i++) Inew[i] = 0.;
 
-  // Traverse both sets of bin edges, and if there is an overlap, add the portion 
+  // Traverse both sets of bin edges; if there is an overlap, add the portion 
   // of the overlapping old bin to the new bin.
+#if 0
   int iold(1), inew(1);
   Real xold_lo = xold[0];
   Real xold_hi = xold[1];
@@ -186,6 +193,27 @@ rebin_counts(const int Nold, const Real xold[], const Real Iold[],
       }
     }
   }
+#else
+  int iold(0), inew(0);
+  while (inew < Nnew && iold < Nold) {
+    const Real xold_lo = xold[iold];
+    const Real xold_hi = xold[iold+1];
+    const Real xnew_lo = xnew[inew];
+    const Real xnew_hi = xnew[inew+1];
+    if ( xnew_hi <= xold_lo ) inew++;      // new must catch up to old
+    else if ( xold_hi <= xnew_lo ) iold++; // old must catch up to new
+    else {
+      // delta is the overlap of the bins on the x axis
+      const Real delta = std::min(xold_hi, xnew_hi) - std::max(xold_lo, xnew_lo);
+      const Real width = xold_hi - xold_lo;
+      const Real portion = delta/width;
+
+      Inew[inew] += Iold[iold]*portion;
+      if ( xnew_hi > xold_hi ) iold++;
+      else inew++;
+    }
+  }
+#endif
 }
 
 template <class Real> inline void

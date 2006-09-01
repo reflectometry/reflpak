@@ -96,10 +96,15 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return int_result(interp, file->Ny);
   } else if (strcmp(method, "Nt") == 0) {
     return int_result(interp, file->Nchannels);
+  } else if (strcmp(method, "Npixels") == 0) {
+    return int_result(interp, file->Npixels);
+  } else if (strcmp(method, "pixelwidth") == 0) {
+    const double width = file->primary_dimension==0 
+      ? file->pixel_width 
+      : file->pixel_height;
+    return real_result(interp, width);
   } else if (strcmp(method, "sampletodetector") == 0) {
     return real_result(interp, file->sample_to_detector);
-  } else if (strcmp(method, "pixelwidth") == 0) {
-    return real_result(interp, file->pixel_width);
   } else if (strcmp(method, "detector_angle") == 0) {
     return real_result(interp, file->sample_angle);
   } else if (strcmp(method, "sample_angle") == 0) {
@@ -139,6 +144,9 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
     return vector_result(interp, file->lambda);
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
+  } else if (strcmp(method, "rebin") == 0) {
+    file->integrate_counts();
+    file->normalize_counts();
   } else if (strcmp(method, "image") == 0) {
     if (argc != 3) {
       Tcl_AppendResult(interp, nexus_name, 
@@ -161,6 +169,33 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
       return vector_result(interp, image);
     } else {
       return vector_result(interp, file->sum_all_images());
+    }
+
+  } else if (strcmp(method, "primary") == 0) {
+    if (argc < 2 || argc > 3) {
+      Tcl_AppendResult( interp, nexus_name,
+			": primary ?x|y", NULL);
+      return TCL_ERROR;
+    }
+    if (argc == 2) {
+      // Return the primary dimension as 'x' or 'y'
+      if (file->primary_dimension == 0) {
+	Tcl_AppendResult (interp, "x", NULL);
+      } else {
+	Tcl_AppendResult (interp, "y", NULL);
+      }
+    } else {
+      // Convert a primary dimension from 'x' or 'y'
+      const char *str = Tcl_GetStringFromObj(argv[2],NULL);
+      if (str[0] == 'x') {
+	file->set_primary_dimension(0);
+      } else if (str[0] == 'y') {
+	file->set_primary_dimension(1);
+      } else {
+	Tcl_AppendResult( interp, nexus_name,
+			  ": primary ?x|y", NULL);
+	return TCL_ERROR;
+      }
     }
 
   } else if (strcmp(method, "proportional_binning") == 0) {

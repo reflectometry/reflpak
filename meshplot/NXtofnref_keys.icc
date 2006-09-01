@@ -17,6 +17,8 @@ const char DETECTOR_DATA[] =
   "NXinstrument:instrument/NXdetector:bank1/data";
 
 /* Detector characteristics. */
+const char PIXEL_OFFSET[] =
+  "NXinstrument:instrument/NXdetector:bank1/pixel_offset";
 const char PIXEL_WIDTH[] =
   "NXinstrument:instrument/NXdetector:bank1/x_pixelsize";
 const char PIXEL_HEIGHT[] =

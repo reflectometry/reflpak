@@ -25,6 +25,7 @@ typedef int NXdims[NX_MAXRANK];  // Should be part of napi.h
 #else
 #define DEBUG(a) do { } while (0)
 #endif
+#define ERROR(a) do { std::cerr << a << std::endl; } while (0)
 
 #include "NXtofnref.h"
 #include "NXtofnref_keys.icc"
@@ -124,12 +125,17 @@ void NXtofnref::load_instrument(void)
 
   DEBUG("dims for " << DETECTOR_DATA);
   if (!nexus_dims(file, DETECTOR_DATA, &dims)) return;
+  data_rank = dims.rank;
   Ndetector_channels = dims.size[dims.rank-1];
   Nx = Ny = 1;
-  if (dims.rank > 1) Ny = dims.size[0];
-  if (dims.rank > 2) Nx = dims.size[1];
+  if (dims.rank > 1) Nx = dims.size[0];
+  if (dims.rank > 2) Ny = dims.size[1];
+  // FIXME need to check whether we have a horizontal or vertical
+  // geometry reflectometer
+  primary_dimension = 0;
+  Npixels = (primary_dimension == 0?Nx:Ny);
 
-  DEBUG("dims = " << Ny << "x" << Nx << "x" << Ndetector_channels);
+  DEBUG("dims = " << Nx << "x" << Ny << "x" << Ndetector_channels);
 
   DEBUG(DETECTOR_DISTANCE);
   sample_to_detector = 0;
@@ -147,18 +153,39 @@ void NXtofnref::load_instrument(void)
 
 #if 1
 
-  // pixel offsets, no pixel widths
-  std::vector<double> y_offset(Ny);
-  nexus_read(file, Y_PIXEL_OFFSET, &y_offset[0], Ny);
-  double sum = 0.;
-  for (int i=0; i < Ny; i++) sum += y_offset[i];
-  pixel_width = 1000.*sum/Ny; // Average pixel width in mm
+  if (data_rank == 3) {
+    // pixel offsets, no pixel width
+    std::vector<double> offset;
+
+    offset.resize(Nx);
+    nexus_read(file, X_PIXEL_OFFSET, &offset[0], Nx);
+    double sum = 0.;
+    for (int i=0; i < Nx; i++) sum += offset[i];
+    pixel_width = 1000.*sum/Nx; // Average pixel width in mm
+
+    offset.resize(Ny);
+    nexus_read(file, Y_PIXEL_OFFSET, &offset[0], Ny);
+    sum = 0.;
+    for (int i=0; i < Ny; i++) sum += offset[i];
+    pixel_height = 1000.*sum/Ny; // Average pixel width in mm
+  } else if (data_rank == 2) {
+    std::vector<double> offset(Nx);
+    nexus_read(file, PIXEL_OFFSET, &offset[0], Nx);
+    double sum = 0.;
+    for (int i=0; i < Nx; i++) sum += offset[i];
+    pixel_width = pixel_height = 1000.*sum/Nx; // Average pixel width in mm
+  } else {
+    assert(data_rank == 1);
+    pixel_width = pixel_height = 1;
+  }
 
 #else
 
-  // pixel width, no pixel offset
+  // pixel width, no pixel offsets
   DEBUG(PIXEL_WIDTH);
   nexus_read(file, PIXEL_WIDTH, &pixel_width, 1);
+  DEBUG(PIXEL_HEIGHT);
+  nexus_read(file, PIXEL_HEIGHT, &pixel_width, 1);
 
 #endif
 
@@ -199,7 +226,7 @@ void NXtofnref::load_instrument(void)
 // Result: Ndetector_channels, detector_tcb, detector_edges
 void NXtofnref::load_detector_tcb(void)
 {
-  std::cout << "loading time channels\n";
+  // DEBUG("loading time channels");
   NexusDim dims;
   if (nexus_dims(file, DETECTOR_TCB, &dims)) {
     assert(dims.rank == 1);
@@ -207,12 +234,15 @@ void NXtofnref::load_detector_tcb(void)
     if (nexus_read(file, DETECTOR_TCB, &detector_tcb[0], dims.size[0]))
       Ndetector_channels = dims.size[0]-1;
   }
-  std::cout << "loading time channels done\n";
+  // DEBUG("loading time channels done");
 
   const double scale = TOF_to_wavelength(moderator_to_detector);
   detector_edges.resize(Ndetector_channels+1);
   for (int i=0; i <= Ndetector_channels; i++) 
     detector_edges[i] = detector_tcb[i]*scale;
+
+  // Not yet integrated
+  Nchannels = 0;
 }
 
 // Load the monitor values.  Computes monitor uncertainty and bin wavelengths.
@@ -220,23 +250,23 @@ void NXtofnref::load_detector_tcb(void)
 // Result: monitor_counts, monitor_dcounts, monitor_edges, monitor_lambda
 void NXtofnref::load_monitor(void)
 {
-  // std::cout << "loading monitor\n";
+  // DEBUG("loading monitor");
 
 #if 1
 
   // Monitor tcb and detector tcb stored separately
-  // std::cout << "loading time channels\n";
   NexusDim dims;
+  Nmonitor_channels = 0;
+  DEBUG("reading dims for " << MONITOR_TCB);
   if (nexus_dims(file, MONITOR_TCB, &dims)) {
     assert(dims.rank == 1);
     monitor_tcb.resize(dims.size[0]);
+    DEBUG("reading data length " << dims.size[0] << " for " << MONITOR_TCB);
     if (nexus_read(file, MONITOR_TCB, &monitor_tcb[0], dims.size[0]))
       Nmonitor_channels = dims.size[0]-1;
-  } else {
-    Nmonitor_channels = 0;
-    return;
   }
-  // std::cout << "loading time channels done\n";
+  DEBUG("Nmonitor_channels = " << Nmonitor_channels);
+  if (Nmonitor_channels<2) return;
 
 #else
 
@@ -263,7 +293,6 @@ void NXtofnref::load_monitor(void)
   monitor_lambda.resize(Nmonitor_channels);
   for (int i=0; i < Nmonitor_channels; i++) 
     monitor_lambda[i] = (monitor_tcb[i]+monitor_tcb[i+1])*scale/2.;
-  // std::cout << "loading monitor done\n";
 }
 
 
@@ -380,6 +409,8 @@ void NXtofnref::set_bins(double vlo, double vhi, double percent)
 // Return the rebinned detector image for a particular time
 void NXtofnref::get_image(std::vector<double>& image, int n)
 { 
+  assert(data_rank == 3); // No support yet for linear or point detectors
+
   // TODO: ought to use caching rather than reading the image
   // each time it is needed.
 
@@ -387,89 +418,113 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
   double edges[2] = { bin_edges[n], bin_edges[n+1] };
   int lo, hi;
   find_channels(edges[0], edges[1], lo, hi);
-  int k = hi-lo+1;
+  int Nk = hi-lo+1;
 
   DEBUG("reading image " << n << " from channels " << lo << " to " << hi);
-  if (k*Ny*Nx > 10000000) {
+  DEBUG("rebinning " << detector_edges[lo] << "-" << detector_edges[hi]
+	<< " into " << edges[0] << "-" << edges[1]);
+  if (Nk*Ny*Nx > 10000000) {
     DEBUG("processing individual channels");
     // Too many channels to process the entire slab as one block;
     // read individual time channels separately.
-    int start[3] = {lo, 0, 0};
-    int size[3] = {k, 1, 1};
-    std::vector<double> data(k);
+    int start[3] = {0, 0, lo};
+    int size[3] = {1, 1, Nk};
+    std::vector<double> data(Nk);
 
-    for (int j=0; j < Ny; j++) {
-      for (int i=0; i < Nx; i++) {
-	start[1] = j; start[2] = i;
-	nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
-	rebin_counts(k, &detector_edges[lo], &data[0],
+    for (int i=0; i < Nx; i++) {
+      for (int j=0; j < Ny; j++) {
+	start[0] = i; start[1] = j;
+	if (!nexus_readslab(file, DETECTOR_DATA, &data[0], start, size)) {
+	  ERROR("could not read channels " << lo << "-" << lo+Nk-1 << " from pixel " << i << "," << j << " of " << DETECTOR_DATA);
+	  return; // FIXME what to do with error?
+	}
+	rebin_counts(Nk, &detector_edges[lo], &data[0],
 		     1, edges, &image[i*Ny+j]);
       }
     }
   } else {
     DEBUG("processing entire slab");
     // Read entire slab and process each pixel separately
-    int start[3] = {lo, 0, 0};
-    int size[3] = {k, Ny, Nx};
+    int start[3] = {0, 0, lo};
+    int size[3] = {Nx, Ny, Nk};
     
     // TODO: Should check for excessively large numbers of channels
     // in that case, read and process each time channel separately.
-    std::vector<double> data(Nx*Ny*k);
-    nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
+    std::vector<double> data(Nx*Ny*Nk);
+    if (!nexus_readslab(file, DETECTOR_DATA, &data[0], start, size)) {
+      ERROR("could not read channels " << lo << "-" << lo+Nk-1 << " from all pixels of " << DETECTOR_DATA);
+      return; // FIXME what to do with error?
+    }
     
-    for (int j=0; j < Ny; j++) {
-      for (int i=0; i < Nx; i++) {
-	rebin_counts(k, &detector_edges[lo],&data[(i*Ny+j)*k],
+    for (int i=0; i < Nx; i++) {
+      for (int j=0; j < Ny; j++) {
+	rebin_counts(Nk, &detector_edges[lo],&data[(i*Ny+j)*Nk],
 		     1, edges, &image[i*Ny+j]);
+	double sum=0.;
+	// for (int k=0; k < Nk; k++) sum += data[(i*Ny+j)*Nk];
+	// DEBUG(" " << i << "," << j << ": " << sum << " -> " << image[i*Ny+j]);
       }
     }
   }
 }
 
-// Get the pixel angle associated with each y bin of the detector
+// Get the pixel angle associated with each bin of the detector
 void NXtofnref::load_pixel_angle(void)
 {
   // If it is not stored in the nexus file like it should be, compute 
-  // pixel solid angle from pixel width and detector distance
-  delta.resize(Ny);
-  compute_pixel_angle(Ny,&delta[0],pixel_width,sample_to_detector);
+  // pixel angle from pixel width and detector distance
+  delta_x.resize(Nx);
+  compute_pixel_angle(Nx,&delta_x[0],pixel_width,sample_to_detector);
+  delta_y.resize(Ny);
+  compute_pixel_angle(Ny,&delta_y[0],pixel_height,sample_to_detector);
 }
 
  
 void NXtofnref::integrate_counts(void)
 {
+  // Use the current number of pixels
+  Npixels = (primary_dimension == 0?Nx:Ny);
+
   // Reset counts vector
-  counts.resize(Ny*Nchannels, 0);
-  image_sum.resize(Ny*Nx);
+  counts.resize(Npixels*Nchannels, 0);
+  image_sum.resize(Nx*Ny);
 
   // Find channels we care about
   int lo, hi;
   find_channels(bin_edges[0], bin_edges[Nchannels], lo, hi);
-  int k = hi-lo+1;
+  int Nk = hi-lo+1;
 
   // Process each channel for each pixel
-  int start[3] = {lo, 0, 0};
-  int size[3] = {k, 1, 1};
-  std::vector<double> data(k);
+  assert(data_rank == 3); // Doesn't yet support linear or point detectors
+  int start[3] = {0, 0, lo};
+  int size[3] = {1, 1, Nk};
+  std::vector<double> data(Nk);
   std::vector<double> binned_channels(Nchannels);
-  DEBUG("Integrating lines with Ny = " << Ny);
-  for (int j=0; j < Ny; j++) {
-    for (int i=0; i < Nx; i++) {
+  DEBUG("Integrating lines from " << lo << " to " 
+	<< hi << "  with Nx = " << Nx);
+  for (int i=0; i < Nx; i++) {
+    int nonzeros = 0;
+    for (int j=0; j < Ny; j++) {
       // Load and rebin counts for one pixel
-      start[1] = j; start[2] = i;
-      nexus_readslab(file, DETECTOR_DATA, &data[0], start, size);
-      rebin_counts(k, &detector_edges[lo], &data[0],
+      start[0] = i; start[1] = j;
+      if (!nexus_readslab(file, DETECTOR_DATA, &data[0], start, size)) {
+	ERROR("could not read channels " << lo << "-" << lo+Nk-1 << " from pixel " << i << "," << j << " of " << DETECTOR_DATA);
+	return; // FIXME what to do with error?
+      }
+      rebin_counts(Nk, &detector_edges[lo], &data[0],
 		   Nchannels, &bin_edges[0], &binned_channels[0]);
 
       // Accumulate bins across Nx and across times
       double sum = 0.;
       for (int k=0; k < Nchannels; k++) {
-	counts[k*Ny+j] += binned_channels[k];
+	counts[k*Npixels+(primary_dimension==0?i:j)] += binned_channels[k];
 	sum += binned_channels[k];
       }
       image_sum[i*Ny+j] = sum;
+      for (int k=0; k < Nk; k++) nonzeros += (data[k]!=0);
     }
-    char ch = j%100==0 ? '#' : ( j%10==0 ? '0'+(j/10)%10 : '.');
+    char ch = i%100==0 ? '#' : ( i%10==0 ? '0'+(i/10)%10 : 
+				 ( nonzeros?':':'.') );
     std::cout << ch << std::flush;
   }
   std::cout << std::endl;
@@ -481,15 +536,15 @@ void NXtofnref::integrate_counts(void)
 // Compute I,dI from counts and monitors
 void NXtofnref::normalize_counts(void)
 {
-  I.resize(Ny*Nchannels);
-  dI.resize(Ny*Nchannels);
+  I.resize(counts.size());
+  dI.resize(counts.size());
   if (Nmonitor_channels) {
     // Divide detector images for each time channel by monitor
     for (int k=0; k < Nchannels; k++) {
       const double mon_inv = 1./(monitor[k] == 0. ? 1. : monitor[k]);
       const double dmon_mon_sq = dmonitor[k] * square(mon_inv);
-      const int offset = k*Ny;
-      for (int j=0; j < Ny; j++) {
+      const int offset = k*Npixels;
+      for (int j=0; j < Npixels; j++) {
 	dI[offset+j] = sqrt(square(dcounts[offset+j] * mon_inv) 
 			    + square(counts[offset+j] * dmon_mon_sq));
 	I[offset+j] = counts[offset+j]*mon_inv;
@@ -498,8 +553,8 @@ void NXtofnref::normalize_counts(void)
   } else {
     // Can't normalize without the monitor
     for (int k=0; k < Nchannels; k++) {
-      const int offset = k*Ny;
-      for (int j=0; j < Ny; j++) {
+      const int offset = k*Npixels;
+      for (int j=0; j < Npixels; j++) {
 	dI[offset+j] = dcounts[offset+j];
 	I[offset+j] = counts[offset+j];
       }
@@ -533,15 +588,15 @@ void NXtofnref::print_summary(std::ostream& out)
       << detector_edges[0] << " - " << detector_edges[Ndetector_channels] 
       << " Angstroms"
       << std::endl;
-  if (Nchannels) {
-    out << " binned wavelength (" << Nchannels << "): " 
-	<< bin_edges[0] << " - " << bin_edges[Nchannels] << " Angstroms"
-	<< std::endl;
-  }
   if (Nmonitor_channels) {
     out << " monitor wavelength (" << Nmonitor_channels << "): " 
 	<< monitor_edges[0] << " - " << monitor_edges[Nmonitor_channels] 
 	<< " Angstroms"
+	<< std::endl;
+  }
+  if (Nchannels) {
+    out << " binned wavelength (" << Nchannels << "): " 
+	<< bin_edges[0] << " - " << bin_edges[Nchannels] << " Angstroms"
 	<< std::endl;
   }
   out << std::endl;
@@ -562,8 +617,8 @@ void NXtofnref::print_image(int n, std::ostream& out)
 
 void NXtofnref::print_counts(int n, std::ostream& out)
 {
-  for (int j=0; j < Ny; j++) 
-    out << " " << std::setw(10) << log10(1.+counts[n*Ny + j]);
+  for (int j=0; j < Npixels; j++) 
+    out << " " << std::setw(10) << log10(1.+counts[n*Npixels + j]);
   out << std::endl;
 }
 
@@ -597,7 +652,7 @@ print_normalized_counts(NXtofnref& data, std::ostream& out = std::cout)
   // Find the data floor before plotting log data
   int start=std::min(data.Nchannels,80), stop=std::min(data.Nchannels,850);
   double floor = 1e308;
-  for (int i=start*data.Ny; i <= stop*data.Ny; i++) {
+  for (int i=start*data.Npixels; i <= stop*data.Npixels; i++) {
     const double d = data.I[i];
     if (d > 0. && d < floor) floor = d;
   }
@@ -606,8 +661,8 @@ print_normalized_counts(NXtofnref& data, std::ostream& out = std::cout)
   out << "# " << data.name << ": " << data.title << std::endl;
   out << "# normalized counts" << std::endl;
   for (int k=start; k <= stop; k++) {
-    for (int j=0; j < data.Ny; j++) {
-      const double d = data.I[k*data.Ny + j];
+    for (int j=0; j < data.Npixels; j++) {
+      const double d = data.I[k*data.Npixels + j];
       out << " " << std::setw(10) << log10(d<floor ? floor : d);
     }
     out << std::endl;
@@ -625,7 +680,7 @@ print_monitor(NXtofnref& data, std::ostream& out = std::cout)
       out << std::setw(20) << data.lambda[i] << " " 
 	  << std::setw(20) << data.monitor[i] 
 	  << " " << std::setw(20) << data.dmonitor[i] << std::endl;
-    }
+   }
   }
 }
 
@@ -636,11 +691,19 @@ int main(int argc, char *argv[])
   if (argc > 1) {
     DEBUG("Opening " << argv[1]); 
     data.open(argv[1]);
-    // Note: avoiding 
+    data.print_summary();
+
+    DEBUG("No binning");
+    data.set_bins(0., data.detector_edges[data.Ndetector_channels], 0.);
+    for (int i=0; i < data.Ndetector_channels; i+=500) {
+      char filename[50]; sprintf(filename,"imageraw%03d.dat",i);
+      WRITE(filename, data.print_image(i, out));
+    }
+
     DEBUG("Setting bins 5% bins between " << 0.1
 	  << " and " << data.detector_edges[data.Ndetector_channels]);
     data.set_bins(0.1, data.detector_edges[data.Ndetector_channels], 5.);
-    data.print_summary();
+
     WRITE("monitor.dat", print_monitor(data, out));
     for (int i=0; i < data.Nchannels; i+=50) {
       char filename[50]; sprintf(filename,"image%03d.dat",i);
