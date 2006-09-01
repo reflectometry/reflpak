@@ -12,45 +12,14 @@ template <class Real> void
 rebin_counts(const int Nold, const Real xold[], const Real Iold[],
              const int Nnew, const Real xnew[], Real Inew[])
 {
-  // Note: inspired by rebin from OpenGenie, but using counts per bin rather than rates.
+  // Note: inspired by rebin from OpenGenie, but using counts per bin 
+  // rather than rates.
 
   // Clear the new bins
   for (int i=0; i < Nnew; i++) Inew[i] = 0.;
 
   // Traverse both sets of bin edges; if there is an overlap, add the portion 
   // of the overlapping old bin to the new bin.
-#if 0
-  Real xold_lo = xold[0];
-  Real xold_hi = xold[1];
-  Real xnew_lo = xnew[0];
-  Real xnew_hi = xnew[1];
-  int iold(1), inew(1);
-  while (inew <= Nnew && iold <= Nold) {
-    if ( xnew_hi <= xold_lo ) {
-      // new must catch up to old
-      xnew_lo = xnew_hi;
-      xnew_hi = xnew[++inew];
-    } else if ( xold_hi <= xnew_lo ) {
-      // old must catch up to new
-      xold_lo = xold_hi;
-      xold_hi = xold[++iold];
-    } else {
-      // delta is the overlap of the bins on the x axis
-      const Real delta = std::min(xold_hi, xnew_hi) - std::max(xold_lo, xnew_lo);
-      const Real width = xold_hi - xold_lo;
-      const Real portion = delta/width;
-
-      Inew[inew-1] += Iold[iold-1]*portion;
-      if ( xnew_hi > xold_hi ) {
-	xold_lo = xold_hi;
-	xold_hi = xold[++iold];
-      } else {
-	xnew_lo = xnew_hi;
-	xnew_hi = xnew[++inew];
-      }
-    }
-  }
-#else
   int iold(0), inew(0);
   while (inew < Nnew && iold < Nold) {
     const Real xold_lo = xold[iold];
@@ -70,7 +39,6 @@ rebin_counts(const int Nold, const Real xold[], const Real Iold[],
       else inew++;
     }
   }
-#endif
 }
 
 template <class Real> inline void

@@ -16,8 +16,8 @@ endif
 CFLAGS += -DUSE_TCL
 
 ## Turn on profiler
-CFLAGS += -pg
-LDFLAGS += -pg
+#CFLAGS += -pg
+#LDFLAGS += -pg
 
 OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o 
 
