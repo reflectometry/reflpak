@@ -461,7 +461,7 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
 	rebin_counts(Nk, &detector_edges[lo],&data[(i*Ny+j)*Nk],
 		     1, edges, &image[i*Ny+j]);
 	double sum=0.;
-	// for (int k=0; k < Nk; k++) sum += data[(i*Ny+j)*Nk];
+	for (int k=0; k < Nk; k++) sum += data[(i*Ny+j)*Nk];
 	// DEBUG(" " << i << "," << j << ": " << sum << " -> " << image[i*Ny+j]);
       }
     }
