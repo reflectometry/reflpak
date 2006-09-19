@@ -8,8 +8,10 @@ ifndef LDEXT
 endif
 
 ifeq ($(ARCH),win)
-  # You must have first compiled fdlibm and copied libm.a to /usr/local/libfdm.a
-  FDLIBM=-L/usr/local/lib -lfdm
+  # May need to compile routines in mingw subdirectory because the
+  # current mingw libm is missing some of the posix standard functions.
+  FDLIBM=$(patsubst %,mingw/%.o,e_acosh e_atanh e_log s_asinh s_expm1)
+  CFLAGS:=$(CFLAGS) -Imingw
 endif
 
 C99 ?= $(CC)
@@ -27,10 +29,13 @@ pkgIndex.tcl: pkgIndex.tcl.in Makefile
 	sed -e 's,@VERSION@,$(VERSION),;s,@LDEXT@,$(LDEXT),' \
 		< pkgIndex.tcl.in > pkgIndex.tcl
 
-scifun$(LDEXT): scifun.o
+scifun$(LDEXT): scifun.o $(FDLIBM)
 	$(LD) $(LDFLAGS) -o $@ $< $(LIBS) $(FDLIBM)
 
 %.o: %.c ; $(C99) $(CFLAGS) $(DEFS) -c $< -o $@ -DVERSION=$(VERSION)
 
 clean:
-	$(RM) *.o
+	$(RM) *.o mingw/*.o
+
+distclean:
+	$(RM) *.o mingw/*.o *~ scifun$(LDEXT)
