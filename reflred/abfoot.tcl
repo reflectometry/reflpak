@@ -165,8 +165,9 @@ namespace eval abfoot {
 	integrate $wA $wB $hi $Ahi
 
 	# Total area of intersection is the sum of the areas of the regions
-	# Normalize that by the total area of the beam (A+B)/2.  Note that
-	# the factor of 2 is already incorporated into wA and wB.
+	# Normalize that by the total area of the beam (A+B)/2 and scale by
+	# the incident intensity.  Note that the factor of 2 is already 
+	# incorporated into wA and wB.
 	::abfoot_y expr "$Io * ($Alo + $Ahi) / ($wA+$wB)"
 
 	vector destroy $wA $wB $lo $hi $Alo $Ahi

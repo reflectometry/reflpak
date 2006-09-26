@@ -593,9 +593,8 @@ whichever occurs at the lowest Q.
 	on the right hand axis.
 
 >(3) Neither a flat region nor a sloped region is evident below the  
-critical angle:  In this case calculate the footprint correction from
-the geometry of your sample and enter it directly  (Tools for this
-calculation are not yet available in reflred).  If your sample is not
+critical angle:  In this case calculate the [ab initio footprint correction] 
+from the geometry of your sample and enter it directly.  If your sample is not
 rectangular, you may not be able to calculate the footprint correction,
 and you will need to measure it (see below).
 
@@ -655,6 +654,51 @@ the region you want to correct as zero to the critical angle of the
 footprint scan.
 
 2003-11-03}
+
+# ----------------------------------------------------------------------
+hpage {ab initio footprint correction} .abfoot {See also 
+[footprint correction]
+
+Compute the footprint correction directly from the geometry of the
+measurement.  This calculation is approximate.  The exact 
+calculation is dependent on the shape of the sample and precise
+geometry of the slits.  However, within its limits it may be useful 
+for correcting data which does not have a well defined critical edge 
+in the range of the measurement.
+
+
+The sample is assumed to be approximately rectangular over the 
+width of beam.  This is a reasonable approximation for a circular disk
+in the presence of masking slits (which cut off the top and bottom 
+of a disk vertical geometry, or the sides for horizontal geometry 
+instruments), though the effective width of the sample will be somewhat
+smaller than the diameter of the disk.
+
+  length: size of the sample across the beam (mm)
+  offset: offset of sample relative to the center of the beam (mm)
+  thickness: thickness of the sample (mm)  -- unused
+
+The beam is assumed to be a trapezoid with a flat top of width A 
+and a base of width B.  A and B should scale linearly with slit 1 
+opening.  The beam intensity is a simple scale factor for the 
+footprint correction so that it can be matched to the graph.
+It does not automatically calculate the expected intensity due to
+increased opening of the slits.
+
+  A: width of the top of trapezoid relative to S1
+  B: width of the base of trapezoid relative to S1
+  Io: beam intensity (normally 1)
+
+Given the distance between slit 1 and the sample (d1), the distance
+between slit 2 and the sample (d2) and the slit openings (S1 and S2),
+the following define A and B:
+
+  A = |d1 S2/S1 - d2| / (d1-d2)
+  B = |d1 S2/S1 + d2| / (d1-d2)
+
+The code is limited to slits which open in constant proportion to each other.
+
+2006-09-25}
 
 # ----------------------------------------------------------------------
 hpage {newpsd} .newpsd {See also [newpsd controls]
