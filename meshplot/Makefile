@@ -52,10 +52,10 @@ tclvector.o: tclvector.h
 
 
 # Support for reading NeXus binary files
-NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc rebin.h transpose.h
-NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h
+NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc rebin.h \
+	transpose.h progress.h
+NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h progress.h
 nexus_helper.o: nexus_helper.c nexus_helper.h
-
 
 
 clean:
@@ -104,3 +104,5 @@ plottest$(EXE): plot.c
 	$(CC) $(GLDEF) $(GLINC) $(GLUTINC) -DTEST plot.c -o plot$(EXE) \
 	      $(GLUTLIBS) $(GLLIBS) -lm
 
+progressdemo$(EXE): progressdemo.cc progress.h
+	$(CXX) $(CFLAGS) -c $< -o $@

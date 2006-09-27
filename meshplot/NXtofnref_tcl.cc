@@ -14,6 +14,68 @@
 
 
 #include "NXtofnref.h"
+#include "progress.h"
+
+// Call back to Tcl to implement a progress meter.
+class TkMeter : public ProgressMeter
+{
+  Tcl_Interp* _interp;
+  std::string _fn;
+
+ public:
+  // FIXME in a 'reasonable' scripting language you may need
+  // to provide a data bundle in addition to the function name.
+  // We can get away without it here because the function name
+  // can be something like "tofnref::progress .tofnref_loading"
+  TkMeter(Tcl_Interp *interp, Tcl_Obj *fn) 
+    : _interp(interp), _fn(Tcl_GetString(fn)) { }
+  ~TkMeter() { if (raised()) lower(); }
+ protected:
+  void raise() {
+    // Subst 'raise {name}' for %a in command
+    std::string cmd(_fn);
+    int idx = cmd.find("%a");
+    if (idx >= 0) cmd.replace(idx,2,"raise {"+name()+"}");
+    // FIXME need better handling of interpreter errors
+    //DEBUG("raise: " << cmd);
+    Tcl_Eval(_interp, cmd.c_str());
+  }
+  void lower() {
+    // Subst 'lower' for %a in command
+    std::string cmd(_fn);
+    int idx = cmd.find("%a");
+    if (idx >= 0) cmd.replace(idx,2,"lower");
+    //DEBUG("lower: " << cmd);
+    // FIXME need better handling of interpreter errors
+    Tcl_Eval(_interp, cmd.c_str());
+  }
+  bool update(double from, double to) {
+    // Subst 'update from to' for %a in command
+    char args[100];
+    sprintf(args," update %g %g",from,to);
+    std::string cmd(_fn);
+    int idx = cmd.find("%a");
+    if (idx >= 0) cmd.replace(idx,2,args);
+
+    // Call the interpreter, ignoring errors
+    // FIXME need better handling of interpreter errors
+    int result;
+    Tcl_ResetResult(_interp);
+    // DEBUG("update: " << cmd);
+    result = Tcl_Eval(_interp, cmd.c_str());
+    if (result != TCL_OK) return true;
+
+    // Get return flag from update
+    int val;
+    result = Tcl_GetBooleanFromObj(_interp, Tcl_GetObjResult(_interp), &val);
+    //DEBUG(Tcl_GetStringResult(_interp) << " -> " << val);
+    if (result != TCL_OK) return true;
+
+    return val == 1;
+  }
+} ;
+
+
 
 // command:
 //   NXtofnref "filename" returns object
@@ -145,7 +207,15 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
   } else if (strcmp(method, "rebin") == 0) {
-    file->integrate_counts();
+    ProgressMeter *meter = 0;
+    if (argc == 3) {
+      meter = new TkMeter(interp,argv[2]);
+    } else {
+      // meter = new NoMeter();
+      meter = new TextMeter();
+    }
+    file->integrate_counts(meter);
+    delete meter;
     file->normalize_counts();
   } else if (strcmp(method, "image") == 0) {
     if (argc != 3) {

@@ -110,6 +110,48 @@ proc load_data { id} {
     return 1
 }
 
+variable progress_text
+variable progress_value
+variable progress_alive
+proc progress {w action args} {
+    # ptrace
+
+    variable progress_text
+    variable progress_value
+    variable progress_alive
+
+    switch -- $action {
+	abort {
+	    set progress_alive 0
+	    set progress_text "Stop..."
+	    update
+	}
+	raise {
+	    set progress_alive 1
+	    set text [namespace current]::progress_text
+	    set value [namespace current]::progress_value
+	    set progress_text [lindex $args 0]
+	    # FIXME width should be based on text extent
+	    ProgressDlg $w -textvariable $text -width 100 \
+		-stop Stop -variable $value -maximum 100 \
+		-command [namespace code "progress $w abort"]
+	    #  grab release $w ;# allow user interaction while processing  
+	    update
+	}
+	lower {
+	    destroy $w
+	    update
+	}
+	update {
+	    set from [lindex $args 0]
+	    set to [lindex $args 1]
+	    set progress_value [expr {int(100*$to)}]
+	    update
+	    return $progress_alive
+	}
+    }
+}
+
 proc rebin {id lo hi resolution} {
     upvar #0 $id rec
     if {![info exist rec(TOF)]} { return }
@@ -117,7 +159,7 @@ proc rebin {id lo hi resolution} {
     
     puts "rebinning using $lo $hi $resolution"
     $fid proportional_binning $lo $hi $resolution
-    $fid rebin
+    $fid rebin [namespace code {progress .tofnload %a}]
     
     set rec(points) [$fid Nt]
     set rec(lambda) [$fid lambda_edges]

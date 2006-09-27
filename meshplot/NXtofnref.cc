@@ -482,14 +482,14 @@ void NXtofnref::load_pixel_angle(void)
 }
 
  
-void NXtofnref::integrate_counts(void)
+void NXtofnref::integrate_counts(ProgressMeter* update)
 {
   // Use the current number of pixels
   Npixels = (primary_dimension == 0?Nx:Ny);
 
   // Reset counts vector
   counts.resize(Npixels*Nchannels, 0);
-  image_sum.resize(Nx*Ny);
+  image_sum.resize(Nx*Ny, 0);
 
   // Find channels we care about
   int lo, hi;
@@ -504,6 +504,7 @@ void NXtofnref::integrate_counts(void)
   std::vector<double> binned_channels(Nchannels);
   DEBUG("Integrating lines from " << lo << " to " 
 	<< hi << "  with Nx = " << Nx);
+  update->start("Rebinning time channels for "+name,0,Nx-1);
   for (int i=0; i < Nx; i++) {
     int nonzeros = 0;
     for (int j=0; j < Ny; j++) {
@@ -525,14 +526,15 @@ void NXtofnref::integrate_counts(void)
       image_sum[i*Ny+j] = sum;
       for (int k=0; k < Nk; k++) nonzeros += (data[k]!=0);
     }
-    char ch = i%100==0 ? '#' : ( i%10==0 ? '0'+(i/10)%10 : 
-				 ( nonzeros?':':'.') );
-    std::cout << ch << std::flush;
+    if (!update->step(i)) break; // user abort; counts are wrong.
+      
   }
-  std::cout << std::endl;
+  update->stop();
 
   compute_uncertainty(counts, dcounts);
 }
+
+
 
 
 // Compute I,dI from counts and monitors

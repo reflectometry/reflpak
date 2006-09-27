@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include "nexus_helper.h"
+#include "progress.h"
 
 inline double square(double x) { return x*x; }
 
@@ -86,7 +87,7 @@ public:
   void set_bins(double lo, double hi, double percentage=0.);
   void set_primary_dimension(int dim) { primary_dimension = dim; }
   std::vector<double> sum_all_images(void);
-  void integrate_counts(void);
+  void integrate_counts(ProgressMeter*);
   void normalize_counts(void);
   void get_image(std::vector<double>&, int);
   void print_image(int n, std::ostream& out = std::cout);
