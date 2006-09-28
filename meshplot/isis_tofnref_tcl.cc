@@ -1,6 +1,7 @@
 #include <tcl.h>
 #include "mx.h"
 #include "isis_tofnref.h"
+#include "tkmeter.h"
 
 // command:
 //   isis "filename" returns object
@@ -78,7 +79,7 @@ isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST 
     return int_result(interp, file->Nx);
   } else if (strcmp(method, "Ny") == 0) {
     return int_result(interp, file->Ny);
-  } else if (strcmp(method, "Nt") == 0) {
+  } else if (strcmp(method, "Npixels") == 0) {
     return int_result(interp, file->nTimeChannels);
   } else if (strcmp(method, "sampletodetector") == 0) {
     return real_result(interp, file->sample_to_detector);
@@ -111,6 +112,17 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
     return vector_result(interp, file->lambda);
   } else if (strcmp(method, "dlambda") == 0) {
     return vector_result(interp, file->dlambda);
+  } else if (strcmp(method, "rebin") == 0) {
+    ProgressMeter *meter = 0;
+    if (argc == 3) {
+      meter = new TkMeter(interp,argv[2]);
+    } else {
+      // meter = new NoMeter();
+      meter = new TextMeter();
+    }
+    file->integrate_counts(meter);
+    delete meter;
+    file->normalize_counts();
   } else if (strcmp(method, "image") == 0) {
     if (argc != 3) {
       Tcl_AppendResult(interp, isis_name, 

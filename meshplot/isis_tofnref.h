@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <fcntl.h>
+#include "progress.h"
 
 
 #if 1
@@ -92,12 +93,10 @@ class SURF : public isis_file
 {
   void copy_frame(int from, int to); // helper for merge_frames
   void add_frame(int from, int to); // helper for add_frames
-  void integrate_counts(void);
   void load_monitor(void);
   void set_delta(void);
   void set_lambda(void);
   void load_all_frames(void);
-  void normalize_counts(void);
   std::vector<int> all_frames;
 public:
   const int Nx, Ny;            // Detector dimensions
@@ -140,6 +139,8 @@ public:
   void merge_frames(int n, int boundaries[]);
   void merge_frames(double lo, double hi, double step);
   void select_frames(double lo, double hi);
+  void integrate_counts(ProgressMeter *meter);
+  void normalize_counts(void);
 } ;
 
 /* From Robin Becker <robin@jessikat.fsnet.co.uk>

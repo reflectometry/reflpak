@@ -374,11 +374,9 @@ void SURF::load(void)
   //for (int i=0;i<nTimeChannels;i+=100) DEBUG(i << ": " << monitor[i] << " ");
   DEBUG("SURF open load all frames");
   load_all_frames();
-  DEBUG("SURF open integrate counts");
-  integrate_counts();
-  DEBUG("SURF open normalize counts");
-  normalize_counts();
-  DEBUG("SURF open complete");
+  DEBUG("SURF open loaded");
+  //integrate_counts();
+  //normalize_counts();
 }
 
 // Return a particular frame
@@ -395,7 +393,7 @@ void SURF::set_delta(void)
   ::set_delta(Ny,&delta[0],pixel_width,sample_to_detector);
 }
  
-void SURF::integrate_counts(void)
+void SURF::integrate_counts(ProgressMeter *update)
 {
   // Reset counts vector
   counts.resize(Ny*nTimeChannels, 0);
@@ -403,6 +401,7 @@ void SURF::integrate_counts(void)
 
   // Sum across x
   std::vector<int> frame(nTimeChannels);
+  update->start("Rebinning time channels for "+name,0,nTimeChannels-1);
   for (int k=0; k < nTimeChannels; k++) {
     for (int j=0; j < Ny; j++) {
       double sum = 0.;
@@ -410,7 +409,9 @@ void SURF::integrate_counts(void)
       for (int i=0; i < Nx; i++) sum += all_frames[offset+i*Ny];
       counts[k*Ny+j] = sum;
     }
+    if (!update->step(k)) break; // user abort; counts are wrong.
   }     
+  update->stop();
 
   for (int i=0; i < Ny*nTimeChannels; i++) 
     dcounts[i] = counts[i] != 0. ? sqrt(counts[i]) : 1.;
@@ -580,7 +581,7 @@ DEBUG("merging " << boundaries[k] << " to " << boundaries[k+1] << " into " << k)
 
   // Throw away unneeded memory, or maybe extend with 0. in case the
   // chosen rebinning was invalid.
-  all_frames.resize(n*Nx*Ny,0.);
+  all_frames.resize(n*Nx*Ny,0);
   I.resize(n*Ny,0.);
   dI.resize(n*Ny,0.);
   counts.resize(n*Ny,0.);

@@ -166,4 +166,4 @@ class TextMeter : public ProgressMeter
 } ;
 
 
-#endif
+#endif // _PROGRESS_H
