@@ -143,15 +143,16 @@ void NXtofnref::load_instrument(void)
   sample_to_detector = 0;
   if (nexus_dims(file, DETECTOR_DISTANCE, &dims)) {
     int Ndistances = array_size(dims);
+    DEBUG("reading detector distance from array of size "<<Ndistances);
     std::vector<double> pixel_distance(Ndistances);
     if (nexus_read(file, DETECTOR_DISTANCE, &pixel_distance[0], Ndistances)) {
-      // Compute mean distance to the detector pixels.
+      DEBUG("Compute mean distance to the detector pixels.");
       double sum=0.;
       for (int i=0; i < Ndistances; i++) sum += pixel_distance[i];
       sample_to_detector = sum/Ndistances; 
     }
   }
-  
+  DEBUG("mean sample to detector distance = "<<sample_to_detector);
 
 #if 1
 
@@ -160,17 +161,20 @@ void NXtofnref::load_instrument(void)
     std::vector<double> offset;
 
     offset.resize(Nx);
+    DEBUG(X_PIXEL_OFFSET);
     nexus_read(file, X_PIXEL_OFFSET, &offset[0], Nx);
     double sum = 0.;
     for (int i=0; i < Nx; i++) sum += offset[i];
     pixel_width = 1000.*sum/Nx; // Average pixel width in mm
 
     offset.resize(Ny);
+    DEBUG(Y_PIXEL_OFFSET);
     nexus_read(file, Y_PIXEL_OFFSET, &offset[0], Ny);
     sum = 0.;
     for (int i=0; i < Ny; i++) sum += offset[i];
     pixel_height = 1000.*sum/Ny; // Average pixel width in mm
   } else if (data_rank == 2) {
+    DEBUG(PIXEL_OFFSET);
     std::vector<double> offset(Nx);
     nexus_read(file, PIXEL_OFFSET, &offset[0], Nx);
     double sum = 0.;
@@ -190,6 +194,8 @@ void NXtofnref::load_instrument(void)
   nexus_read(file, PIXEL_HEIGHT, &pixel_width, 1);
 
 #endif
+
+  DEBUG("pixel width, height = " << pixel_width << ", " << pixel_height);
 
   DEBUG(DETECTOR_ANGLE);
   if (!nexus_read(file, DETECTOR_ANGLE, &detector_angle, 1))
@@ -488,8 +494,8 @@ void NXtofnref::integrate_counts(ProgressMeter* update)
   Npixels = (primary_dimension == 0?Nx:Ny);
 
   // Reset counts vector
-  counts.resize(Npixels*Nchannels, 0);
-  image_sum.resize(Nx*Ny, 0);
+  counts.assign(Npixels*Nchannels, 0);
+  image_sum.assign(Nx*Ny, 0);
 
   // Find channels we care about
   int lo, hi;
