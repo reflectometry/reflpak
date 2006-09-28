@@ -594,7 +594,7 @@ nexus_open(const char name[], const char modestr[])
   
   if (status != NX_OK) return NULL;
   file = (Nexus*)malloc(sizeof(Nexus));
-  if (file == NULL) { NXclose(file->fid); return NULL; }
+  if (file == NULL) { NXclose(fid); return NULL; }
   file->fid = fid;
   file->entry[0] = '\0';
   file->_group[0] = '\0';
