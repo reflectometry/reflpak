@@ -662,11 +662,13 @@ int nexus_nextset(Nexus *file)
 
     NXopengroup(file->fid, entry, "NXentry");
     strcpy(file->entry, entry); /* Safe length */
-    if (nexus_readstr(file, "definition",
-		      file->definition, sizeof(file->definition))
-	&& nexus_readstr(file, "definition.version",
+    if (nexus_readstr(file, "definition", file->definition, 
+		      sizeof(file->definition))) {
+      file->major = file->minor = 0; /* Default to 0.0 */
+      if (nexus_readstr(file, "definition.version",
 			 version, sizeof(version))) {
-      sscanf(version,"%d.%d",&(file->major),&(file->minor));
+	sscanf(version,"%d.%d",&(file->major),&(file->minor));
+      }
       return 1;
     }
     NXclosegroup(file->fid);
