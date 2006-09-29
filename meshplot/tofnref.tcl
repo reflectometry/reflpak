@@ -43,13 +43,37 @@ proc mark_data {instrument file} {
     set rec(view) [namespace which view]
     set rec(psdplot) 1
     marktype spec 0.55 5.8 {}
+    build_header
     puts "marking done"
     return $rec(id)
 }
 
+# Construct the text to display in the comment box for the file
+proc build_header {} {
+    upvar rec rec
+    if {[info exist rec(fid)]} {
+	set fid $rec(fid)
+	set info [subst {File: $rec(file) $rec(date)
+Data dimensions: [$fid Nx] x [$fid Ny] x [$fid Nt_raw]
+Sample angle: $rec(A) degrees
+Detector angle: $rec(B) degrees
+Front slits: $rec(S1) $rec(S2) mm
+Back slits:  $rec(S3) $rec(S4) mm
+Average pixel width: $rec(pixelwidth) mm
+Sample to detector: $rec(distance) m
+Moderator to detector: [$fid moderatortodetector] m
+	}]
+
+    } else {
+	set info "File: $rec(file)"
+    }
+
+    set rec(header) $info
+}
+
 proc view {id w} {
     upvar \#0 $id rec
-    text_replace $w $rec(file)
+    text_replace $w $rec(header)
 }
 
 # FIXME: dead code; plotting is handled by viewrun.tcl
@@ -68,7 +92,9 @@ proc plot_data {id {mesh_style pixel}} {
 
 proc load_data { id} {
     upvar \#0 $id rec
- 
+
+    if {[info exists rec(fid)]} { return 1 }
+
     # read file
     puts "load_data"
     flush stdout
@@ -98,6 +124,7 @@ proc load_data { id} {
     set rec(column,monitor_raw) [$fid monitor_raw]
     set rec(column,monitor_raw_lambda) [$fid monitor_raw_lambda]
     set rec(pixels) [$fid Npixels]
+    build_header
 
     # rebin lambda from 0.5 to 5.8 with 1% resolution
     rebin $id 0.5 [$fid maxwavelength] 1.
