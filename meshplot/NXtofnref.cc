@@ -208,6 +208,7 @@ void NXtofnref::load_instrument(void)
   DEBUG(MONITOR_DISTANCE);
   nexus_read(file, MONITOR_DISTANCE, &monitor_distance, 1);
   DEBUG(PRE_SLIT1);
+  for (int i=0; i < 4; i++) slit_width[i] = slit_height[i] = 0.;
   nexus_readslit(file, PRE_SLIT1, 
 		 &slit_distance[0], &slit_width[0], &slit_height[0]);
   DEBUG(PRE_SLIT2);
