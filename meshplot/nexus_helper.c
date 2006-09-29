@@ -12,7 +12,7 @@
 #include "nexus_helper.h"
 
 #if 0
-#define DEBUG(a) do { printf(a); } while (0)
+#define DEBUG(a) do { printf("%s",a); } while (0)
 #else
 #define DEBUG(a) do { } while (0)
 #endif
@@ -351,7 +351,7 @@ _read_data_str(Nexus *file, int len, char value[])
 {
   int kind, rank;
   int dims[NX_MAXRANK];
-  DEBUG("_read_data_str");
+  DEBUG("_read_data_str\n");
 
   if (NXgetinfo(file->fid, &rank, dims, &kind) != NX_OK) return 0;
   if (kind != NX_CHAR) return 0;
@@ -375,7 +375,7 @@ _read_attr_str(Nexus *file, const char attr[], int len, char value[])
 {
   int kind, slen = len;
 
-  DEBUG("_read_attr_str");
+  DEBUG("_read_attr_str ");DEBUG(attr);DEBUG("\n");
   /* FIXME NXgetattr should accept "const char attr[]" */
   /* FIXME NXgetattr should accept "int kind" instead of "int *kind" */
   kind = NX_CHAR;
@@ -423,7 +423,7 @@ _read_data_slab(Nexus *file, double value[],
 {
   int i, n=1, status, rank, kind, dims[NX_MAXRANK];
 
-  DEBUG("_read_data_slab");
+  DEBUG("_read_data_slab\n");
   NXgetinfo(file->fid, &rank, dims, &kind);
   for (i=0; i < rank; i++) n*=size[i];
   /* FIXME allow const on size/start */
@@ -445,7 +445,7 @@ _read_attr_vector(Nexus *file, const char attr[], int len, double value[])
 {
   int kind, slen = len;
 
-  DEBUG("_read_attr_vector");
+  DEBUG("_read_attr_vector ");DEBUG(attr);DEBUG("\n");
   /* FIXME NXgetattr should accept const attr */
   /* FIXME napi5 does not allow vector valued attributes */
   assert(len == 1);
