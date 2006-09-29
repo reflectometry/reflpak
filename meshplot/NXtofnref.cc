@@ -382,6 +382,11 @@ void NXtofnref::set_bins(double vlo, double vhi, double percent)
 {
   std::vector<double> edges;
 
+  if (vlo < detector_edges[0]) 
+    vlo = detector_edges[0];
+  if (vhi > detector_edges[Ndetector_channels]) 
+    vhi = detector_edges[Ndetector_channels];
+
   if (percent <= 0.) {
 
     int ilo, ihi;
@@ -393,6 +398,8 @@ void NXtofnref::set_bins(double vlo, double vhi, double percent)
     for (int i=0; i <= n; i++) edges[i] = detector_edges[ilo+i];
 
   } else {
+
+    assert(vlo > 0.);
 
     // Convert percent to step
     const double step = percent/100.+1.;
@@ -500,7 +507,7 @@ void NXtofnref::integrate_counts(ProgressMeter* update)
   // Find channels we care about
   int lo, hi;
   find_channels(bin_edges[0], bin_edges[Nchannels], lo, hi);
-  int Nk = hi-lo+1;
+  int Nk = hi-lo;
 
   // Process each channel for each pixel
   assert(data_rank == 3); // Doesn't yet support linear or point detectors

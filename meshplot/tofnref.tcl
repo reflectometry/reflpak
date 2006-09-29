@@ -99,8 +99,8 @@ proc load_data { id} {
     set rec(column,monitor_raw_lambda) [$fid monitor_raw_lambda]
     set rec(pixels) [$fid Npixels]
 
-    # rebin lambda from 0.55 to 5.8 with 1% resolution
-    rebin $id 0.55 5.8 1.
+    # rebin lambda from 0.5 to 5.8 with 1% resolution
+    rebin $id 0.5 [$fid maxwavelength] 1.
 
     # FIXME load_data should not trigger monitor and frame plot
     reflplot::monitor $id

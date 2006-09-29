@@ -119,6 +119,10 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return real_result(interp, file->slit_width[2]);
   } else if (strcmp(method, "postslit2") == 0) {
     return real_result(interp, file->slit_width[3]);
+  } else if (strcmp(method, "minwavelength") == 0) {
+    return real_result(interp, file->detector_edges[1]);
+  } else if (strcmp(method, "maxwavelength") == 0) {
+    return real_result(interp, file->detector_edges[file->Ndetector_channels]);
   } else if (strcmp(method, "counts") == 0) {
     return vector_result(interp, file->counts);
   } else if (strcmp(method, "dcounts") == 0) {
