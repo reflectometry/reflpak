@@ -115,11 +115,17 @@ proc integer_centers {n {base 0}} {
 }
 
 proc linspace {start stop steps} {
-    set b [expr {double($stop-$start)/($steps-1)}]
-    set l {}
-    for {set i 0} {$i < $steps} {incr i} { 
-	lappend l [expr {$start + $i*$b}] }
-    return $l
+    if {$steps == 0} {
+	return {}
+    } elseif {$steps == 1} {
+	return [expr {double($stop-$start)/2.}]
+    } else {
+	set b [expr {double($stop-$start)/($steps-1)}]
+	set l {}
+	for {set i 0} {$i < $steps} {incr i} { 
+	    lappend l [expr {$start + $i*$b}] }
+	return $l
+    }
 }
 
 proc colorgradient {colors weights {alpha 1.} {n 64}} {
