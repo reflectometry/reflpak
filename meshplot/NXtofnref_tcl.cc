@@ -98,6 +98,8 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return int_result(interp, file->Ny);
   } else if (strcmp(method, "Nt") == 0) {
     return int_result(interp, file->Nchannels);
+  } else if (strcmp(method, "Nt_raw") == 0) {
+    return int_result(interp, file->Nchannels);
   } else if (strcmp(method, "Npixels") == 0) {
     return int_result(interp, file->Npixels);
   } else if (strcmp(method, "pixelwidth") == 0) {
@@ -107,6 +109,8 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
     return real_result(interp, width);
   } else if (strcmp(method, "sampletodetector") == 0) {
     return real_result(interp, file->sample_to_detector);
+  } else if (strcmp(method, "moderatortodetector") == 0) {
+    return real_result(interp, file->moderator_to_detector);
   } else if (strcmp(method, "detector_angle") == 0) {
     return real_result(interp, file->sample_angle);
   } else if (strcmp(method, "sample_angle") == 0) {
