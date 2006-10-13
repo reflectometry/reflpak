@@ -99,14 +99,11 @@ NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *
   } else if (strcmp(method, "Nt") == 0) {
     return int_result(interp, file->Nchannels);
   } else if (strcmp(method, "Nt_raw") == 0) {
-    return int_result(interp, file->Nchannels);
+    return int_result(interp, file->Ndetector_channels);
   } else if (strcmp(method, "Npixels") == 0) {
     return int_result(interp, file->Npixels);
   } else if (strcmp(method, "pixelwidth") == 0) {
-    const double width = file->primary_dimension==0 
-      ? file->pixel_width 
-      : file->pixel_height;
-    return real_result(interp, width);
+    return real_result(interp, file->pixel_size);
   } else if (strcmp(method, "sampletodetector") == 0) {
     return real_result(interp, file->sample_to_detector);
   } else if (strcmp(method, "moderatortodetector") == 0) {
@@ -189,6 +186,21 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
       return vector_result(interp, file->sum_all_images());
     }
 
+  } else if (strcmp(method, "geometry") == 0) {
+    bool old_state = file->is_vertical;
+    if (argc == 3) {
+      const char *str = Tcl_GetStringFromObj(argv[2],NULL);
+      if (strcmp("vertical",str) == 0) {
+	file->set_geometry(true);
+      } else if (strcmp("horizontal",str) == 0) {
+	file->set_geometry(false);
+      } else {
+	Tcl_AppendResult(interp, nexus_name,
+			 ": geometry ?vertical|horizontal", NULL);
+	return TCL_ERROR;
+      }
+    }
+    Tcl_AppendResult(interp, old_state?"vertical":"horizontal", NULL);
   } else if (strcmp(method, "primary") == 0) {
     if (argc < 2 || argc > 3) {
       Tcl_AppendResult( interp, nexus_name,

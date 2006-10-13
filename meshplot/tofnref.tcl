@@ -57,9 +57,9 @@ proc build_header {} {
 Data dimensions: [$fid Nx] x [$fid Ny] x [$fid Nt_raw]
 Sample angle: $rec(A) degrees
 Detector angle: $rec(B) degrees
-Front slits: $rec(S1) $rec(S2) mm
-Back slits:  $rec(S3) $rec(S4) mm
-Average pixel width: $rec(pixelwidth) mm
+Front slits: [expr {1000*$rec(S1)}] [expr {1000*$rec(S2)}] mm
+Back slits:  [expr {1000*$rec(S3)}] [expr {1000*$rec(S4)}] mm
+Average pixel width: [expr {1000*$rec(pixelwidth)}] mm
 Sample to detector: $rec(distance) m
 Moderator to detector: [$fid moderatortodetector] m
 	}]

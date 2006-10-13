@@ -34,20 +34,26 @@ public:
   bool is_open;
 
   // Resolution information
-  double slit_width[4];         // (mm)
-  double slit_distance[4];      // (mm)
-  double slit_height[4];        // (mm)
+  double slit_width[4];         // (m)
+  double slit_distance[4];      // (m)
+  double slit_height[4];        // (m)
 
   // Detector definition
-  int Nx, Ny;                   // Detector dimensions
-  int data_rank;                // Number of data dimensions
-  int primary_dimension;        // Primary detector dimension
-  double moderator_to_detector; // (m)
-  double sample_to_detector;    // (m)
-  double detector_angle;        // (degrees)
-  double sample_angle;          // (degrees)
-  double pixel_width;           // (mm)
-  double pixel_height;          // (mm)
+  int Nx, Ny;                     // Detector dimensions
+  int data_rank;                  // Number of data dimensions
+  int primary_dimension;          // Primary detector dimension
+  int is_vertical;                // Instrument geometry
+  double moderator_to_detector;   // (m)
+  double sample_to_detector;      // (m)
+  double detector_angle;
+  double detector_polar_angle;    // (degrees)
+  double detector_azimuthal_angle;
+  double sample_angle;
+  double sample_polar_angle;      // (degrees)
+  double sample_azimuthal_angle;  // (degrees)
+  double pixel_width;             // (m)
+  double pixel_height;            // (m)
+  double pixel_size;              // (m)
   std::vector<double> delta_x;    // detector relative angle (Nx)
   std::vector<double> delta_y;    // detector relative angle (Ny)
 
@@ -86,6 +92,7 @@ public:
   void set_bins(const std::vector<int>& bins);
   void set_bins(double lo, double hi, double percentage=0.);
   void set_primary_dimension(int dim) { primary_dimension = dim; }
+  void set_geometry(bool vertical);
   std::vector<double> sum_all_images(void);
   void integrate_counts(ProgressMeter*);
   void normalize_counts(void);

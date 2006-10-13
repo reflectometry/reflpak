@@ -120,6 +120,56 @@ void NXtofnref::reload(void)
   // normalize_counts();
 }
 
+// Compute the mean of the array stored in key of the nexus file
+double key_mean(Nexus *file, const char key[])
+{
+  NexusDim dims;
+
+  DEBUG(key);
+  double mean = 0; // Default to 0
+  if (nexus_dims(file, key, &dims)) {
+    int N = array_size(dims);
+    std::vector<double> vals(N);
+    if (nexus_read(file, key, &vals[0], N)) {
+      double sum=0.;
+      for (int i=0; i < N; i++) sum += vals[i];
+      mean = sum/N; 
+    }
+  }
+  DEBUG("mean "<<key<<" = "<<mean);
+  return mean;
+}
+
+// Compute the mean difference between elements of a vector stored
+// in key of the nexus file.
+double key_mean_diff(Nexus *file, const char key[])
+{
+  NexusDim dims;
+
+  DEBUG(key);
+  double mean_diff = 0;
+  if (nexus_dims(file, key, &dims)) {
+    int N = array_size(dims);
+    if (dims.rank == 1 && N >= 2) { // Requires vector of 2 or more
+      std::vector<double> vals(N);
+      if (nexus_read(file, key, &vals[0], N))
+	mean_diff = (vals[N-1] - vals[0])/(N-1);
+    }
+  }
+  DEBUG("mean diff "<<key<<" = "<<mean_diff);
+  return mean_diff;
+}
+
+void NXtofnref::set_geometry(bool state)
+{
+  is_vertical = state;
+  primary_dimension = state ? 0 : 1;
+  Npixels = (primary_dimension == 0?Nx:Ny);
+  detector_angle = state ? detector_azimuthal_angle : detector_polar_angle;
+  sample_angle = state ? sample_azimuthal_angle : sample_polar_angle;
+  pixel_size = state ? pixel_width : pixel_height;
+}
+
 void NXtofnref::load_instrument(void)
 {
   double moderator_distance, monitor_distance;
@@ -132,54 +182,22 @@ void NXtofnref::load_instrument(void)
   Nx = Ny = 1;
   if (dims.rank > 1) Nx = dims.size[0];
   if (dims.rank > 2) Ny = dims.size[1];
-  // FIXME need to check whether we have a horizontal or vertical
-  // geometry reflectometer
-  primary_dimension = 0;
-  Npixels = (primary_dimension == 0?Nx:Ny);
 
   DEBUG("dims = " << Nx << "x" << Ny << "x" << Ndetector_channels);
 
-  DEBUG(DETECTOR_DISTANCE);
-  sample_to_detector = 0;
-  if (nexus_dims(file, DETECTOR_DISTANCE, &dims)) {
-    int Ndistances = array_size(dims);
-    DEBUG("reading detector distance from array of size "<<Ndistances);
-    std::vector<double> pixel_distance(Ndistances);
-    if (nexus_read(file, DETECTOR_DISTANCE, &pixel_distance[0], Ndistances)) {
-      DEBUG("Compute mean distance to the detector pixels.");
-      double sum=0.;
-      for (int i=0; i < Ndistances; i++) sum += pixel_distance[i];
-      sample_to_detector = sum/Ndistances; 
-    }
-  }
-  DEBUG("mean sample to detector distance = "<<sample_to_detector);
+  // FIXME file reader needs to own pixels; currently the display
+  // program is generating them from basic info such as detector
+  // distance and pixel width, so we need to convert the nexus
+  // pixel information into average values.
+  sample_to_detector = key_mean(file, DETECTOR_DISTANCE);
 
 #if 1
 
   if (data_rank == 3) {
-    // pixel offsets, no pixel width
-    std::vector<double> offset;
-
-    offset.resize(Nx);
-    DEBUG(X_PIXEL_OFFSET);
-    nexus_read(file, X_PIXEL_OFFSET, &offset[0], Nx);
-    double sum = 0.;
-    for (int i=0; i < Nx; i++) sum += offset[i];
-    pixel_width = 1000.*sum/Nx; // Average pixel width in mm
-
-    offset.resize(Ny);
-    DEBUG(Y_PIXEL_OFFSET);
-    nexus_read(file, Y_PIXEL_OFFSET, &offset[0], Ny);
-    sum = 0.;
-    for (int i=0; i < Ny; i++) sum += offset[i];
-    pixel_height = 1000.*sum/Ny; // Average pixel width in mm
+    pixel_width = key_mean_diff(file,X_PIXEL_OFFSET);
+    pixel_height = key_mean_diff(file,Y_PIXEL_OFFSET);
   } else if (data_rank == 2) {
-    DEBUG(PIXEL_OFFSET);
-    std::vector<double> offset(Nx);
-    nexus_read(file, PIXEL_OFFSET, &offset[0], Nx);
-    double sum = 0.;
-    for (int i=0; i < Nx; i++) sum += offset[i];
-    pixel_width = pixel_height = 1000.*sum/Nx; // Average pixel width in mm
+    pixel_width = pixel_height = key_mean_diff(file,PIXEL_OFFSET);
   } else {
     assert(data_rank == 1);
     pixel_width = pixel_height = 1;
@@ -194,15 +212,12 @@ void NXtofnref::load_instrument(void)
   nexus_read(file, PIXEL_HEIGHT, &pixel_width, 1);
 
 #endif
-
   DEBUG("pixel width, height = " << pixel_width << ", " << pixel_height);
 
-  DEBUG(DETECTOR_ANGLE);
-  if (!nexus_read(file, DETECTOR_ANGLE, &detector_angle, 1))
-    detector_angle = 0;
-  DEBUG(SAMPLE_ANGLE);
-  if (!nexus_read(file, SAMPLE_ANGLE, &sample_angle, 1))
-    sample_angle = 0;
+  detector_polar_angle = key_mean(file,DETECTOR_POLAR_ANGLE);
+  detector_azimuthal_angle = key_mean(file,DETECTOR_AZIMUTHAL_ANGLE);
+  sample_polar_angle = key_mean(file,SAMPLE_POLAR_ANGLE);
+  sample_azimuthal_angle = key_mean(file,SAMPLE_AZIMUTHAL_ANGLE);
   DEBUG(MODERATOR_DISTANCE);
   nexus_read(file, MODERATOR_DISTANCE, &moderator_distance, 1);
   DEBUG(MONITOR_DISTANCE);
@@ -225,6 +240,10 @@ void NXtofnref::load_instrument(void)
   // Items before the sample have negative distance, so subtract.
   moderator_to_detector = sample_to_detector - moderator_distance;
   moderator_to_monitor = monitor_distance - moderator_distance;
+
+  // FIXME need to check whether we have a horizontal or vertical
+  // geometry reflectometer
+  set_geometry(true);
 
   DEBUG("instrument loaded");
 }
