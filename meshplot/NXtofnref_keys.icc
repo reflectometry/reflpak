@@ -9,9 +9,13 @@ const char DETECTOR_DISTANCE[] =
   "NXinstrument:instrument/NXdetector:bank1/distance";
 const char DETECTOR_TCB[] =
   "NXinstrument:instrument/NXdetector:bank1/time_of_flight";
-const char SAMPLE_ANGLE[] =
+const char SAMPLE_POLAR_ANGLE[] =
   "NXsample:sample/polar_angle";
-const char DETECTOR_ANGLE[] =
+const char SAMPLE_AZIMUTHAL_ANGLE[] =
+  "NXsample:sample/azimuthal_angle";
+const char DETECTOR_POLAR_ANGLE[] =
+  "NXinstrument:instrument/NXdetector:bank1/polar_angle";
+const char DETECTOR_AZIMUTHAL_ANGLE[] =
   "NXinstrument:instrument/NXdetector:bank1/polar_angle";
 const char DETECTOR_DATA[] = 
   "NXinstrument:instrument/NXdetector:bank1/data";
