@@ -260,7 +260,7 @@ proc reduce_slits {} {
 	opt $w.Graph.${el}raw color $c symbol diamond \
 	    label [string totitle $el] pixels 4 fill $c
     }
-    foreach pol {A B C D} c [lrange $colors 0 3] {
+    foreach pol {{} A B C D} c [lrange $colors 0 4] {
         opt $w.intensity.slit$pol lineWidth 0 fill $c \
             pixels 4 color $c label "Slit $pol" symbol circle
         opt $w.intensity.fit$pol color $c
@@ -285,7 +285,7 @@ proc reduce_slits {} {
 	$w.intensity elem create betaraw -xdata ::polxraw -ydata ::betaraw \
 	    -fill defcolor -pixels 4
     }
-    foreach pol {A B C D} {
+    foreach pol {{} A B C D} {
         $w.intensity elem create slit$pol -fill defcolor -pixels 4 \
             -xdata ::slit_x$pol -ydata ::slit_y$pol -yerror ::slit_dy$pol
         $w.intensity elem create fit$pol -xdata ::polx -ydata ::slitfit$pol \
