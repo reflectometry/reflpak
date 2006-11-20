@@ -31,8 +31,15 @@ function [sub,div,cor] = reduce(spec,back,slit,FRratio,dopolcor)
     ## No subtracted, just return slit scan
     div = slit;
   elseif !isfield(slit,'A')
-    ## Not polarized, so simple division
-    [div,slit] = slitdivide(sub,slit);
+    ## Slit is not polarized, so simple division
+    if !isfield(sub,'A')
+      [div,slit] = slitdivide(sub,slit);
+    else !isfield(sub,'A')
+      [div.A,slit] = slitdivide(sub.A,slit);
+      div.B = slitdivide(sub.B,slit);
+      div.C = slitdivide(sub.C,slit);
+      div.D = slitdivide(sub.D,slit);
+    end
   elseif isempty(fit) || !dopolcor
     ## Polarized, but not doing polarization correction
     div.A = slitdivide(sub.A,slit.A);
