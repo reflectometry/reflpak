@@ -2,7 +2,6 @@ ARCH=macosx
 
 # Debugging statements?
 # DEBUG=-DEBUG
-
 include ~/cvs/reflfit/Makeconf.tcltk
 
 WISH=$(TCL_PREFIX)/bin/wish8.4
@@ -11,6 +10,7 @@ WISH=$(TCL_PREFIX)/bin/wish8.4
 TKCON=$(TCL_PREFIX)/lib/tkcon.tcl
 OCTAVE=$(TCL_PREFIX)/lib/octave0.1
 BWIDGET=$(TCL_PREFIX)/lib/bwidget1.6
+SNITPATH=$(TCL_PREFIX)/lib/snit0.97
 #TKDND=$(TCL_PREFIX)/lib/tkdnd1.0
 #TKDND_EXT=$(TKDND)/libtkdnd1.0.so
 #TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
@@ -35,15 +35,7 @@ LDEXT=$(TCL_SHLIB_SUFFIX)
 
 
 # Open GL + Togl
-ifdef USE_X11
-  # Needed the following link in the current directory to find GL/glut.h
-  #   ln -s /System/Library/Frameworks/GLUT.framework/Versions/Current/Headers/ GL
-  GLDEF    = -DTOGL_X11
-  GLINC    = -I/usr/X11R6/include
-  GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
-  GLUTINC  = -I.
-  GLUTLIBS = -lglut
-else # !USE_X11 => USE_AGL
+ifdef USE_AGL
   GLDEF = -DTOGL_AGL -DOSX
   GLINC =
   GLLIBS = -framework AGL -framework OpenGL -framework ApplicationServices
@@ -64,6 +56,14 @@ else # !USE_X11 => USE_AGL
   else
     LIBS = -L$(TCL_F) -ltclstub8.4 -L$(TK_F) -ltkstub8.4 -lm
   endif
+else # !USE_AGL => USE_X11
+  # Needed the following link in the current directory to find GL/glut.h
+  #   ln -s /System/Library/Frameworks/GLUT.framework/Versions/Current/Headers/ GL
+  GLDEF    = -DTOGL_X11
+  GLINC    = -I/usr/X11R6/include
+  GLLIBS   = -L/usr/X11R6/lib -lGL -lXmu -lXt -lX11
+  GLUTINC  = -I.
+  GLUTLIBS = -lglut
 endif # USE_AGL
 
 # NeXus

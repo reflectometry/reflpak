@@ -1,5 +1,5 @@
 USE_STUBS = 1
-USE_X11 = 1
+#USE_AGL = 1
 USE_ISIS = 1
 include ../Makeconf
 
