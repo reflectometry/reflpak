@@ -8,8 +8,7 @@
 #    VERSION=-yyyy.mm.dd ./release.sh
 #
 # This is highly dependent on my particular setup and must be run from
-# the Windows machine.  perl and cvs2cl.pl must be present on this
-# machine to perform 'make srcdist'. 
+# the Windows machine.
 #
 # FIXME document other required tools
 
@@ -71,6 +70,8 @@ else
 echo; echo "Automatic svn update is impossible; please make sure"
 echo "the following machines are up to date by running update and status:"
 echo "   localhost $BUILD"
+echo;
+echo "Please run 'make srcdist' on $linux3"
 fi
 
 echo; echo "Are all files committed that need to be?"
@@ -94,7 +95,8 @@ echo; echo "== build html ========================="
 ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make html"
 ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make datadist"
 echo; echo "== build source ======================="
-make srcdist
+# Done by hand for now
+# make srcdist
 
 # Do the remote builds (strictly speaking these could be done
 # in parallel but then we would need to deal with synchronization
@@ -121,7 +123,7 @@ scp -r $htmlmachine:$builddir/html web
 scp $htmlmachine:$builddir/release/reflpak-data.zip web
 
 echo; echo "== gather local build results ====================="
-cp release/reflpak$VERSION-src.tar.gz web
+scp $linux3:$builddir/release/reflpak$VERSION-src.tar.gz web
 cp release/reflpak$VERSION.exe web
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
