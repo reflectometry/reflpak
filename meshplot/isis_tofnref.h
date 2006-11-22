@@ -5,10 +5,11 @@
 #include <vector>
 #include <iostream>
 #include <fcntl.h>
+#include <unistd.h>
 #include "progress.h"
 
 
-#if 1
+#if 0
 #include <stdint.h> // intptr_t
 #define DEBUG(a) do { std::cout << a << std::endl; } while (0)
 #else
