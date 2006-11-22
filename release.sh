@@ -26,9 +26,11 @@ export VERSION
 # Here are my architecture specific build machines:
 irix=jazz.ncnr.nist.gov
 osx=macng7.ncnr.nist.gov
+macintel=d121139.ncnr.nist.gov
 linux3=h122045.ncnr.nist.gov
 linux4=dave.ncnr.nist.gov
 win=localhost
+arches=irix osx linux4
 BUILD="$irix $osx $linux3 $linux4"
 
 # Grrr... irix machines need gmake rather than make...
@@ -41,7 +43,7 @@ htmlmachine=h122045.ncnr.nist.gov
 
 # Each machine has already been set up with a build directory 
 # in ~/cvs/reflfit and the appropriate Makeconf.
-builddir="~/cvs/reflfit"
+builddir="~/danse/reflpak"
 
 # The results are stored and shared in the following directories.
 # These may be local or remote since scp doesn't care:
@@ -57,17 +59,26 @@ BINCP="/c/cygwin/bin/cp -r"
 
 # =========== End of configuration ============
 
-# Perform CVS updates on all machines
-echo "== cvs update ============================"
-cvs -q update -dP
+# Perform SVN updates on all machines
+echo "== svn update ============================"
+if false; then
+svn update
 for machine in $BUILD; do
-    echo;echo "== cvs update on $machine: ===================";
-    ssh $machine "cd $builddir && cvs -q update -dP"
+    echo;echo "== svn update on $machine: ===================";
+    ssh $machine "cd $builddir && svn update"
 done
+else
+echo; echo "Automatic svn update is impossible; please make sure"
+echo "the following machines are up to date by running update and status:"
+echo "   localhost $BUILD"
+fi
+
 echo; echo "Are all files committed that need to be?"
+echo "Have you done svn update on the local machine?"
 echo -n "Press y to continue: "
 read ans
 test "$ans" != "y" && exit
+
 
 # Check release notes
 echo "Are any files not added that should be added?"
@@ -121,7 +132,7 @@ cp RELEASE-NOTES web
 
 # Gather results for the binary server
 rm -rf bin; mkdir bin
-for arch in irix osx linux3 linux4; do
+for arch in $arches; do
    mkdir bin/$arch
    scp ${!arch}:$builddir/kit/reflpak bin/$arch/reflpak$VERSION
 done
@@ -161,7 +172,7 @@ if test "$ans" = "y"; then
     ssh ${WEBDIR%:*} "cd ${WEBDIR#*:} && rm reflpak && ln -s reflpak$VERSION reflpak"
 
     # Make the binary release current
-    for arch in irix osx linux3 linux4; do
+    for arch in $arches; do
 	$BINCP bin/$arch/reflpak$VERSION "$BINDIR/$arch/reflpak"
     done
     $BINCP bin/win/reflpak$VERSION.exe "$BINDIR/win/reflpak.exe"
