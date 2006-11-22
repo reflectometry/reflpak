@@ -3,6 +3,10 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2006-11-20 release
+* RED: Support unpolarized slit scan with polarized data
+* RED: Improved TOF support
+
 2006-06-22 release
 * RED: Support incident medium attenuation for polarized data
 
