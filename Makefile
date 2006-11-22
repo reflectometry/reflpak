@@ -153,13 +153,13 @@ $(SUBDIRS):
 	cd $@ && $(MAKE)
 
 ChangeLog:
-	cvs2cl.pl --fsf --file ChangeLog > /dev/null
+	svn2cl
 
 tagdist:
-	cvs rtag -F $(VERSIONTAG) reflfit
+	: cvs rtag -F $(VERSIONTAG) reflfit
 
 srcdist: ChangeLog
-	cvs -q export -r HEAD -d $(PRODUCT)-src reflfit >/dev/null
+	svn export -r HEAD svn://danse.us/reflpak $(PRODUCT)-src  > /dev/null
 	@cp ChangeLog $(PRODUCT)-src
 	@if test ! -d release ; then mkdir release ; fi
 	$(TAR) czf release/$(PRODUCT)-src.tar.gz $(PRODUCT)-src
