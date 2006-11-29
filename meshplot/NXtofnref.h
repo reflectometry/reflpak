@@ -56,7 +56,11 @@ public:
   double pixel_size;              // (m)
   std::vector<double> delta_x;    // detector relative angle (Nx)
   std::vector<double> delta_y;    // detector relative angle (Ny)
+
+  // Support for region of interest
   int xlo, xhi, ylo, yhi;         // Region of interest
+  bool roi_is_cached;
+  std::vector<double> roi_cache;
 
   // TOF definition
   int Ndetector_channels;  // (m)
@@ -90,10 +94,8 @@ public:
   void reload(void);                // Load the data
 
   void set_roi(int _xlo, int _xhi, int _ylo, int _yhi) {
-    xlo = _xlo;
-    xhi = _xhi; 
-    ylo = _ylo;
-    yhi = _yhi;
+    xlo = _xlo; xhi = _xhi; ylo = _ylo; yhi = _yhi;
+    roi_is_cached = false;
   }
   void set_bins(const std::vector<double>& edges);
   void set_bins(const std::vector<int>& bins);

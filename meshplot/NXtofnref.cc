@@ -456,12 +456,20 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
   int lo, hi;
   find_channels(edges[0], edges[1], lo, hi);
   int Nk = hi-lo+1;
+  int Nroi = (xhi-xlo+1)*(yhi-ylo+1);
+
+  if (roi_is_cached) {
+    DEBUG("using roi cache");
+    for (int i=xlo; i <= xhi; i++)
+      for (int j=ylo; j <= yhi; j++)
+	image[i*Ny+j] = roi_cache[n*Nroi + (i-xlo)*(yhi-ylo+1) + (j-ylo)];
+    return;
+  }
 
   DEBUG("reading image " << n << " from channels " << lo << " to " << hi);
   DEBUG("ROI: [" << xlo << ", " << xhi << ", " << ylo << ", " << yhi << "]");
   DEBUG("rebinning " << detector_edges[lo] << "-" << detector_edges[hi]
 	<< " into " << edges[0] << "-" << edges[1]);
-  int Nroi = (xhi-xlo+1)*(yhi-ylo+1);
   if (Nk*Nroi > 10000000) {
     DEBUG("processing individual channels");
     // Too many channels to process the entire slab as one block;
@@ -529,6 +537,20 @@ void NXtofnref::integrate_counts(ProgressMeter* update)
   int lo, hi;
   find_channels(bin_edges[0], bin_edges[Nchannels], lo, hi);
   int Nk = hi-lo;
+  int Nroi = (xhi-xlo+1)*(yhi-ylo+1);
+
+  // Set up caching for ROI
+  if (Nchannels*Nroi < 10000000) {
+    DEBUG("caching roi");
+    try {
+      roi_cache.resize(Nchannels*Nroi);
+      roi_is_cached = true;
+    } catch (std::bad_alloc const&) {
+      roi_is_cached = false;
+    }
+  } else {
+    DEBUG("cannot cache roi " << Nchannels << "x" << Nroi);
+  }
 
   // Process each channel for each pixel
   assert(data_rank == 3); // Doesn't yet support linear or point detectors
@@ -536,6 +558,7 @@ void NXtofnref::integrate_counts(ProgressMeter* update)
   int size[3] = {1, 1, Nk};
   std::vector<double> data(Nk);
   std::vector<double> binned_channels(Nchannels);
+
   DEBUG("Integrating lines from " << lo << " to " 
 	<< hi << "  with Nx = " << Nx);
   update->start("Rebinning time channels for "+name,0,Nx-1);
@@ -558,7 +581,17 @@ void NXtofnref::integrate_counts(ProgressMeter* update)
 	sum += binned_channels[k];
       }
       image_sum[i*Ny+j] = sum;
+
+      // Keep track of the number of nonzeros
       for (int k=0; k < Nk; k++) nonzeros += (data[k]!=0);
+
+      // Cache individual ROI frames
+      if (roi_is_cached && xlo <= i && i <= xhi && ylo <= j && j <= yhi) {
+	for (int k=0; k < Nchannels; k++) {
+	  roi_cache[k*Nroi + (i-xlo)*(yhi-ylo+1) + j-ylo] 
+	    = binned_channels[k];
+	}
+      }
     }
     if (!update->step(i)) break; // user abort; counts are wrong.
       

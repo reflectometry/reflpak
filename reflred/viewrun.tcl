@@ -772,9 +772,11 @@ proc addrun { command args } {
 	    return [expr [lsearch $::addrun $args] >= 0 ]
 	}
 	add {
+	    blt::busy hold . 
 	    foreach id [lindex $args 0] { addrun_add $id }
 	    atten_table_reset
 	    event generate .graph <<Elements>>
+	    blt::busy release . 
 	}
 	remove {
 	    foreach id [lindex $args 0] { addrun_remove $id }
