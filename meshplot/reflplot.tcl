@@ -612,6 +612,7 @@ variable rebin_lo
 variable rebin_hi
 variable rebin_resolution
 proc rebin {id} {
+    ptrace
     upvar #0 $id rec
     if {![info exist rec(TOF)]} { return }
     variable rebin_lo

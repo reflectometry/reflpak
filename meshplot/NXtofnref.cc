@@ -182,6 +182,8 @@ void NXtofnref::load_instrument(void)
   Nx = Ny = 1;
   if (dims.rank > 1) Nx = dims.size[0];
   if (dims.rank > 2) Ny = dims.size[1];
+  xlo = 0; xhi = Nx-1;
+  ylo = 0; yhi = Ny-1;
 
   DEBUG("dims = " << Nx << "x" << Ny << "x" << Ndetector_channels);
 
@@ -456,9 +458,11 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
   int Nk = hi-lo+1;
 
   DEBUG("reading image " << n << " from channels " << lo << " to " << hi);
+  DEBUG("ROI: [" << xlo << ", " << xhi << ", " << ylo << ", " << yhi << "]");
   DEBUG("rebinning " << detector_edges[lo] << "-" << detector_edges[hi]
 	<< " into " << edges[0] << "-" << edges[1]);
-  if (Nk*Ny*Nx > 10000000) {
+  int Nroi = (xhi-xlo+1)*(yhi-ylo+1);
+  if (Nk*Nroi > 10000000) {
     DEBUG("processing individual channels");
     // Too many channels to process the entire slab as one block;
     // read individual time channels separately.
@@ -466,8 +470,8 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
     int size[3] = {1, 1, Nk};
     std::vector<double> data(Nk);
 
-    for (int i=0; i < Nx; i++) {
-      for (int j=0; j < Ny; j++) {
+    for (int i=xlo; i <= xhi; i++) {
+      for (int j=ylo; j <= yhi; j++) {
 	start[0] = i; start[1] = j;
 	if (!nexus_readslab(file, DETECTOR_DATA, &data[0], start, size)) {
 	  ERROR("could not read channels " << lo << "-" << lo+Nk-1 << " from pixel " << i << "," << j << " of " << DETECTOR_DATA);
@@ -480,24 +484,21 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
   } else {
     DEBUG("processing entire slab");
     // Read entire slab and process each pixel separately
-    int start[3] = {0, 0, lo};
-    int size[3] = {Nx, Ny, Nk};
-    
+    int start[3] = {xlo, ylo, lo};
+    int size[3] = {xhi-xlo+1, yhi-ylo+1, Nk};
+
     // TODO: Should check for excessively large numbers of channels
     // in that case, read and process each time channel separately.
-    std::vector<double> data(Nx*Ny*Nk);
+    std::vector<double> data(Nx*Nroi);
     if (!nexus_readslab(file, DETECTOR_DATA, &data[0], start, size)) {
       ERROR("could not read channels " << lo << "-" << lo+Nk-1 << " from all pixels of " << DETECTOR_DATA);
       return; // FIXME what to do with error?
     }
-    
-    for (int i=0; i < Nx; i++) {
-      for (int j=0; j < Ny; j++) {
-	rebin_counts(Nk, &detector_edges[lo],&data[(i*Ny+j)*Nk],
+ 
+    for (int i=xlo; i <= xhi; i++) {
+      for (int j=ylo; j <= yhi; j++) {
+	rebin_counts(Nk, &detector_edges[lo],&data[((i-xlo)*size[1]+(j-ylo))*Nk],
 		     1, edges, &image[i*Ny+j]);
-	double sum=0.;
-	for (int k=0; k < Nk; k++) sum += data[(i*Ny+j)*Nk];
-	// DEBUG(" " << i << "," << j << ": " << sum << " -> " << image[i*Ny+j]);
       }
     }
   }

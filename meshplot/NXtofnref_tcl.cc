@@ -201,6 +201,19 @@ DEBUG("lambda(" << file->lambda.size() << ") at " << intptr_t(&file->lambda[0]))
       }
     }
     Tcl_AppendResult(interp, old_state?"vertical":"horizontal", NULL);
+  } else if (strcmp(method, "roi") == 0) {
+    if (argc == 6) {
+      int xlo, xhi, ylo, yhi;
+      if (Tcl_GetIntFromObj(interp, argv[2],&xlo) != TCL_OK) return TCL_ERROR;
+      if (Tcl_GetIntFromObj(interp, argv[3],&xhi) != TCL_OK) return TCL_ERROR;
+      if (Tcl_GetIntFromObj(interp, argv[4],&ylo) != TCL_OK) return TCL_ERROR;
+      if (Tcl_GetIntFromObj(interp, argv[5],&yhi) != TCL_OK) return TCL_ERROR;
+      file->set_roi(xlo, xhi, ylo, yhi);
+    } else {
+	Tcl_AppendResult(interp, nexus_name,
+			 ": roi ?xlo ?xhi ?ylo ?yhi", NULL);
+	return TCL_ERROR;
+    }
   } else if (strcmp(method, "primary") == 0) {
     if (argc < 2 || argc > 3) {
       Tcl_AppendResult( interp, nexus_name,

@@ -56,6 +56,7 @@ public:
   double pixel_size;              // (m)
   std::vector<double> delta_x;    // detector relative angle (Nx)
   std::vector<double> delta_y;    // detector relative angle (Ny)
+  int xlo, xhi, ylo, yhi;         // Region of interest
 
   // TOF definition
   int Ndetector_channels;  // (m)
@@ -88,6 +89,12 @@ public:
   void close(void) { nexus_close(file); }
   void reload(void);                // Load the data
 
+  void set_roi(int _xlo, int _xhi, int _ylo, int _yhi) {
+    xlo = _xlo;
+    xhi = _xhi; 
+    ylo = _ylo;
+    yhi = _yhi;
+  }
   void set_bins(const std::vector<double>& edges);
   void set_bins(const std::vector<int>& bins);
   void set_bins(double lo, double hi, double percentage=0.);
