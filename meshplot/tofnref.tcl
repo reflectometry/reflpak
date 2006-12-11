@@ -126,10 +126,13 @@ proc load_data { id} {
     set rec(pixels) [$fid Npixels]
     build_header
 
-    # rebin lambda from 0.5 to 5.8 with 1% resolution
+    # rebin lambda from 3 to max with 2% resolution
     puts "calling rebin from loaddata"
     $fid roi 170 190 70 190
-    rebin $id 0.5 [$fid maxwavelength] 1.
+    set reflplot::rebin_lo 3
+    set reflplot::rebin_hi [$fid maxwavelength]
+    set reflplot::rebin_resolution 2.
+    rebin $id $reflplot::rebin_lo $reflplot::rebin_hi $reflplot::rebin_resolution
 
     # FIXME load_data should not trigger monitor and frame plot
     reflplot::monitor $id

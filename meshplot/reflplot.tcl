@@ -672,10 +672,33 @@ proc SetFrame {v} {
     }
 }
 
+proc drawframe {} {
+    variable frame
+    if { $frame(sum) } {
+	SetFrame 0
+    } else {
+	SetFrame [$frame(w) get]
+    }
+}
+
 proc setframe {{v 1}} {
     variable frame
     $frame(w) set $v
-    SetFrame $v
+    drawframe
+}
+
+proc logframe {w} {
+    $w logdata toggle
+    drawframe
+}
+
+proc fullframe {w} {
+    variable frame
+    upvar #0 $frame(id) rec
+    set xmax [expr {[$rec(fid) Ny]+1}]
+    set ymax [expr {[$rec(fid) Nx]+1}]
+    $frame(plot) configure -limits [list 0 $xmax 0 $ymax]
+    drawframe
 }
 
 proc frameplot {id} {
@@ -691,6 +714,8 @@ proc frameplot {id} {
 	vector create ::frame_x ::frame_y
 	graph $frame(slice) -height 100 -leftmargin 2c -rightmargin 0 \
 	    -border 0 -plotpadx 0 -plotpady 0 -plotborderwidth 0
+	active_graph $frame(slice)
+	active_axis $frame(slice) y
 	$frame(slice) elem create data -xdata ::frame_x -ydata ::frame_y
 	$frame(slice) legend configure -hide 1
 	$frame(slice) axis configure x -hide 1
@@ -701,6 +726,8 @@ proc frameplot {id} {
         $frame(plot) colormap [colormap_bright 64]
         $frame(plot) configure -logdata off -grid on
 	$frame(plot) bind <Motion> [namespace code {FrameCoordinates %W %x %y}]
+	$frame(plot) menu "Log scale" [namespace code {logframe %W}]
+	$frame(plot) menu "Reset axes" [namespace code {fullframe %W}]
 	set f [frame $w.f]
         set frame(sum) 0
 	radiobutton $f.sum -text "Sum frames" \
@@ -725,7 +752,9 @@ proc frameplot {id} {
 	label $f.wavelength_label -text "Wavelength"
 	entry $f.wavelength -textvariable [namespace current]::frame(lambda) \
 	    -state readonly -width 10
-	grid $f.sum $f.single $f.framenum $f.wavelength_label $f.wavelength
+	button $f.roi -text "Reset ROI"
+	set frame(roi) $f.roi
+	grid $f.sum $f.single $f.framenum $f.wavelength_label $f.wavelength $f.roi
 	label $w.message -relief ridge -anchor w
         # scrollbar $w.select -takefocus 1 -orient horiz
 	grid $frame(slice) $w.cb -sticky news
@@ -744,7 +773,22 @@ proc frameplot {id} {
     set ymax [expr {[$rec(fid) Nx]+1}]
     $frame(plot) configure -limits [list 0 $xmax 0 $ymax]
     $frame(slice) axis configure x -min 0 -max $xmax
-    SetFrame 1
+    $frame(roi) conf -command "[namespace current]::setroi $id"
+    setframe 1
+}
+
+proc setroi {id} {
+    variable frame
+    upvar #0 $frame(id) rec
+    set xmax [$rec(fid) Ny]
+    set ymax [$rec(fid) Nx]
+    set xlo [clip [expr {int(floor([$frame(plot) cget -ymin]))}] 0 $xmax]
+    set xhi [clip [expr {int(ceil([$frame(plot) cget -ymax]))}] 0 $xmax]
+    set ylo [clip [expr {int(floor([$frame(plot) cget -xmin]))}] 0 $ymax]
+    set yhi [clip [expr {int(ceil([$frame(plot) cget -xmax]))}] 0 $ymax]
+    $rec(fid) roi $xlo $xhi $ylo $yhi
+    rebin $id
+    drawframe
 }
 
 proc monitor {id} {

@@ -175,3 +175,13 @@ proc colorgradient {colors weights {alpha 1.} {n 64}} {
 proc colormap_bright {{n 64}} {
     return [colorgradient {0.8 0.8 0.6  1 1 0  1 0 0  1 1 1} {1 1 1} 1 $n]
 }
+
+proc clip {x lo hi} {
+    if { $x < $lo } { 
+	return $lo
+    } elseif { $x > $hi } { 
+	return $hi 
+    } else { 
+	return $x 
+    }
+}

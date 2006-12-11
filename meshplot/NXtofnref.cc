@@ -459,7 +459,7 @@ void NXtofnref::get_image(std::vector<double>& image, int n)
   int Nroi = (xhi-xlo+1)*(yhi-ylo+1);
 
   if (roi_is_cached) {
-    DEBUG("using roi cache");
+    // DEBUG("using roi cache");
     for (int i=xlo; i <= xhi; i++)
       for (int j=ylo; j <= yhi; j++)
 	image[i*Ny+j] = roi_cache[n*Nroi + (i-xlo)*(yhi-ylo+1) + (j-ylo)];
