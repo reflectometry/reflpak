@@ -43,6 +43,11 @@ void isrealR(int n, double *y)
 
   for (i=0; i < n; i++) neg += y[i] < 0;
   realR = neg>n/10;
+  /* Eliminate support for realR until the data file is tagged
+   * as real data and the user can control it.
+   * TODO: check for "# type: real" in the header.
+   */
+  realR = 0;
 }
 
 int loadData(char *infile)
