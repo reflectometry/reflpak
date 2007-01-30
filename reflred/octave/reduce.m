@@ -33,9 +33,9 @@ function [sub,div,cor] = reduce(spec,back,slit,FRratio,dopolcor)
   elseif !isfield(slit,'A')
     ## Slit is not polarized, so simple division
     if !isfield(sub,'A')
-      [div,slit] = slitdivide(sub,slit);
-    else !isfield(sub,'A')
-      [div.A,slit] = slitdivide(sub.A,slit);
+      div = slitdivide(sub,slit);
+    else
+      div.A = slitdivide(sub.A,slit);
       div.B = slitdivide(sub.B,slit);
       div.C = slitdivide(sub.C,slit);
       div.D = slitdivide(sub.D,slit);
