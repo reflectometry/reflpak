@@ -479,7 +479,7 @@ int tp_limits(Togl *togl, int argc, CONST84 char *argv[])
 
 int tp_selection(Togl *togl, int argc, CONST84 char *argv[])
 {
-  PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
+  // PlotInfo *plot = (PlotInfo *)Togl_GetClientData(togl);
   Tcl_Interp *interp = Togl_Interp(togl);
   double x0,y0,xold,yold,xnew,ynew;
 
@@ -536,9 +536,6 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
   return TCL_OK;
 }
 
-#include "mx_tcl.c"
-#include "refl_tcl.c"
-
 void NXtofnref_init(Tcl_Interp*);
 void isis_init(Tcl_Interp*);
 
@@ -548,6 +545,8 @@ void isis_init(Tcl_Interp*);
 TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 {
   double dpi;
+  void refl_init(Tcl_Interp*);
+  void mx_init(Tcl_Interp*);
 
 #ifdef USE_TCL_STUBS
   if (Tcl_InitStubs(interp, "8.1", 0) == NULL) {return TCL_ERROR;}

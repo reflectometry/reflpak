@@ -19,7 +19,7 @@ CFLAGS += -DUSE_TCL
 #CFLAGS += -pg
 #LDFLAGS += -pg
 
-OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o 
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o mx_tcl.o refl_tcl.o
 
 ifdef USE_NEXUS 
   OBJS += NXtofnref.o nexus_helper.o NXtofnref_tcl.o
@@ -44,7 +44,9 @@ plot$(LDEXT): $(OBJS)
 	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(NEXUSLIB) $(LIBS)
 
 plot.o: plot.h
-togl_plot.o: plot.h togl.h mx_tcl.c mx.h refl_tcl.c refl.h tclvector.h
+togl_plot.o: plot.h togl.h mx_tcl.cc tclvector.h
+refl_tcl.o: refl_tcl.c refl.h
+mx_tcl.o: mx_tcl.cc rebin.h rebin2D.h mx.h
 togl.o: togl.h
 mx.o: mx.c mx.h
 refl.o: refl.c refl.h mx.h
@@ -75,11 +77,22 @@ check:	rebintest$(EXE)
 slicetest$(EXE): slice.c
 	$(CC) -DTEST slice.c -oslicetest$(EXE)
 
+# Rebinning code tests
 rebintest$(EXE): rebin_test.cc rebin.h
+	$(CXX) $(CFLAGS) $< -o $@ -lm
+
+rebin2Dtest$(EXE): rebin2D_test.cc rebin2D.h
 	$(CXX) $(CFLAGS) $< -o $@ -lm
 
 rebinspeed$(EXE): rebin_test.cc rebin.h
 	$(CXX) $(CFLAGS) $< -o $@ -lm -DSPEED_CHECK
+
+rebin2Dspeed$(EXE): rebin2D_test.cc rebin2D.h
+	$(CXX) $(CFLAGS) $< -o $@ -lm -DSPEED_CHECK
+
+# icpreader example
+icpread$(EXE): icpread.c icpread.h
+	$(CC) -DTEST $(CFLAGS) $(ZINC) icpread.c -o $@ $(ZLIB)
 
 # Support for reading ISIS binary files
 

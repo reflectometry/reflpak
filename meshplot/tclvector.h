@@ -1,3 +1,5 @@
+/* This program is public domain */
+
 /* Return a pointer to a dense array of data.
  *
  * The data must be stored in a named variable, possibly constructed
@@ -27,6 +29,9 @@
  *   Tcl_Free, presumably on a later call to the C extension.
  */
 
+#ifndef _TCLVECTOR_H
+#define _TCLVECTOR_H
+
 #include <tcl.h>
 #ifdef USE_DOUBLE
 #define PReal double
@@ -34,14 +39,21 @@
 #define PReal float
 #endif
 
-extern const PReal *
+#ifdef __cplusplus
+# define EXPORT extern "C"
+#else
+# define EXPORT extern
+#endif
+EXPORT const PReal *
 get_tcl_vector(Tcl_Interp *interp, const char *name,
 	       const char *context, const char *role,int size);
 
-extern PReal *
+EXPORT PReal *
 get_unshared_tcl_vector(Tcl_Interp *interp, const char *name, 
 			const char *context, const char *role, int size);
 
-extern PReal *
+EXPORT PReal *
 get_private_tcl_vector(Tcl_Interp *interp, const char *name,
 		       const char *context, const char *role, int size);
+
+#endif /* _TCLVECTOR_H */

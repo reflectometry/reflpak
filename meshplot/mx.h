@@ -1,4 +1,13 @@
+/* This program is public domain */
+#ifndef _MX_H
+#define _MX_H
+
+#ifdef __cplusplus
+extern "C" {
+#else
 #include <stddef.h>
+#endif
+
 #ifdef USE_DOUBLE
 #define mxtype double
 #else
@@ -19,3 +28,9 @@ void mx_quad_search(int n, int m, mxtype *x, mxtype *y,
 int mx_slice(const size_t m, const size_t n, 
 	     const mxtype x[], const mxtype y[],
 	     const mxtype L[], size_t Nidx, size_t idx[]);
+
+#ifdef __cplusplus
+} ;
+#endif
+
+#endif /* _MX_H */
