@@ -1,5 +1,6 @@
 #include <tcl.h>
 #include "mx.h"
+#include "tclvector.h"
 #include "isis_tofnref.h"
 #include "tkmeter.h"
 
@@ -20,50 +21,6 @@
 //   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
 //   
 
-static int int_result(Tcl_Interp *interp, int k)
-{
-  Tcl_Obj *result = Tcl_GetObjResult(interp);
-  Tcl_SetIntObj(result, k);
-  return TCL_OK;
-}
-
-static int real_result(Tcl_Interp *interp, double v)
-{
-  Tcl_Obj *result = Tcl_GetObjResult(interp);
-  Tcl_SetDoubleObj(result, v);
-  return TCL_OK;
-}
-
-static mxtype* build_return_vector(Tcl_Interp *interp, size_t n)
-{
-  Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
-  if (!xobj) return NULL;
-  mxtype *x = (mxtype *)Tcl_SetByteArrayLength(xobj,n*sizeof(mxtype));
-  if (x != 0) Tcl_SetObjResult(interp,xobj);
-  return x;
-}
-
-template <class T> static int 
-vector_result(Tcl_Interp *interp, size_t n, const T v[])
-{
-  DEBUG("vector_result returning " << n << " values at " << intptr_t(v));
-  mxtype *x = build_return_vector(interp, n); 
-  if (x == 0) return TCL_ERROR;
-  for (size_t i=0; i < n; i++) x[i] = v[i];
-  return TCL_OK;
-}
-
-template <class T> inline int
-vector_result(Tcl_Interp *interp, const std::vector<T>& v)
-{
-  return vector_result(interp, v.size(), &v[0]);
-}
-
-
-// FIXME hack to make get_tcl_vector available --- put it in header
-extern "C" const mxtype *
-get_tcl_vector(Tcl_Interp *interp, const char *name,
-	       const char *context, const char *role,int size);
 
 static int
 isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])

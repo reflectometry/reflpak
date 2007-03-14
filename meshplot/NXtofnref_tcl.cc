@@ -3,6 +3,7 @@
 
 #include <tcl.h>
 #include "mx.h"
+#include "tclvector.h"
 
 #if 0
 #include <stdint.h> // intptr_t
@@ -36,6 +37,7 @@
 //   Nmonitor_raw      returns int
 //   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
 
+#if 0
 static int int_result(Tcl_Interp *interp, int k)
 {
   Tcl_Obj *result = Tcl_GetObjResult(interp);
@@ -80,6 +82,7 @@ vector_result(Tcl_Interp *interp, const std::vector<T>& v)
 extern "C" const mxtype *
 get_tcl_vector(Tcl_Interp *interp, const char *name,
 	       const char *context, const char *role,int size);
+#endif
 
 static int
 NXtofnref_method(ClientData nexus_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])

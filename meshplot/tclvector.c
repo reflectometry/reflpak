@@ -1,5 +1,6 @@
 /* library functions which may go to a separate file */
 
+#include <string.h>
 #include "tclvector.h"
 
 static PReal *
@@ -121,6 +122,41 @@ get_private_tcl_vector(Tcl_Interp *interp, const char *name,
   } else {
     return NULL;
   }
+}
+
+PReal* build_return_vector(Tcl_Interp *interp, size_t n)
+{
+  Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
+  if (!xobj) return NULL;
+  PReal *x = (PReal *)Tcl_SetByteArrayLength(xobj,n*sizeof(PReal));
+  if (x != 0) Tcl_SetObjResult(interp,xobj);
+  return x;
+}
+
+
+/* Helper functions to build return values */
+int int_result(Tcl_Interp *interp, int k)
+{
+  Tcl_Obj *result = Tcl_GetObjResult(interp);
+  Tcl_SetIntObj(result, k);
+  return TCL_OK;
+}
+
+int real_result(Tcl_Interp *interp, double v)
+{
+  Tcl_Obj *result = Tcl_GetObjResult(interp);
+  Tcl_SetDoubleObj(result, v);
+  return TCL_OK;
+}
+
+int vector_result(Tcl_Interp *interp, size_t n, const PReal v[])
+{
+  size_t i;
+
+  PReal *x = build_return_vector(interp, n); 
+  if (x == 0) return TCL_ERROR;
+  for (i=0; i < n; i++) x[i] = v[i];
+  return TCL_OK;
 }
 
 /* end lib */
