@@ -3,8 +3,9 @@ USE_STUBS = 1
 USE_ISIS = 1
 include ../Makeconf
 
+TCLDEF = -DUSE_TCL
 ifdef USE_STUBS
-  CFLAGS += -DUSE_TCL_STUBS -DUSE_TK_STUBS
+  TCLDEF += -DUSE_TCL_STUBS -DUSE_TK_STUBS
 endif
 
 # font support is needed for demos (recommend ftgl instead)
@@ -12,8 +13,6 @@ endif
 
 ## For double precision OpenGL functions use the following.
 # CFLAGS += -DUSE_DOUBLE
-
-CFLAGS += -DUSE_TCL
 
 ## Turn on profiler
 #CFLAGS += -pg
@@ -23,7 +22,7 @@ OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o mx_tcl.o refl_tcl.o
 
 ifdef USE_NEXUS 
   OBJS += NXtofnref.o nexus_helper.o NXtofnref_tcl.o
-  CFLAGS += -DUSE_NEXUS
+  NEXUSINC += -DUSE_NEXUS
 else
   NEXUSINC=
   NEXUSLIB=
@@ -35,8 +34,8 @@ ifdef USE_ISIS
 endif
 
 
-%.o: %.c; $(CC) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
-%.o: %.cc; $(CXX) $(CFLAGS) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
+%.o: %.c; $(CC) $(CFLAGS) $(TCLDEF) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
+%.o: %.cc; $(CXX) $(CFLAGS) $(TCLDEF) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
 
 all: plot$(LDEXT)
 

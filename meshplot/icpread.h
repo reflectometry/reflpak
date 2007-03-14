@@ -1,6 +1,4 @@
 /* This program is public domain. */
-#ifndef _ICPREAD_H
-#define _ICPREAD_H
 
 /* Routines to read ICP and compressed ICP formats with 0, 1 and 2D detectors.
  *
@@ -36,15 +34,16 @@
  * TODO: consider building an index of frame locations so individual frames
  * can be randomly accessed.  For now load in the whole file.
  */
-
+#ifndef _ICPREAD_H
+#define _ICPREAD_H
 
 #ifdef _cplusplus
-# include <cstdint>
 # include <cstdio>
+# include <cstdint>
 # define EXPORT extern "C"
 #else
-# include <stdint.h>
 # include <stdio.h>
+# include <stdint.h>
 # define EXPORT extern
 #endif
 
@@ -53,10 +52,15 @@
  * Real is for ICP data columns.
  */
 typedef uint32_t Counts;
+#ifdef USE_DOUBLE
+typedef double Real;
+#else
 typedef float Real;
+#endif
 
 /* Error code defines: only need ICP_GOOD and ICP_EOF */
-#define _ICP_FIRST_CODE_ -7
+#define _ICP_FIRST_CODE_ -8
+#define ICP_INVALID_FORMAT -8
 #define ICP_FORMAT_COLUMN_ERROR -7
 #define ICP_UNEXPECTED_CHARACTER -6
 #define ICP_READ_ERROR -5

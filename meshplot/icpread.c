@@ -1,12 +1,12 @@
 /* This program is public domain */
 
-#include "icpread.h"
-
 #include <stdio.h>
-#include <zlib.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <zlib.h>
+#include "icpread.h"
+
 
 /* Open the file */
 FILE *icp_open(const char name[])
@@ -92,6 +92,7 @@ const char *icp_error(int code)
 {
   static const char *msg[] = {
     "unknown error",
+    "not an ICP file",
     "line should start with a space",
     "unexpected character",
     "error reading file",
@@ -128,17 +129,29 @@ int icp_readheader(FILE *infile, int headersize, char header[], int *pts,
   seen_motor_line = 0;
   offset = 0;
   while (!gzeof(infile)) {
-    if (gzgets(infile,line,sizeof(line)) == NULL) return ICP_READ_ERROR;
+    /* Read the next line */
+    if (gzgets(infile,line,sizeof(line)-1) == NULL) return ICP_READ_ERROR;
+    line[sizeof(line)-1] = '\0'; /* Guarantee zero terminator */
     (*linenum)++;
     // printf("%d: %s",*linenum,line);
+
+    /* Check that the second line contains the ICP signature */
+    if ((*linenum) == 2) {
+      if (strncmp(line,"  Filename",10)!=0) return ICP_INVALID_FORMAT;
+    }
+
+    /* Append the next line to the header */
     len = strlen(line);
     if (len+offset > headersize) return ICP_READ_ERROR;
     strcpy(header+offset, line);
     offset += len;
+
+    /* Stop if the previous line contained " Mot:" */
     if (seen_motor_line) break;
     seen_motor_line = (strncmp(line," Mot:",5) == 0);
   }
 
+  /* Peek in the header for the stored number of points */
   *pts = numpoints(header);
   return ICP_GOOD;
 }
@@ -155,7 +168,8 @@ int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
   pos = gztell(infile);
 
   /* Get the values line */
-  if (gzgets(infile, line, sizeof(line)) == NULL) return ICP_READ_ERROR;
+  if (gzgets(infile, line, sizeof(line)-1) == NULL) return ICP_READ_ERROR;
+  line[sizeof(line)-1] = '\0';
 
   /* Scan the first detector frame */
   ch = gzgetc(infile); /* Skip format column character */
@@ -337,7 +351,7 @@ int icp_readmotors(FILE *infile, int nvector, Real vector[], int *linenum)
 
   /* Get the vector line */
   if (gzeof(infile)) return ICP_EOF;
-  if (gzgets(infile, line, sizeof(line)) == NULL) {
+  if (gzgets(infile, line, sizeof(line)-1) == NULL) {
 #if 1 
     /* gets failed: can't distinguish read errors from EOF */
     return ICP_EOF;
@@ -347,6 +361,7 @@ int icp_readmotors(FILE *infile, int nvector, Real vector[], int *linenum)
     else return ICP_READ_ERROR;
 #endif
   }
+  line[sizeof(line)-1]='\0';
   (*linenum)++;
 
   /* Tokenize and convert to numbers. */
