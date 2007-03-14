@@ -1,5 +1,6 @@
 #include <math.h>
 #include <tcl.h>
+#include "tclvector.h"
 #include "refl.h"
 
 /* ================================================================ */
