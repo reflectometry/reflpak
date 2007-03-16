@@ -240,51 +240,56 @@ proc icp_parse_psd_fvector {id data} {
 }
 
 
+proc icp_view {id} {
+    text_replace $w [set ::${id}(data)]
+}
+
 proc icp_load {id} {
     upvar #0 $id rec
-    
-    # suck in the data file
-    if {[ catch { open $rec(file) r } fid ] } { 
-	message $fid
-	return 0 
+
+    # Use icp extension to open the file.
+    set rec(fid) [icp $rec(file)]
+    if {[$rec(fid) Nmotors] != $rec(Ncolumns)} {
+	message "ICP column headers inconsitent with data"
+	$rec(fid) close
+	return 0
     }
-    set data [read $fid]
-    close $fid
 
-    # chop everything until after the Mot: line
-    if { $rec(Qscan) } {
-	set offset [string first "(hkl scan center)" $data]
-    } else {
-	set offset [string first "\n Mot: " $data ]
+    # Use current values for ROI, detector rotation, detector
+    # corrections, etc., then read the file.
+    # TODO fill in these bits
+    $rec(fid) primary y
+    $rec(fid) read
+    set rec(pts) [$rec(fid) Npts]
+
+    # Convert motor data to columns
+    set data [$rec(fid) motors]
+    set idx 0
+    foreach c $rec(columns) {
+	set rec(column,$c) [fextract $rec(pts) $rec(Ncolumns) data $idx]
+	incr idx
     }
-    if { $offset < 0 } { return 0 }
-    set offset [string first "\n" $data [incr offset]]
-    set data [string range $data [incr offset] end]
 
-    # Get a list of column names. Transform the names of certain
-    # columns to make our lives easier elsewhere.
-    #      COUNTS -> counts, MONITOR -> MON
-    #      #1 COUNTS -> counts, #2 COUNTS -> N2counts
-    set offset [string first "\n" $data]
-    set col [string range $data 0 [incr offset -1]]
-    set col [string map { 
-	"Counts" "counts"
-	"COUNTS" "counts" 
-	"MONITOR" "MON" 
-	"#1 " "" "#2 " "N2" "(" "" ")" ""
-    } $col]
-    set rec(columns) {}
-    foreach c $col { lappend rec(columns) "$c" }
-    set rec(Ncolumns) [llength $rec(columns)]
-    set data [string range $data [incr offset] end]
+    # Convert columns to BLT vectors so we can use them in 1D plots
+    foreach c $rec(columns) {
+	vector create ::${c}_$id
+	::${c}_$id set [fvector rec(column,$c)]
+    }
 
-    # load the data columns into ::<column>_<id>
-    if { [string first , $data] >= 0 } {
-	icp_parse_psd_$::psdstyle $id $data
-	set rec(psd) 1
-    } else {
-	if ![get_columns $id $rec(columns) $data] { return 0 }
-	set rec(psd) 0
+    # Load the psd view if it exists
+    if { [$rec(fid) Npixels] > 1 } {
+	set rec(psddata) [$rec(fid) counts]
+	ferr rec(psddata) rec(psderr)
+	set rec(psdraw) $rec(psddata)
+	set rec(pixels) [$rec(fid) Npixels]
+	set rec(psdplot) 1
+    }
+
+    # Prep the frame information
+    if { [$rec(fid) Ny] > 0 } {
+	set rec(points) $rec(pts)
+	reflplot::frameplot $rec(id)
+	reflplot::setframe
     }
 
     # average temperature
@@ -574,7 +579,6 @@ proc NG1load {id} {
     set rec(detector,distance)   $::inst($inst,distance)
 
     if ![icp_load $id] { return 0 }
-
     check_wavelength $id $::inst($inst,wavelength)
 
     # Create slit1 and slit2 columns using the stored values if available
@@ -809,8 +813,8 @@ proc NG7_psd_octave {id} {
 proc NG7load {id} {
     upvar #0 $id rec
 
-    check_wavelength $id $::inst(ng7,wavelength)
     if ![icp_load $id] { return 0 }
+    check_wavelength $id $::inst(ng7,wavelength)
 
     # Build standard vectors S1,S2,S3
     motor_column $id S1 S1 slit1
@@ -931,7 +935,7 @@ proc parse2ng7 {line} {
 # - creates a new record
 # naughty, yes, but hopefully fast.
 proc loadhead {file} {
-    # Slurp file header.  An ICP header is than 15 lines, so 1200
+    # Slurp file header.  An ICP header is than 15 lines, so 2k
     # bytes is more than enough.
     if {[catch {open $file r} fid]} {
 	message $fid
@@ -945,20 +949,27 @@ proc loadhead {file} {
     } 
     close $fid
 
-    # if it has a line saying "hkl scan center" it is a qscan.
+    # Determine the scan type.
+    #   if it has a line saying "hkl scan center" it is a qscan.
+    #   if it has a line saying "Mot:" it is a reflectometry measurement.
     set offset [string first "(hkl scan center)" $text]
     if { $offset > 0 } {
 	set Qscan 1
     } else {
 	set Qscan 0
 
-	# if it has a motor line, then assume the format is good
 	set offset [ string first "\n Mot: " $text]
 	if { $offset < 0 } {
 	    # puts "couldn't find Mot: line in $file";
 	    return -code return
 	}
     }
+
+    # Find the end of the header, which is one line after the offset of
+    # the motor/qscan line
+    set offset [string first "\n" $text $offset]
+    set offset [string first "\n" $text [incr offset]]
+    set offset [string first "\n" $text [incr offset]]
     set lines [split [string range $text 0 [incr offset -1]] "\n"]
 
     # create a new record
@@ -986,6 +997,25 @@ proc loadhead {file} {
     } else {
 	set rec(polarization) {}
     }
+
+    # Get a list of column names. Transform the names of certain
+    # columns to make our lives easier elsewhere.
+    #      COUNTS -> counts, #1 COUNTS -> counts, #2 COUNTS -> counts2
+    #      MONITOR -> MON,
+    #      Q(x) -> Qx, Q(y) -> Qy, Q(z) -> Qz
+    set col [lindex $lines end]
+    set col [string map {
+	"\#1 COUNTS" "counts"
+	"\#2 COUNTS" "counts2"
+	"Counts" "counts"
+	"COUNTS" "counts" 
+	"MONITOR" "MON"
+	"Q(x)" "Qx" "Q(y)" "Qy" "Q(z)" "Qz"
+    } $col]
+    # Pretty the list by removing unused blanks
+    set rec(columns) [eval list $col]
+    set rec(Ncolumns) [llength $rec(columns)]
+    # puts "$rec(file) data columns: $rec(columns)"
 
     # Check for psd: a comma in the data section indicates psd data
     set rec(psd) [expr {[string first , $text $offset]> 0}]

@@ -30,6 +30,15 @@
  * msg = icp_error(status)
  *    Convert a status code to an error string.
  *
+ * Error code defines
+ *   success:      status == ICP_GOOD
+ *   end of file:  status == ICP_EOF
+ *   failure:      (status < 0 && status != ICP_EOF)
+ *
+ * Specific messages can be retrieved using 
+ *   icp_error(status)
+ *
+ *
  *
  * TODO: consider building an index of frame locations so individual frames
  * can be randomly accessed.  For now load in the whole file.
@@ -51,15 +60,26 @@
  * Counts is for individual detector frames.
  * Real is for ICP data columns.
  */
-typedef uint32_t Counts;
-#ifdef USE_DOUBLE
-typedef double Real;
+#ifdef USE_INTCOUNTS
+# define ICP_COUNT_FORMAT "%d"
+  typedef uint32_t Counts;
 #else
-typedef float Real;
+# define ICP_COUNT_FORMAT "%g"
+# ifdef USE_DOUBLE
+  typedef double Counts;
+# else
+  typedef float Counts;
+# endif
 #endif
 
-/* Error code defines: only need ICP_GOOD and ICP_EOF */
-#define _ICP_FIRST_CODE_ -8
+#ifdef USE_DOUBLE
+  typedef double Real;
+#else
+  typedef float Real;
+#endif
+
+#define _ICP_FIRST_CODE_ -9
+#define ICP_MEMORY_ERROR -9
 #define ICP_INVALID_FORMAT -8
 #define ICP_FORMAT_COLUMN_ERROR -7
 #define ICP_UNEXPECTED_CHARACTER -6
@@ -71,6 +91,22 @@ typedef float Real;
 #define ICP_GOOD 0
 #define ICP_SKIP 1
 #define _ICP_LAST_CODE_ 1
+
+#define _ICP_ERROR_TEXT { \
+  "unknown error", \
+  "out of memory", \
+  "not an ICP file", \
+  "line should start with a space", \
+  "unexpected character", \
+  "error reading file", \
+  "incorrect number of rows in frame", \
+  "incorrect number of columns in frame", \
+  "incorrect number of fields", \
+  "end of file", \
+  "good", \
+  "skip item", \
+}
+
 
 
 EXPORT FILE *icp_open(const char name[]);

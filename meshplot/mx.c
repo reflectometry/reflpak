@@ -1,3 +1,4 @@
+#include <math.h>
 #include "mx.h"
 
 /* Generic matrix operations */
@@ -36,8 +37,66 @@ void mx_transpose(int n, int m, mxtype *a, mxtype *b)
   }
 }
 
-void mx_integrate(int m, int n, const mxtype *a,
-		  int dim, mxtype *b)
+void mx_flip(int m, int n, mxtype *a, int dim)
+{
+}
+
+void mx_skew(int m, int n, mxtype *a, double angle, int dim)
+{
+  int j,k;
+
+  /* Use transpose to do dim==2 */
+  /* TODO: dim==1 should be identical to dim==2, but looping variables reversed */
+  if (dim==2) mx_transpose(m,n,a,a);
+
+  for (j=0; j < n; j++) {
+    int delta = sin(angle)*(j-n/2);
+    int offset = floor(delta);
+    double portion = delta-offset;
+    mxtype *pa = a+j*m;
+    if (delta < 0) {
+      /* Shifting up, so start at the top */
+      for (k = 0; k < m+offset-1; k++) {
+	pa[k] = pa[k-offset]*(1-portion) + pa[k-offset+1]*portion;
+      }
+      if (offset) pa[k] = pa[k-offset]*(1-portion);
+      while (++k < m) pa[k] = 0.;
+    } else {
+      /* Shifting down, so start at the bottom */
+      for (k = m-1; k >= offset; k--) {
+	pa[k] = pa[k-offset-1]*(1-portion) + pa[k-offset]*portion;
+      }
+      if (offset) pa[k] = pa[k-offset]*(1-portion);
+      while (--k >= 0) pa[k] = 0.;
+    }
+  }
+
+  if (dim==2) mx_transpose(m,n,a,a);
+
+}
+
+/* Rotate a matrix in place. */
+void mx_rotate(int m, int n, mxtype *a, double angle)
+{
+ /* [The following is frequently referenced but was not my source.]
+  *
+  * A. Paeth, "A fast algorithm for general raster rotation," in
+  * Proceedings, Graphics Interface '86, pp. 77-81,
+  * Vancouver, BC, 1986.
+  */
+
+  mx_skew(m,n,a,0.5*angle,1);
+  mx_flip(m,n,a,2);
+  mx_skew(m,n,a,atan(sin(angle)),2);
+  mx_flip(m,n,a,2);
+  mx_skew(m,n,a,0.5*angle,1);
+}
+
+/* Integrate the array
+ * n is the fastest varying dimension.
+ * if dim==0, integrate along m.
+ * */
+void mx_integrate(int m, int n, const mxtype *a, int dim, mxtype *b)
 {
   int i,j;
   if (dim == 1) {

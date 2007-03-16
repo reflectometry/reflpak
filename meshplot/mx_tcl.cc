@@ -174,38 +174,6 @@ ftranspose(ClientData junk, Tcl_Interp *interp,
   return TCL_OK;
 }
 
-/* Grab a 1-D slice through a 2-D structured grid */
-static int 
-fslice(ClientData junk, Tcl_Interp *interp, 
-	   int argc, Tcl_Obj *CONST argv[])
-{
-  int m,n;
-  mxtype *x;
-  const char *name;
-
-  /* Interpret args */
-  if (argc != 4) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"ftranspose m n x\"",
-		   TCL_STATIC);
-    return TCL_ERROR;
-  }
-  if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
-      || Tcl_GetIntFromObj(interp,argv[2],&n) != TCL_OK) {
-    return TCL_ERROR;
-  }
-
-  /* Get data vector */
-  name = Tcl_GetString(argv[3]);
-  x = get_unshared_tcl_vector(interp,name,"ftranspose","x",m*n);
-  if (x == NULL) return TCL_ERROR;
-
-  /* Perform in-place transpose */
-  mx_transpose(m,n,x,x);
-
-  return TCL_OK;
-}
-
 static int 
 fprecision(ClientData junk, Tcl_Interp *interp, 
 	   int argc, Tcl_Obj *CONST argv[])
@@ -325,7 +293,6 @@ extern "C" void mx_init(Tcl_Interp *interp)
   Tcl_CreateObjCommand( interp, "fintegrate", fintegrate, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fdivide", fdivide, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fprecision", fprecision, NULL, NULL );
-  Tcl_CreateObjCommand( interp, "fslice", fslice, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin", frebin, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin2D", frebin2D, NULL, NULL );
 }

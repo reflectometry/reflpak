@@ -149,7 +149,7 @@ int real_result(Tcl_Interp *interp, double v)
   return TCL_OK;
 }
 
-int vector_result(Tcl_Interp *interp, size_t n, const PReal v[])
+int real_vector_result(Tcl_Interp *interp, size_t n, const PReal v[])
 {
   size_t i;
 

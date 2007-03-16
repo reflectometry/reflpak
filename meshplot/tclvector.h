@@ -38,7 +38,7 @@
  *   elsewhere in your program.
  *
  *
- * status = vector_result(interp, n, v[])
+ * status = real_vector_result(interp, n, v[])
  *   Return the vector v of length n to the interpreter.
  *
  * status = real_result(interp, v)

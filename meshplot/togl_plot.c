@@ -538,6 +538,7 @@ int tp_draw(Togl *togl, int argc, CONST84 char *argv[] )
 
 void NXtofnref_init(Tcl_Interp*);
 void isis_init(Tcl_Interp*);
+void icp_init(Tcl_Interp*);
 
 /*
  * Called by Tk_Main() to let me initialize the modules (Togl) I will need.
@@ -609,6 +610,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
 
   mx_init(interp);
   refl_init(interp);
+  icp_init(interp);
 #ifdef USE_NEXUS
   NXtofnref_init(interp);
 #endif

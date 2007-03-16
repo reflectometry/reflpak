@@ -655,6 +655,9 @@ proc SetFrame {v} {
     fvector frame(yv) [integer_edges $frame(ny)]
     foreach {frame(x) frame(y)} [buildmesh $frame(nx) $frame(ny) frame(xv) frame(yv)] {}
     set frame(data) [$rec(fid) image $v]
+
+    #ftranspose $frame(ny) $frame(nx) frame(data)
+
     foreach {lo hi} [flimits frame(data)] {}
     if {$v != 0 } { set lo 1. }
     $frame(plot) configure -vrange [list $lo $hi]
@@ -664,11 +667,14 @@ proc SetFrame {v} {
     set sum [fintegrate $frame(nx) $frame(ny) frame(data) 1]
     ::frame_x seq 1 $frame(ny)
     ::frame_y set [fvector sum]
-    if { $v == 0 } { 
-	set frame(lambda) {} 
-    } else {
-	set lambda [fvector rec(column,lambda)]
-	set frame(lambda) [fix [lindex $lambda [expr {$v-1}]] {} {} 5]
+
+    if [isTOF] {
+	if { $v == 0 } { 
+	    set frame(lambda) {} 
+	} else {
+	    set lambda [fvector rec(column,lambda)]
+	    set frame(lambda) [fix [lindex $lambda [expr {$v-1}]] {} {} 5]
+	}
     }
 }
 

@@ -18,7 +18,8 @@ endif
 #CFLAGS += -pg
 #LDFLAGS += -pg
 
-OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o mx_tcl.o refl_tcl.o
+OBJS=togl_plot.o togl.o refl.o mx.o plot.o tclvector.o mx_tcl.o refl_tcl.o \
+	icp_tcl.o icpread.o
 
 ifdef USE_NEXUS 
   OBJS += NXtofnref.o nexus_helper.o NXtofnref_tcl.o
@@ -40,22 +41,26 @@ endif
 all: plot$(LDEXT)
 
 plot$(LDEXT): $(OBJS)
-	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(NEXUSLIB) $(LIBS)
+	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(NEXUSLIB) $(LIBS) $(ZLIB)
 
 plot.o: plot.h
 togl_plot.o: plot.h togl.h mx_tcl.cc tclvector.h
 refl_tcl.o: refl_tcl.c refl.h
+icp_tcl.o: icp_tcl.c icpread.h mx.h tclvector.h
 mx_tcl.o: mx_tcl.cc rebin.h rebin2D.h mx.h
 togl.o: togl.h
 mx.o: mx.c mx.h
 refl.o: refl.c refl.h mx.h
 tclvector.o: tclvector.h
 
+icpread.o: icpread.c icpread.h
+	$(CC) -c $(CFLAGS) $(ZINC) icpread.c -o $@
+
 
 # Support for reading NeXus binary files
 NXtofnref.o: NXtofnref.cc nexus_helper.h NXtofnref_keys.icc rebin.h \
 	transpose.h progress.h
-NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h progress.h
+NXtofnref_tcl.o: NXtofnref_tcl.cc NXtofnref.h progress.h tclvector.h
 nexus_helper.o: nexus_helper.c nexus_helper.h
 
 
@@ -96,7 +101,7 @@ icpread$(EXE): icpread.c icpread.h
 # Support for reading ISIS binary files
 
 isis_tofnref.o: isis_tofnref.cc isis_tofnref.h
-isis_tofnref_tcl.o: isis_tofnref_tcl.cc isis_tofnref.h
+isis_tofnref_tcl.o: isis_tofnref_tcl.cc isis_tofnref.h tclvector.h
 isistest$(EXE): isis_tofnref.cc isis_tofnref.h
 	$(CXX) $(CFLAGS) -DSTANDALONE $< -o $@ -lm
 
