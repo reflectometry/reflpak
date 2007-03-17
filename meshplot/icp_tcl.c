@@ -254,7 +254,7 @@ Ticp_method(ClientData h, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
     }
     if (argc == 2) {
       // Return the primary dimension as 'x' or 'y'
-      Tcl_AppendResult (interp, file->transpose?"x":"y", NULL);
+      Tcl_AppendResult (interp, file->transpose?"y":"x", NULL);
     } else {
       // Convert a primary dimension from 'x' or 'y'
       const char *str = Tcl_GetStringFromObj(argv[2],NULL);

@@ -255,11 +255,31 @@ proc icp_load {id} {
 	return 0
     }
 
-    # Use current values for ROI, detector rotation, detector
-    # corrections, etc., then read the file.
+    # Set default values for ROI, detector rotation, detector
+    # corrections, etc., before reading the file.
     # TODO fill in these bits
-    $rec(fid) primary y
-    $rec(fid) read
+    if { [$rec(fid) Nx] == 1 } { 
+	$rec(fid) primary x 
+    } else {
+	$rec(fid) primary y
+    }
+    if { [$rec(fid) Nx] > 1 } {
+	# FIXME don't do UI within functional code !!!!
+	set ::loading_text "Integrating channels...this will take awhile" 
+	ProgressDlg .loading -textvariable ::loading_text \
+	    -stop "Don't press this button" \
+	    -variable ::loading_progress -maximum 100 \
+	    -command { set ::loading_abort 1 ; set ::loading_text "Your button press didn't do anything" }
+	#  grab release .loading ;# allow user interaction while loading
+	update idletasks
+
+	$rec(fid) read      printf("returning transpose\n");
+
+	destroy .loading
+	update
+    } else {
+	$rec(fid) read
+    }
     set rec(pts) [$rec(fid) Npts]
 
     # Convert motor data to columns
@@ -286,7 +306,7 @@ proc icp_load {id} {
     }
 
     # Prep the frame information
-    if { [$rec(fid) Ny] > 0 } {
+    if { [$rec(fid) Nx] > 1 } {
 	set rec(points) $rec(pts)
 	reflplot::frameplot $rec(id)
 	reflplot::setframe
