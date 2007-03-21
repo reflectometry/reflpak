@@ -1,5 +1,63 @@
 # FIXME: put this all in a graph namespace to hide private functions
 
+set ::colorlist [option get .graph lineColors LineColors]
+set ::figurenumber 1
+set ::maxfigure $::figurenumber
+# Create a new figure
+proc figure {{n 0}} {
+    if { $n == 0 } {
+	set ::figurenumber [incr ::maxfigure]
+    } else {
+        set ::figurenumber $n
+    }
+    if { $::figurenumber > $::maxfigure } { set ::maxfigure $::figurenumber }
+}
+proc clf { {fig 0} } {
+    if { $fig == 0 } {
+	set w .figure$::figurenumber
+    } else {
+	set w .figure$fig
+    }
+    if {![winfo exists $w]} return
+    foreach elem [$w.g elem names] { $w.g elem delete $elem }
+}
+proc hold { {state {}} } {
+    if { "$state" != "" } {
+	set ::figure($::figurenumber,hold) [string is true $state]
+    }
+    return $::figure($::figurenumber,hold)
+}
+# Replace the current plot
+proc plot { x y {options {}}} {
+    set w .figure$::figurenumber
+    if {![winfo exists $w]} {
+	toplevel $w
+	wm title $w "Figure $::figurenumber"
+	graph $w.g
+	active_graph $w.g
+	active_axis $w.g x
+	active_axis $w.g y
+	active_legend $w.g
+	label $w.message -relief ridge -anchor w
+	pack $w.g -side top -fill both -expand yes
+	pack $w.message -side bottom -expand no -fill x
+	set ::figure($::figurenumber,hold) 0
+    }
+
+    if { $::figure($::figurenumber,hold) } {
+	set el [llength [$w.g elem names]]
+    } else {
+	clf
+	set el 0
+    }
+    set color [lindex $::colorlist [expr {$el%[llength $::colorlist]}]]
+    set linetype [lindex [string split $options :] 0]
+    set label [lindex [string split $options :] 1]
+    $w.g elem create line$el -xdata $x -ydata $y -label $label -color $color
+
+    return $w
+}
+
 #========================= BLT graph functions =====================
 # HELP developer
 # Usage: zoom w on|off
