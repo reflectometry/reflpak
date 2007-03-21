@@ -36,24 +36,26 @@ proc isTOF {} {
     return [info exists rec(TOF)]
 }
 
-proc dtheta_edges {pixels pixelwidth distance centerpixel} {
-  variable pi_over_180
-  set edges {}
-  for {set p 0} {$p <= $pixels} {incr p} {
-    lappend edges [expr {atan2(($centerpixel-$p)*$pixelwidth, $distance) \
-			     / $pi_over_180}]
-  }
-  return $edges
+proc dtheta_edges {pixeledges distance center} {
+    variable pi_over_180
+    set edges {}
+    puts "new pixeledges [lrange $pixeledges 0 10]"
+    foreach p $pixeledges {
+	# puts "pixel offset ($p-$center) = [expr $p-$center]"
+	lappend edges [expr {atan2(-($p-$center),$distance) / $pi_over_180}]
+    }
+    return $edges
 }
 
-proc dtheta_centers {pixels pixelwidth distance centerpixel} {
-  variable pi_over_180
-  set c {}
-  for {set p 0} {$p < $pixels} {incr p} {
-    lappend c [expr {atan2(($centerpixel-$p+0.5)*$pixelwidth, $distance) \
-			     / $pi_over_180}]
-  }
-  return $c
+proc dtheta_centers {pixeledges distance center} {
+    variable pi_over_180
+    set c {}
+    set l [lindex $pixeledges 0]
+    foreach p [lrange $pixeledges 1 end] {
+	lappend c [expr {($l+$p)/2}]
+	set l $p
+    }
+    return [dtheta_edges $c $distance $center]
 }
 
 proc set_center_pixel {id {c {}}} {
@@ -61,10 +63,11 @@ proc set_center_pixel {id {c {}}} {
     # default to center of the detector
     if {[llength $c] == 0} { set c [expr {($rec(pixels)+1.)/2.}] }
     set rec(centerpixel) $c
+    puts "id $id center $c [lrange $rec(pixeledges) 0 10]"
     fvector rec(dtheta) \
-	[dtheta_edges $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
+	[dtheta_edges $rec(pixeledges) $rec(distance) $c]
     fvector rec(column,dtheta) \
-	[dtheta_centers $rec(pixels) $rec(pixelwidth) $rec(distance) $c]
+	[dtheta_centers $rec(pixeledges) $rec(distance) $c]
 }
 
 proc parse_data {id data} {
@@ -100,7 +103,14 @@ proc normalize {id monitor} {
 
     # normalize by monitor counts
     fdivide $rec(points) $rec(pixels) rec(psddata) rec(column,$monitor)
+    ftranspose $rec(pixels) $rec(points) rec(psddata)
+    fdivide $rec(pixels) $rec(points) rec(psddata) rec(column,pixelnorm)
+    ftranspose $rec(points) $rec(pixels) rec(psddata)
+
     fdivide $rec(points) $rec(pixels) rec(psderr) rec(column,$monitor)
+    ftranspose $rec(pixels) $rec(points) rec(psderr)
+    fdivide $rec(pixels) $rec(points) rec(psderr) rec(column,pixelnorm)
+    ftranspose $rec(points) $rec(pixels) rec(psderr)
 }
 
 proc set_axes {id theta twotheta slit1} {
@@ -456,7 +466,7 @@ proc mesh_pixel {id {base 0}} {
     upvar \#0 $id rec
 
     # Generate mesh
-    fvector rec(xv) [integer_edges $rec(pixels)]
+    fvector rec(xv) $rec(pixeledges)
     fvector rec(yv) [integer_edges $rec(points) $base]
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(points) $rec(pixels) \
@@ -649,14 +659,19 @@ proc SetFrame {v} {
     set Nt [$rec(fid) Nt]
     if {$v > $Nt} { set v $Nt }
     $frame(w) conf -to $Nt
-    set frame(nx) [$rec(fid) Nx]
-    set frame(ny) [$rec(fid) Ny]
+    set frame(data) [$rec(fid) image $v]
+    if {"[$rec(fid) primary]" == "x"} {
+	set frame(nx) [$rec(fid) Nx]
+	set frame(ny) [$rec(fid) Ny]
+    } else {
+	set frame(nx) [$rec(fid) Ny]
+	set frame(ny) [$rec(fid) Nx]
+	ftranspose $frame(ny) $frame(nx) frame(data)
+    }
     fvector frame(xv) [integer_edges $frame(nx)]
     fvector frame(yv) [integer_edges $frame(ny)]
     foreach {frame(x) frame(y)} [buildmesh $frame(nx) $frame(ny) frame(xv) frame(yv)] {}
-    set frame(data) [$rec(fid) image $v]
 
-    #ftranspose $frame(ny) $frame(nx) frame(data)
 
     foreach {lo hi} [flimits frame(data)] {}
     if {$v != 0 } { set lo 1. }
@@ -775,8 +790,15 @@ proc frameplot {id} {
     set frame(id) $id
     upvar #0 $id rec
     $frame(w) configure -to $rec(points)
-    set xmax [expr {[$rec(fid) Ny]+1}]
-    set ymax [expr {[$rec(fid) Nx]+1}]
+    if {"[$rec(fid) primary]" == "x"} {
+	set frame(nx) [$rec(fid) Nx]
+	set frame(ny) [$rec(fid) Ny]
+    } else {
+	set frame(nx) [$rec(fid) Ny]
+	set frame(ny) [$rec(fid) Nx]
+    }
+    set xmax [expr {$frame(ny)+1}]
+    set ymax [expr {$frame(nx)+1}]
     $frame(plot) configure -limits [list 0 $xmax 0 $ymax]
     $frame(slice) axis configure x -min 0 -max $xmax
     $frame(roi) conf -command "[namespace current]::setroi $id"

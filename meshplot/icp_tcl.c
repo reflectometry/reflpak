@@ -110,7 +110,7 @@ readfile(Icp *icp)
 	framesum[j] += frame[j];
     }
 
-    // printf("integrating pt %d\n",pt); fflush(stdout);
+    // printf("integrating pt %d, width=%d, transpose=%d\n",pt, width,!icp->transpose); fflush(stdout);
     /* Integrate along one detector dimension */
     /* TODO: detector corrections first (efficiency, pixel width, rotation) */
     /* TODO: restrict integration to lo/hi pixels */

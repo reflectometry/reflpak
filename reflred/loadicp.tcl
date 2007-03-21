@@ -15,7 +15,7 @@ array set ::inst {
   ng1,psdsaturation 8000
   ng1,minbin         1
   ng1,maxbin       256
-  ng1,width        -4*25.4
+  ng1,width         4*25.4
   ng1,distance     36*25.4
 
   cg1,wavelength   5.0
@@ -23,7 +23,7 @@ array set ::inst {
   cg1,psdsaturation 8000
   cg1,minbin         1
   cg1,maxbin       608
-  cg1,width       -211.
+  cg1,width        211.
   cg1,distance    1600.
 }
 
@@ -244,6 +244,52 @@ proc icp_view {id} {
     text_replace $w [set ::${id}(data)]
 }
 
+
+proc cg1_detector_efficiency {id} {
+    upvar \#0 $id rec
+
+    # Fake the detector pixel widths
+    set edge 0.
+    set rec(pixeledges) $edge
+    set rec(pixelwidths) {}
+    set rec(pixelweight) {}
+    set pixelnorm {}
+    for {set p 0} {$p < $rec(pixels)} {incr p} { 
+	set weight 1.
+	set width [expr {(1.+0.15*cos($::pitimes2*$p/32.))*$rec(pixelwidth)}]
+	set edge [expr {$edge+$width}]
+	lappend rec(pixelwidths) $width
+	lappend rec(pixeledges) $edge
+	lappend rec(pixelweight) $weight
+	lappend pixelnorm [expr {$width*$weight}]
+    }
+    fvector rec(column,pixelnorm) $pixelnorm
+    puts "pixel edges [lrange $rec(pixeledges) 0 10]"
+}
+
+proc ng7_detector_efficiency {id} {
+    upvar \#0 $id rec
+
+    # Fake the detector pixel widths
+    set edge 0.
+    set rec(pixeledges) $edge
+    set rec(pixelwidths) {}
+    set rec(pixelweight) {}
+    set pixelnorm {}
+    for {set p 0} {$p < $rec(pixels)} {incr p} { 
+	set weight 1.
+	set width $rec(pixelwidth)
+	set edge [expr {$edge+$width}]
+	lappend rec(pixelwidths) $width
+	lappend rec(pixeledges) $edge
+	lappend rec(pixelweight) $weight
+	lappend pixelnorm [expr {$width*$weight}]
+    }
+    fvector rec(column,pixelnorm) $pixelnorm
+    puts "pixel edges [lrange $rec(pixeledges) 0 10]"
+}
+
+
 proc icp_load {id} {
     upvar #0 $id rec
 
@@ -258,14 +304,21 @@ proc icp_load {id} {
     # Set default values for ROI, detector rotation, detector
     # corrections, etc., before reading the file.
     # TODO fill in these bits
-    if { [$rec(fid) Nx] == 1 } { 
-	$rec(fid) primary x 
+
+
+    if { [info exists rec(primary)] } {
+	$rec(fid) primary $rec(primary)
+	puts "Primary = $rec(primary)"
+    } elseif { [$rec(fid) Ny] == 1 } { 
+	$rec(fid) primary y 
     } else {
-	$rec(fid) primary y
+	$rec(fid) primary x
     }
+
+    # Load the 
     if { [$rec(fid) Nx] > 1 } {
 	# FIXME don't do UI within functional code !!!!
-	set ::loading_text "Integrating channels...this will take awhile" 
+	set ::loading_text "Integrating channels..." 
 	ProgressDlg .loading -textvariable ::loading_text \
 	    -stop "Don't press this button" \
 	    -variable ::loading_progress -maximum 100 \
@@ -273,7 +326,7 @@ proc icp_load {id} {
 	#  grab release .loading ;# allow user interaction while loading
 	update idletasks
 
-	$rec(fid) read      printf("returning transpose\n");
+	$rec(fid) read
 
 	destroy .loading
 	update
@@ -435,6 +488,7 @@ proc NG1_psd_fvector {id} {
 
     set rec(distance) $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/$rec(pixels)}]
+    cg1_detector_efficiency $id
 
     reflplot::set_center_pixel $id [expr {$rec(pixels)/2.}]
 
@@ -812,6 +866,7 @@ proc NG7_psd_fvector {id} {
     set rec(pixelwidth) [expr {$rec(detector,width)/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
     reflplot::set_center_pixel $id 128
 
+    ng7_detector_efficiency $id
     reflplot::normalize $id MON
 }
 
