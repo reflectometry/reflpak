@@ -264,7 +264,7 @@ proc cg1_detector_efficiency {id} {
 	lappend pixelnorm [expr {$width*$weight}]
     }
     fvector rec(column,pixelnorm) $pixelnorm
-    puts "pixel edges [lrange $rec(pixeledges) 0 10]"
+    #puts "pixel edges [lrange $rec(pixeledges) 0 10]"
 }
 
 proc ng7_detector_efficiency {id} {
@@ -286,7 +286,7 @@ proc ng7_detector_efficiency {id} {
 	lappend pixelnorm [expr {$width*$weight}]
     }
     fvector rec(column,pixelnorm) $pixelnorm
-    puts "pixel edges [lrange $rec(pixeledges) 0 10]"
+    #puts "pixel edges [lrange $rec(pixeledges) 0 10]"
 }
 
 

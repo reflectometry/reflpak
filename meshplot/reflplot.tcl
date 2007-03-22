@@ -39,7 +39,7 @@ proc isTOF {} {
 proc dtheta_edges {pixeledges distance center} {
     variable pi_over_180
     set edges {}
-    puts "new pixeledges [lrange $pixeledges 0 10]"
+    # puts "new pixeledges [lrange $pixeledges 0 10]"
     foreach p $pixeledges {
 	# puts "pixel offset ($p-$center) = [expr $p-$center]"
 	lappend edges [expr {atan2(-($p-$center),$distance) / $pi_over_180}]
@@ -63,7 +63,7 @@ proc set_center_pixel {id {c {}}} {
     # default to center of the detector
     if {[llength $c] == 0} { set c [expr {($rec(pixels)+1.)/2.}] }
     set rec(centerpixel) $c
-    puts "id $id center $c [lrange $rec(pixeledges) 0 10]"
+    # puts "id $id center $c [lrange $rec(pixeledges) 0 10]"
     fvector rec(dtheta) \
 	[dtheta_edges $rec(pixeledges) $rec(distance) $c]
     fvector rec(column,dtheta) \
@@ -741,10 +741,10 @@ proc frameplot {id} {
 	$frame(slice) legend configure -hide 1
 	$frame(slice) axis configure x -hide 1
 	meshcolorbar $w.cb
-	$w.cb configure -pady 1cm
+	#$w.cb configure -pady 1cm
         meshplot $frame(plot) -borderwidth 4 -colorbar $w.cb
         $frame(plot) delete
-        $frame(plot) colormap [colormap_bright 64]
+        $frame(plot) colormap [colormap::copper 64]
         $frame(plot) configure -logdata off -grid on
 	$frame(plot) bind <Motion> [namespace code {FrameCoordinates %W %x %y}]
 	$frame(plot) menu "Log scale" [namespace code {logframe %W}]
@@ -1120,6 +1120,17 @@ proc Cycle {w x y} {
     }
 }
 
+proc Colormenu {w color} {
+    $w colormap [::colormap::$color]
+    redraw $w
+}
+
+proc SetColormap {w} {
+    findplot $w
+    $w colormap [::colormap::$plot(colormap)]
+    redraw $w
+}
+
 proc drawslice {w x y} {
     findplot $w
 
@@ -1384,16 +1395,26 @@ proc plot_window {{w .plot}} {
 
 
     # Create a plot window
+puts hello
     plot2d new $w.c
     meshcolorbar $w.cb
-    $w.cb configure -pady 5m
+    $w.cb configure -pady 0m
     $w.c configure -colorbar $w.cb -logdata on
-    $w.c colormap [colormap_bright 64]
-    $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
-    $w.c menu "Log scale" [namespace code {ToggleLog %W}]
-    $w.c menu "Reset axes" [namespace code {showall %W}]
-    $w.c menu "Center pixel" [namespace code {SelectCenter %W %x %y}]
-    $w.c menu "Distance" [namespace code {SetOrigin %W %x %y}]
+    $w.c colormap [colormap::copper 64]
+    $w.c menu add command -label "Cycle" -command [namespace code {Cycle %W %x %y}]
+    $w.c menu add command -label "Log scale" -command [namespace code {ToggleLog %W}]
+    $w.c menu add command -label "Reset axes" -command [namespace code {showall %W}]
+    $w.c menu add command -label "Center pixel" -command [namespace code {SelectCenter %W %x %y}]
+    $w.c menu add command -label "Distance" -command [namespace code {SetOrigin %W %x %y}]
+
+    # Build the colormap menu
+    menu $w.c.colormenu -title "Colormaps" -tearoff 0
+    foreach c $::colormap::maps {
+	$w.c.colormenu add command -label [string upper $c] \
+	    -command [list Colormenu $w.c $c]
+    }
+    $w.c menu add cascade -label "Colormap" -menu $w.c.colormenu
+
     findplot $w.c
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
@@ -1414,6 +1435,7 @@ proc plot_window {{w .plot}} {
     bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
     bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
 
+puts world
     set plot(meshentry) $plot(mesh)
     label $f.ltransform -text "Transform"
     variable transforms
@@ -1433,11 +1455,24 @@ proc plot_window {{w .plot}} {
 	bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
 	bind $f.transform <Leave> [namespace code [list UpdateMesh $w.c]]
     }
+
+    if 0 {
+    # Add colormap controls
+    # TODO Colormap should be a property of the context menu for the plotter
+    # but the plotter does not currently own the data so it can perform
+    # a replot. 
+    set ${pid}(colormap) copper
+    label $f.lcolormap -text "Color"
+    ComboBox $f.colormap -textvariable ${pid}(colormap) \
+	-values $::colormap::maps -modifycmd [namespace code [list SetColormap $w.c]] \
+	-command [namespace code [list SetColormap $w.c]]
+}
+
     button $f.integrate -text "Integrate" \
 	-command [namespace code [list integrate $w.c]]
     button $f.accept -text "Accept" -command addrun_accept
-    grid $f.lcenter $f.center $f.ltransform $f.transform \
-	$f.integrate $f.accept
+    
+    grid $f.lcenter $f.center $f.ltransform $f.transform $f.integrate $f.accept
 
     label $w.message -relief ridge -anchor w
 

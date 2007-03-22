@@ -125,7 +125,6 @@ void plot_valmap(int n, PReal *map, PReal hue)
  */
 typedef struct PLOT_COLORMAP {
   PReal lo, hi, step;
-  const PReal *sky, *ground;
   PReal *colors;
   int n, log;
 } PlotColormap;
@@ -168,7 +167,6 @@ static void mapinit(void)
 #else
   plot_graymap(PLOT_COLORMAP_LEN,plot_default_colors);
 #endif
-  plot_colormap.sky = plot_colormap.ground = plot_shadow;
   plot_colormap.log = 0;
   plot_colormap.colors = plot_default_colors;
   plot_colormap.lo = 0.;
@@ -182,21 +180,16 @@ static const PReal *mapcolor(PReal v)
 {
   const PReal *c;
   int idx;
-  if (isnan(v)) {
-    c = plot_shadow;
-  } else if (v < plot_colormap.lo) {
-    c = plot_colormap.ground;
-  } else if (v > plot_colormap.hi) {
-    c = plot_colormap.sky;
+  if (isnan(v) || v < plot_colormap.lo) {
+    idx = 0;
+  } else if (plot_colormap.log) {
+    idx = floor(plot_colormap.step*(log(v/plot_colormap.lo)));
   } else {
-    if (plot_colormap.log) {
-      idx = floor(plot_colormap.step*(log(v/plot_colormap.lo)));
-    } else {
-      idx = floor(plot_colormap.step*(v-plot_colormap.lo));
-    }
-    if (idx >= plot_colormap.n) idx = plot_colormap.n-1;
-    c = plot_colormap.colors + 4*idx;
+    idx = floor(plot_colormap.step*(v-plot_colormap.lo));
   }
+  if (idx >= plot_colormap.n) idx = plot_colormap.n-1;
+  c = plot_colormap.colors + 4*idx;
+
   // printf("Painting %f as [%f,%f,%f]\n",z,c[0],c[1],c[2]);
   return c;
 }

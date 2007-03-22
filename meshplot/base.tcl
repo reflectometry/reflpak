@@ -128,11 +128,13 @@ proc linspace {start stop steps} {
     }
 }
 
-proc colorgradient {colors weights {alpha 1.} {n 64}} {
+namespace eval colormap {
+    
+proc gradient {colors weights {alpha 1.} {n 64}} {
     if {[llength $weights]+1 != [llength $colors]/3} {
 	error "colorgradient: need one weight for each interval"
     }
-
+    
     # Convert weights into indices in the resulting colormap
     set total 0.
     foreach w $weights { set total [expr {$total+$w}] }
@@ -142,7 +144,7 @@ proc colorgradient {colors weights {alpha 1.} {n 64}} {
 	set cum [expr {$cum + $w}]
 	lappend indices [expr {int(round(($n-1)*$cum/$total))}]
     }
-
+    
     # Generate color gradients
     foreach {R G B} $colors idx $indices {
 	if {$idx == 0} {
@@ -160,27 +162,115 @@ proc colorgradient {colors weights {alpha 1.} {n 64}} {
 	set lastB $B
 	set lastidx $idx
     }
-
+    
     # Generate constant alpha channel
     set channelA {}
     foreach R $channelR { lappend channelA $alpha }
-
+    
     # Join them into an (n x 4) matrix
     fvector map [concat $channelR $channelG $channelB $channelA]
     ftranspose $n 4 map
-
+    
     return $map
 }
 
-proc colormap_bright {{n 64}} {
-    return [colorgradient {0.8 0.8 0.6  1 1 0  1 0 0  1 1 1} {1 1 1} 1 $n]
+proc bright {{n 64}} {
+    set alpha 1
+    return [gradient {0.8 0.8 0.6  1 1 0  1 0 0  1 1 1} {1 1 1} $alpha $n]
+}
+
+proc copper {{n 64}} {
+    set alpha 1
+    set map {}
+    foreach x [linspace 0 1 $n] {
+	if { $x < 0.8 } {
+	    lappend map [expr {1.25*$x}] [expr {0.8*$x}] [expr {$x/2}] $alpha
+	} else {
+	    lappend map 1 [expr {0.8*$x}] [expr {$x/2}] $alpha
+	}
+    }
+    fvector M $map
+    return $M
+}
+
+proc prism {{n 64}} {
+    set alpha 1
+    set map {}
+    foreach x [linspace 0 1 $n] { lappend map $x 1 1 1 }
+    fvector M $map
+    fhsv2rgb $n M
+    return $M
+}
+
+proc gray {{n 64}} {
+    set alpha 1
+    set map {}
+    foreach x [linspace 0 1 $n] { lappend map 0 0 $x 1 }
+    fvector M $map
+    fhsv2rgb $n M
+    return $M
+}
+
+proc bone {{n 64}} {
+    set alpha 1
+    set map {}
+    foreach x [linspace 0 1 $n] {
+	if {$x < 3./8.} {
+	    lappend map [expr {7*$x/8}] [expr {7*$x/8}] [expr {29*$x/24}] $alpha
+	} elseif {$x < 3./4.} {
+	    lappend map [expr {7*$x/8}] [expr {(29*$x-3)/24}] [expr {(7*$x+1)/8}] $alpha
+	} else {
+	    lappend map [expr {(11*$x-3)/8}] [expr {(7*$x+1)/8}] [expr {(7*$x+1)/8}] $alpha
+	}
+    }
+    fvector M $map
+    return $M
+}
+
+proc graded {{n 64}} {
+    
+    # Maintain visual distinction between neighbouring colours.
+    # For each hue in a list of different hues, use 10 graded values of brightness.
+    # Usually the number of sets will be less than 100, but if it is more then
+    # repeat the hue list until it is long enough.
+    # Hues are given as numbers in [0,6]
+    set numsets [expr {$n/10}]
+    set huelist {}
+    foreach hue {1 2 2.9 3.3 5 0.3 1.5 2.4 3.2 4.1 5.6} { 
+	lappend huelist [expr {$hue/6.}]
+    }
+    while {[llength $huelist] < $numsets} { lappend huelist $huelist }
+    set valuelist [linspace 0.4 1. 10]
+    
+    # Do all full gradations
+    set map {}
+    foreach hue [lrange $huelist 0 [expr {$numsets-1}]] {
+	foreach value $valuelist {
+	    lappend map $hue 1. $value 1.
+	}
+    }
+
+    # Fill the remainder of the list with the next gradation.
+    set hue [lindex $huelist $numsets]
+    foreach value [lrange $valuelist 0 [expr {$n-10*$numsets-1}]] {
+	lappend map $hue 1. $value 1.
+    }
+    
+    # Convert to an rgb map
+    fvector M $map
+    fhsv2rgb $n M
+    return $M
+}
+
+set maps {bright copper gray bone prism graded}
+
 }
 
 proc clip {x lo hi} {
     if { $x < $lo } { 
 	return $lo
     } elseif { $x > $hi } { 
-	return $hi 
+	return $hi     
     } else { 
 	return $x 
     }

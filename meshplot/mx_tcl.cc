@@ -183,6 +183,34 @@ fprecision(ClientData junk, Tcl_Interp *interp,
 }
 
 static int
+fhsv2rgb(ClientData junk, Tcl_Interp *interp,
+	 int argc, Tcl_Obj *CONST argv[])
+{
+  const char *name;
+  mxtype *map;
+  int n;
+
+  /* Process args */
+  if (argc != 3) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"fhsv2rgb n map\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp,argv[1],&n) != TCL_OK) {
+    return TCL_ERROR;
+  }
+  name = Tcl_GetString(argv[2]);
+  map = get_unshared_tcl_vector(interp,name,"fhsv2rgb","map",4*n);
+  if (map == NULL) return TCL_ERROR;
+
+  /* Transform map */
+  mx_hsv2rgb(n,map);
+
+  return TCL_OK;
+}
+
+static int
 frebin(ClientData junk, Tcl_Interp *interp, 
        int argc, Tcl_Obj *CONST argv[])
 {
@@ -295,4 +323,5 @@ extern "C" void mx_init(Tcl_Interp *interp)
   Tcl_CreateObjCommand( interp, "fprecision", fprecision, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin", frebin, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin2D", frebin2D, NULL, NULL );
+  Tcl_CreateObjCommand( interp, "fhsv2rgb", fhsv2rgb, NULL, NULL );
 }

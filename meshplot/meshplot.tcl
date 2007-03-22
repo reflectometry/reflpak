@@ -88,7 +88,7 @@ catch { package require snit }
 
     }
     method draw {args} {
-	# $Color draw
+	$Color draw
 	$ZAxis configure -min $options(-min) -max $options(-max)
 	$ZAxis draw
     }
@@ -198,13 +198,13 @@ catch { package require snit }
 	    $Menu add command -label "Show all" \
 		-command "$win autoaxes; $win.c draw"
 	}
-	$self menu "Pan" {pan start %W}
-	$self menu "Grid" {%W grid toggle}
+	$self menu add command -label "Pan" -command {pan start %W}
+	$self menu add command -label "Grid" -command {%W grid toggle}
     }
 
-    method menu {label command} {
-	$Menu add command -label $label \
-	    -command [list $self invokemenu $command]
+    method menu {args} {
+	puts "menu args are $Menu $args"
+	eval [linsert $args 0 $Menu]
     }
     method invokemenu {command} {
 	variable menu

@@ -14,6 +14,7 @@ extern "C" {
 #define mxtype float
 #endif
 
+void mx_hsv2rgb(int n, mxtype *x);
 void mx_transpose(int m, int n, mxtype *a, mxtype *b);
 void mx_integrate(int m, int n, const mxtype *a, int dim, mxtype *b);
 void mx_extract_columns(int m, int n, const mxtype *a,

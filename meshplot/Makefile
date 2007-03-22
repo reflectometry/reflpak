@@ -44,7 +44,7 @@ plot$(LDEXT): $(OBJS)
 	$(LD_CXX) $(LDFLAGS) -o $@ $(OBJS) $(GLLIBS) $(NEXUSLIB) $(LIBS) $(ZLIB)
 
 plot.o: plot.h
-togl_plot.o: plot.h togl.h mx_tcl.cc tclvector.h
+togl_plot.o: plot.h togl.h tclvector.h
 refl_tcl.o: refl_tcl.c refl.h
 icp_tcl.o: icp_tcl.c icpread.h mx.h tclvector.h
 mx_tcl.o: mx_tcl.cc rebin.h rebin2D.h mx.h

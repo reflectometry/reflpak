@@ -142,6 +142,37 @@ void mxdx_divide_columns(int m, int n, mxtype *M, mxtype *dM, const mxtype *y)
   mx_divide_columns(m,n,dM,y);
 }
 
+
+static void hsv2rgb(mxtype h, mxtype s, mxtype v, mxtype *r, mxtype *g, mxtype *b)
+{
+  if (s <= 0.0) {
+    *r = *g = *b = v;
+  } else {
+    int segment = floor(6.*h);
+    float f = 6.*h - segment;
+    float p = v * (1. - s);
+    float q = v * (1. - (s * f));
+    float t = v * (1. - (s * (1. - f)));
+    switch (segment) {
+    case 0: *r = v; *g = t; *b = p; break;
+    case 1: *r = q; *g = v; *b = p; break;
+    case 2: *r = p; *g = v; *b = t; break;
+    case 3: *r = p; *g = q; *b = v; break;
+    case 4: *r = t; *g = p; *b = v; break;
+    case 5: *r = v; *g = p; *b = q; break;
+    }
+  }
+}
+
+void mx_hsv2rgb(int n, mxtype *x)
+{
+  int i;
+  for (i=0; i < n; i++) {
+    hsv2rgb(x[4*i],x[4*i+1],x[4*i+2],x+4*i,x+4*i+1,x+4*i+2);
+  }
+}
+
+
 /* Find the set of quads traversed by a line */
 void mx_quad_search(int n, int m, mxtype *x, mxtype *y, 
 		    int *xidx, int *yidx,
