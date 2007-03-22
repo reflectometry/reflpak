@@ -1121,6 +1121,7 @@ proc Cycle {w x y} {
 }
 
 proc Colormenu {w color} {
+    findplot $w
     $w colormap [::colormap::$color]
     redraw $w
 }
@@ -1395,25 +1396,28 @@ proc plot_window {{w .plot}} {
 
 
     # Create a plot window
-puts hello
     plot2d new $w.c
     meshcolorbar $w.cb
     $w.cb configure -pady 0m
     $w.c configure -colorbar $w.cb -logdata on
     $w.c colormap [colormap::copper 64]
-    $w.c menu add command -label "Cycle" -command [namespace code {Cycle %W %x %y}]
-    $w.c menu add command -label "Log scale" -command [namespace code {ToggleLog %W}]
-    $w.c menu add command -label "Reset axes" -command [namespace code {showall %W}]
-    $w.c menu add command -label "Center pixel" -command [namespace code {SelectCenter %W %x %y}]
-    $w.c menu add command -label "Distance" -command [namespace code {SetOrigin %W %x %y}]
 
-    # Build the colormap menu
+    # Build a colormap menu
     menu $w.c.colormenu -title "Colormaps" -tearoff 0
     foreach c $::colormap::maps {
-	$w.c.colormenu add command -label [string upper $c] \
-	    -command [list Colormenu $w.c $c]
+	$w.c.colormenu add command -label [string totitle $c] \
+	    -command [namespace code [list Colormenu $w.c $c]]
     }
-    $w.c menu add cascade -label "Colormap" -menu $w.c.colormenu
+
+    # Standard menu choices which should 
+    $w.c menu "Cycle" [namespace code {Cycle %W %x %y}]
+    $w.c menu "Log scale" [namespace code {ToggleLog %W}]
+    $w.c menu "Reset axes" [namespace code {showall %W}]
+    $w.c menu "Distance" [namespace code {SetOrigin %W %x %y}]
+    $w.c submenu "Colormap" $w.c.colormenu
+
+    # Specialized menu
+    $w.c menu "Center pixel" [namespace code {SelectCenter %W %x %y}]
 
     findplot $w.c
     set pid [namespace current]::P$w.c
@@ -1435,7 +1439,6 @@ puts hello
     bind $f.center <Return> [namespace code [list UpdateCenter $w.c]] 
     bind $f.center <Leave> [namespace code [list UpdateCenter $w.c]]
 
-puts world
     set plot(meshentry) $plot(mesh)
     label $f.ltransform -text "Transform"
     variable transforms

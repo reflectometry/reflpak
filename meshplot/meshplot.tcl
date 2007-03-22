@@ -195,16 +195,18 @@ catch { package require snit }
 
 	if 0 {
 	    # Don't know how to manage data limits yet
-	    $Menu add command -label "Show all" \
-		-command "$win autoaxes; $win.c draw"
+	    $self menu "Show all" "$win autoaxes; $win.c draw"
 	}
-	$self menu add command -label "Pan" -command {pan start %W}
-	$self menu add command -label "Grid" -command {%W grid toggle}
+	$self menu "Pan" {pan start %W}
+	$self menu "Grid" {%W grid toggle}
     }
 
-    method menu {args} {
-	puts "menu args are $Menu $args"
-	eval [linsert $args 0 $Menu]
+    method menu {label command} {
+	$Menu add command -label $label \
+	    -command [list $self invokemenu $command]
+    }
+    method submenu {label menu} {
+	$Menu add cascade -label $label -menu $menu
     }
     method invokemenu {command} {
 	variable menu
