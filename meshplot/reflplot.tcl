@@ -1533,7 +1533,7 @@ catch { namespace import reflplot::* }
 namespace eval ice {
 
 proc demo {{mesh_style QxQz}} {
-    set w [plot_window]
+    set w [reflplot::plot_window]
 
     read_data [file join $::REFLPLOT_HOME joh00909.cg1] rec1
     read_data [file join $::REFLPLOT_HOME joh00916.cg1] rec2

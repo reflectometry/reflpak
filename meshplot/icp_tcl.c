@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include <limits.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <tcl.h>
 #include "tclvector.h"
 #include "mx.h"

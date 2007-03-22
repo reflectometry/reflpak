@@ -659,7 +659,7 @@ void plot_grid(const PReal limits[], const PReal grid[])
 void plot_selection (int x, int y, int x1, int y1, int x2, int y2)
 {
   /* Convert from screen coordinates to graph coordinates. */
-  int dims[4];
+  GLint dims[4];
   glGetIntegerv(GL_VIEWPORT, dims);
   y = dims[3]-y;
   y1 = dims[3]-y1;
@@ -1159,7 +1159,7 @@ void qsdraw(int m, int n, const PReal *qs)
   glDisableClientState (GL_COLOR_ARRAY);
 }
 int qsnext=0;
-struct QSLIST {
+static struct QSLIST {
   int m, n;
   const PReal *qs;
 } qslist[10];
@@ -1423,7 +1423,7 @@ void show_pan(int call)
 
 void zoom(int x, int y, int step)
 {
-  int dims[4];
+  GLint dims[4];
   double dx,dy,xbalance,ybalance;
   glGetIntegerv(GL_VIEWPORT, dims);
 
@@ -1449,7 +1449,7 @@ void zoom(int x, int y, int step)
 
 void zoombox(int x1, int y1, int x2, int y2)
 {
-  int dims[4];
+  GLint dims[4];
   double wx1, wy1, wx2, wy2;
   glGetIntegerv(GL_VIEWPORT, dims);
 
@@ -1476,7 +1476,7 @@ void drag(int x, int y)
   // printf("drag to %d %d\n", x, y);
   if (panning) {
     double dx,dy;
-    int dims[4];
+    GLint dims[4];
     glGetIntegerv(GL_VIEWPORT, dims);
     dx = (pan_x-x)*(limits[1]-limits[0])/dims[2];
     dy = -(pan_y-y)*(limits[3]-limits[2])/dims[3];

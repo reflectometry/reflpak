@@ -6,4 +6,4 @@ lappend auto_path ..
 package require tkcon
 tkcon show
 package require reflplot
-reflplot::demo
+ice::demo
