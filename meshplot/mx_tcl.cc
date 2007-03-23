@@ -100,6 +100,71 @@ fextract(ClientData junk, Tcl_Interp *interp,
 
 
 static int
+fslice(ClientData junk, Tcl_Interp *interp, 
+       int argc, Tcl_Obj *CONST argv[])
+{
+  int m,n;
+  double x1,x2,y1,y2;
+  const mxtype *x,*y,*z,*dz;
+  const char *name;
+
+  /* Interpret args */
+  if (argc != 11) {
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"fslice m n x y z dz x1 x2 y1 y2\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+  if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
+      || Tcl_GetIntFromObj(interp,argv[2],&n) != TCL_OK
+      || Tcl_GetDoubleFromObj(interp,argv[7],&x1) != TCL_OK
+      || Tcl_GetDoubleFromObj(interp,argv[8],&y1) != TCL_OK
+      || Tcl_GetDoubleFromObj(interp,argv[9],&x2) != TCL_OK
+      || Tcl_GetDoubleFromObj(interp,argv[10],&y2) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  /* Get data vector */
+  name = Tcl_GetString(argv[3]);
+  x = get_tcl_vector(interp,name,"fslice","x",(m+1)*(n+1));
+  if (x == NULL) return TCL_ERROR;
+  name = Tcl_GetString(argv[4]);
+  y = get_tcl_vector(interp,name,"fslice","y",(m+1)*(n+1));
+  if (y == NULL) return TCL_ERROR;
+  name = Tcl_GetString(argv[5]);
+  z = get_tcl_vector(interp,name,"fslice","z", m*n);
+  if (z == NULL) return TCL_ERROR;
+  name = Tcl_GetString(argv[6]);
+  dz = get_tcl_vector(interp,name,"fslice","dz", m*n);
+  if (dz == NULL) return TCL_ERROR;
+
+
+  /* Count indices */
+  int *idx = (int *)malloc(sizeof(int)*m*n);
+  if (idx == NULL) {
+    Tcl_SetResult( interp, 
+		   "fslice: could not allocate memory for indices", 
+		   TCL_STATIC );
+    return TCL_ERROR;
+  }
+  int nidx = mx_slice_find(n+1,m+1,x,y,x1,y1,x2,y2,m*n,idx);
+
+  /* Build return vector */
+  Tcl_Obj *robj = Tcl_NewByteArrayObj(NULL,0);
+  if (!robj) { free(idx); return TCL_ERROR; }
+  Tcl_SetObjResult(interp,robj);
+  mxtype *r = (mxtype *)Tcl_SetByteArrayLength(robj,4*nidx*sizeof(mxtype));
+  if (!r) { free(idx); return TCL_ERROR; }
+
+  /* Fill with interpolated values */
+  int interpolate = 0;
+  mx_slice_interp(n+1,m+1,x,y,z,dz,x1,y1,x2,y2,nidx,idx,r,interpolate);
+
+  free(idx); return TCL_OK;
+}
+
+
+static int
 fintegrate(ClientData junk, Tcl_Interp *interp, 
 	 int argc, Tcl_Obj *CONST argv[])
 {
@@ -321,6 +386,7 @@ extern "C" void mx_init(Tcl_Interp *interp)
   Tcl_CreateObjCommand( interp, "fintegrate", fintegrate, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fdivide", fdivide, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fprecision", fprecision, NULL, NULL );
+  Tcl_CreateObjCommand( interp, "fslice", fslice, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin", frebin, NULL, NULL );
   Tcl_CreateObjCommand( interp, "frebin2D", frebin2D, NULL, NULL );
   Tcl_CreateObjCommand( interp, "fhsv2rgb", fhsv2rgb, NULL, NULL );

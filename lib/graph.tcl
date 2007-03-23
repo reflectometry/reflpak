@@ -51,8 +51,8 @@ proc plot { x y {options {}}} {
 	set el 0
     }
     set color [lindex $::colorlist [expr {$el%[llength $::colorlist]}]]
-    set linetype [lindex [string split $options :] 0]
-    set label [lindex [string split $options :] 1]
+    set linetype [lindex [split $options :] 0]
+    set label [lindex [split $options :] 1]
     $w.g elem create line$el -xdata $x -ydata $y -label $label -color $color
 
     return $w

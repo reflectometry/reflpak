@@ -159,9 +159,9 @@ catch { package require snit }
 	event add <<Zoom>> <ButtonPress-1>
 	event add <<ZoomMove>> <B1-Motion>
 	event add <<ZoomEnd>> <ButtonRelease-1>
-	event add <<Navigate>> <Shift-ButtonPress-1>
-	event add <<Navigate>> <Control-ButtonPress-1>
-        event add <<NavigateEnd>> <ButtonRelease-1>
+	event add <<Navigate>> <Shift-ButtonPress-3>
+	event add <<Navigate>> <Control-ButtonPress-3>
+        event add <<NavigateEnd>> <ButtonRelease-3>
 	event add <<Pan>> <Button-2>
 	event add <<ContextMenu>> <Button-3>
 	mousewheel bind $win ;# Convert <MouseWheel> to <<Wheel>> events

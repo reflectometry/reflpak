@@ -78,8 +78,9 @@ check:	rebintest$(EXE)
 # Various experimental and test codes
 
 # Slicing code --- not yet used in the interface
-slicetest$(EXE): slice.c
-	$(CC) -DTEST slice.c -oslicetest$(EXE)
+slicetest$(EXE): slicetest.o mx.o
+	$(CC) slicetest.o mx.o -oslicetest$(EXE)
+slicetest.o: slicetest.c mx.h
 
 # Rebinning code tests
 rebintest$(EXE): rebin_test.cc rebin.h

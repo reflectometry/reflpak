@@ -166,8 +166,10 @@ proc mesh_QxQz {id} {
 				     $rec(points) $rec(pixels) \
 				     rec(alpha) rec(beta) rec(dtheta)] {}
     }
-    set rec(xlabel) "Qx (inv Angstroms)"
-    set rec(ylabel) "Qz (inv Angstroms)"
+    set rec(xlabel) "Qx"
+    set rec(xunits) "inv Angstroms"
+    set rec(ylabel) "Qz"
+    set rec(yunits) "inv Angstroms"
     set rec(xcoord) "Qx"
     set rec(ycoord) "Qz"
 }
@@ -227,8 +229,10 @@ proc mesh_TiTd {id} {
     foreach {rec(x) rec(y)} [buildmesh -d \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
-    set rec(xlabel) "theta_f - theta_i (degrees)"
-    set rec(ylabel) "theta_i (degrees)"
+    set rec(xlabel) "theta_f - theta_i"
+    set rec(xunits) "degrees"
+    set rec(ylabel) "theta_i"
+    set rec(yunits) "degrees"
     set rec(ycoord) "Ti"
     set rec(xcoord) "Td"
 }
@@ -274,8 +278,10 @@ proc mesh_TiTf {id} {
     foreach {rec(x) rec(y)} [buildmesh -f \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
-    set rec(xlabel) "theta_f (degrees)"
-    set rec(ylabel) "theta_i (degrees)"
+    set rec(xlabel) "theta_f"
+    set rec(xunits) "degrees"
+    set rec(ylabel) "theta_i"
+    set rec(yunits) "degrees"
     set rec(ycoord) "Ti"
     set rec(xcoord) "Tf"
 }
@@ -323,8 +329,10 @@ proc mesh_AB {id} {
     foreach {rec(x) rec(y)} [buildmesh -b \
 				 $rec(points) $rec(pixels) \
 				 rec(alpha) rec(beta) rec(dtheta)] {}
-    set rec(xlabel) "theta_i+theta_f (degrees)"
-    set rec(ylabel) "theta_i (degrees)"
+    set rec(xlabel) "theta_i+theta_f"
+    set rec(xunits) "degrees"
+    set rec(ylabel) "theta_i"
+    set rec(yunits) "degrees"
     set rec(ycoord) "A"
     set rec(xcoord) "B"
 }
@@ -372,8 +380,10 @@ proc mesh_slit {id} {
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(points) $rec(pixels) \
 				 rec(slit1) rec(dtheta)] {}
-    set rec(xlabel) "theta_f - theta_i (degrees)"
-    set rec(ylabel) "slit 1 (mm)"
+    set rec(xlabel) "theta_f - theta_i"
+    set rec(xunits) "degrees"
+    set rec(ylabel) "slit 1"
+    set rec(yunits) "mm"
     set rec(ycoord) "S1"
     set rec(xcoord) "Td"
 }
@@ -420,8 +430,10 @@ proc mesh_LTd {id} {
     foreach {rec(x) rec(y)} [buildmesh \
 				$rec(points) $rec(pixels) \
 				rec(lambda) rec(dtheta)] {}
-    set rec(xlabel) "theta_f - theta_i (degrees)"
-    set rec(ylabel) "wavelength ($::symbol(angstrom))"
+    set rec(xlabel) "theta_f - theta_i"
+    set rec(xunits) "degrees"
+    set rec(ylabel) "wavelength"
+    set rec(yunits) "$::symbol(angstrom)"
     set rec(xcoord) "Td"
     set rec(ycoord) "L"    
 }
@@ -471,8 +483,10 @@ proc mesh_pixel {id {base 0}} {
     foreach {rec(x) rec(y)} [buildmesh \
 				 $rec(points) $rec(pixels) \
 				 rec(yv) rec(xv)] {}
-    set rec(xlabel) "detector pixels"
-    set rec(ylabel) "scan points"
+    set rec(xlabel) "detector position"
+    set rec(xunits) "mm"
+    set rec(ylabel) "frame"
+    set rec(yunits) "#"
     set rec(xcoord) "pixel"
     set rec(ycoord) "point"
 }
@@ -1132,9 +1146,21 @@ proc SetColormap {w} {
     redraw $w
 }
 
+proc logfloor {x dx} {
+    if 0 {
+	# Set the floor based on the uncertainty
+	$x expr "$x*($x>$dx)+$dx*($x<=$dx)/2"
+    } else {
+	# Set the floor to half the minimum value
+	set floor [vector expr "min($x*($x>0)+max($x)*($x<=0))"]
+	$x expr "$x*($x>0)+$floor*($x<=0)/2"
+    }
+}
+
 proc drawslice {w x y} {
     findplot $w
 
+    # Clear old slices off the graph
     foreach id [$plot(slice) el names] {
 	$plot(slice) el delete $id
         catch { vector destroy ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id} }
@@ -1146,47 +1172,35 @@ proc drawslice {w x y} {
     # Handle case of no slice
     if { $x eq {} || $y eq {} } { return }
 
-    set n 0
+    set color 0
     foreach id $plot(records) {
         upvar \#0 $id rec
 
-        set idx -1
-	catch { set idx [find_$plot(mesh) $id $x $y] }
-	if { $idx >= 0 } {
-	    set j [expr {$idx/$rec(pixels)}]
-            set x {}
-            set data {}
-            set err {}
-            set min 1e300
-            for {set i 0} {$i < $rec(pixels)} {incr i} {
-                set idx [expr {$i + $j*$rec(pixels)}]
-		set v [findex rec(psddata) $idx]
-		if {$v > 0. && $v < $min} { set min $v }
-	        lappend x $i
-                lappend data $v
-                lappend err [findex rec(psderr) $idx]
-            }
-	    set floor [expr {$min < 1e300 ? $min/2. : 0.5}]
-	    set d {}
-	    foreach v $data {
-		if { $v <= 0. } { lappend d $floor } { lappend d $v }
-	    }
+	# Grab constant y slice returning n x 4 matrix of x,y,z,dz
+	set slice [fslice $rec(points) $rec(pixels) rec(x) rec(y) \
+		       rec(psddata) rec(psderr) 0 $y 1 $y]
+
+	# If returned list isn't empty plot the line
+	set npts [expr {[flength slice]/4}]
+	if { $npts > 0 } {
 	    vector create ::x${w}_${id} ::y${w}_${id} ::dy${w}_${id}
-	    ::x${w}_${id} set [row_$plot(mesh) $id $j]
-	    ::y${w}_${id} set $d
-            ::dy${w}_${id} set $err
+	    foreach d {x y dy} i {0 2 3} {
+		set v [fextract $npts 4 slice $i]
+		::${d}${w}_${id} set [fvector v]
+	    }
+	    logfloor ::y${w}_${id} ::dy${w}_${id}
 	    $plot(slice) el create $id \
 		-xdata ::x${w}_${id} -ydata ::y${w}_${id} \
-		-yerror ::dy${w}_${id} -color [color [incr n]] \
+		-yerror ::dy${w}_${id} -color [color [incr color]] \
 		-label $rec(legend)
-	    foreach edge [array names rec curve,*] {
-		set pos [findex rec($edge) $j]
-	        $plot(slice) marker create line -dashes {6 2} -linewidth 2 \
-			-coords [list $pos -Inf $pos Inf]
-	    }
-	     
 	}
-	$plot(slice) axis configure x -title $rec(xlabel)
+    }
+
+    # Update axis labels and range
+    if {[llength $plot(records)]} {
+	$plot(slice) axis configure x \
+	    -title "$rec(xlabel) ($rec(xunits)) at $rec(ylabel)=[fix $y] $rec(yunits)" \
+	    -min [$w cget -xmin] -max [$w cget -xmax]
     }
 }
 
@@ -1194,6 +1208,13 @@ proc MoveSlice {w x y} {
     findplot $w
     foreach {plot(slice,x) plot(slice,y)} [$w coords $x $y] break
     drawslice $w $plot(slice,x) $plot(slice,y)
+}
+
+proc IncrSlice {w delta} {
+    findplot $w
+    set ystep [expr {([$w cget -ymax]-[$w cget -ymin])/[winfo height $w]}]
+    set y [expr {$plot(slice,y)+$ystep*$delta}]
+    drawslice $w $plot(slice,x) $y
 }
 
 
@@ -1423,9 +1444,11 @@ proc plot_window {{w .plot}} {
     set pid [namespace current]::P$w.c
     $w.c bind <Motion> [namespace code {ShowCoordinates %W %x %y}]
     $w.c bind <<ZoomClick>> [namespace code {MoveSlice %W %x %y}]
-    $w.c bind <Control-ButtonPress-3> [namespace code {MoveSlice %W %x %y}]
-    $w.c bind <Control-B3-Motion> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Control-ButtonPress-1> [namespace code {MoveSlice %W %x %y}]
+    $w.c bind <Control-B1-Motion> [namespace code {MoveSlice %W %x %y}]
     $w.c bind <Double-1> [namespace code {Cycle %W %x %y}]
+    $w.c bind <Up> [namespace code {IncrSlice %W 1}]
+    $w.c bind <Down> [namespace code {IncrSlice %W -1}]
 
     # Create a control panel
     set f $w.controls
@@ -1458,18 +1481,6 @@ proc plot_window {{w .plot}} {
 	bind $f.transform <Return> [namespace code [list UpdateMesh $w.c]]
 	bind $f.transform <Leave> [namespace code [list UpdateMesh $w.c]]
     }
-
-    if 0 {
-    # Add colormap controls
-    # TODO Colormap should be a property of the context menu for the plotter
-    # but the plotter does not currently own the data so it can perform
-    # a replot. 
-    set ${pid}(colormap) copper
-    label $f.lcolormap -text "Color"
-    ComboBox $f.colormap -textvariable ${pid}(colormap) \
-	-values $::colormap::maps -modifycmd [namespace code [list SetColormap $w.c]] \
-	-command [namespace code [list SetColormap $w.c]]
-}
 
     button $f.integrate -text "Integrate" \
 	-command [namespace code [list integrate $w.c]]
@@ -1604,4 +1615,20 @@ proc read_data {file id} {
 }
 
 }; # ice namespace
+
+
+
+proc plotslice {xval} {
+    upvar \#0 rec rec
+    if {$rec(psdplot) && $rec(loaded)} {
+	set slice [fslice $rec(points) $rec(pixels) rec(x) rec(y) \
+		       rec(psddata) rec(psderr) $xval 0 $xval 1]
+	set npts [expr {[flength slice]/4}]
+	set x [fextract $npts 4 slice 1]
+	set y [fextract $npts 4 slice 2]
+	set dy [fextract $npts 4 slice 3]
+	
+	plot [fvector x] [fvector y] ":$xval"
+    }
+}
 

@@ -35,6 +35,8 @@ proc fvector {name args} {
 }
 
 proc ferr {val err} {
+    # FIXME check if this should be upvar 0 to keep the variable local
+    # to the current function; similarly elsewhere
     upvar $val v
     upvar $err dv
     set res {}
@@ -44,7 +46,7 @@ proc ferr {val err} {
 
 
 proc flength {name} {
-    # XXX FIXME XXX vector length could be wrong if the byte sequences 
+    # FIXME vector length could be wrong if the byte sequences 
     # happens to code to UTF multi-byte patterns.  Need something better
     # than [string length x] to handle this properly.
     upvar $name vec
@@ -77,6 +79,8 @@ proc edges {centers delta} {
 #  if { [llength $centers] == 1 }
 #    set e [list [expr {$centers-$delta}] [expr {$centers+$delta}]]
   if { [lindex $centers 0] == [lindex $centers end] } {
+    # remove jitter
+    set delta 0
     set c [lindex $centers 0]
     set e [expr {$c-$delta}]
     set sign 1.
