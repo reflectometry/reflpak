@@ -5,6 +5,19 @@
 
 /* ================================================================ */
 /* build a mesh from reflectometry measurement points               */
+/* The following meshes are supported:
+
+  TOF->Q  buildmesh -L lambda $frames $pixels $A $B dtheta
+  mono->Q buildmesh -Q $lambda $frames $pixels A B dtheta
+  Ti-dT   buildmesh -d $frames $pixels A B dtheta
+  Ti-Tf   buildmesh -f $frames $pixels A B dtheta
+  Ti-B    buildmesh -b $frames $pixels A B dtheta
+  L-dT    buildmesh $frames $pixels lambda dtheta
+  slits   buildmesh $frames $pixels slit1 dtheta
+  pixels  buildmesh $frames $pixels pixeledges frameedges
+  frame   buildmesh $nx $ny xedges yedges
+
+*/
 static int 
 buildmesh(ClientData junk, Tcl_Interp *interp, int argc, 
 	  Tcl_Obj *CONST argv[])
@@ -136,6 +149,101 @@ buildmesh(ClientData junk, Tcl_Interp *interp, int argc,
 
 
 /* ================================================================ */
+/* find scale factor for mesh density                               */
+/* The following meshes are supported:
+
+  TOF->Q  scalemesh -L lambda $frames $pixels $A $B dtheta
+  mono->Q scalemesh -Q $lambda $frames $pixels A B dtheta
+
+*/
+static int 
+scalemesh(ClientData junk, Tcl_Interp *interp, int argc, 
+	  Tcl_Obj *CONST argv[])
+{
+  int m,n;
+  Tcl_Obj *result;
+  mxtype *scale;
+  const char *name, *style = "  ";
+
+  /* Determine mesh type and size, and for -Q, find lambda */
+  if (argc == 8) {
+    style = Tcl_GetString(argv[1]);
+    if (!style || (style[1]!='Q' && style[1]!='L')) {
+      Tcl_SetResult( interp,
+		     "scalemesh: expected style -Q lambda or -L lambda",
+		     TCL_STATIC);
+      return TCL_ERROR;
+    }
+  }
+
+  /* Interpret args */
+  if (! (argc==8) ){
+    Tcl_SetResult( interp,
+		   "wrong # args: should be \"scalemesh [-Q lambda|-L lambda] m n alpha beta dtheta\"",
+		   TCL_STATIC);
+    return TCL_ERROR;
+  }
+
+  if (Tcl_GetIntFromObj(interp,argv[3],&m) != TCL_OK 
+      || Tcl_GetIntFromObj(interp,argv[4],&n) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  /* Construct return list. */
+  result = Tcl_NewListObj(0,NULL);
+  if (!result) return TCL_ERROR;
+
+  result = Tcl_NewByteArrayObj(NULL,0);
+  if (!result) return TCL_ERROR;
+  Tcl_SetObjResult(interp,result);
+  scale = (mxtype *)Tcl_SetByteArrayLength(result,m*n*sizeof(mxtype));
+  if (!scale) return TCL_ERROR;
+
+  /* Get data values */
+  if (style[1] == 'L') {
+    double A,B;
+    const mxtype *dtheta, *lambda;
+    
+    name = Tcl_GetString(argv[2]);
+    lambda = get_tcl_vector(interp,name,"buildmesh","lambda",m);
+    if (lambda == NULL) return TCL_ERROR;
+    
+    if (Tcl_GetDoubleFromObj(interp,argv[5],&A) != TCL_OK) 
+      return TCL_ERROR;
+    if (Tcl_GetDoubleFromObj(interp,argv[6],&B) != TCL_OK) 
+      return TCL_ERROR;
+    
+    name = Tcl_GetString(argv[7]);
+    dtheta = get_tcl_vector(interp,name,"buildmesh","dtheta",n);
+    if (dtheta == NULL) return TCL_ERROR;
+    scale_Lmesh(m,n,A,B,dtheta,lambda,scale);
+  } else {
+    double L;
+    const mxtype *alpha, *beta, *dtheta;
+    
+    if (Tcl_GetDoubleFromObj(interp,argv[2],&L) != TCL_OK) 
+      return TCL_ERROR;
+
+    name = Tcl_GetString(argv[5]);
+    alpha = get_tcl_vector(interp,name,"buildmesh","alpha",m);
+    if (alpha == NULL) return TCL_ERROR;
+    
+    name = Tcl_GetString(argv[6]);
+    beta = get_tcl_vector(interp,name,"buildmesh","beta",m);
+    if (beta == NULL) return TCL_ERROR;
+    
+    name = Tcl_GetString(argv[7]);
+    dtheta = get_tcl_vector(interp,name,"buildmesh","dtheta",n);
+    if (dtheta == NULL) return TCL_ERROR;
+    
+    scale_Qmesh(m,n,alpha,beta,dtheta,L,scale);
+  }
+
+  return TCL_OK;
+}
+
+
+/* ================================================================ */
 /* find the measurement associated with a point in a mesh           */
 static int 
 findmesh(ClientData junk, Tcl_Interp *interp, int argc, 
@@ -260,5 +368,6 @@ findmesh(ClientData junk, Tcl_Interp *interp, int argc,
 void refl_init(Tcl_Interp *interp)
 {
   Tcl_CreateObjCommand( interp, "buildmesh", buildmesh, NULL, NULL );
+  Tcl_CreateObjCommand( interp, "scalemesh", scalemesh, NULL, NULL );
   Tcl_CreateObjCommand( interp, "findmesh", findmesh, NULL, NULL );
 }

@@ -14,7 +14,7 @@ namespace eval reflplot {
 
     variable pi_over_180 [expr {atan(1.)/45.}]
     variable pi_times_2 [expr {8.*atan(1.)}]
-    variable transforms {QxQz TiTf TiTd AB slit pixel LTd}
+    variable transforms {QxQz TiTf TiTd AB slit detector LTd}
     variable colorlist {}
 
 
@@ -98,19 +98,32 @@ proc parse_data {id data} {
     set rec(psdraw) $rec(psddata)
 }
 
-proc normalize {id monitor} {
+proc normalize {id} {
     upvar \#0 $id rec
 
-    # normalize by monitor counts
-    fdivide $rec(points) $rec(pixels) rec(psddata) rec(column,$monitor)
-    ftranspose $rec(pixels) $rec(points) rec(psddata)
-    fdivide $rec(pixels) $rec(points) rec(psddata) rec(column,pixelnorm)
-    ftranspose $rec(points) $rec(pixels) rec(psddata)
+    # Start from scratch
+    set rec(psddata) $rec(psdraw)
+    ferr rec(psddata) rec(psderr)
 
-    fdivide $rec(points) $rec(pixels) rec(psderr) rec(column,$monitor)
-    ftranspose $rec(pixels) $rec(points) rec(psderr)
-    fdivide $rec(pixels) $rec(points) rec(psderr) rec(column,pixelnorm)
-    ftranspose $rec(points) $rec(pixels) rec(psderr)
+    #puts "n=[flength rec(column,monitor)] $rec(pixels) $rec(points)"
+    # frame scale (monitor * attenuator * footprint * incident medium)
+    fdivide columns $rec(points) $rec(pixels) rec(psddata) rec(column,monitor)
+    fdivide columns $rec(points) $rec(pixels) rec(psderr) rec(column,monitor)
+
+    # pixel scale
+    fdivide rows $rec(points) $rec(pixels) rec(psddata) rec(column,pixelnorm)
+    fdivide rows $rec(points) $rec(pixels) rec(psderr) rec(column,pixelnorm)
+
+    # mapping density correction
+    if {[info exists rec(mapscale)]} {
+	#puts "scaling"
+	fdivide elements $rec(pixels) $rec(points) rec(psddata) rec(mapscale)
+	fdivide elements $rec(pixels) $rec(points) rec(psderr) rec(mapscale)
+	# set rec(psddata) $rec(mapscale)
+    } else {
+	#puts "not scaling"
+    }
+
 }
 
 proc set_axes {id theta twotheta slit1} {
@@ -161,10 +174,18 @@ proc mesh_QxQz {id} {
 	foreach {rec(x) rec(y)} [buildmesh -L rec(lambda) \
 				     $rec(points) $rec(pixels) \
 				     $rec(A) $rec(B) rec(dtheta)] {}
+	set rec(mapscale) [scalemesh -L rec(column,lambda) \
+			       $rec(points) $rec(pixels) \
+			       $rec(A) $rec(B) rec(column,dtheta)]
     } else {
 	foreach {rec(x) rec(y)} [buildmesh -Q $rec(L) \
 				     $rec(points) $rec(pixels) \
 				     rec(alpha) rec(beta) rec(dtheta)] {}
+	#puts "defining scale"
+	set rec(mapscale) [scalemesh -Q $rec(L) \
+			       $rec(points) $rec(pixels) \
+			       rec(column,alpha) rec(column,beta) \
+			       rec(column,dtheta)]
     }
     set rec(xlabel) "Qx"
     set rec(xunits) "inv Angstroms"
@@ -474,7 +495,7 @@ proc find_LTd {id x y} {
 
 # ----------------------------------------------
 
-proc mesh_pixel {id {base 0}} {
+proc mesh_detector {id {base 0}} {
     upvar \#0 $id rec
 
     # Generate mesh
@@ -486,7 +507,57 @@ proc mesh_pixel {id {base 0}} {
     set rec(xlabel) "detector position"
     set rec(xunits) "mm"
     set rec(ylabel) "frame"
-    set rec(yunits) "#"
+    set rec(yunits) ""
+    set rec(xcoord) "position"
+    set rec(ycoord) "point"
+}
+
+proc integration_detector {id {base 0}} {
+    upvar \#0 $id rec
+
+    # Generate integration region boundaries
+    fvector rec(curvex) [integer_centers $rec(points) $base]
+    foreach region_edge [array names rec edge,*] {
+	set result {}
+	foreach el $rec($region_edge) {
+	    lappend result [expr {$el + $rec(centerpixel)}]
+	}
+	fvector rec(curve,$region_edge) $result
+    }
+}
+
+proc row_detector {id row} {
+    upvar \#0 $id rec
+    ABL $id $row A B L
+    set x {}
+    for {set p 1} {$p <= $rec(pixels)} {incr p} {
+ 	lappend x $p
+    }
+    return $x
+}
+
+proc find_detector {id x y} {
+    upvar \#0 $id rec
+    return [findmesh \
+		$rec(points) $rec(pixels) \
+		rec(yv) rec(xv) $x $y]
+}
+
+# ----------------------------------------------
+
+proc mesh_pixel {id {base 0}} {
+    upvar \#0 $id rec
+
+    # Generate mesh
+    fvector rec(xv) [integer_edges $rec(pixels) 0]
+    fvector rec(yv) [integer_edges $rec(points) $base]
+    foreach {rec(x) rec(y)} [buildmesh \
+				 $rec(points) $rec(pixels) \
+				 rec(yv) rec(xv)] {}
+    set rec(xlabel) "detector pixel"
+    set rec(xunits) ""
+    set rec(ylabel) "frame"
+    set rec(yunits) ""
     set rec(xcoord) "pixel"
     set rec(ycoord) "point"
 }
@@ -598,6 +669,7 @@ proc calc_transform {path type} {
         # foreach curve [array names plot $id,*] { $path delete $plot($curve) }
 
 	# Update mesh
+	array unset rec mapscale
 	if { $type == "pixel" } {
 	    mesh_$type $id $plot(points)
 	    integration_$type $id $plot(points)
@@ -607,6 +679,7 @@ proc calc_transform {path type} {
 	    mesh_$type $id
 	    integration_$type $id
 	}
+	normalize $id
 	# $path delete $plot($id)
 	set plot($id) \
 	    [$path mesh $rec(points) $rec(pixels) $rec(x) $rec(y) $rec(psddata)]
@@ -1602,6 +1675,7 @@ proc read_data {file id} {
 	error "$file: missing \#Columns xxx xxx xxx..."
     }
     set rec(Ncolumns) [llength $rec(columns)]
+    set rec(column,monitor) $rec(column,Monitor)
 
     # instrument parameters
     set rec(L) 5.
@@ -1609,7 +1683,7 @@ proc read_data {file id} {
     set rec(distance)  1600.
 
     reflplot::parse_data $id $data
-    reflplot::normalize $id Monitor
+    reflplot::normalize $id
     reflplot::set_axes $id Theta TwoTheta S1
     reflplot::set_center_pixel $id
 }

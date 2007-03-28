@@ -20,10 +20,11 @@ Octave code:
 alpha=-[-25,-20,-15,-1];
 beta=-20;
 lambda=5;
+ks = 2*pi./lambda;
 a=alpha*pi/180;
 b=beta*pi/180;
-Qz=2*pi./lambda.*(sin(b-a)+sin(a));
-Qx=2*pi./lambda.*(cos(b-a)-cos(a));
+Qz=ks.*(sin(b-a)+sin(a));
+Qx=ks.*(cos(b-a)-cos(a));
 
 # Compute Alpha-Beta
 x=Qx*L/(2*pi);  z=Qz*L/(2*pi);      # Normalize Q
@@ -390,7 +391,7 @@ build_Qmesh(const int n, const int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    const mxtype lambda, mxtype Qx[], mxtype Qz[])
 {
-  const mxtype two_pi_over_lambda = 2.*M_PI/lambda;
+  const mxtype ks = 2.*M_PI/lambda;
   const mxtype pi_over_180 = M_PI/180.;
   int idx = 0;
   int j,k;
@@ -400,12 +401,73 @@ build_Qmesh(const int n, const int m,
     const mxtype theta = beta[j]-alpha[j];
     for (k=0; k <= m; k++) {
       const mxtype out = (theta+dtheta[k])*pi_over_180;
-      Qz[idx] = two_pi_over_lambda*(sin(out)+sin_in);
-      Qx[idx] = two_pi_over_lambda*(cos(out)-cos_in);
+      Qz[idx] = ks*(sin(out)+sin_in);
+      Qx[idx] = ks*(cos(out)-cos_in);
       idx++;
     }
   }
 }
+
+
+/* Find the rate scaling to apply to each pixel.  This is based on
+ * the derivative at the center of the pixel rather than boundaries
+ * of the mesh --- that way we don't have to worry about whether the
+ * steps sizes in the mesh are uniform.  Note that this means that
+ * the scale goes nxm rather than (n+1)x(m+1) elements.
+ *
+ *
+ * The scale factor is determined by seeing the size of a patch
+ * dA = dxdy that is transformed into a patch dQ(u,v).
+ * From a text on surface integrals we read that dQ is
+ *
+ *    | dx/du dy/dv - dy/du dx/dv | du dv
+ *
+ * CHECK!!! This may be off by a factor of 1/2.
+ *
+ * For the transformation from Ti,Tf -> Qx,Qz we have:
+ *
+ *   Qx = k cos Tf - k cos Ti
+ *   Qz = k sin Tf + k sin Ti
+ *
+ *   dQx/dTi =  k sin Ti
+ *   dQx/dTf = -k sin Tf
+ *   dQz/dTi =  k cos Ti
+ *   dQz/dTf =  k cos Tf
+ *
+ * Multiplying, this is:
+ *
+ *   dQ = k^2 | sin Ti cos Tf + cos Ti sin Tf | dTi dTf
+ *
+ * which is the value used below.
+ *
+ * Should we drive it back further to position p on the detector?
+ * This would expand dTf into (dTf/dp) dp.  Given:
+ *
+ *    Tf = atan( (p-c)/d )
+ *
+ * where c is the center pixel and d is the detector distance, then:
+ *
+ *    dTf/dp = d / (d^2 + (p-c)^2)
+ *
+ * with d >> (p-c), this is about 1/d, so the effect can be ignored.
+ */
+void
+scale_Qmesh(const int n, const int m, 
+	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	    const mxtype lambda, mxtype scale[])
+{
+  const mxtype ksq = 4.*M_PI*M_PI/lambda/lambda;
+  const mxtype pi_over_180 = M_PI/180.;
+  int idx = 0;
+  int j,k;
+  for (j=0; j < n; j++) {
+    for (k=0; k < m; k++) {
+      const mxtype twotheta = (beta[j]+dtheta[k])*pi_over_180;
+      scale[idx++] = fabs(ksq*sin(twotheta));
+    }
+  }
+}
+
 
 int
 find_in_Qmesh(const int n, const int m, 
@@ -426,6 +488,7 @@ find_in_Qmesh(const int n, const int m,
   if (k < 0) return -1;
   return m*j + k;
 }
+
 
 /* == warped mesh, Qx vs. Qz from delta-theta, lambda ==
 // alpha is sample angle (usually known as theta)
@@ -450,12 +513,59 @@ build_Lmesh(const int n, const int m,
   int idx = 0;
   int j,k;
   for (j=0; j <= n; j++) {
-    const mxtype two_pi_over_lambda = 2.*M_PI/lambda[j];
+    const mxtype ks = 2.*M_PI/lambda[j];
     for (k=0; k <= m; k++) {
       const mxtype out = (theta+dtheta[k])*pi_over_180;
-      Qz[idx] = two_pi_over_lambda*(sin(out)+sin_in);
-      Qx[idx] = two_pi_over_lambda*(cos(out)-cos_in);
+      Qz[idx] = ks*(sin(out)+sin_in);
+      Qx[idx] = ks*(cos(out)-cos_in);
       idx++;
+    }
+  }
+}
+
+/* Find the rate scaling to apply to each pixel.  This is based on
+ * the derivative at the center of the pixel rather than boundaries
+ * of the mesh --- that way we don't have to worry about whether the
+ * steps sizes in the mesh are uniform.  Note that this means that
+ * the scale goes nxm rather than (n+1)x(m+1) elements.
+ *
+ *
+ * The scale factor is determined by seeing the size of a patch
+ * dA = dxdy that is transformed into a patch dQ(u,v).
+ * From a text on surface integrals we read that dQ is
+ *
+ *    | dx/du dy/dv - dy/du dx/dv | du dv
+ *
+ * For the transformation from L,Tf -> Qx,Qz we have:
+ *
+ *   Qx = 2 pi/L (cos Tf - cos Ti)
+ *   Qz = 2 pi/L (sin Tf + sin Ti)
+ *
+ *   dQx/dL  = -2 pi/L^2 (cos Tf - cos Ti)
+ *   dQx/dTf = -2 pi/L sin Tf
+ *   dQz/dL  = -2 pi/L^2 (sin Tf + sin Ti)
+ *   dQz/dTf =  2 pi/L cos Tf
+ *
+ * Expanding the above, this is:
+ *
+ *   dQ = k^2/L | 1 + sin Ti sin Tf - cos Ti cos Tf | dTf dL
+ *
+ * which is the value used below.
+ */
+void
+scale_Lmesh(const int n, const int m, 
+	    const mxtype alpha, const mxtype beta, const mxtype dtheta[],
+	    const mxtype lambda[], mxtype scale[])
+{
+  const mxtype pi_over_180 = M_PI/180.;
+  int idx = 0;
+  int j,k;
+  for (j=0; j <= n; j++) {
+    const mxtype ks = 2.*M_PI/lambda[j];
+    const mxtype ksq_L = ks*ks/lambda[j];
+    for (k=0; k <= m; k++) {
+      const mxtype twotheta = (beta+dtheta[k])*pi_over_180;
+      scale[idx++] = ksq_L * fabs(1 - cos(twotheta));
     }
   }
 }

@@ -351,9 +351,7 @@ proc icp_load {id} {
 
     # Load the psd view if it exists
     if { [$rec(fid) Npixels] > 1 } {
-	set rec(psddata) [$rec(fid) counts]
-	ferr rec(psddata) rec(psderr)
-	set rec(psdraw) $rec(psddata)
+	set rec(psdraw) [$rec(fid) counts]
 	set rec(pixels) [$rec(fid) Npixels]
 	set rec(psdplot) 1
     }
@@ -495,7 +493,7 @@ proc NG1_psd_fvector {id} {
     set v {}
     foreach el [fvector rec(column,A3)] { lappend v $rec(monitor) }
     fvector rec(column,monitor) $v
-    reflplot::normalize $id monitor
+    reflplot::normalize $id
 }
 
 # Generate a column from a motor specification if no column is recorded
@@ -867,7 +865,8 @@ proc NG7_psd_fvector {id} {
     reflplot::set_center_pixel $id 128
 
     ng7_detector_efficiency $id
-    reflplot::normalize $id MON
+    set rec(column,monitor) $rec(column,MON)
+    reflplot::normalize $id
 }
 
 proc NG7_psd_octave {id} {

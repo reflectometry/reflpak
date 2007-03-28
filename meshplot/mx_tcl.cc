@@ -16,34 +16,76 @@ static int
 fdivide(ClientData junk, Tcl_Interp *interp, 
 	 int argc, Tcl_Obj *CONST argv[])
 {
-  int m,n;
-  const mxtype *y;
+  int m,n,action,size;
   mxtype *M;
-  const char *name;
+  const char *name, *action_string;
 
   /* Interpret args */
-  if (argc != 5) {
+  if (argc != 6) {
     Tcl_SetResult( interp,
-		   "wrong # args: should be \"fdivide m n M y\"",
+		   "wrong # args: should be \"fdivide [rows|columns|elements|scalar] m n M y\"",
 		   TCL_STATIC);
     return TCL_ERROR;
   }
-  if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
-      || Tcl_GetIntFromObj(interp,argv[2],&n) != TCL_OK) {
+  if (Tcl_GetIntFromObj(interp,argv[2],&m) != TCL_OK 
+      || Tcl_GetIntFromObj(interp,argv[3],&n) != TCL_OK) {
+    return TCL_ERROR;
+  }
+
+  
+  action_string = Tcl_GetString(argv[1]);
+  if (strcmp(action_string,"rows") == 0) {
+    action = 1;
+    size = n;
+  } else if (strcmp(action_string,"columns") == 0) {
+    action = 2;
+    size = m;
+  } else if (strcmp(action_string,"elements") == 0) {
+    action = 3;
+    size = m*n;
+  } else if (strcmp(action_string,"scalar") == 0) {
+    action = 0;
+    size = 1;
+  } else {
+    Tcl_SetResult( interp,
+		   "fdivide action: should be rows,columns,elements or scalar",
+		   TCL_STATIC);
     return TCL_ERROR;
   }
 
   /* Get data vector */
-  name = Tcl_GetString(argv[3]);
+  name = Tcl_GetString(argv[4]);
   M = get_unshared_tcl_vector(interp,name,"fdivide","M",m*n);
   if (M == NULL) return TCL_ERROR;
 
-  name = Tcl_GetString(argv[4]);
-  y = get_tcl_vector(interp,name,"fdivide","y",m);
-  if (y == NULL) return TCL_ERROR;
+  /* Process data */
+  if (action > 0) {
+    const mxtype *y;
 
-  /* Extract data */
-  mx_divide_columns(m,n,M,y);
+    /* Interpret vector */
+    name = Tcl_GetString(argv[5]);
+    y = get_tcl_vector(interp,name,"fdivide","y",size);
+    if (y == NULL) return TCL_ERROR;
+
+    /* Process vector */
+    if (action == 1) {
+      mx_divide_rows(m,n,M,y);
+    } else if (action == 2) {
+      mx_divide_columns(m,n,M,y);
+    } else {
+      mx_divide_elements(m,n,M,y);
+    }
+
+  } else {
+    double v;
+
+    /* Interpret scalar */
+    if (Tcl_GetDoubleFromObj(interp,argv[5],&v) != TCL_OK) return TCL_ERROR;
+
+    /* Process scalar */
+    mx_divide_scalar(m,n,M,v);
+  }
+
 
   return TCL_OK;
 }

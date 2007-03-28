@@ -127,6 +127,17 @@ void mx_extract_columns(int m, int n, const mxtype *a,
   }
 }
 
+/* Scale entire matrix by a value */
+void mx_divide_scalar(int m, int n, mxtype *M, const mxtype y)
+{
+  int i,j;
+
+  for (i=0; i < m; i++) {
+    for (j=0; j < n; j++) M[j] /= y;
+    M += n;
+  }
+}
+
 /* Scale all columns by a value */
 void mx_divide_columns(int m, int n, mxtype *M, const mxtype *y)
 {
@@ -134,6 +145,26 @@ void mx_divide_columns(int m, int n, mxtype *M, const mxtype *y)
   for (i=0; i < m; i++) {
     for (j=0; j < n; j++) M[j] /= y[i];
     M += n;
+  }
+}
+
+/* Scale all columns by a value */
+void mx_divide_rows(int m, int n, mxtype *M, const mxtype *y)
+{
+  int i, j;
+  for (i=0; i < m; i++) {
+    for (j=0; j < n; j++) M[j] /= y[j];
+    M += n;
+  }
+}
+
+/* Scale all columns by a value */
+void mx_divide_elements(int m, int n, mxtype *M, const mxtype *y)
+{
+  int i, j;
+  for (i=0; i < m; i++) {
+    for (j=0; j < n; j++) M[j] /= y[j];
+    M += n; y+=n;
   }
 }
 
@@ -274,7 +305,14 @@ static int xycompare(const void *vp, const void *wp)
 {
   const mxtype *v = (mxtype*)vp;
   const mxtype *w = (mxtype*)wp;
-  return (v[0]>w[0] ? 1 : (v[0]<w[0] ? -1 : (v[1]>w[1] ? 1 : (v[1]<w[0] ? -1 : 0))));
+  return (v[0]>w[0] ? 1 : (v[0]<w[0] ? -1 : (v[1]>w[1] ? 1 : (v[1]<w[1] ? -1 : 0))));
+}
+
+static int yxcompare(const void *vp, const void *wp)
+{
+  const mxtype *v = (mxtype*)vp;
+  const mxtype *w = (mxtype*)wp;
+  return (v[1]>w[1] ? 1 : (v[1]<w[1] ? -1 : (v[0]>w[0] ? 1 : (v[0]<w[0] ? -1 : 0))));
 }
 
 void mx_slice_interp(int m, int n, 
@@ -337,5 +375,5 @@ void mx_slice_interp(int m, int n,
     }
   }
 
-  qsort(result, nidx, 4*sizeof(mxtype), xycompare); 
+  qsort(result, nidx, 4*sizeof(mxtype), (x1==x2?yxcompare:xycompare)); 
 }

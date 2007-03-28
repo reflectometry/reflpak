@@ -22,6 +22,9 @@ EXTERN void mx_integrate(int m, int n, const mxtype *a, int dim, mxtype *b);
 EXTERN void mx_extract_columns(int m, int n, const mxtype *a,
 			       int column, int width, mxtype *b);
 EXTERN void mx_divide_columns(int m, int n, mxtype *M, const mxtype *y);
+EXTERN void mx_divide_rows(int m, int n, mxtype *M, const mxtype *y);
+EXTERN void mx_divide_elements(int m, int n, mxtype *M, const mxtype *y);
+EXTERN void mx_divide_scalar(int m, int n, mxtype *M, const mxtype y);
 
 EXTERN int mx_slice_find(int m, int n, const mxtype x[], const mxtype y[], 
 			 mxtype x1, mxtype y1, mxtype x2, mxtype y2,

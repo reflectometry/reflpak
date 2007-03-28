@@ -39,6 +39,10 @@ void
 build_Qmesh(const int n, const int m,
 	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
 	    const mxtype lambda, mxtype Qx[], mxtype Qz[]);
+void
+scale_Qmesh(const int n, const int m,
+	    const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
+	    const mxtype lambda, mxtype scale[]);
 int
 find_in_Qmesh(const int n, const int m, 
 	      const mxtype alpha[], const mxtype beta[], const mxtype dtheta[],
@@ -48,6 +52,10 @@ void
 build_Lmesh(const int n, const int m,
 	    const mxtype alpha, const mxtype beta, const mxtype dtheta[],
 	    const mxtype lambda[], mxtype Qx[], mxtype Qz[]);
+void
+scale_Lmesh(const int n, const int m,
+	    const mxtype alpha, const mxtype beta, const mxtype dtheta[],
+	    const mxtype lambda[], mxtype scale[]);
 int
 find_in_Lmesh(const int n, const int m, 
 	      const mxtype alpha, const mxtype beta, const mxtype dtheta[],
