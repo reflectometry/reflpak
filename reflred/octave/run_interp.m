@@ -1,13 +1,12 @@
-## run = run_interp(run, x)
+## run = run_interp(run, run2)
 ##
-## Resample the values in run so that they correspond to the points in x.
+## Resample the values in run so that they correspond to the points in run2.x.
 ## Only include points of x that are within the domain of run.  Note that
 ## the domain of the run includes one interval before the first and after the
-## last x value of run, wherein values are extrapolated.  Only linear
-## interpolation is supported, although at some point some sort of weighted
-## spline with variable tension may be used.
+## last x value of run, wherein values are extrapolated.  Linear interpolation
+## is used.
 
-function run = run_interp(run,run2,method)
+function run = run_interp(run,run2)
 
   if isfield(run,'A')
     run.A = run_interp(run.A,run2.A);
@@ -18,6 +17,7 @@ function run = run_interp(run,run2,method)
   end
 
   if isempty(run), return; endif
+  if isempty(run2), run=[]; return; endif
   if length(run.x) < 2
     error("run_interp requires at least two points to interpolate");
   endif
