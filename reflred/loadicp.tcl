@@ -7,7 +7,7 @@ array set ::inst {
   ng7,wavelength  4.768
   ng7,minbin          9
   ng7,maxbin        246
-  ng7,width        -100.
+  ng7,width         100.
   ng7,distance     2000.
 
   ng1,wavelength  4.75
@@ -279,7 +279,8 @@ proc ng7_detector_efficiency {id} {
     for {set p 0} {$p < $rec(pixels)} {incr p} { 
 	set weight 1.
 	set width $rec(pixelwidth)
-	set edge [expr {$edge+$width}]
+	# FIXME how do we properly reverse a detector?!?
+	set edge [expr {$edge-$width}]
 	lappend rec(pixelwidths) $width
 	lappend rec(pixeledges) $edge
 	lappend rec(pixelweight) $weight
@@ -848,6 +849,7 @@ proc NG7monitor_calibration {id} {
 
 
 proc NG7_psd_fvector {id} {
+    # ptrace
     upvar #0 $id rec
     vector create ::QZ_$id theta twotheta
     ::QZ_$id set [fvector rec(column,QZ)]
@@ -862,9 +864,10 @@ proc NG7_psd_fvector {id} {
 
     set rec(distance)   $rec(detector,distance)
     set rec(pixelwidth) [expr {$rec(detector,width)/($rec(detector,maxbin)-$rec(detector,minbin)+1.)}]
+    ng7_detector_efficiency $id
+
     reflplot::set_center_pixel $id 128
 
-    ng7_detector_efficiency $id
     set rec(column,monitor) $rec(column,MON)
     reflplot::normalize $id
 }
