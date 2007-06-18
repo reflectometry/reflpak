@@ -4,7 +4,20 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <zlib.h>
+#if defined(MISSING_LIBZ) 
+# define gzopen fopen
+# define gzclose fclose
+# define gzeof feof
+# define gzgetc fgetc
+# define gzungetc ungetc
+# define gzrewind rewind
+# define gzgets(file,text,len) fgets(text,len,file)
+# define gzseek fseek
+# define gztell ftell
+# define z_off_t off_t
+#else
+# include <zlib.h>
+#endif /* MISSING_LIBZ */
 #include "icpread.h"
 
 /* Open the file */

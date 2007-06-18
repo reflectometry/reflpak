@@ -33,6 +33,12 @@ LDFLAGS=
 EXE=
 LDEXT=$(TCL_SHLIB_SUFFIX)
 
+# If you don't have ZLIB 1.2 handy, uncomment -DMISSING_ZLIB
+# and comment out the following ZINC/ZLIB statements
+#ZINC=-DMISSING_LIBZ
+ZHOME=$(HOME)/opt/zlib-1.2
+ZINC=-I$(ZHOME)/include
+ZLIB=$(ZHOME)/lib/libz.a
 
 # Open GL + Togl
 ifdef USE_AGL
@@ -67,7 +73,8 @@ else # !USE_AGL => USE_X11
 endif # USE_AGL
 
 # NeXus
+#USE_NEXUS = 1
 NEXUS = ~/cvs/nexus
 NEXUSINC = -I$(NEXUS)/include
-NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -lz -ldl
+NEXUSLIB = -L$(NEXUS)/src/.libs -lNeXus -lmxml -lhdf5 -lmfhdf -ldf -ljpeg -ldl
 
