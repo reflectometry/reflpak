@@ -184,13 +184,13 @@ Ticp_method(ClientData h, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
   } else if (strcmp(method, "counts") == 0) {
     return real_vector_result(interp, npts*integrated_width(file), file->integral);
   } else if (strcmp(method, "image") == 0) {
+    int k;
     if (argc != 3) {
       Tcl_AppendResult(interp, file_name, 
 	 	    ": image needs an image number", NULL);
       return TCL_ERROR;
     }
 
-    int k;
     if (Tcl_GetIntFromObj(interp,argv[2],&k) != TCL_OK) return TCL_ERROR;
 
     if (k > file->Npts || k < 0) {

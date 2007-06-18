@@ -52,7 +52,8 @@
 # define EXPORT extern "C"
 #else
 # include <stdio.h>
-# include <stdint.h>
+/* # include <stdint.h> */
+# include <inttypes.h>
 # define EXPORT extern
 #endif
 

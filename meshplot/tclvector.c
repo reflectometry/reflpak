@@ -128,9 +128,11 @@ PReal* build_return_vector(Tcl_Interp *interp, size_t n)
 {
   Tcl_Obj *xobj = Tcl_NewByteArrayObj(NULL,0);
   if (!xobj) return NULL;
-  PReal *x = (PReal *)Tcl_SetByteArrayLength(xobj,n*sizeof(PReal));
-  if (x != 0) Tcl_SetObjResult(interp,xobj);
-  return x;
+  else {
+    PReal *x = (PReal *)Tcl_SetByteArrayLength(xobj,n*sizeof(PReal));
+    if (!x) Tcl_SetObjResult(interp,xobj);
+    return x;
+  }
 }
 
 
