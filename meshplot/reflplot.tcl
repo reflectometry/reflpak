@@ -14,7 +14,7 @@ namespace eval reflplot {
 
     variable pi_over_180 [expr {atan(1.)/45.}]
     variable pi_times_2 [expr {8.*atan(1.)}]
-    variable transforms {QxQz TiTf TiTd AB slit detector LTd}
+    variable transforms {QxQz TiTf TiTd AB slit pixel LTd}
     variable colorlist {}
 
 
@@ -658,6 +658,7 @@ proc calc_transform {path type} {
 
     # Clear all items from the graph
     $path delete
+    $path colormap [::colormap::$plot(colormap)]
 
     foreach id $plot(records) {
 	upvar \#0 $id rec
@@ -764,6 +765,7 @@ proc SetFrame {v} {
     if {$v != 0 } { set lo 1. }
     $frame(plot) configure -vrange [list $lo $hi]
     $frame(plot) delete
+    $frame(plot) colormap [::colormap::$frame(colormap)]
     $frame(plot) mesh $frame(nx) $frame(ny) $frame(x) $frame(y) $frame(data)
     $frame(plot) draw
     set sum [fintegrate $frame(nx) $frame(ny) frame(data) 1]
@@ -818,6 +820,7 @@ proc frameplot {id} {
         toplevel $w
 	set frame(plot) $w.c
 	set frame(slice) $w.slice
+	set frame(colormap) [lindex $::colormap::maps 0]
 
 	vector create ::frame_x ::frame_y
 	graph $frame(slice) -height 100 -leftmargin 2c -rightmargin 0 \
@@ -831,7 +834,6 @@ proc frameplot {id} {
 	#$w.cb configure -pady 1cm
         meshplot $frame(plot) -borderwidth 4 -colorbar $w.cb
         $frame(plot) delete
-        $frame(plot) colormap [colormap::copper 64]
         $frame(plot) configure -logdata off -grid on
 	$frame(plot) bind <Motion> [namespace code {FrameCoordinates %W %x %y}]
 	$frame(plot) menu "Log scale" [namespace code {logframe %W}]
@@ -1026,6 +1028,8 @@ proc transform {path type} {
 proc add {path records} {
     upvar plot plot
 
+    # FIXME calc_transform and add need to be merged
+    $path colormap [::colormap::$plot(colormap)]
     foreach id $records {
 	upvar \#0 $id rec
 
@@ -1208,14 +1212,10 @@ proc Cycle {w x y} {
 }
 
 proc Colormenu {w color} {
+    variable frame
     findplot $w
-    $w colormap [::colormap::$color]
-    redraw $w
-}
-
-proc SetColormap {w} {
-    findplot $w
-    $w colormap [::colormap::$plot(colormap)]
+    set plot(colormap) $color
+    set frame(colormap) $color
     redraw $w
 }
 
@@ -1494,7 +1494,6 @@ proc plot_window {{w .plot}} {
     meshcolorbar $w.cb
     $w.cb configure -pady 0m
     $w.c configure -colorbar $w.cb -logdata on
-    $w.c colormap [colormap::copper 64]
 
     # Build a colormap menu
     menu $w.c.colormenu -title "Colormaps" -tearoff 0
@@ -1522,6 +1521,9 @@ proc plot_window {{w .plot}} {
     $w.c bind <Double-1> [namespace code {Cycle %W %x %y}]
     $w.c bind <Up> [namespace code {IncrSlice %W 1}]
     $w.c bind <Down> [namespace code {IncrSlice %W -1}]
+
+    # Set colormaps
+    set plot(colormap) [lindex $::colormap::maps 0]
 
     # Create a control panel
     set f $w.controls
