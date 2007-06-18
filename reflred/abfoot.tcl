@@ -86,12 +86,13 @@ namespace eval abfoot {
     }
 
     proc integrate {wA wB edge area} {
+	# if wB==wA then we have 0 * (1-0/(2*0)) which is zero.  To avoid
+	# numerical problems, we force the minimum possible step.
+        if { $wA == $wB } { set wB [expr {$wA*(1.+1e-16)}] }
 	set B [vector create \#auto] ;# Area under triangular region
 	# Length of intersection in triangular region
 	$B expr "($edge-$wA)*($edge>$wA && $edge<$wB) + ($wB-$wA)*($edge>=$wB)"
-	# Area of intersection in triangular region; note that if wB==wA then
-	# B will be 0 and we have 0 * (1-0/(2*0)) which is zero.  To avoid
-	# numerical problems, we transform this to 0 * (1-0/(2*0+epsilon)).
+	# Area of intersection in triangular region;
 	$B expr "$B * (1 - $B/(2*($wB-$wA)+1e-16))"
 	# Area of intersection in rectangular region
 	$area expr "$edge*($edge<=$wA) + $wA*($edge>$wA) + $B"
