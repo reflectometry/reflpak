@@ -130,7 +130,7 @@ PReal* build_return_vector(Tcl_Interp *interp, size_t n)
   if (!xobj) return NULL;
   else {
     PReal *x = (PReal *)Tcl_SetByteArrayLength(xobj,n*sizeof(PReal));
-    if (!x) Tcl_SetObjResult(interp,xobj);
+    if (x != NULL) Tcl_SetObjResult(interp,xobj);
     return x;
   }
 }
