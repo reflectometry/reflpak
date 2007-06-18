@@ -58,6 +58,16 @@ BINCP="/c/cygwin/bin/cp -r"
 
 # =========== End of configuration ============
 
+# Check release notes
+echo "Are any files not added that should be added?"
+echo "Are the RELEASE-NOTES up to date, and tagged for reflpak$VERSION?"
+ls -l RELEASE-NOTES
+head -10 RELEASE-NOTES
+echo -n "Press y to continue: "
+read ans
+test "$ans" != "y" && exit
+
+
 # Perform SVN updates on all machines
 echo "== svn update ============================"
 if false; then
@@ -80,15 +90,6 @@ echo -n "Press y to continue: "
 read ans
 test "$ans" != "y" && exit
 
-
-# Check release notes
-echo "Are any files not added that should be added?"
-echo "Are the RELEASE-NOTES up to date, and tagged for reflpak$VERSION?"
-ls -l RELEASE-NOTES
-head -10 RELEASE-NOTES
-echo -n "Press y to continue: "
-read ans
-test "$ans" != "y" && exit
 
 # Do the local build
 echo; echo "== build html ========================="

@@ -3,6 +3,10 @@ Particularly, file formats are subject to change.
 
 Paul Kienzle	reflectometry_software@nist.gov
 
+2007-06-18 release
+* RED: Improved 2D detector support
+* RED: Support for newer Octave versions
+
 2006-11-20 release
 * RED: Support unpolarized slit scan with polarized data
 * RED: Improved TOF support
