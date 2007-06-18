@@ -1,6 +1,7 @@
 #ifndef _REBIN2D_H
 #define _REBIN2D_H
 
+#include <cassert>
 #include <iostream>
 #include <vector>
 
