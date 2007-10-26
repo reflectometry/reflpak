@@ -1358,8 +1358,10 @@ proc init_constraints {} {
       ]
    } else {
       set ::makeConstrainArgs [list \
-         tqc 0                    \
-         tqm 10                   \
+         0x00020004               \
+        "int nl"                  \
+         tqc (0*10)               \
+         tqm (1*10)               \
          tmu (2*10)               \
          td  (3*10)               \
          tro (4*10)               \
