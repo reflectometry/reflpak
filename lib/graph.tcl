@@ -1,6 +1,7 @@
 # FIXME: put this all in a graph namespace to hide private functions
 
-set ::colorlist [option get .graph lineColors LineColors]
+option add *Graph.lineColors "greep darkgreen blue magenta cyan orange hotpink IndianRed3 darkgoldenrod lightseagreen cornflowerblue dimgray" widgetDefault
+
 set ::figurenumber 1
 set ::maxfigure $::figurenumber
 # Create a new figure
@@ -34,6 +35,7 @@ proc plot { x y {options {}}} {
 	toplevel $w
 	wm title $w "Figure $::figurenumber"
 	graph $w.g
+        set ::colorlist [option get $w.g lineColors LineColors]
 	active_graph $w.g
 	active_axis $w.g x
 	active_axis $w.g y
