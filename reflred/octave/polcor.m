@@ -1,9 +1,30 @@
-% [A,B,C,D] = polcor(fit,FRratio,sub)
-%   A,B,C,D are the background subtracted specular cross-sections.
-%   slits is a piecewise linear function mapping q values to slit values
-%   FRratio is the front/back polarizer efficiency ratio (default is 0.5).
+% corrected_data = polcor(slit_fit,FRratio,subtracted_data)
 %
-% Cross sections are three column data: value counts uncertainty.
+%   Apply the polarization correction to the background subtracted data.
+%
+%   slit_fit is structure returned by polfit.  polfit models the
+%   four cross sections A,B,C,D with a quadratic at low Q values and a
+%   linear function at high Q values.  Because the polarizer efficiency
+%   estimator is sensitive to measurement uncertainty, we get a much
+%   better result by using smooth inputs.
+%
+%   subtracted_data is the result of subtracting the background from
+%   the specular data.  This is a structure containing A,B,C,D datasets
+%   for the four cross sections, with x,y,dy in each dataset.  If the 
+%   spin-flip data is missing it is assumed to be zero.
+%
+%   FRratio determines the relative front-back weighting of the
+%   polarizer inefficiency.  From the data we can only estimate the
+%   product FR of the front and rear polarization efficiencies, and
+%   the user must decide how to distribute the remainder.
+%   The FRratio should vary between 0 (front polarizer is 100% efficient) 
+%   through 0.5 (distribute efficiency equally) to 1 (rear polarizer 
+%   is 100% efficient).  The particular formula used is:  
+%       F = (F*R)^FRratio
+%       R = (F*R)/F
+%
+% See also: polraw, polfit
+%
 function data = polcor(fit,FRratio,sub)
   do_plot = nargout == 0;
 
@@ -167,6 +188,13 @@ function data = polcor(fit,FRratio,sub)
   if nargout, data = r; end
 end
 
+% cor = polraw(fit,FRratio)
+%
+% Compute polarizer and flipper efficiencies from the raw intensity
+% data for the four polarization cross sections.
+%
+% See polcor for details.
+%
 function cor = polraw(fit,FRratio)
   if isempty(fit), cor = []; return; end
   if nargin < 2, FRratio = 0.5; end
@@ -213,6 +241,13 @@ function cor = polraw(fit,FRratio)
   endif
 end
 
+% cor = polraw(fit,FRratio)
+%
+% Compute polarizer and flipper efficiencies from the smoothed intensity 
+% data for the four polarization cross sections.
+%
+% See polcor for details.
+%
 function cor = polfit(fit,FRratio)
   if isempty(fit), cor = []; return; end
   if nargin < 2, FRratio = 0.5; end
@@ -239,6 +274,24 @@ function cor = polfit(fit,FRratio)
 end
 
 
+% [beta, F, R, x, y, reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,clip)
+%
+% Compute polarizer and flipper efficiencies from the intensity data.
+%
+% If clip is true, reject points above or below particular efficiencies.
+% The minimum intensity is 1e-10.  The minimum efficiency is 0.9.
+%
+% The returned values are systematically related to the efficiencies:
+%   intensity is 2*beta
+%   front polarizer efficiency is F
+%   rear polarizer efficiency is R
+%   front flipper efficiency is (1-x)/2
+%   rear flipper efficiency is (1-y)/2
+% reject is the indices of points which are clipped because they
+% are below the minimum efficiency or intensity.
+%
+% See PolarizationEfficiency.pdf for details on the calculation.
+%
 function [beta,F,R,x,y,reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,clip)
   persistent min_efficiency=0.9;
   persistent min_intensity=1e-10;
@@ -302,6 +355,7 @@ function [beta,F,R,x,y,reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,clip)
 end
 
 
+% polclip: helper function to clip a parameter outside a range
 function [field,reject] = polclip(field,lo,hi,nanval)
   fieldname = inputname(1);
   nan_idx = find(isnan(field));
