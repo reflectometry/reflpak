@@ -550,7 +550,13 @@ build_Lmesh(const int n, const int m,
  *
  *   dQ = k^2/L | 1 + sin Ti sin Tf - cos Ti cos Tf | dTf dL
  *
- * which is the value used below.
+ * Using cos(a+b) = cos a cos b - sin a sin b
+ *
+ *   dQ = k^2/L | 1 - cos(Ti+Tf) | dTf dL
+ *      = k^2/L | 1 - cos(twotheta) | dTf dL
+ *
+ * where twotheta is the angle of the pixel relative to the
+ * incident beam.
  */
 void
 scale_Lmesh(const int n, const int m, 
