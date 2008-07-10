@@ -1026,6 +1026,9 @@ proc loadhead {file} {
     } 
     close $fid
 
+    # ICP sometimes writes a junk ^@ character in the file
+    set text [string map { "\0" "" } $text]
+
     # Determine the scan type.
     #   if it has a line saying "hkl scan center" it is a qscan.
     #   if it has a line saying "Mot:" it is a reflectometry measurement.
@@ -1078,7 +1081,7 @@ proc loadhead {file} {
     # Get a list of column names. Transform the names of certain
     # columns to make our lives easier elsewhere.
     #      COUNTS -> counts, #1 COUNTS -> counts, #2 COUNTS -> counts2
-    #      MONITOR -> MON,
+    #      MONITOR -> MON, H-Field -> HField
     #      Q(x) -> Qx, Q(y) -> Qy, Q(z) -> Qz
     set col [lindex $lines end]
     set col [string map {
@@ -1088,6 +1091,7 @@ proc loadhead {file} {
 	"COUNTS" "counts" 
 	"MONITOR" "MON"
 	"Q(x)" "Qx" "Q(y)" "Qy" "Q(z)" "Qz"
+        "H-Field" "HField"
     } $col]
     # Pretty the list by removing unused blanks
     set rec(columns) [eval list $col]
