@@ -1129,7 +1129,7 @@ proc loadhead {file} {
 	# parse the motor lines
 	upvar fixed fixed
 	set fixed 1
-	foreach line [lrange $lines 5 end] {
+	foreach line [lrange $lines 5 end-2] {
 	    foreach { name start step stop } $line {
 		set rec(stop,$name) $stop
 		# make sure start is before end
@@ -1251,6 +1251,8 @@ proc NG1mark {file} {
 	}
     }
     if { $rec(psd) } { append rec(instrument) "PSD" }
+
+    #puts "fixed $fixed A4: $rec(start,4) $rec(stop,4) dA1: $rec(step,1)"
 
     # based on motor movements, guess the type of the experiment
     if { ![info exists rec(start,1)] || ![info exists rec(start,3)] \
