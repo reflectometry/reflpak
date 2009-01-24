@@ -18,7 +18,7 @@ array set ::inst {
   ng1,width         4*25.4
   ng1,distance     36*25.4
 
-  cg1,wavelength   5.0
+  cg1,wavelength   5.006
   cg1,saturation   15000
   cg1,psdsaturation 8000
   cg1,minbin         1
@@ -413,7 +413,7 @@ proc check_wavelength { id wavelength } {
     } elseif { $rec(L) == 0.0 } { 
 	set rec(L) $wavelength 
 	message "Using default wavelength $wavelength for $rec(file)"
-    } elseif { abs($rec(L) - $wavelength)/$wavelength > 0.01 } {
+    } elseif { abs($rec(L) - $wavelength)/$wavelength > 0.0015 } {
 	# This is an intrusive dialog which hopefully won't be seen much
 	# by the users.  Yes we could make it nicer (e.g., by allowing
 	# mouse selection of the Tcl override command), but the number of
