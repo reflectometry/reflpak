@@ -112,7 +112,7 @@ function [x_out,s]=wsolve(A,y,dy)
 ##    diag(inv(A'A)) = diag(P inv(R'R) P') = P diag(inv(R'R))
 ##
 ## For R upper triangular, inv(R') = inv(R)' so inv(R'R) = inv(R)inv(R)'.
-## Conveniently, for X upper triangular, diag(XX') = sumsq(X')', so
+## Conveniently, diag(XX') = sumsq(X')' for any X, so
 ##
 ##    diag(inv(A'A)) = P sumsq(inv(R)')'
 ## 
@@ -123,3 +123,24 @@ function [x_out,s]=wsolve(A,y,dy)
 ## This happens when the system is underdetermined, but in that case
 ## you shouldn't be using wsolve.
  
+
+## Some notes on using SVD to solve the same sorts of systems:
+##
+## Given U,S,V' = svd(A)
+##
+##    A = USV'; UU' = I; VV' = I; S=S' diagonal
+##
+## so
+##
+##    VTU' b = x,  where T = inv(S) is 1./S because S is diagonal
+##
+## For the uncertainties we want diag(inv(A'A))
+##
+##    A'A = VS'U'USV' = VS'SV' = VSSV'
+##    inv(A'A) = inv(VSSV') = inv(V')inv(S)inv(S)inv(V) = VTTV'
+##             = VTT'V' = (VT)(VT)' = XX'
+##
+## Since diag(XX') = sumsq(X')', so
+##
+##    diag( inv(A'A) ) = sumsq(TV')'
+
