@@ -188,13 +188,17 @@ proc legend_set {w line state} {
 # where ishidden is the new state of the axis.  There is no
 # callback when logscale is changed.
 proc active_axis {w axis} {
-    $w axis bind $axis <Enter> {
-	set axis [%W axis get current]
-	%W axis configure $axis -background lightblue2
-    }
-    $w axis bind $axis <Leave> {
-	set axis [%W axis get current]
-	%W axis configure $axis -background ""
+    if { $::tcl_platform(os) != "Darwin" } {
+        # OS X 10.4 on Intel doesn't process clicks if we change
+        # the background or color of the axis on Enter.  Go figure.
+        $w axis bind $axis <Enter> {
+	    set axis [%W axis get current]
+	    %W axis configure $axis -background lightblue2
+        }
+        $w axis bind $axis <Leave> {
+	    set axis [%W axis get current]
+	    %W axis configure $axis -background ""
+        }
     }
     $w axis bind $axis <1> {
 	set axis [%W axis get current]
