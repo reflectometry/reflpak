@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstring>
 #include <vector>
 #include <iomanip>
 #include <iostream>

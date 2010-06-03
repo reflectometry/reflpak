@@ -1,6 +1,7 @@
 // This is a work of the United States Government and is not
 // subject to copyright protection in the United States.
 
+#include <cstring>
 #include <tcl.h>
 #include "mx.h"
 #include "tclvector.h"
@@ -248,7 +249,8 @@ NXtofnref_open(ClientData junk, Tcl_Interp *interp, int argc, Tcl_Obj *CONST arg
 {
   static int nexus_id = 0;
   if (argc != 2) {
-    Tcl_SetResult( interp, "NXtofnref: expects filename", TCL_STATIC);
+    Tcl_SetObjResult( interp, Tcl_NewStringObj("NXtofnref: expects filename", -1));
+    //Tcl_SetResult( interp, "NXtofnref: expects filename", TCL_STATIC);
     return TCL_ERROR;
   }
   const char *filename = Tcl_GetString(argv[1]);

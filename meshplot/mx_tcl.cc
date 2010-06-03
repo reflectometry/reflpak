@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <tcl.h>
 #include "mx.h"
 #include "rebin.h"

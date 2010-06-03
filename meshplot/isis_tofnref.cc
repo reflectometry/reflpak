@@ -1,3 +1,4 @@
+#include <cstring>
 #include <cmath>
 #include <vector>
 #include <iomanip>
@@ -49,14 +50,20 @@ static int isis_convert_int(const unsigned char b[])
 
 void isis_file::getbytes(signed char *b, int n) // Read string from current position
 { 
-  ::read(fileid,b,n); 
+  if (::read(fileid,b,n) != n) {
+     // TODO: raise error
+     std::cerr << "File read failed" << std::endl;
+  }
 }
 
 int isis_file::getint(void)
 {
   signed char b[4];
 
-  read(fileid, b, 4);
+  if (::read(fileid, b, 4) != 4) {
+     // TODO: raise error
+     std::cerr << "File read failed" << std::endl;
+  }
   return isis_convert_int((unsigned char *)(b));
 }
 
@@ -517,7 +524,7 @@ SURF::sum_all_frames(void)
 template <class T>
 static void copy_chunk(int n, T* from, T* to)
 {
-  memcpy(to, from, n*sizeof(T));
+  std::memcpy(to, from, n*sizeof(T));
 }
 template <class T>
 static void add_chunk(int n, T* from, T* to)
