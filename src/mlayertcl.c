@@ -339,7 +339,7 @@ static void sendprofile(Tcl_Interp* interp, int step)
 {
   register int j;
   double thick;
-  char value[20];
+  char value[25];
 
 debug_message("sendprofile nglay=%d, gd=%p,gmu=%p\n",nglay,gd,gmu);
 
