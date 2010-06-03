@@ -7,15 +7,15 @@ UPX=upx
 OPT=-O3
 
 # Things from tclConfig.sh
-TCL_PREFIX=$(HOME)/tcl
-TCL_INCLUDE_SPEC=-I$(TCL_PREFIX)/include
+TCL_PREFIX=/usr
+TCL_INCLUDE_SPEC=-I/usr/include/tcl8.4
 TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.4
 TK_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltkstub8.4
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.so
 WISH=$(TCL_PREFIX)/bin/bltwish
 
-SNITPATH=snit0.97
+SNITPATH=snit1.0
 
 NCNRKIT=~/bin/ncnrpack4
 
@@ -24,7 +24,7 @@ NCNRKIT=~/bin/ncnrpack4
 #FLIBS=-lg2c
 F77=gfortran
 FLIBS=-lgfortran
-FFLAGS=$(OPT)
+FFLAGS=$(OPT) -fPIC
 FPP=-x f77-cpp-input
 
 # C compiler
