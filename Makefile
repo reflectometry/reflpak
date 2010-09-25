@@ -1,18 +1,19 @@
 
-sinclude Makeconf
+include Makeconf
 ifndef ARCH
   $(error Link <arch>/Makeconf to Makeconf and try again.)
 endif
 
-VERSION ?= -$(shell date +%Y.%m.%d)
+VERSION ?= $(shell date +%Y.%m.%d)
 VERSIONTAG ?= R$(shell echo "$(VERSION)" | sed -e's/[^[:alnum:]]//g')
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
 SNITPATH ?= snit1.0
+OCTAVEAPP ?= Octave\ 3.2.3.app
 
-PRODUCT=reflpak$(VERSION)
+PRODUCT=reflpak-$(VERSION)
 
 pakicon=icons/yellowpack.ico
 redicon=icons/Ryellow.ico
@@ -46,7 +47,7 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m \
 	footprint_fit.m footprint_gen.m footprint_interp.m \
 	reduce.m reduce_part.m run_send.m run_send_pol.m \
-	polcor.m fitslits.m run_invscale.m 
+	polcor.m fitslits.m run_invscale.m fminbnd.m
 octlib=common_values.m inputname.m polyconf.m qlfit.m wsolve.m \
 	confidence.m qlconf.m wpolyfit.m interp1err.m
 
@@ -113,7 +114,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 	@./vfslib reflpak reflred/octave $(redoctavefiles)
 	@./vfslib reflpak reflpak $(pakfiles) $(pakicons)
 	@./vfslib reflpak meshplot $(reflplotfiles)
-	echo "set ::app_version {$(ARCH)$(VERSION)}" \
+	echo "set ::app_version {$(ARCH)-$(VERSION)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
 	cd kit && ./copykit $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
@@ -184,12 +185,12 @@ ifeq ($(ARCH),macosx)
 dist: $(SUBDIRS) kit/reflpak $(macscripts) RELEASE-NOTES
 	@if test -d diskimage ; then rm -rf diskimage ; fi
 	@mkdir diskimage
-	@mkdir diskimage/$(PRODUCT)
-	@cp -p kit/reflpak RELEASE-NOTES diskimage/$(PRODUCT)
-	@ditto -rsrc $(macscripts) diskimage/$(PRODUCT)
-	@ditto -rsrc data diskimage/data
 	@ditto -rsrc macosx/README diskimage
-	cd diskimage && ../macosx/dmgpack.sh $(PRODUCT) README $(PRODUCT) data
+	@ditto -rsrc /Applications/$(OCTAVEAPP) diskimage/$(OCTAVEAPP)
+	@cp -p kit/reflpak diskimage/reflpak\ $(VERSION)
+	@ditto -rsrc RELEASE-NOTES diskimage
+	@ditto -rsrc data diskimage/data
+	cd diskimage && ../macosx/dmgpack.sh $(PRODUCT) reflpak\ $(VERSION) README RELEASE-NOTES data $(OCTAVEAPP)
 	@if test ! -d release ; then mkdir release ; fi
 	@mv diskimage/$(PRODUCT).dmg release
 	@rm -rf diskimage
@@ -219,13 +220,7 @@ dist: $(SUBDIRS) kit/reflpak$(EXE) RELEASE-NOTES
 	@cp -pR data $(DIR)/data
 	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,,g" \
 		< linux/reflpak.in > $(DIR)/reflpak
-	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,red,g" \
-		< linux/reflpak.in > $(DIR)/reflred
-	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,fit,g" \
-		< linux/reflpak.in > $(DIR)/reflfit
-	@sed -e "s,@VERSION@,$(VERSION),g;s,@PAR@,pol,g" \
-		< linux/reflpak.in > $(DIR)/reflpol
-	@chmod a+rx $(DIR)/refl{pak,red,fit,pol}
+	@chmod a+rx $(DIR)/reflpak
 	@if test ! -d release ; then mkdir release ; fi
 	$(TAR) cf release/$(DIR).tar $(DIR)
 	@if test -f release/$(DIR).tar.gz; then rm release/$(DIR).tar.gz; fi

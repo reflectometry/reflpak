@@ -1,19 +1,21 @@
-This disk contains the reflpak suite of reflectometery reduction and fitting 
-programs from the NIST Center for Neutron Research.  
+This disk contains the reflpak suite of reflectometery reduction 
+and fitting programs from the NIST Center for Neutron Research.  
 
-You may run the programs directly from the disk image, or copy the 
-reflpak-xxxx directory somewhere on your harddrive.  Keep the icons
-together in the same directory as reflpak.bin or they will not work.
+You may run the programs directly from the disk image, or copy them to
+your applications directory on your harddrive. 
 
-Within the reflpak directory is reflpak.bin (the binary) and four icons 
-which you may drag to your dock.  The reflpak icon starts a menu from 
-which you can choose from the three applications: reflred for reduction, 
-reflfit for fitting and reflpol for fitting of polarized data.  Clicking 
-on the other three icons starts these applications directly.
+The reflpak application requires an X11 server in order to run.  This
+is available on your OS X install disks.
 
-This is pre-release open source software --- standard disclaimers apply
-and will be filled in later.
+The reduction software requires an Octave server in addition to X11.
+We have included a standard version of Octave with the additional
+server command from the octave-forge miscellaneous package.  To start 
+the server, click on the Octave icon then type 
+
+    server(1515)
+
+This needs to be done once before the application.
 
 Paul Kienzle
-pkienzle@nist.gov
-2004-03-24
+paul.kienzle@nist.gov
+2010-09-22

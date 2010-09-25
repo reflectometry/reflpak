@@ -1,8 +1,8 @@
 #!/bin/sh
 if test -e ${0%/*}/$bin ; then
-    bin=${0%/*}/reflpak@VERSION@
+    bin=${0%/*}/reflpak-@VERSION@
 else
-    bin=reflpak@VERSION@
+    bin=reflpak-@VERSION@
 fi
 if test $# -gt 0 ; then
     exec $bin @PAR@ "$*"

@@ -135,7 +135,7 @@ proc octave::Open { args } {
     # setup the communication with octave, including determining the
     # endianish translation requirements.
     set state(swap) {}
-    octave::eval $f { page_screen_output = 0; }
+    octave::eval $f { page_screen_output(0); }
     blt::vector create ::octave_swap$f
     ::octave_swap$f set 1.0
     octave::eval $f "send('octave_swap$f',1.0);"

@@ -50,32 +50,8 @@ and start the octave server using the command
 
 <a name="macosx"><h2>Mac OS X</h2></a>
 
-<p>Copy <a href="reflpak@VERSION@.dmg">reflpak@VERSION@.dmg</a> to your home directory. 
-
-<p>In the disk you will find the reflpak@VERSION@ folder.  Drag this 
-whereever you want on your machine, but keep the files it contains together.  
-If you are working with the console, use <em>ditto -rsrc</em> rather than 
-<em>cp</em> or <em>mv</em> to move the files since some of the files 
-contain resource forks.
-
-<p>In the reflpak@VERSION@ folder there are four icons which work as usual.  
-If you prefer the command line, copy reflpak to your path and start it with
-<em>reflpak [red|pol|fit] file...</em>.  The data folder contains sample
-data and a short tutorial.
-
-<p>To reduce data in reflred, you will first need to install Octave and 
-octave-forge. There are binaries at 
-<a href="http://hpc.sourceforge.net#octave">HPC Mac OS X</a> which
-have been used successfully.  By the time you read this,
-<a href="http://fink.sourceforge.net">Fink</a> or
-<a href="http://darwinports.opendarwin.org">DarwinPorts<a> 
-may have pre-built binaries available as well.
-
-<p>Once octave is installed, start octave then start the octave server
-using the command
-<code><pre>
-	listen(1515)
-</pre></code>
+<p>Download and open <a href="reflpak@VERSION@.dmg">reflpak@VERSION@.dmg</a>.
+The README file contains installation and usage instructions.
 
 <a name="unix"><h2>Linux/Irix</h2></a>
 
