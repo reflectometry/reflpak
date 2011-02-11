@@ -46,7 +46,7 @@ if {[string match windows $tcl_platform(platform)]} {
 if {$tcl_version < 8.0} {
     return -code error "tkcon requires at least Tcl/Tk8"
 } else {
-    package require -exact Tk $tcl_version
+    package require -exact Tk $tcl_patchLevel
 }
 
 catch {package require bogus-package-name}

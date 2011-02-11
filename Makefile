@@ -11,7 +11,7 @@ RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
 SNITPATH ?= snit1.0
-OCTAVEAPP ?= Octave\ 3.2.3.app
+OCTAVEAPP ?= Octave-3.2.3.app
 
 PRODUCT=reflpak-$(VERSION)
 
@@ -187,10 +187,10 @@ dist: $(SUBDIRS) kit/reflpak $(macscripts) RELEASE-NOTES
 	@mkdir diskimage
 	@ditto -rsrc macosx/README diskimage
 	@ditto -rsrc /Applications/$(OCTAVEAPP) diskimage/$(OCTAVEAPP)
-	@cp -p kit/reflpak diskimage/reflpak\ $(VERSION)
+	@cp -p kit/reflpak diskimage/reflpak
 	@ditto -rsrc RELEASE-NOTES diskimage
 	@ditto -rsrc data diskimage/data
-	cd diskimage && ../macosx/dmgpack.sh $(PRODUCT) reflpak\ $(VERSION) README RELEASE-NOTES data $(OCTAVEAPP)
+	cd diskimage && ../macosx/dmgpack.sh $(PRODUCT) reflpak README RELEASE-NOTES data $(OCTAVEAPP)
 	@if test ! -d release ; then mkdir release ; fi
 	@mv diskimage/$(PRODUCT).dmg release
 	@rm -rf diskimage
