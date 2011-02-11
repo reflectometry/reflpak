@@ -43,10 +43,10 @@ proc init_tree_select_images {} {
     set ::image(select) [image create photo]
     $::image(select) put [string map { 0 "red " 1 "black " } $box9]
 }
-init_cmd { 
+init_cmd {
     # On startup, create the images then clear the function.
     init_tree_select_images
-    rename init_tree_select_images {} 
+    rename init_tree_select_images {}
 }
 
 # HELP internal
@@ -132,7 +132,7 @@ proc init_selector { } {
     # Yuck!  It would be nicer to put the resources nearer to where they
     # are being used.  Unfortunately, I can't initialize them until after
     # I've created the tree.
-    set ::qrange_fill [option get .tree qFill QFill] 
+    set ::qrange_fill [option get .tree qFill QFill]
     set ::qrange_color [option get .tree qColor QColor]
     set ::qrange_outline [option get .tree qOutline QOutline]
     set ::qrange_outlinewidth [option get .tree qOutlineWidth QOutlineWidth]
@@ -191,7 +191,7 @@ proc init_selector { } {
     active_graph .graph -motion addrun_point_info
     active_axis .graph y
     active_legend .graph
-    
+
     .graph.menu add separator
     .graph.menu add command -label Exclude \
         -command { exclude_point .graph [active_graph .graph element] [active_graph .graph index] }
@@ -283,7 +283,7 @@ proc pol_toggle_enable {w} {
 #
 # Toggle all elements of the given cross-section.
 # Callback for the buttons for each cross-section.
-proc pol_toggle {w n} { 
+proc pol_toggle {w n} {
     switch -- $n {
 	a { set pattern *A }
 	b { set pattern *B }
@@ -291,16 +291,16 @@ proc pol_toggle {w n} {
 	d { set pattern *D }
     }
     set state 0
-    foreach el [$w elem names *] { 
+    foreach el [$w elem names *] {
 	if {[string match $pattern [$w elem cget $el -label]] \
-		&& [legend_hidden $w $el]} { 
-	    set state 1; 
-	    break 
+		&& [legend_hidden $w $el]} {
+	    set state 1;
+	    break
 	}
     }
     foreach el [$w elem names *] {
-	if {[string match $pattern [$w elem cget $el -label]]} { 
-	    legend_set $w $el $state 
+	if {[string match $pattern [$w elem cget $el -label]]} {
+	    legend_set $w $el $state
 	}
     }
     if {$state} {
@@ -353,7 +353,7 @@ proc addrun_point_info { w x y name idx msg } {
 # index vector
 proc exclude_point { w id index } {
     if { ![string match $::recpattern $id] } { return }
-    
+
     # construct an index vector if needed
     set vec ::idx_$id
     if { ![vector_exists $vec] } {
@@ -367,7 +367,7 @@ proc exclude_point { w id index } {
 
 # HELP internal
 # Usage: graph_exclude w x y
-# 
+#
 # Exclude the point under the cursor.
 # Callback for graph exclude event
 proc graph_exclude { w x y } {
@@ -400,13 +400,13 @@ proc clearscan { scanid } {
 	foreach var [info vars ::$::scanpattern] { array unset $var }
 	set var [vector names ::$::scanpattern]
 	if [llength $var] { eval vector destroy $var }
-    } else {	
+    } else {
 	array unset ::scanindex [set ::${scanid}(name)]
 	catch { array unset ::$scanid }
 	set var [vector names ::${scanid}_*]
 	if [llength $var] { eval vector destroy $var }
     }
-    
+
     # notify application that graph elements have changed
     event generate .graph <<Elements>>
 }
@@ -417,7 +417,7 @@ proc editscan { scanid } {
 	message "File selection has changed --- cannot edit"
 	return
     }
-    
+
     if [llength $::addrun] {
 	set msg [addrun matches [lindex $runs 0]]
 	if ![string length $msg] {
@@ -443,7 +443,7 @@ proc atten_set { runs }  {
     set scans [.graph elem names $::scanpattern]
 
     # Determine which monitor to use
-    # XXX FIXME XXX Have to set the y-axis, etc.  Atten_set is NOT the 
+    # XXX FIXME XXX Have to set the y-axis, etc.  Atten_set is NOT the
     # place to do it!  Ideally it would be done in addrun_accept, and
     # be based on the scan containing the record which used to be the
     # head so that the monitor scaling doesn't change, but then we need
@@ -513,21 +513,21 @@ proc atten_set { runs }  {
 	Q4 {
 	    .graph axis conf y -title "[.graph axis cget y -title] x Q^4"
 	    foreach id $runs {
-		Q4_scale_vector ::x_$id ::ky_$id ::kdy_$id 
+		Q4_scale_vector ::x_$id ::ky_$id ::kdy_$id
 	    }
 	    foreach id $scans {
-		Q4_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy 
+		Q4_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy
 	    }
 	}
 
 	Fresnel {
 	    .graph axis conf y -title "[.graph axis cget y -title] / Fresnel($::Fresnel_rho)"
-	    foreach id $runs { 
-		Fresnel_scale_vector ::x_$id ::ky_$id ::kdy_$id 
+	    foreach id $runs {
+		Fresnel_scale_vector ::x_$id ::ky_$id ::kdy_$id
 	    }
-	    foreach id $scans { 
-		Fresnel_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy 
-	    }	
+	    foreach id $scans {
+		Fresnel_scale_vector ::${id}_x ::${id}_ghosty ::${id}_ghostdy
+	    }
 	}
     }
 }
@@ -537,27 +537,27 @@ proc addrun_pretty_symbols { } {
     return
     # XXX FIXME XXX there has got to be a better way to make it look pretty
 
-    # count number of symbols to display
-    set count 0
-    foreach id $::addrun { incr count [::x_$id length] }
-    if { $count > 100 } {
-	foreach el $::addrun { .graph elem conf $el -pixels 1 -scalesymbol 0 }
-    } else {
-	foreach el $::addrun { .graph elem conf $el -pixels 1 -scalesymbol 0 }
-    }
+#    # count number of symbols to display
+#    set count 0
+#    foreach id $::addrun { incr count [::x_$id length] }
+#    if { $count > 100 } {
+#	foreach el $::addrun { .graph elem conf $el -pixels 1 -scalesymbol 0 }
+#    } else {
+#	foreach el $::addrun { .graph elem conf $el -pixels 1 -scalesymbol 0 }
+#    }
 }
 
 # load the data for a record and add it to the graph
 proc addrun_add { id } {
     if { [lsearch $::addrun $id] >= 0 } {
 	return ;# it isn't an error to add it again
-	error "addrun add already contains [set ::${id}(file)]"
+	#error "addrun add already contains [set ::${id}(file)]"
     } elseif { [info exists ::${id}(loading)] } {
 	# puts "Patientez s'il vous plait, on attend l'octave sync."
 	return ;
     } elseif { ![load_run $id] } {
 	return ;# the error should be reported via message
-	error "addrun add could not open [set ::${id}(file)]"
+	#error "addrun add could not open [set ::${id}(file)]"
     }
 
 
@@ -592,12 +592,12 @@ proc addrun_add { id } {
     # properties of the first element as the properties for the entire list.
     lappend ::addrun $id
 
-    catch { 
-	if { [info exists ::${id}(psdplot)] && $::psdstyle eq "fvector" } { 
+    catch {
+	if { [info exists ::${id}(psdplot)] && $::psdstyle eq "fvector" } {
 	    reflplot::plot_window .newpsd
 	    reflplot::plot2d add .newpsd.c $id
-	} elseif { [set ::${id}(psd)] } { 
-	    psd $id 
+	} elseif { [set ::${id}(psd)] } {
+	    psd $id
 	}
     }
 
@@ -678,8 +678,8 @@ proc addrun_remove { id } {
     # remove it from the list
     set ::addrun [ldelete $::addrun $id]
 
-    catch { 
-	if { [info exists ::${id}(psdplot)] } { 
+    catch {
+	if { [info exists ::${id}(psdplot)] } {
 	    reflplot::plot2d delete .newpsd.c $id
 	}
     }
@@ -703,7 +703,7 @@ proc addrun_accept {} {
 
     if { [llength $::addrun] == 0 } { return }
 
-    blt::busy hold . 
+    blt::busy hold .
 
     # sort run list by index
     foreach id $::addrun {
@@ -772,11 +772,11 @@ proc addrun { command args } {
 	    return [expr [lsearch $::addrun $args] >= 0 ]
 	}
 	add {
-	    blt::busy hold . 
+	    blt::busy hold .
 	    foreach id [lindex $args 0] { addrun_add $id }
 	    atten_table_reset
 	    event generate .graph <<Elements>>
-	    blt::busy release . 
+	    blt::busy release .
 	}
 	remove {
 	    foreach id [lindex $args 0] { addrun_remove $id }
@@ -971,10 +971,10 @@ proc tree_select_node {w node} {
 #
 # Show what portion of the total data range is used by a particular node.
 # This is called by my hacked version of the BWidget Tree widget (see
-# _draw_node function below), which first draws the label for the node, 
-# then gives you the canvas widget and the bounding box {x0 y0 x1 y1} 
+# _draw_node function below), which first draws the label for the node,
+# then gives you the canvas widget and the bounding box {x0 y0 x1 y1}
 # of the label on the canvas, and lets you add your own canvas annotations.
-# The tags used on the canvas items must be listed in the order given if 
+# The tags used on the canvas items must be listed in the order given if
 # the user is to click on your annotations to select the node.
 proc decorate_node { node w bbox } {
     # make sure it is a leaf node
@@ -1143,8 +1143,8 @@ init_cmd { init_selector }
 #
 #  	proc decorate_node { node canvas bbox }
 #
-#  where bbox is {x0 y0 x1 y1}.  Note that bounding box is just for 
-#  the node text and not any associated window or image.  The window 
+#  where bbox is {x0 y0 x1 y1}.  Note that bounding box is just for
+#  the node text and not any associated window or image.  The window
 #  or image, if it exists, starts at x0-padx.
 #
 #  If you want your decorations to respond to the bindImage script, then
@@ -1213,7 +1213,7 @@ proc _draw_node { path node x0 y0 deltax deltay padx showlines } {
     return $y1
 }
 
-# FIXME Need to register replacement _draw_node with BWidget tree command, 
+# FIXME Need to register replacement _draw_node with BWidget tree command,
 # but we can't do that until the tree code is actually loaded.  Find a better
 # way to do this.
 if { [info command ::Tree::_draw_node] ne "" } {

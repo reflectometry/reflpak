@@ -6,7 +6,7 @@ namespace eval reflpak {
 
     variable app
     variable choose_app
-    
+
     # GUI app selector
     proc choose_app {} {
         package require Tk
@@ -52,7 +52,7 @@ namespace eval reflpak {
         if { $::argc < 0 } { set ::argc 0 }
     }
 
-    
+
     switch -glob -- [lindex $argv 0] {
         -h { puts "usage: reflkit [fit|pol|red]"; exit }
         -v { puts "Reflpak $::app_version"; exit }
@@ -77,15 +77,15 @@ switch -- $reflpak::app {
     Reflpol { package require reflpol }
     Reflred { package require reflred }
     Reflplot { package require reflplot }
-    wish { 
+    wish {
     	set argv0 [lindex $argv 0]
 	info script $argv0
 	reflpak::shift_arg
     	source $argv0
     }
-    tkcon { 
+    tkcon {
 	package require tkcon
 	set ::tkcon::PRIV(protocol) exit
-	tkcon show 
+	tkcon show
     }
 }

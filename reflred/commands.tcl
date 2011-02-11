@@ -7,11 +7,11 @@ init_cmd {
     tofnref::register
 }
 set ::title Reflred
-    
+
 # XXX FIXME XXX how can I make this automatic?
-set OCTAVE_SUPPORT_FILES { 
+set OCTAVE_SUPPORT_FILES {
     psdslice reduce reduce_part run_invscale
-    run_div run_include run_interp run_poisson_avg 
+    run_div run_include run_interp run_poisson_avg
     run_scale run_sub run_tol run_trunc fminbnd
     runlog run_send run_send_pol fitslits polcor
     common_values inputname polyconf qlfit wsolve
@@ -90,7 +90,7 @@ proc QxQz_to_AB {id} {
     upvar \#0 $id rec
 
     # Algorithm for converting Qx-Qz to alpha-beta:
-    #   beta = 2 asin(L/(2 pi) sqrt(Qx^2+Qz^2)/2) * 180/pi 
+    #   beta = 2 asin(L/(2 pi) sqrt(Qx^2+Qz^2)/2) * 180/pi
     #        = asin(L sqrt(Qx^2+Qz^2) /(4 pi)) / (pi/360)
     #   if Qz < 0, negate beta
     #   theta = atan2(Qx,Qz) * 180/pi
@@ -163,16 +163,16 @@ proc restart_octave {} {
     }
     set ::NG7_monitor_calibration_loaded 0
 }
-proc disp x { 
+proc disp x {
     octave eval { retval='\n'; }
     octave eval "retval=$x;"
     octave eval { send(sprintf('set ::ans {%s}',disp(retval))); }
-    vwait ::ans 
+    vwait ::ans
     return [string range $::ans 0 end-1]
 }
 
 proc write_data { fid data args} {
-    
+
     set log 0
     set pol {}
     set columns {x y dy}
@@ -242,7 +242,7 @@ proc write_data { fid data args} {
 proc write_scan { fid scanid } {
     # FIXME duplicates write_reduce in reduce.tcl
     # Can't replace it yet because data is not marked with the polarization
-    # crosssection (the vectors are e.g., S1_x S1_y S1_dy instead of 
+    # crosssection (the vectors are e.g., S1_x S1_y S1_dy instead of
     # S1_xA S1_yA S1_dyA).
     upvar #0 $scanid rec
     puts $fid "#RRF 1 1 $::app_version"
@@ -261,8 +261,8 @@ proc write_scan { fid scanid } {
 	puts $fid "#polarization $rec(polarization)"
     }
     switch $rec(type) {
-	spec - back { 
-	    set columns {x y dy m} 
+	spec - back {
+	    set columns {x y dy m}
 	    set names {Qz counts dcounts slit1}
 	}
 	refl {
@@ -273,8 +273,8 @@ proc write_scan { fid scanid } {
 	    set columns {x y dy}
 	    set names {slit1 counts dcounts}
 	}
-	default { 
-	    set columns {x y dy} 
+	default {
+	    set columns {x y dy}
 	    set names {x y dy}
 	}
     }
@@ -288,7 +288,7 @@ proc savescan { scanid } {
 	 ![question "$filename exists. Do you want to overwrite it?"] } {
 	return
     }
-    
+
     if { [catch { open $filename w } fid] } {
 	message -bell $fid
     } else {
@@ -315,7 +315,7 @@ proc setscan { runs } {
     # so users will have to be sure to override the names if that is
     # the case.
     set runs [lsort -dictionary $runs]
-    
+
     upvar #0 [lindex $runs 0] rec
     set name "$rec(dataset)-$rec(run)$rec(index)"
     if [info exists ::scanindex($name)] {
@@ -338,35 +338,35 @@ proc setscan { runs } {
 				 runs $runs \
 				]
 	set ::scanindex($name) $scanid
-	
+
 	# XXX FIXME XXX need a better way to change scan types
 	if [string equal $rec(type) "other"] {
 	    array set ::$scanid { type spec }
 	}
-	
+
     }
     upvar #0 $scanid scanrec
-    
+
     # need to recalculate since the run list may have changed
     octave eval "$scanrec(id)=\[];"
     set scanrec(files) {}
     foreach id $runs {
 	upvar #0 $id rec
 	octave eval "r=\[];"
-	
+
 	# data (already includes attenuator)
 	octave send ::x_${id} r.x
 	octave send ::y_${id} r.y
 	octave send ::dy_${id} r.dy
-	
+
 	# monitor
 	octave eval "r = run_scale(r,$scanrec(monitor));"
-	
+
 	# slit motor position if available
-	if {[vector_exists ::slit1_$id] && !($rec(type) == "slit")} { 
+	if {[vector_exists ::slit1_$id] && !($rec(type) == "slit")} {
 	    octave send ::slit1_$id r.m
 	}
-	
+
 	# remove exclusions (and generate note for the log)
 	if {[vector_exists ::idx_$id] && [vector expr "prod(::idx_$id)"]==0} {
 	    octave send ::idx_${id} idx
@@ -375,10 +375,10 @@ proc setscan { runs } {
 	} else {
 	    set exclude ""
 	}
-	
+
 	# append run
 	octave eval "$scanid = run_poisson_avg($scanid,r);"
-	
+
 	# pretty scale
 	if { $rec(k) == 1 && $rec(dk) == 0 } {
 	    set scale {}
@@ -387,7 +387,7 @@ proc setscan { runs } {
 	} else {
 	    set scale "*$rec(k)($rec(dk))"
 	}
-	
+
 	# list file with scale and exclusions in the log
 	lappend scanrec(files) "[file tail $rec(file)]$scale$exclude"
     }
@@ -430,7 +430,7 @@ proc Fresnel {Q} {
 	    set F [expr {sqrt($::Fresnel_Qcsq - $Qsq)}]
 	    set F [expr {($Q + $F)/($Q - $F)}]
 	}
-    } else { 
+    } else {
 	if { $Qsq <= $::Fresnel_Qcsq } {
 	    set F 1.
 	} else {
@@ -444,7 +444,7 @@ proc Fresnel {Q} {
 proc Fresnel_scale_vector { Qvec y dy } {
     set Flist {}
     foreach Q [set ${Qvec}(:)] { lappend Flist [Fresnel $Q] }
-	
+
     vector create Fvec
     Fvec set $Flist
     $y expr "$y/Fvec"
@@ -684,7 +684,7 @@ proc note_rec { id args } {
     } else {
 	set ::${id}(notes) {}
     }
-	
+
 }
 
 # HELP developer
@@ -847,8 +847,8 @@ proc load_run {id} {
     # it using "vwait rec(loading)", presumably because the octave
     # sync block which allowed another thread to enter was waiting
     # on a separate variable.
-    if [info exists rec(loading)] { 
-	messsage "shouldn't call load_run if already loading" 
+    if [info exists rec(loading)] {
+	messsage "shouldn't call load_run if already loading"
     }
 
     # check if already loaded (using reference counts)
@@ -875,7 +875,7 @@ proc load_run {id} {
     # define scaled vectors (atten_set sets their values according to the
     # scale factor and the current monitor)
     vector create ::ky_$id ::kdy_$id
-    
+
     # set other fields
     set ::${id}(legend) "[set ::${id}(run)][set ::${id}(index)]"
 
@@ -910,7 +910,7 @@ proc load_run {id} {
 #
 # Convert a string containing:
 #    val val val \n val val val \n ...
-# into a set of vectors 
+# into a set of vectors
 #    Col1_id Col2_id Col3_id
 proc get_columns { id columns data } {
     # ptrace
@@ -923,8 +923,8 @@ proc get_columns { id columns data } {
     }
 
     # create data columns
-    foreach col $columns { 
-	vector create ::${col}_$id 
+    foreach col $columns {
+	vector create ::${col}_$id
 	::${col}_$id length 0
     }
 
@@ -972,9 +972,9 @@ proc typelabel { type } {
 # current record to sfaaa003.  If the desired record is not selected then
 # you will need to use e.g., [rec sfaaa003] or [rec sfaaa003.na1]. File
 # names are case insensitive.
-# 
+#
 # This is meant to be called from the tcl console.  It is never
-# called by the rest of the application.  Note that the current 
+# called by the rest of the application.  Note that the current
 # implementation is slow, and could easily be improved if needed.
 proc rec { file } {
     if { [isgui] && [winfo exists .graph] } {

@@ -10,17 +10,17 @@ hpage {Integrate Peaks} .peaks {
     Clear         resets the text widget.
 
 Simply sums the points in a region, and subtracts the same number
-of points from either side of that region. If there are not enough 
-points on either side, then the region is bad, and the data will 
+of points from either side of that region. If there are not enough
+points on either side, then the region is bad, and the data will
 say 'truncated'. This assumes the data has been normalized by a
 constant monitor and there are no attenuators in the beam.  Because
 of the normalization, peaks taken with different monitor counts
 should be directly comparable, assuming the overall intensity determined
 by the slits is comparable.
 
-This algorithm won't work on ng7 and similar instruments with 
+This algorithm won't work on ng7 and similar instruments with
 normalized data because uncertainty won't be calculated correctly.
-Instead of poisson assumptions, we need to use gaussian uncertainty 
+Instead of poisson assumptions, we need to use gaussian uncertainty
 calculation.  We could detect this by noting whether $rec(monitor) is 1.0.
 
 Much more sophisticated handling of the data (e.g., fitting to
@@ -60,7 +60,7 @@ namespace eval integrate_peak {
 
     # Callback to respond after both sides of the peak have been
     # selected.
-    proc trigger_integrate {- - -} { 
+    proc trigger_integrate {- - -} {
 	variable left
 	variable right
 	variable line
@@ -80,7 +80,7 @@ namespace eval integrate_peak {
 		app_error $msg
 	    }
 	}
-	
+
     }
 
     # Add peak to the list of peaks
@@ -172,6 +172,8 @@ namespace eval integrate_peak {
 	set fg [sum ::y_$line $lo $hi]
 	set bg [sum ::y_$line $bglo $bghi]
 	set A [expr {(2*$fg-$bg)}]
+	## Use gaussian error propagation for peak uncertainty
+	#set dA [vector expr {sqrt(sum(::dy_${line}($bglo:$bghi)^2))}]
 	set dA [expr {sqrt($bg/$rec(monitor))}]
 
 	# compute midpoint of x-range, as degrees
