@@ -75,7 +75,7 @@ function data = polcor(fit,FRratio,sub)
     plot(s,F,'r-;F;',s,R,'g-;R;',s,(1-x)/2,'b-;f;',s,(1-y)/2,'m-;r;');
   endif
 
-  if 0 && (isempty(sub.B) || isempty(sub.C))
+  if 0 %#(isempty(sub.B) || isempty(sub.C))
     ## XXX FIXME XXX  What if we don't have all four cross-sections?
     warning('B and/or C missing from polarization correction');
     rbeta.x = q;
@@ -102,10 +102,18 @@ function data = polcor(fit,FRratio,sub)
        (1+F).*(1-R), (1+Fx).*(1-R), (1+F).*(1-Ry), (1+Fx).*(1-Ry), ...
        (1-F).*(1-R), (1-Fx).*(1-R), (1-F).*(1-Ry), (1-Fx).*(1-Ry) ];
   
-  %# find the corresponding
+  %# interpolate Q values for the cross sections
+  %# If B and C are not measured, it is because we are assuming that
+  %# there is no significant spin flip signal, and therefore the
+  %# underlying B/C are zero.  We force this to be true by removing
+  %# certain cells from the H array.
+  %# If only one of B/C are measured, we assume the other is identical.
+  %# This is valid in the usual case when front and back efficiencies 
+  %# match and the spin flip scattering is is identical for +- and -+.
   [A,dA] = interp1err(sub.A.x,sub.A.y,sub.A.dy,q);
   [D,dD] = interp1err(sub.D.x,sub.D.y,sub.D.dy,q);
   if isempty(sub.B) && isempty(sub.C)
+    H[[2,3,5,8,9,12,14,15],:] = 0;
     B = C = zeros(size(q));
     dB = dC = ones(size(q));
   elseif isempty(sub.B)
@@ -119,7 +127,7 @@ function data = polcor(fit,FRratio,sub)
     [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
   endif
 
-  %# each column of Y is a 
+  %# each column of Y is a cross section
   Y = [ A./beta,B./beta,C./beta,D./beta ];
   dY = [ dA./beta,dB./beta,dC./beta,dD./beta ];
 
