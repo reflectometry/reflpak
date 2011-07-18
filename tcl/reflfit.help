@@ -508,10 +508,9 @@ Example 1:
 Example 2:
 
     /* set roughness to 1/2 the layer depth for all layers */
-    int i
-    for(i=1;i<ntl;i++) tro(i) = td(i)/2
-    for(i=1;i<nml;i++) mro(i) = md(i)/2
-    for(i=1;i<nbl;i++) bro(i) = bd(i)/2
+    for(i=1;i<=ntl;i++) tro(i) = td(i)/2
+    for(i=1;i<=nml;i++) mro(i) = md(i)/2
+    for(i=1;i<=nbl;i++) bro(i) = bd(i)/2
 
 Example 3:
 
@@ -519,13 +518,12 @@ Example 3:
      * to the total depth of the top layers while preserving
      * the relative depths of the middle layers
      */
-    double sumt=0, summ=0., scale
-    int i
-    for (i=1; i < ntl; i++) sumt += td(i)
-    set summ 0
-    for (i=1; i < nml; i++) summ += tm(i)
+    sumt=0.
+    for (i=1; i <= ntl; i++) sumt += td(i)
+    summ=0.
+    for (i=1; i <= nml; i++) summ += tm(i)
     scale=sumt/summ
-    for (i=1; i < nml; i++) {
+    for (i=1; i <= nml; i++) {
 	tm(i) = tm(i)*scale
     }
 
