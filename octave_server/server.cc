@@ -230,11 +230,16 @@ static octave_value get_octave_value(char *name)
   octave_value def;
 
   // Copy variable from octave
-#ifdef HAVE_OCTAVE_30
+#if defined(HAVE_TOP_LEVEL_SYM_TAB)
+  // Octave 3.0
   symbol_record *sr = top_level_sym_tab->lookup (name);
   if (sr) def = sr->def();
-#else
+#elif defined(HAVE_VARREF)
+  // Octave 2.x
   def = symbol_table::varref (std::string (name), symbol_table::top_scope ());
+#else
+  // Octave 3.2
+  def = get_global_value(name);
 #endif
 
   return def;
