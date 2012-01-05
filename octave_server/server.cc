@@ -196,10 +196,25 @@ daemonize(void)
   signal(SIGTERM,sigterm_handler);
   signal(SIGQUIT,sigterm_handler);
 
+
+#if 1
+  const char err[] = "/dev/null";
+  const char out[] = "/dev/null";
+#else
+  const char err[] = "/tmp/octserver.err";
+  const char out[] = "/tmp/octserver.out";
+  std::cout << "redirecting to " << out << " and " << err << std::endl; std::cout.flush();
+#endif
+
   // Exit silently if I/O redirect fails.
   if (freopen("/dev/null", "r", stdin) == NULL
-      || freopen("/dev/null", "w", stdout) == NULL
-      || freopen("/dev/null", "w", stderr)) exit(0);
+      || freopen(out, "w", stdout) == NULL
+      || freopen(err, "w", stderr) == NULL) {
+    // std::cerr << "ioredirect failed" << std::endl; std::cerr.flush();
+    exit(0);
+  }
+  // std::cout << "ioredirect succeeded" << std::endl; std::cout.flush();
+  //debug = true;
 }
 
 #else
