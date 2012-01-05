@@ -5,7 +5,7 @@ proc reduce_init {} {
     set ::errreduce y
     set ::reduce_coloridx 0
     set ::reduce_polratio 0.5
-    set ::reduce_dopolcor 1
+    set ::reduce_polcor 2
 
     # Generate some dataset holders
     vector create ::polx ::polxraw
@@ -305,9 +305,15 @@ proc reduce_slits {} {
     set f [frame $w.controls]
     label $f.labelFRratio -text "Front-Back ratio"
     entry $f.entryFRratio -textvariable ::reduce_polratio -width 5
-    checkbutton $f.checkpolcor -variable ::reduce_dopolcor \
-	-command "reduce_selection" -text "apply polarization correction"
-    pack $f.labelFRratio $f.entryFRratio $f.checkpolcor -side left
+    label $f.labelpolcor -text "Polarization correction"
+    radiobutton $f.polcor0 -variable ::reduce_polcor -value 0 \
+         -command "reduce_selection" -text "None"
+    radiobutton $f.polcor1 -variable ::reduce_polcor -value 1 \
+         -command "reduce_selection" -text "Raw"
+    radiobutton $f.polcor2 -variable ::reduce_polcor -value 2 \
+         -command "reduce_selection" -text "Smoothed"
+    pack $f.labelFRratio $f.entryFRratio $f.labelpolcor \
+         $f.polcor0 $f.polcor1 $f.polcor2 -side left
     bind $f.entryFRratio <Return> reduce_selection
 
     grid $w.intensity -sticky news
@@ -469,7 +475,7 @@ proc reduce {spec back slit} {
     # XXX FIXME XXX older versions of octave fail to execute
     #   eval("\n  statement;\n   statement;");
     # the work-around belongs in listen, not here.
-    octave eval "\[sub, div, cor] = reduce(spec,back,slit,$::reduce_polratio,$::reduce_dopolcor);"
+    octave eval "\[sub, div, cor] = reduce(spec,back,slit,$::reduce_polratio,$::reduce_polcor);"
 
     # convert transmission coefficient to a scale factor
     if { $::calc_transmission } {

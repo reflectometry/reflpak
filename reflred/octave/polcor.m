@@ -1,4 +1,4 @@
-% corrected_data = polcor(slit_fit,FRratio,subtracted_data)
+% corrected_data = polcor(slit_fit,FRratio,subtracted_data,type)
 %
 %   Apply the polarization correction to the background subtracted data.
 %
@@ -23,43 +23,43 @@
 %       F = (F*R)^FRratio
 %       R = (F*R)/F
 %
+%   type is 1 for raw correction or 2 for smoothed correction
+%
 % See also: polraw, polfit
 %
-function data = polcor(fit,FRratio,sub)
+function data = polcor(fit,FRratio,sub,cortype)
+  if nargin == 0, data=@polcorpar; return; end
   do_plot = nargout == 0;
 
   %# determine which slits we are using
-  if nargin != 3
-    usage('cor = polcor(slitfit,FRratio,sub)')
+  if nargin != 4
+    usage('cor = polcor(slitfit,FRratio,sub,cortype)')
   end
 
   if isempty(fit), data = sub; return; end
 
   [q,idxA,idxD] = common_values(sub.A.x,sub.D.x,1e-5);
   s = interp1(sub.A.x,sub.A.m,q);
-  if fit.lo == fit.hi, % XXX FIXME XXX need better handling of low n
+  if fit.lo == fit.hi, % fixed slits
     I = ones(length(s),1);
     Ia = fit.Ia.y*I; dIa = fit.Ia.dy*I;
     Ib = fit.Ib.y*I; dIb = fit.Ib.dy*I;
     Ic = fit.Ic.y*I; dIc = fit.Ic.dy*I;
     Id = fit.Id.y*I; dId = fit.Id.dy*I;
-  elseif nargin < 4, % use fit
+  elseif cortype == 2    % smoothed slit scan
     [Ia,dIa] = qlconf(s,fit.A.p,fit.A.z,fit.A.S);
     [Ib,dIb] = qlconf(s,fit.B.p,fit.B.z,fit.B.S);
     [Ic,dIc] = qlconf(s,fit.C.p,fit.C.z,fit.C.S);
     [Id,dId] = qlconf(s,fit.D.p,fit.D.z,fit.D.S);
-  else % use raw
-    q = interp1(sub.A.m,sub.A.x,fit.Ia.x);
-    s = fit.Ia.x;
-    Ia = fit.Ia.y; dIa = fit.Ia.dy;
+  else                 % raw slit scan
+    [Ia,dIa] = interp1err(fit.Ia.x, fit.Ia.y, fit.Ia.dy, s);
     [Ib,dIb] = interp1err(fit.Ib.x, fit.Ib.y, fit.Ib.dy, s);
     [Ic,dIc] = interp1err(fit.Ic.x, fit.Ic.y, fit.Ic.dy, s);
-    [Id,dIc] = interp1err(fit.Id.x, fit.Id.y, fit.Id.dy, s);
+    [Id,dId] = interp1err(fit.Id.x, fit.Id.y, fit.Id.dy, s);
   endif
-
   [beta, F, R, x, y, reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,1);
 
-  if do_plot
+  if 0 && do_plot
     automatic_replot = 0;
     oneplot();
     hold off; clg
@@ -75,25 +75,7 @@ function data = polcor(fit,FRratio,sub)
     plot(s,F,'r-;F;',s,R,'g-;R;',s,(1-x)/2,'b-;f;',s,(1-y)/2,'m-;r;');
   endif
 
-  if 0 %#(isempty(sub.B) || isempty(sub.C))
-    ## XXX FIXME XXX  What if we don't have all four cross-sections?
-    warning('B and/or C missing from polarization correction');
-    rbeta.x = q;
-    rbeta.y = 2*beta;
-    rbeta.dy = zeros(size(beta));
-    A = run_div(sub.A, run_interp(rbeta,sub.A));
-    D = run_div(sub.D, run_interp(rbeta,sub.D));
-    if isempty(sub.B), B = [];
-    else B = run_div(sub.B, run_interp(rbeta,sub.B));
-    end
-    if isempty(sub.C), C = [];
-    else C = run_div(sub.C, run_interp(rbeta,sub.C));
-    end
-    data = struct('A',A,'B',B,'C',C,'D',D);
-    return
-  end
-
-  %# Construct a set of matrices for 
+  %# Construct a set of matrices for each point to be corrected;
   %# each row of H is a matrix to solve
   Fx = F.*x;
   Ry = R.*y;
@@ -103,47 +85,46 @@ function data = polcor(fit,FRratio,sub)
        (1-F).*(1-R), (1-Fx).*(1-R), (1-F).*(1-Ry), (1-Fx).*(1-Ry) ];
   
   %# interpolate Q values for the cross sections
-  %# If B and C are not measured, it is because we are assuming that
+  %# If B and/or C are not measured, it is because we are assuming that
   %# there is no significant spin flip signal, and therefore the
-  %# underlying B/C are zero.  We force this to be true by removing
-  %# certain cells from the H array.
-  %# If only one of B/C are measured, we assume the other is identical.
-  %# This is valid in the usual case when front and back efficiencies 
-  %# match and the spin flip scattering is is identical for +- and -+.
+  %# underlying B/C are zero.  We force this to be true by setting
+  %# cross terms in the H array to zero, and setting the missing
+  %# subarray to the identity matrix.
   [A,dA] = interp1err(sub.A.x,sub.A.y,sub.A.dy,q);
   [D,dD] = interp1err(sub.D.x,sub.D.y,sub.D.dy,q);
   if isempty(sub.B) && isempty(sub.C)
-    H[[2,3,5,8,9,12,14,15],:] = 0;
-    B = C = zeros(size(q));
-    dB = dC = ones(size(q));
+    H = H(:, [1,4,13,16]);
+    Y = [ A./beta,D./beta ];
+    dY = [ dA./beta,dD./beta ];
+    n = 2;
   elseif isempty(sub.B)
+    H = H(:, [1,3,4,9,11,12,13,15,16]);
     [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
-    B = C; dB = dC;
+    Y = [ A./beta,C./beta,D./beta ];
+    dY = [ dA./beta,dC./beta,dD./beta ];
+    n = 3;
   elseif isempty(sub.C)
+    H = H(:, [1,2,4,5,6,8,13,14,16]);
     [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
-    C = B; dC = dB;
+    Y = [ A./beta,B./beta,D./beta ];
+    dY = [ dA./beta,dB./beta,dD./beta ];
+    n = 3;
   else
     [B,dB] = interp1err(sub.B.x,sub.B.y,sub.B.dy,q);
     [C,dC] = interp1err(sub.C.x,sub.C.y,sub.C.dy,q);
+    Y = [ A./beta,B./beta,C./beta,D./beta ];
+    dY = [ dA./beta,dB./beta,dC./beta,dD./beta ];
+    n = 4;
   endif
-
-  %# each column of Y is a cross section
-  Y = [ A./beta,B./beta,C./beta,D./beta ];
-  dY = [ dA./beta,dB./beta,dC./beta,dD./beta ];
-
-  %# XXX FIXME XXX  John's code has an extra factor of four here, 
-  %# which roughly corresponds to the elements of sqrt(diag(inv(Y'Y))), 
-  %# the latter giving values in the order of 3.9 for one example 
-  %# dataset.  Is there an analytic reason it should be four?
+%save ~/intensity.dat Ia Ib Ic Id dIa dIb dIc dId A B C D dA dB dC dD
 
   X = zeros(size(Y));
   dX = zeros(size(dY));
 %cnd = zeros(size(q));
 %cov = zeros(4);
-  p = zeros(4,1);
   for i=1:length(q)
     %# Extract the next equation
-    A = reshape(H(i,:),4,4);
+    A = reshape(H(i,:),n,n);
     y = Y(i,:)';
     dy = dY(i,:)';
     [p,s] = wsolve(A,y,dy);
@@ -155,29 +136,36 @@ function data = polcor(fit,FRratio,sub)
     dX(i,:) = sqrt(sumsq(inv(s.R')));
 %[dy./dX(i,:)']
   end
+%save ~pkienzle/solve.dat H X dX Y dY
 %cov /= length(q),X
 %if do_plot
 %input("condition numbers");
 %oneplot; clg; plot(q,cnd);
 %end
   r.A.x = q; r.A.y = X(:,1); r.A.dy = dX(:,1);
-  r.B.x = q; r.B.y = X(:,2); r.B.dy = dX(:,2);
-  r.C.x = q; r.C.y = X(:,3); r.C.dy = dX(:,3);
-  r.D.x = q; r.D.y = X(:,4); r.D.dy = dX(:,4);
-  if 0
-  A = [q,X(:,1),dX(:,1)];
-  B = [q,X(:,2),dX(:,2)];
-  C = [q,X(:,3),dX(:,3)];
-  D = [q,X(:,4),dX(:,4)];
-  if do_plot && strcmp(input("Plot old and new data? ","s"),"y")
+  r.D.x = q; r.D.y = X(:,end); r.D.dy = dX(:,end);
+  if isempty(sub.B)
+      r.B = []; 
+  else
+      r.B.x = q; r.B.y = X(:,2); r.B.dy = dX(:,2);
+  end
+  if isempty(sub.C)
+      r.C = [];
+  else
+      r.C.x = q; r.C.y = X(:,end-1); r.C.dy = dX(:,end-1);
+  end
+
+if 0
+  if 0 && do_plot% && strcmp(input("Plot old and new data? ","s"),"y")
     subplot(221); 
-    semilogyerr(q,X(:,1),dX(:,1),';out;',a(:,1),a(:,2),a(:,3),';in;');
+    semilogyerr(q,X(:,1),dX(:,1),';out;',q,A,dA,';in;');
     subplot(222); 
-    semilogyerr(q,X(:,2),dX(:,2),';out;',b(:,1),b(:,2),b(:,3),';in;');
+    semilogyerr(q,X(:,2),dX(:,2),';out;',q,B,B,';in;');
     subplot(223); 
-    semilogyerr(q,X(:,3),dX(:,3),';out;',c(:,1),c(:,2),c(:,3),';in;');
+    semilogyerr(q,X(:,3),dX(:,3),';out;',q,C,C,';in;');
     subplot(224); 
-    semilogyerr(q,X(:,4),dX(:,4),';out;',d(:,1),d(:,2),d(:,3),';in;');
+    semilogyerr(q,X(:,4),dX(:,4),';out;',q,D,D,';in;');
+    drawnow
   end
   if 0 && do_plot && strcmp(input("New data alone? ","s"),"y")
     oneplot; clg;
@@ -190,9 +178,8 @@ function data = polcor(fit,FRratio,sub)
     subplot(224); 
     errorbar(q,X(:,4),dX(:,4),';out;');
   end
-  end
+end
 
-  if isempty(sub.B) && isempty(sub.C) r.B = r.C = []; end
   if nargout, data = r; end
 end
 

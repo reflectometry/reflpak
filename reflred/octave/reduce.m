@@ -1,4 +1,4 @@
-function [sub,div,cor] = reduce(spec,back,slit,FRratio,dopolcor)
+function [sub,div,cor] = reduce(spec,back,slit,FRratio,cortype)
   sub=div=cor=[];
 
   ## Find subtracted data
@@ -40,7 +40,7 @@ function [sub,div,cor] = reduce(spec,back,slit,FRratio,dopolcor)
       div.C = slitdivide(sub.C,slit);
       div.D = slitdivide(sub.D,slit);
     end
-  elseif isempty(fit) || !dopolcor
+  elseif isempty(fit) || cortype==0
     ## Polarized, but not doing polarization correction
     div.A = slitdivide(sub.A,slit.A);
     div.B = slitdivide(sub.B,slit.B);
@@ -49,7 +49,7 @@ function [sub,div,cor] = reduce(spec,back,slit,FRratio,dopolcor)
     div.polarized = 1;
   else
     ## Polarization correction
-    div = polcor(fit, FRratio,sub);
+    div = polcor(fit,FRratio,sub,cortype);
   endif
 
 end
