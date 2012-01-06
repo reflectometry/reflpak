@@ -2,7 +2,7 @@ MKOCTFILE ?= mkoctfile
 
 all: server.oct
 
-server.oct: server.cc listencanfork.c stringmatch.c
-	$(MKOCTFILE) server.cc listencanfork.c stringmatch.c
+server.oct: server.cc
+	$(MKOCTFILE) server.cc
 clean:
 	-rm *.oct *.o *~
