@@ -123,17 +123,17 @@ function slitplot(h)
 	   sf,feval('qlconf',sf,h.C.p,h.C.z,h.C.S),'-m;C;',
 	   sf,feval('qlconf',sf,h.D.p,h.D.z,h.D.S),'-r;D;');
   hold on;
-if 0
+ if 0
   semilogy(h.Ia.x,h.Ia.y,'*g;;',0);
   semilogy(h.Ib.x,h.Ib.y,'*b;;',0);
   semilogy(h.Ic.x,h.Ic.y,'*m;;',0);
   semilogy(h.Id.x,h.Id.y,'*r;;',0);
-else
+ else
   semilogyerr(h.Ia.x,h.Ia.y,h.Ia.dy,'g;;');
   semilogyerr(h.Ib.x,h.Ib.y,h.Ib.dy,'b;;');
   semilogyerr(h.Ic.x,h.Ic.y,h.Ic.dy,'m;;');
   semilogyerr(h.Id.x,h.Id.y,h.Id.dy,'r;;');
-end
+ end
   hold off;
 end
 

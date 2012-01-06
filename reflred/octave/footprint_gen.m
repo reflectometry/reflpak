@@ -26,3 +26,4 @@ function foot = footprint_gen(refl,p,dp,Qmin,Qmax)
     foot.y(abs(refl.x) > Qmax) = fpQmax;
     foot.dy(abs(refl.x) > Qmax) = dfpQmax;
   end
+end

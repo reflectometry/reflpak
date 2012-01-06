@@ -9,3 +9,4 @@ function foot = footprint_interp(div,fd)
   foot.y(isnan(foot.y)) = 1.0;
   foot.dy(isnan(foot.dy)) = 0.0;
   ## [fpQmax,dfpQmax] = interp1err(fd.x,fd.y,fd.dy,Qmax);
+end

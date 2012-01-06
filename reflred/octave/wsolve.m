@@ -88,7 +88,7 @@ function [x_out,s]=wsolve(A,y,dy)
   else
     x_out = x;
   endif
-
+end
 ## We can show that uncertainty dx = sumsq(inv(R'))' = sqrt(diag(inv(A'A))).
 ##
 ## Rather than calculate inv(A'A) directly, we are going to use the QR

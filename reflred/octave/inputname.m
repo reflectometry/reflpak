@@ -2,6 +2,7 @@
 ##    Return the text defining nth input to the function.
 function s=inputname(n)
   s=evalin('caller',sprintf('deblank(argn(%d,:));',n));
+end
 
 ## Warning: heap big magic in the following tests!!!
 ## The test function builds a private context for each

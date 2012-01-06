@@ -25,3 +25,4 @@ run
       otherwise error('unknown footprint type "%s"',kind);
     end; end
   end
+end

@@ -56,7 +56,7 @@ function data = polcor(fit,FRratio,sub,cortype)
     [Ib,dIb] = interp1err(fit.Ib.x, fit.Ib.y, fit.Ib.dy, s);
     [Ic,dIc] = interp1err(fit.Ic.x, fit.Ic.y, fit.Ic.dy, s);
     [Id,dId] = interp1err(fit.Id.x, fit.Id.y, fit.Id.dy, s);
-  endif
+  end
   [beta, F, R, x, y, reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,1);
 
   if 0 && do_plot
@@ -73,7 +73,7 @@ function data = polcor(fit,FRratio,sub,cortype)
     hold off;
     subplot(212);
     plot(s,F,'r-;F;',s,R,'g-;R;',s,(1-x)/2,'b-;f;',s,(1-y)/2,'m-;r;');
-  endif
+  end
 
   %# Construct a set of matrices for each point to be corrected;
   %# each row of H is a matrix to solve
@@ -115,7 +115,7 @@ function data = polcor(fit,FRratio,sub,cortype)
     Y = [ A./beta,B./beta,C./beta,D./beta ];
     dY = [ dA./beta,dB./beta,dC./beta,dD./beta ];
     n = 4;
-  endif
+  end
 %save ~/intensity.dat Ia Ib Ic Id dIa dIb dIc dId A B C D dA dB dC dD
 
   X = zeros(size(Y));
@@ -155,7 +155,7 @@ function data = polcor(fit,FRratio,sub,cortype)
       r.C.x = q; r.C.y = X(:,end-1); r.C.dy = dX(:,end-1);
   end
 
-if 0
+ if 0
   if 0 && do_plot% && strcmp(input("Plot old and new data? ","s"),"y")
     subplot(221); 
     semilogyerr(q,X(:,1),dX(:,1),';out;',q,A,dA,';in;');
@@ -178,7 +178,7 @@ if 0
     subplot(224); 
     errorbar(q,X(:,4),dX(:,4),';out;');
   end
-end
+ end
 
   if nargout, data = r; end
 end
@@ -203,7 +203,7 @@ function cor = polraw(fit,FRratio)
     Ib = fit.Ib.y; dIb = fit.Ib.dy;
     Ic = fit.Ic.y; dIc = fit.Ic.dy;
     Id = fit.Id.y; dId = fit.Id.dy;
-  endif
+  end
   [beta, F, R, x, y] = polcorpar(FRratio,Ia,Ib,Ic,Id,0);
   cor.x = s;
   cor.polf = F;
@@ -233,7 +233,7 @@ function cor = polraw(fit,FRratio)
 	 s,cor.flipr - (1-y)/2,'-@;back flipper;',...
 	 s,cor.polf - F,'-@;front polarizer;',...
 	 s,cor.polr - R,'-@;back polarizer;');
-  endif
+  end
 end
 
 % cor = polraw(fit,FRratio)
@@ -345,7 +345,7 @@ function [beta,F,R,x,y,reject] = polcorpar(FRratio,Ia,Ib,Ic,Id,clip)
     F = (-pb+sqrt(pb.^2 - 4*pa.*pc))./(2*pa);
     R = (-pb-sqrt(pb.^2 - 4*pa.*pc))./(2*pa);
     F(F<0) = R(F<0);
-  endif
+  end
   reject = unique([FRreject(:);Ireject(:);xreject(:);yreject(:)]);
 end
 

@@ -136,3 +136,4 @@ function [y,dy] = confidence(A,p,S,alpha,typestr)
   if isempty(alpha), alpha = default_alpha; end
   s = t_inv(1-alpha/2,S.df)*S.normr/sqrt(S.df);
   dy = s*sqrt(pred+sumsq(A/S.R,2));
+end
