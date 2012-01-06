@@ -12,10 +12,11 @@ set ::title Reflred
 set OCTAVE_SUPPORT_FILES {
     psdslice reduce reduce_part run_invscale
     run_div run_include run_interp run_poisson_avg
-    run_scale run_sub run_tol run_trunc fminbnd
+    run_scale run_sub run_tol run_trunc 
     runlog run_send run_send_pol fitslits polcor
     common_values inputname polyconf qlfit wsolve
     confidence qlconf wpolyfit interp1err
+    fminbnd sortrows
 }
 
 set ::scanpattern "S\[0-9]*"
