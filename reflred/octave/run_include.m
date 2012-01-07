@@ -5,5 +5,5 @@ function r = run_include(r, cond)
   r.x = r.x(idx);
   r.y = r.y(idx);
   r.dy = r.dy(idx);
-  if struct_contains(r,'m'), r.m = r.m(idx); endif
+  if isfield(r,'m'), r.m = r.m(idx); endif
 endfunction

@@ -16,7 +16,6 @@ set OCTAVE_SUPPORT_FILES {
     runlog run_send run_send_pol fitslits polcor
     common_values inputname polyconf qlfit wsolve
     confidence qlconf wpolyfit interp1err
-    fminbnd sortrows
 }
 
 set ::scanpattern "S\[0-9]*"
@@ -153,7 +152,7 @@ monitor_init
 proc restart_octave {} {
     catch { octave close }
     octave connect $::OCTAVE_HOST
-    octave eval "cd /tmp;"
+    #octave eval "cd /tmp;"
     foreach file $::OCTAVE_SUPPORT_FILES {
 	octave mfile [file join $::VIEWRUN_HOME octave $file.m]
     }
@@ -397,7 +396,7 @@ proc setscan { runs } {
     octave recv ${scanid}_y ${scanid}.y
     octave recv ${scanid}_dy ${scanid}.dy
     # slit motor position, if defined for all sections, will be in 'm'
-    octave eval "if struct_contains(${scanid},'m'), send('${scanid}_m',${scanid}.m); end"
+    octave eval "if isfield(${scanid},'m'), send('${scanid}_m',${scanid}.m); end"
     vector create ::${scanid}_ky
     vector create ::${scanid}_kdy
     octave sync

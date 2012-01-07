@@ -23,25 +23,19 @@ export VERSION
 # isn't set up for ssh operations.
 
 # Here are my architecture specific build machines:
-irix=jazz.ncnr.nist.gov
-osx=macng7.ncnr.nist.gov
-macintel=d121139.ncnr.nist.gov
-linux3=h122045.ncnr.nist.gov
-linux4=dave.ncnr.nist.gov
+osx=h123063.ncnr.nist.gov
+linux=sparkle.ncnr.nist.gov
 win=localhost
-arches=irix osx linux4
-BUILD="$irix $osx $linux3 $linux4"
-
-# Grrr... irix machines need gmake rather than make...
-gmake=$irix
+arches=osx linux
+BUILD="$osx $linux"
 
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagick
 # and tclsh.
-htmlmachine=h122045.ncnr.nist.gov
+htmlmachine=sparkle.ncnr.nist.gov
 
-# Each machine has already been set up with a build directory 
-# in ~/cvs/reflfit and the appropriate Makeconf.
+# Each machine has already been set up with the appropriate Makeconf
+# using the same build directory.
 builddir="~/danse/reflpak"
 
 # The results are stored and shared in the following directories.
@@ -51,10 +45,11 @@ WEBCP=scp
 
 # The following directory will contain $arch/reflpak$VERSION and 
 # a copy of the latest in $arch/reflpak
-# MSYS cp to shared is broken for versions before 1.0.11
-# We are using cygwin's cp instead.
 BINDIR="//charlotte/public/Reflpak"
-BINCP="/c/cygwin/bin/cp -r"
+## MSYS cp to shared is broken for versions before 1.0.11
+## We are using cygwin's cp instead.
+#BINCP="/c/cygwin/bin/cp -r"
+BINCP="cp -r"
 
 # =========== End of configuration ============
 
@@ -74,14 +69,14 @@ if false; then
 svn update
 for machine in $BUILD; do
     echo;echo "== svn update on $machine: ===================";
-    ssh $machine "cd $builddir && svn update"
+    ssh $machine "cd $builddir && git pull"
 done
 else
-echo; echo "Automatic svn update is impossible; please make sure"
+echo; echo "Automatic update is impossible; please make sure"
 echo "the following machines are up to date by running update and status:"
 echo "   localhost $BUILD"
 echo;
-echo "Please run 'make srcdist' on $linux3"
+echo "Please run 'make srcdist' on $linux"
 fi
 
 echo; echo "Are all files committed that need to be?"
@@ -103,9 +98,7 @@ echo; echo "== build source ======================="
 # in parallel but then we would need to deal with synchronization
 for machine in $BUILD; do
     echo; echo "== build on $machine ========================"
-    # if make$machine is a defined variable use it, otherwise use 'make'
-    if test $machine == $gmake; then make=gmake; else make=make; fi
-    ssh $machine "cd $builddir && VERSION='$VERSION' $make dist"
+    ssh $machine "cd $builddir && VERSION='$VERSION' make dist"
 done
 
 # Do the local build last since you need to type exit in the interpreter
@@ -124,7 +117,7 @@ scp -r $htmlmachine:$builddir/html web
 scp $htmlmachine:$builddir/release/reflpak-data.zip web
 
 echo; echo "== gather local build results ====================="
-scp $linux3:$builddir/release/reflpak$VERSION-src.tar.gz web
+scp $linux:$builddir/release/reflpak$VERSION-src.tar.gz web
 cp release/reflpak$VERSION.exe web
 for machine in $BUILD; do
     echo; echo "== gather results from $machine ================="
@@ -184,8 +177,8 @@ fi
 # Make sure the instrument computers are updated.
 echo
 echo Update instrument computers, user room software and web.
-echo    scp bin/linux3/reflpak cg1@andr:bin/reflpak$VERSION
-echo    scp bin/linux3/reflpak ng7@ng7refl:bin/reflpak$VERSION
-echo    scp bin/linux4/reflpak ng1@ng1refl:bin/reflpak$VERSION
+echo    scp bin/linux/reflpak cg1@andr:bin/reflpak$VERSION
+echo    scp bin/linux/reflpak ng7@ng7refl:bin/reflpak$VERSION
+echo    scp bin/linux/reflpak ng1@ng1refl:bin/reflpak$VERSION
 echo Also need to point to the latest via symlink.
 echo Let users know a new version is available.

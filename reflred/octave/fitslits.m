@@ -58,7 +58,7 @@ function ret = testlinslit(A)
     error('fitslits: no points!');
   elseif n == 1
     warning('check uncertainty calculated when n=1');
-    ret.S = struct('R',eye(3), 'df',1, 'normr',t_inv(1-erf(1/sqrt(2))/2,1));
+    ret.S = struct('R',eye(3), 'df',1, 'normr',tinv(1-erf(1/sqrt(2))/2,1));
     ret.p = [0;0;A.y];
     ret.z = min(A.x);
   else
@@ -66,7 +66,7 @@ function ret = testlinslit(A)
     if n > 2
       [quad,Squad] = wpolyfit(A.x,A.y,A.dy,2);
       F = (Slin.normr^2 - Squad.normr^2)/(Squad.normr^2/Squad.df);
-      prob = f_cdf(F,1,Squad.df);
+      prob = fcdf(F,1,Squad.df);
     else
       prob = 0;
     end
@@ -96,7 +96,7 @@ function [prob, ret] = testquadslit(A,quad,z)
   ret.z = z;
   if quad.p(1) != 0   % data don't support anything beyond linear
     F = (quad.S.normr^2 - S.normr^2)/(S.normr^2/S.df);
-    prob = f_cdf(F,1,S.df);
+    prob = fcdf(F,1,S.df);
   else
     prob = 0.0;
   end
