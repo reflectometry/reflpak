@@ -67,7 +67,7 @@ function [p_out, s] = wpolyfit (varargin)
 
   ## strip 'origin' of the end
   args = length(varargin);
-  if args>0 && isstr(varargin{args})
+  if args>0 && ischar(varargin{args})
     origin = varargin{args};
     args--;
   else

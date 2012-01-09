@@ -58,7 +58,7 @@ function ret = testlinslit(A)
     error('fitslits: no points!');
   elseif n == 1
     warning('check uncertainty calculated when n=1');
-    ret.S = struct('R',eye(3), 'df',1, 'normr',t_inv(1-erf(1/sqrt(2))/2,1));
+    ret.S = struct('R',eye(3), 'df',1, 'normr',tinv(1-erf(1/sqrt(2))/2,1));
     ret.p = [0;0;A.y];
     ret.z = min(A.x);
   else
@@ -66,7 +66,7 @@ function ret = testlinslit(A)
     if n > 2
       [quad,Squad] = wpolyfit(A.x,A.y,A.dy,2);
       F = (Slin.normr^2 - Squad.normr^2)/(Squad.normr^2/Squad.df);
-      prob = f_cdf(F,1,Squad.df);
+      prob = fcdf(F,1,Squad.df);
     else
       prob = 0;
     end
@@ -96,7 +96,7 @@ function [prob, ret] = testquadslit(A,quad,z)
   ret.z = z;
   if quad.p(1) != 0   % data don't support anything beyond linear
     F = (quad.S.normr^2 - S.normr^2)/(S.normr^2/S.df);
-    prob = f_cdf(F,1,S.df);
+    prob = fcdf(F,1,S.df);
   else
     prob = 0.0;
   end
@@ -123,17 +123,17 @@ function slitplot(h)
 	   sf,feval('qlconf',sf,h.C.p,h.C.z,h.C.S),'-m;C;',
 	   sf,feval('qlconf',sf,h.D.p,h.D.z,h.D.S),'-r;D;');
   hold on;
-if 0
+ if 0
   semilogy(h.Ia.x,h.Ia.y,'*g;;',0);
   semilogy(h.Ib.x,h.Ib.y,'*b;;',0);
   semilogy(h.Ic.x,h.Ic.y,'*m;;',0);
   semilogy(h.Id.x,h.Id.y,'*r;;',0);
-else
+ else
   semilogyerr(h.Ia.x,h.Ia.y,h.Ia.dy,'g;;');
   semilogyerr(h.Ib.x,h.Ib.y,h.Ib.dy,'b;;');
   semilogyerr(h.Ic.x,h.Ic.y,h.Ic.dy,'m;;');
   semilogyerr(h.Id.x,h.Id.y,h.Id.dy,'r;;');
-end
+ end
   hold off;
 end
 

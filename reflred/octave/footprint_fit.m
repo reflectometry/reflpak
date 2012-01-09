@@ -1,8 +1,7 @@
 function [p,dp] = footprint_fit(run,lo,hi,kind)
-run
   if isempty(run)
     p=[0;1]; dp=[0;0];
-  elseif struct_contains(run,'A')
+  elseif isfield(run,'A')
     [p,dp] = footprint_fit(run.A,lo,hi,kind);
   else
     if lo>hi, t=hi; hi=lo; lo=t; end
@@ -25,3 +24,4 @@ run
       otherwise error('unknown footprint type "%s"',kind);
     end; end
   end
+end

@@ -9,7 +9,7 @@ function run_send(name,val)
     send(sprintf(name,'x'),val.x);
     send(sprintf(name,'y'),val.y);
     send(sprintf(name,'dy'),val.dy);
-    if struct_contains(val,'m')
+    if isfield(val,'m')
       send(sprintf(name,'m'),val.m); 
     else
       send(sprintf(name,'m'),[]);

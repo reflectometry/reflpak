@@ -31,7 +31,7 @@ function [q,idxA,idxB] = common_values(a,b,tol)
 
   ## Average the a and b returned values.
   q = (a(idxA)+b(idxB))/2;
-
+end
 %!test
 %! [q,iA,iB] = common_values([1,2,3,4,5],[1,3,4,6]);
 %! assert(q,[1,3,4])

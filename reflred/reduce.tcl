@@ -512,7 +512,7 @@ proc reduce {spec back slit} {
         if !isempty(cor)
 	  send("polx",cor.x);
 	  send("beta",cor.beta);
-	  if struct_contains(cor,'polf')
+	  if isfield(cor,'polf')
 	    send("polf",100*cor.polf);
 	    send("polr",100*cor.polr);
 	    send("flipf",100*cor.flipf);
@@ -522,12 +522,12 @@ proc reduce {spec back slit} {
 	    send("slitfitC",cor.slitC);
 	    send("slitfitD",cor.slitD);
 	  endif
-	  if struct_contains(cor,'z')
+	  if isfield(cor,'z')
 	    send(sprintf("reduce_slit_z %g",cor.z));
 	  else
 	    send("reduce_slit_z 0.");
 	  endif
-	  if struct_contains(cor,'raw')
+	  if isfield(cor,'raw')
 	    send("polxraw",cor.raw.x);
 	    send("betaraw",cor.raw.beta);
 	    send("polfraw",100*cor.raw.polf);

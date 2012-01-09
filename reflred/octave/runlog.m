@@ -11,8 +11,8 @@
 function run = runlog(run, message, run2)
 
   if nargin == 3
-    if struct_contains(run,"log")
-      if struct_contains(run2,"log")
+    if isfield(run,"log")
+      if isfield(run2,"log")
 	l = list(message, run2.log);
       else
 	l = list(message, list("x=", run2.x, "y=", run2.y, "dy=", run2.dy));
@@ -20,11 +20,11 @@ function run = runlog(run, message, run2)
       run.log(length(run.log)+1) = l;
     endif
   elseif nargin == 2
-    if struct_contains(run,"log")
+    if isfield(run,"log")
       run.log(length(run.log)+1) = list(message);
     endif
   elseif nargin == 1
-    if struct_contains(run,"log")
+    if isfield(run,"log")
       run.log
     else
       disp("no log available")

@@ -19,3 +19,4 @@ function part = reduce_part(part,run,monitor,pol)
       part = run_poisson_avg(part,run_scale(run,monitor));
     endif
   endif  
+endfunction

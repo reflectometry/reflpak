@@ -1,3 +1,15 @@
+/*
+ * Usage:
+ *
+ * To build the server, start octave and type:
+ *
+ *    mkoctfile server.cc
+ *
+ * To run the server, go to the build directory, start octave, and type:
+ *
+ *    help server
+ */
+
 #define STATUS(x) do { if (debug) std::cout << x << std::endl << std::flush; } while (0)
 
 //#define HAVE_OCTAVE_30
@@ -128,7 +140,7 @@ inline void socket_error(const char *context)
   int err = socket_errno();
   char errno_str[15];
   snprintf(errno_str, sizeof(errno_str), " %d: ", err);
-  std::string msg = std::string(context) + std::string(errno_str) 
+  std::string msg = std::string(context) + std::string(errno_str)
                   + std::string (strerror(err));
   error(msg.c_str());
 }
@@ -146,7 +158,7 @@ sigchld_handler(int /* sig */)
 }
 
 /* Posix signal handling, based on the example from the
- * Unix Programming FAQ 
+ * Unix Programming FAQ
  * Copyright (C) 2000 Andrew Gierth
  */
 static void sigchld_setup(void)
@@ -158,7 +170,7 @@ static void sigchld_setup(void)
 
   /* We don't want to block any other signals in this example */
   sigemptyset(&act.sa_mask);
-  
+
   /*
    * We're only interested in children that have terminated, not ones
    * which have been stopped (eg user pressing control-Z at terminal)
@@ -166,11 +178,11 @@ static void sigchld_setup(void)
   act.sa_flags = SA_NOCLDSTOP;
 
   /*
-   * Make these values effective. If we were writing a real 
-   * application, we would probably save the old value instead of 
+   * Make these values effective. If we were writing a real
+   * application, we would probably save the old value instead of
    * passing NULL.
    */
-  if (sigaction(SIGCHLD, &act, NULL) < 0) 
+  if (sigaction(SIGCHLD, &act, NULL) < 0)
      error("listen could not set SIGCHLD");
 }
 #else
@@ -314,7 +326,7 @@ process_commands(int channel)
     // have changed; do we really want to do this for _every_ command?
     // Maybe we need a 'reload' command.
     STATUS("received command " << command << " after " << toc() << "us");
-    
+
     // Check for magic command code
     if (command[0] != '!' || command[1] != '!' || command[2] != '!') {
       STATUS("communication error: closing connection");
@@ -326,7 +338,7 @@ process_commands(int channel)
     uint32_t len;
     if (!reads(channel, &len, 4)) break;
     len = ntohl(len);
-    // STATUS("read 4 byte command length in " << toc() << "us"); 
+    // STATUS("read 4 byte command length in " << toc() << "us");
 
     // Read the command context, allocating a new one if the default
     // is too small.
@@ -360,30 +372,30 @@ process_commands(int channel)
 
     // Process the command
     if (ok) switch (command[3]) {
-    case 'm': // send the named matrix 
+    case 'm': // send the named matrix
       {
 	// XXX FIXME XXX this can be removed: app can do send(name,value)
 	STATUS("sending " << context);
 	uint32_t t;
-	
+
 	// read the matrix contents
 	octave_value def = get_octave_value(context);
-	if(!def.is_defined() || !def.is_real_matrix()) 
+	if(!def.is_defined() || !def.is_real_matrix())
 	  channel_error(channel,"not a matrix");
 	Matrix m = def.matrix_value();
-	
+
 	// write the matrix transfer header
 	ok = writes(channel,"!!!m",4);                // matrix message
 	t = htonl(12 + sizeof(double)*m.rows()*m.columns());
 	if (ok) ok = writes(channel,&t,4);            // length of message
-	t = htonl(m.rows()); 
+	t = htonl(m.rows());
 	if (ok) ok = writes(channel,&t,4);            // rows
-	t = htonl(m.columns()); 
+	t = htonl(m.columns());
 	if (ok) ok = writes(channel,&t,4);            // columns
-	t = htonl(len); 
+	t = htonl(len);
 	if (ok) ok = writes(channel, &t, 4);          // name length
 	if (ok) ok = writes(channel,context,len);      // name
-	
+
 	// write the matrix contents
 	const double *v = m.data();                   // data
 	if (ok) ok = writes(channel,v,sizeof(double)*m.rows()*m.columns());
@@ -393,20 +405,20 @@ process_commands(int channel)
 	  STATUS("failed " << m.rows()*m.columns());
       }
       break;
-      
+
     case 'x': // silently execute the command
       {
-	if (debug) 
+	if (debug)
 	  {
-	    if (len > 500) 
+	    if (len > 500)
 	      {
 		// XXX FIXME XXX can we limit the maximum output width for a
 		// string?  The setprecision() io manipulator doesn't do it.
 		// In the meantime, a hack ...
 		char t = context[400]; context[400] = '\0';
-		STATUS("evaluating (" << len << ") " 
-		       << context << std::endl 
-		       << "..." << std::endl 
+		STATUS("evaluating (" << len << ") "
+		       << context << std::endl
+		       << "..." << std::endl
 		       << context+len-100);
 		context[400] = t;
 	      }
@@ -435,11 +447,11 @@ process_commands(int channel)
       }
       STATUS("free evalargs");
       break;
-      
+
     case 'c': // execute the command and capture stdin/stdout
       STATUS("capture command not yet implemented");
       break;
-      
+
     default:
       STATUS("ignoring command " << command);
       break;
@@ -466,16 +478,16 @@ is taken to be the last command received from the socket.")
 
   // provide a context for the error (but not too much!)
   str += "when evaluating:\n";
-  if (strlen(context) > 100) 
-    {	
-      char t=context[100]; 
-      context[100] = '\0'; 
-      str+=context; 
+  if (strlen(context) > 100)
+    {
+      char t=context[100];
+      context[100] = '\0';
+      str+=context;
       context[100]=t;
     }
   else
     str += context;
- 
+
   STATUS("error is " << str);
   channel_error(channel,str.c_str());
   return octave_value_list();
@@ -508,7 +520,7 @@ send(name,value)\n\
 
   // XXX FIXME XXX perhaps process the panalopy of types?
   if (nargin > 1) {
-    
+
     octave_value def = args(1);
     if (args(1).is_string()) {
       // Grab the string value from args(1).
@@ -523,30 +535,30 @@ send(name,value)\n\
       if (ok) ok = writes(channel, &t, 4);         // string length
       t = htonl(cmd.length());
       if (ok) ok = writes(channel, &t, 4);         // name length
-      if (cmd.length() && ok) 
+      if (cmd.length() && ok)
 	ok = writes(channel, cmd.c_str(), cmd.length());    // name
-      if (s.length() && ok) 
+      if (s.length() && ok)
 	ok = writes(channel, s.c_str(), s.length());        // string
     } else if (args(1).is_real_type()) {
       Matrix m(args(1).matrix_value());
-      STATUS("sending matrix(" << cmd.c_str() << " " 
+      STATUS("sending matrix(" << cmd.c_str() << " "
              <<  m.rows() << "x" << m.columns() << ")");
-      
+
       // write the matrix transfer header
       ok = writes(channel,"!!!m",4);               // matrix message
       t = htonl(12 + cmd.length() + sizeof(double)*m.rows()*m.columns());
       if (ok) ok = writes(channel,&t,4);           // length of message
-      t = htonl(m.rows()); 
+      t = htonl(m.rows());
       if (ok) ok = writes(channel,&t,4);           // rows
-      t = htonl(m.columns()); 
+      t = htonl(m.columns());
       if (ok) ok = writes(channel,&t,4);           // columns
-      t = htonl(cmd.length()); 
+      t = htonl(cmd.length());
       if (ok) ok = writes(channel, &t, 4);         // name length
       if (ok) ok = writes(channel, cmd.c_str(), cmd.length());    // name
-      
+
       // write the matrix contents
       const double *v = m.data();                  // data
-      if (m.rows()*m.columns() && ok) 
+      if (m.rows()*m.columns() && ok)
 	ok = writes(channel,v,sizeof(double)*m.rows()*m.columns());
     } else {
       ok = false;
@@ -572,7 +584,7 @@ extern "C" int StringCaseMatch(const char* s, const char* p, int nocase);
 bool ishostglob(const std::string& s)
 {
   for (unsigned int i=0; i < s.length(); i++) {
-    if (! ( isdigit(s[i]) || s[i]=='*' || s[i]=='-' 
+    if (! ( isdigit(s[i]) || s[i]=='*' || s[i]=='-'
 	   || s[i]=='.' || s[i]=='[' || s[i]==']')) return false;
   }
   return true;
@@ -730,16 +742,16 @@ server(...,'loopback')\n\
   my_addr.sin_port = htons(port);       // short, network byte order
   my_addr.sin_addr.s_addr = htonl(inaddr); // automatically fill with my IP
   memset(&(my_addr.sin_zero), '\0', 8); // zero the rest of the struct
-  
+
   if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr))
       == -1) {
     socket_error("bind");
     closesocket(sockfd);
     return ret;
   }
-  
+
   /* listen for connections (allowing one pending connection) */
-  if (listen(sockfd, canfork?1:0) == -1) { 
+  if (listen(sockfd, canfork?1:0) == -1) {
     socket_error("listen");
     closesocket(sockfd);
     return ret;
@@ -753,7 +765,7 @@ server(...,'loopback')\n\
 
   sigchld_setup();
   if (!debug && canfork) daemonize();
-      
+
   // XXX FIXME XXX want a 'sandbox' option which disables fopen, cd, pwd,
   // system, popen ...  Or maybe just an initial script to run for each
   // connection, plus a separate command to disable specific functions.
@@ -769,7 +781,7 @@ server(...,'loopback')\n\
       // accept errors as a basis for breaking out of the listen
       // loop, so instead print the octave PID so that I can kill
       // it from another terminal.
-      STATUS("failed to accept"  << std::endl 
+      STATUS("failed to accept"  << std::endl
 	     << "Octave pid: " << octave_syscalls::getpid() );
       perror("accept");
 #if defined(_sgi)
@@ -821,4 +833,268 @@ server(...,'loopback')\n\
   unwind_protect::run_frame("Fserver");
 #endif
   return ret;
+}
+
+/* The following belongs in listencanfork.c and stringmatch.c
+ * It is included here for the convenience of the reflpak end user, who
+ * may need to run mkoctfile server.cc from their version of octave.
+ */
+#if defined(__CYGWIN__)
+#include <windows.h>
+
+int listencanfork()
+{
+  OSVERSIONINFO osvi;
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  GetVersionEx (&osvi);
+  return (osvi.dwPlatformId != VER_PLATFORM_WIN32_WINDOWS);
+}
+#else
+int listencanfork() { return 1; }
+#endif
+
+
+/* Extracted from tclUtil.c
+
+Copyright (c) 1987-1993 The Regents of the University of California.
+Copyright (c) 1994-1998 Sun Microsystems, Inc.
+Copyright (c) 2001 by Kevin B. Kenny.  All rights reserved.
+
+
+This software is copyrighted by the Regents of the University of
+California, Sun Microsystems, Inc., Scriptics Corporation, ActiveState
+Corporation and other parties.  The following terms apply to all files
+associated with the software unless explicitly disclaimed in
+individual files.
+
+The authors hereby grant permission to use, copy, modify, distribute,
+and license this software and its documentation for any purpose, provided
+that existing copyright notices are retained in all copies and that this
+notice is included verbatim in any distributions. No written agreement,
+license, or royalty fee is required for any of the authorized uses.
+Modifications to this software may be copyrighted by their authors
+and need not follow the licensing terms described here, provided that
+the new terms are clearly indicated on the first page of each file where
+they apply.
+
+IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY
+FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES
+ARISING OUT OF THE USE OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY
+DERIVATIVES THEREOF, EVEN IF THE AUTHORS HAVE BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE
+IS PROVIDED ON AN "AS IS" BASIS, AND THE AUTHORS AND DISTRIBUTORS HAVE
+NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR
+MODIFICATIONS.
+
+GOVERNMENT USE: If you are acquiring this software on behalf of the
+U.S. government, the Government shall have only "Restricted Rights"
+in the software and related documentation as defined in the Federal
+Acquisition Regulations (FARs) in Clause 52.227.19 (c) (2).  If you
+are acquiring the software on behalf of the Department of Defense, the
+software shall be classified as "Commercial Computer Software" and the
+Government shall have only "Restricted Rights" as defined in Clause
+252.227-7013 (c) (1) of DFARs.  Notwithstanding the foregoing, the
+authors grant the U.S. Government and others acting in its behalf
+permission to use and distribute the software in accordance with the
+terms specified in this license.
+
+ */
+
+
+/*
+ *----------------------------------------------------------------------
+ *
+ * StringCaseMatch --
+ *
+ *      See if a particular string matches a particular pattern.
+ *      Allows case insensitivity.
+ *
+ * Results:
+ *      The return value is 1 if string matches pattern, and
+ *      0 otherwise.  The matching operation permits the following
+ *      special characters in the pattern: *?\[] (see the manual
+ *      entry for details on what these mean).
+ *
+ * Side effects:
+ *      None.
+ *
+ *----------------------------------------------------------------------
+ */
+
+//#include <ctype.h> /* PAK: need tolower declaration */
+#define CONST const
+#define UCHAR (unsigned char)
+
+/* Note: restore original code from the Tcl tree if you want unicode
+ * support. */
+
+int
+StringCaseMatch(const char *string, const char *pattern, int nocase)
+// PAK: C++ doesn't support old style C args
+//    CONST char *string;         /* String. */
+//    CONST char *pattern;        /* Pattern, which may contain special
+//                                 * characters. */
+//    int nocase;                 /* 0 for case sensitive, 1 for insensitive */
+//
+{
+    int p /*, charLen*/;  /* PAK: unused */
+    /* CONST char *pstart = pattern; */  /* PAK: unused */
+    char ch1, ch2;
+
+    while (1) {
+        p = *pattern;
+
+        /*
+         * See if we're at the end of both the pattern and the string.  If
+         * so, we succeeded.  If we're at the end of the pattern but not at
+         * the end of the string, we failed.
+         */
+
+        if (p == '\0') {
+            return (*string == '\0');
+        }
+        if ((*string == '\0') && (p != '*')) {
+            return 0;
+        }
+
+        /*
+         * Check for a "*" as the next pattern character.  It matches
+         * any substring.  We handle this by calling ourselves
+         * recursively for each postfix of string, until either we
+         * match or we reach the end of the string.
+         */
+
+        if (p == '*') {
+            /*
+             * Skip all successive *'s in the pattern
+             */
+            while (*(++pattern) == '*') {}
+            p = *pattern;
+            if (p == '\0') {
+                return 1;
+            }
+            ch2 = (nocase ? tolower(UCHAR(*pattern)) : UCHAR(*pattern));
+            while (1) {
+                /*
+                 * Optimization for matching - cruise through the string
+                 * quickly if the next char in the pattern isn't a special
+                 * character
+                 */
+                if ((p != '[') && (p != '?') && (p != '\\')) {
+                    if (nocase) {
+                        while (*string) {
+                            ch1 = *string;
+                            if (ch2==ch1 || ch2==tolower(ch1)) break;
+                            string++;
+                        }
+                    } else {
+                        while (*string) {
+                            ch1 = *string;
+                            if (ch2==ch1) break;
+                            string++;
+                        }
+                    }
+                }
+                if (StringCaseMatch(string, pattern, nocase)) {
+                    return 1;
+                }
+                if (*string == '\0') {
+                    return 0;
+                }
+                string++;
+            }
+        }
+
+        /*
+         * Check for a "?" as the next pattern character.  It matches
+         * any single character.
+         */
+
+        if (p == '?') {
+            pattern++;
+            string++;
+            continue;
+        }
+
+        /*
+         * Check for a "[" as the next pattern character.  It is followed
+         * by a list of characters that are acceptable, or by a range
+         * (two characters separated by "-").
+         */
+
+        if (p == '[') {
+            char startChar, endChar;
+
+            pattern++;
+            ch1 = (nocase ? tolower(UCHAR(*string)) : UCHAR(*string));
+            string++;
+            while (1) {
+                if ((*pattern == ']') || (*pattern == '\0')) {
+                    return 0;
+                }
+                startChar =
+                        (nocase ? tolower(UCHAR(*pattern)) : UCHAR(*pattern));
+                pattern++;
+                if (*pattern == '-') {
+                    pattern++;
+                    if (*pattern == '\0') {
+                        return 0;
+                    }
+                    endChar =
+                      (nocase ? tolower(UCHAR(*pattern)) : UCHAR(*pattern));
+                    pattern++;
+                    if (((startChar <= ch1) && (ch1 <= endChar))
+                            || ((endChar <= ch1) && (ch1 <= startChar))) {
+                        /*
+                         * Matches ranges of form [a-z] or [z-a].
+                         */
+
+                        break;
+                    }
+                } else if (startChar == ch1) {
+                    break;
+                }
+            }
+            while (*pattern != ']') {
+                if (*pattern == '\0') {
+                    pattern--;
+                    break;
+                }
+                pattern++;
+            }
+            pattern++;
+            continue;
+        }
+
+        /*
+         * If the next pattern character is '\', just strip off the '\'
+         * so we do exact matching on the character that follows.
+         */
+
+        if (p == '\\') {
+            pattern++;
+            if (*pattern == '\0') {
+                return 0;
+            }
+        }
+
+        /*
+         * There's no special character.  Just make sure that the next
+         * bytes of each string match.
+         */
+
+        ch1 = *string++;
+        ch2 = *pattern++;
+        if (nocase) {
+            if (tolower(ch1) != tolower(ch2)) {
+                return 0;
+            }
+        } else if (ch1 != ch2) {
+            return 0;
+        }
+    }
 }
