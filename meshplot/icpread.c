@@ -169,10 +169,10 @@ int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
   char line[128], token[20];
   const char *pline;
   int ch, ncomma=0, nsemicolon=0, nvalues=0;
-  z_off_t pos;
+  z_off_t restore_pos;
 
   /* Save position */
-  pos = gztell(infile);
+  restore_pos = gztell(infile);
 
   /* Get the values line */
   if (gzgets(infile, line, sizeof(line)-1) == NULL) return ICP_READ_ERROR;
@@ -217,7 +217,7 @@ int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
   *values = nvalues;
   
   /* Restore position */
-  gzseek(infile, pos, SEEK_SET);
+  gzseek(infile, restore_pos, SEEK_SET);
   return ICP_GOOD;
 }
   
@@ -225,7 +225,8 @@ int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
 /* Read the next ICP frame from the file. */
 int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *linenum)
 {
-  int c = 0, r = 0, number = 0, innumber = 0;
+  z_off_t restore_pos;
+  int c = 0, r = 0, number = 0, innumber = 0, inframe = 0;
   int ch;
 
   /* Don't do anything if there are no data frames */
@@ -239,11 +240,19 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
      a digit.  Note that sometimes ICP drops frames, so we need to check
      if the next line is a motor line.  Usually these start with two spaces
      so we can easily check for them, but sometimes they start with a
-     space and a dash if the motor values is negative.
+     space and a dash if the motor values is negative.  Even worse, for
+     NG7 slit scans only!, they can start with a single character and need
+     to use a different algorithm: if the first line is not a singleton integer
+     or a comma separated sequence, then it is not a frame.
    */
   ch = gzgetc(infile); /* Format column character */
   if (ch < 0) return (gzeof(infile)?ICP_GOOD:ICP_READ_ERROR); 
   if (ch != ' ') return ICP_FORMAT_COLUMN_ERROR;
+
+  /* Remember where we are in case we need the NG7 slit restore */
+  restore_pos = gztell(infile);
+
+  /* Try for a quick reject based on space-space or space-dash */
   ch = gzgetc(infile); /* Peek at next character... */
   if (ch < 0) return (gzeof(infile)?ICP_GOOD:ICP_READ_ERROR); 
   gzungetc(ch,infile); /* ...and put it back  */
@@ -270,6 +279,7 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
       // printf("Next number is %d\n",number);
       number=0;
       innumber = 0;
+      inframe = 1;
       break;
 
     case ';':
@@ -284,11 +294,21 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
       // printf("Last number is %d\n",number);
       c = number = 0;
       innumber = 0;
+      inframe = 1;
       break;
 
     case ' ':
-      /* Shouldn't have a space unless the last character was punctuation */
-      if (innumber) return ICP_UNEXPECTED_CHARACTER;
+      /* Shouldn't have a space between values unless the last character was punctuation, or
+       * if we are not in a frame */
+      if (innumber) {
+        if (!inframe) {
+          gzseek(infile, restore_pos, SEEK_SET);
+          return ICP_GOOD;
+        }
+        else {
+          return ICP_UNEXPECTED_CHARACTER;
+        }
+      }
 
       /* Skip spaces at the end of the line; these will be after
 	 a final punctuation mark.  Move past the format column
@@ -331,8 +351,6 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
 	if (ch < 0) return ICP_READ_ERROR;
 	if (ch >= 0 && ch != ' ') return ICP_UNEXPECTED_CHARACTER;
       }
-
-      /* First character in a line in the table may be a space */
       break;
 
     case -1:
@@ -353,7 +371,15 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
       break;
 
     default:
-      return ICP_UNEXPECTED_CHARACTER;
+      /* if it isn't a digit, space, comma, semicolon or newline indicates
+       * we are not in a frame.
+       */
+      if (inframe) {
+        return ICP_UNEXPECTED_CHARACTER;
+      } else {
+        gzseek(infile, restore_pos, SEEK_SET);
+        return ICP_GOOD;
+      }
     }
   }    
 }
