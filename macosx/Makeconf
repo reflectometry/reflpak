@@ -2,7 +2,7 @@ ARCH=macosx
 
 # Debugging statements?
 # DEBUG=-DEBUG
-include ~/danse/reflpak/Makeconf.tcltk
+include ~/Source/reflpak/Makeconf.tcltk
 
 WISH=$(TCL_PREFIX)/bin/wish8.4
 
