@@ -9,7 +9,8 @@ VERSIONTAG ?= R$(shell echo "$(VERSION)" | sed -e's/[^[:alnum:]]//g')
 TAR ?= tar
 RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
-SDXKIT ?= $(HOME)/bin/sdx.kit
+SDXKIT ?= sdx.kit
+SDXKITREF = ../$(SDXKIT)
 SNITPATH ?= snit1.0
 OCTAVEAPP ?= Octave-3.4.0.app
 
@@ -117,7 +118,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 	echo "set ::app_version {$(ARCH)-$(VERSION)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
-	cd kit && ./copykit $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
+	cd kit && ./copykit $(SDXKITREF) wrap reflpak$(EXE) -runtime $(NCNRKIT)
 	@touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 reflred/red.ico: $(redicon)

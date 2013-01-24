@@ -8,16 +8,16 @@ OPT=-O3
 
 # Things from tclConfig.sh
 TCL_PREFIX=/usr
-TCL_INCLUDE_SPEC=-I/usr/include/tcl8.4
-TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.4
-TK_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltkstub8.4
+TCL_INCLUDE_SPEC=-I/usr/include/tcl8.5
+TCL_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltclstub8.5
+TK_STUB_LIB_SPEC=-L$(TCL_PREFIX)/lib -ltkstub8.5
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.so
 WISH=$(TCL_PREFIX)/bin/bltwish
 
 SNITPATH=snit1.0
 
-NCNRKIT=~/bin/ncnrpack4
+NCNRKIT=linux/ncnrpack
 
 # Fortran compiler
 #F77=g77
@@ -32,7 +32,7 @@ CC=gcc
 CXX=g++
 C99=gcc -std=c99
 CFLAGS=$(OPT) -fPIC -Wall $(TCL_INCLUDE_SPEC) $(DEBUG) 
-LIBS:=$(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) -lm
+LIBS:=$(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) -lm -lz
 LD=$(CC) -pipe -shared
 LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=$(DEBUG)
