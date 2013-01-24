@@ -13,9 +13,9 @@ package ifneeded reflred 0.1 [subst {
 	{loadreduced.tcl source register_reduced}
     }
     package require Tk
+    package require tkcon
     package require Tktable
     package require BWidget
-    package require tkcon
     package require reflplot
     package require ncnrlib
     package require octave
