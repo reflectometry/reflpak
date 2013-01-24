@@ -11,7 +11,7 @@ RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
 SNITPATH ?= snit1.0
-OCTAVEAPP ?= Octave-3.2.3.app
+OCTAVEAPP ?= Octave-3.4.0.app
 
 PRODUCT=reflpak-$(VERSION)
 
@@ -47,7 +47,7 @@ redoctavesrc=psdslice.m run_include.m run_scale.m run_trunc.m \
 	plotrunop.m run_div.m run_poisson_avg.m run_tol.m \
 	footprint_fit.m footprint_gen.m footprint_interp.m \
 	reduce.m reduce_part.m run_send.m run_send_pol.m \
-	polcor.m fitslits.m run_invscale.m fminbnd.m
+	polcor.m fitslits.m run_invscale.m
 octlib=common_values.m inputname.m polyconf.m qlfit.m wsolve.m \
 	confidence.m qlconf.m wpolyfit.m interp1err.m
 

@@ -35,7 +35,7 @@ BUILD="$osx $linux"
 # Rather than getting gif2png conversion to work under
 # windows, export the problem to a machine with imagemagick
 # and tclsh.
-htmlmachine=h121043.ncnr.nist.gov
+htmlmachine=h123043.ncnr.nist.gov
 
 # Each machine has already been set up with a build directory 
 # in ~/cvs/reflfit and the appropriate Makeconf.
@@ -48,9 +48,10 @@ WEBCP=scp
 
 # The following directory will contain $arch/reflpak$VERSION and 
 # a copy of the latest in $arch/reflpak
-# MSYS cp to shared is broken for versions before 1.0.11
-# We are using cygwin's cp instead.
 BINDIR="//charlotte/public/Reflpak"
+## MSYS cp to shared is broken for versions before 1.0.11
+## We are using cygwin's cp instead.
+#BINCP="/c/cygwin/bin/cp -r"
 BINCP="cp -r"
 
 # =========== End of configuration ============

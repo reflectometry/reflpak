@@ -68,14 +68,14 @@ function [ run ] = run_poisson_avg (run1, run2)
     run.x = [ run1.x ; run2.x ];
     run.y = [ run1.y ; run2.y ];
     run.dy = [ run1.dy; run2.dy ];
-    if struct_contains(run1,'m') && struct_contains(run2,'m')
+    if isfield(run1,'m') && isfield(run2,'m')
       run.m = [ run1.m ; run2.m ];
     endif
     tol = run_tol(run1.x,run2.x);
   endif
 
   ## First sort by m then sort by x.
-  use_m = struct_contains(run,'m');
+  use_m = isfield(run,'m');
   if use_m, [v, idx] = sortrows([run.x,run.m]);
   else [v,idx] = sort(run.x);
   endif
@@ -103,12 +103,12 @@ function [ run ] = run_poisson_avg (run1, run2)
     
     ## Simple version which averages clustered values, but also
     ## 'averages' singletons y with relative error 0 < err < 10*eps.
-    x = spsum(sparse(r,c,x))'./spsum(sparse(r,c,1))';
-    if use_m, m = spsum(sparse(r,c,m))'./spsum(sparse(r,c,1))'; endif
+    x = sum(sparse(r,c,x))'./sum(sparse(r,c,1))';
+    if use_m, m = sum(sparse(r,c,m))'./sum(sparse(r,c,1))'; endif
     ## poisson statistics for y, dy
-    weight = spsum(sparse(r,c,y./dy.^2))';
+    weight = sum(sparse(r,c,y./dy.^2))';
     weight(weight == 0) = 1;
-    y = spsum(sparse(r,c,(y./dy).^2))' ./ weight;
+    y = sum(sparse(r,c,(y./dy).^2))' ./ weight;
     dy = sqrt ( y ./ weight );
     dy(dy == 0) = 1;
     
@@ -121,11 +121,11 @@ function [ run ] = run_poisson_avg (run1, run2)
     ## yn = y(near);
     ## dyn = dy(near);
     ## ## average the x values
-    ## xn = spsum(sparse(r,c,xn))'./spsum(sparse(r,c,1))';
+    ## xn = sum(sparse(r,c,xn))'./sum(sparse(r,c,1))';
     ## ## poisson statistics for y, dy
-    ## weight = spsum(sparse(r,c,yn./dyn.^2))';
+    ## weight = sum(sparse(r,c,yn./dyn.^2))';
     ## weight(weight == 0) = 1;
-    ## yn = spsum(sparse(r,c,(yn./dyn).^2))'./weight;
+    ## yn = sum(sparse(r,c,(yn./dyn).^2))'./weight;
     ## dyn = sqrt(yn ./ weight);
     ## dyn(dyn == 0) = 1;
     ## ## merge the clustered points with the non-clustered points by

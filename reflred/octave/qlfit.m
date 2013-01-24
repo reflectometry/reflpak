@@ -71,7 +71,7 @@ function [p_out,z,S] = qlfit(x,y,dy,z)
     if nargin == 2, z=y; end
     
     if isstruct(x)
-      if struct_contains(x,'dy') dy = x.dy;
+      if isfield(x,'dy') dy = x.dy;
       else dy = [];
       end
       y = x.y;
@@ -95,13 +95,13 @@ function [p_out,z,S] = qlfit(x,y,dy,z)
     [lin,Slin] = wpolyfit(x,y,dy,1);
     [quad,Squad] = wpolyfit(x,y,dy,2);
     F = (Slin.normr^2 - Squad.normr^2)/(Squad.normr^2/Squad.df);
-    prob = f_cdf(F,1,Squad.df);
+    prob = fcdf(F,1,Squad.df);
   endif
   if n==1
     warning('check uncertainty calculated for n=1');
     S.R=eye(3);
     S.df = 1;
-    S.normr = t_inv(1-erf(1/sqrt(2))/2,1);
+    S.normr = tinv(1-erf(1/sqrt(2))/2,1);
     p = [0;0;y];
     z = min(x);
   elseif prob > 0.95
@@ -112,7 +112,7 @@ function [p_out,z,S] = qlfit(x,y,dy,z)
     end
     [junk,ql,Sql] = qlfun(qlz,x,y,dy);
     F = (Squad.normr^2 - Sql.normr^2)/(Sql.normr^2/Sql.df);
-    prob = f_cdf(F,1,Sql.df);
+    prob = fcdf(F,1,Sql.df);
     if prob > 0.95 || nargin > 3
       S = Sql;
       p = ql;

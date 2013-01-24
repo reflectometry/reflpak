@@ -56,6 +56,6 @@ function [y,dy] = confidence(A,p,s,alpha,typestr)
     otherwise, error("use 'ci' or 'pi' for interval type");
   end
   if isempty(alpha), alpha = default_alpha; end
-  n = t_inv(1-alpha/2,s.df)*s.normr/sqrt(s.df); 
+  n = tinv(1-alpha/2,s.df)*s.normr/sqrt(s.df); 
   dy = n*sqrt(pred+sumsq(A/s.R,2));
 end

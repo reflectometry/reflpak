@@ -52,9 +52,13 @@ proc register_icp {} {
 	absorption "Absorption scan"
     }
     array set ::extfn { 
+        .ng7 NG7info .xr0 XR0info 
 	.na1 NG1Pinfo .nb1 NG1Pinfo .nc1 NG1Pinfo .nd1 NG1Pinfo
 	.ca1 CG1Pinfo .cb1 CG1Pinfo .cc1 CG1Pinfo .cd1 CG1Pinfo
-	.ng1 NG1info .cg1 CG1info .ng7 NG7info .xr0 XR0info 
+	.ng1 NG1info .cg1 CG1info 
+	.nad NGDPinfo .nbd NGDPinfo .ncd NGDPinfo .ndd NGDPinfo
+	.cad CGDPinfo .cbd CGDPinfo .ccd CGDPinfo .cdd CGDPinfo
+	.ngd NGDinfo .cgd CGDinfo 
     }
 }
 
@@ -85,6 +89,26 @@ proc CG1info { action {name {}} } {
 	instrument { return "CG-1" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[cC]\[gG]1" }
+	mark { NG1mark $name }
+    }
+}
+
+proc NGDinfo { action {name {}} } {
+    switch $action {
+	dataset { return [lindex [splitname $name] 0] }
+	instrument { return "PBR" }
+	info { return [icp_date_comment $name] }
+	pattern { return "$name*.\[nN]\[gG]\[dd]" }
+	mark { NG1mark $name }
+    }
+}
+
+proc CGDinfo { action {name {}} } {
+    switch $action {
+	dataset { return [lindex [splitname $name] 0] }
+	instrument { return "MAGIK" }
+	info { return [icp_date_comment $name] }
+	pattern { return "$name*.\[nN]\[gG]\[dD]" }
 	mark { NG1mark $name }
     }
 }
@@ -125,6 +149,26 @@ proc CG1Pinfo { action {name {}} } {
 	instrument { return "CG-1p" }
 	info { return [icp_date_comment $name] }
 	pattern { return "$name*.\[cC]\[aAbBcCdD]1" }
+	mark { NG1mark $name }
+    }
+}
+
+proc NGDPinfo { action {name {}} } {
+    switch $action {
+	dataset { return [lindex [splitname $name] 0] }
+	instrument { return "PBRp" }
+	info { return [icp_date_comment $name] }
+	pattern { return "$name*.\[nN]\[aAbBcCdD]\[dD]" }
+	mark { NG1mark $name }
+    }
+}
+
+proc CGDPinfo { action {name {}} } {
+    switch $action {
+	dataset { return [lindex [splitname $name] 0] }
+	instrument { return "MAGIKp" }
+	info { return [icp_date_comment $name] }
+	pattern { return "$name*.\[cC]\[aAbBcCdD]\[dD]" }
 	mark { NG1mark $name }
     }
 }
@@ -559,7 +603,7 @@ proc monitor_column { id } {
 
 proc QscanLoad {id} {
     upvar \#0 $id rec
-    if { [string match "CG*" $rec(instrument)] } {
+    if { [string match "CG*" $rec(instrument)] || [string match "MAGIK*" $rec(instrument)] } {
 	set inst cg1
     } else {
 	set inst ng1
