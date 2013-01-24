@@ -11,7 +11,7 @@ RC ?= windres
 NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
 SDXKIT ?= $(HOME)/bin/sdx.kit
 SNITPATH ?= snit1.0
-OCTAVEAPP ?= Octave-3.2.3.app
+OCTAVEAPP ?= Octave-3.4.0.app
 
 PRODUCT=reflpak-$(VERSION)
 
