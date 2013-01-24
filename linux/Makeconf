@@ -17,7 +17,7 @@ WISH=$(TCL_PREFIX)/bin/bltwish
 
 SNITPATH=snit1.0
 
-NCNRKIT=linux/ncnrpack
+NCNRKIT=linux/ncnrpack32
 
 # Fortran compiler
 #F77=g77
