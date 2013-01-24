@@ -14,6 +14,12 @@
 
 /* ================================================================ */
 
+static void
+set_error(Tcl_Interp *interp, const char*s)
+{
+  Tcl_SetObjResult(interp, Tcl_NewStringObj(s,-1));
+}
+
 static int
 fdivide(ClientData junk, Tcl_Interp *interp, 
 	 int argc, Tcl_Obj *CONST argv[])
@@ -24,9 +30,8 @@ fdivide(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 6) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"fdivide [rows|columns|elements|scalar] m n M y\"",
-		   TCL_STATIC);
+    set_error ( interp,
+		   "wrong # args: should be \"fdivide [rows|columns|elements|scalar] m n M y\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[2],&m) != TCL_OK 
@@ -49,9 +54,9 @@ fdivide(ClientData junk, Tcl_Interp *interp,
     action = 0;
     size = 1;
   } else {
-    Tcl_SetResult( interp,
-		   "fdivide action: should be rows,columns,elements or scalar",
-		   TCL_STATIC);
+    set_error ( interp,
+		   "fdivide action: should be rows,columns,elements or scalar"
+		   );
     return TCL_ERROR;
   }
 
@@ -104,9 +109,9 @@ fextract(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 5 && argc != 6) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"fextract m n x column ?width\"",
-		   TCL_STATIC);
+    set_error( interp,
+		   "wrong # args: should be \"fextract m n x column ?width\""
+		   );
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
@@ -117,9 +122,9 @@ fextract(ClientData junk, Tcl_Interp *interp,
   }
 
   if (column+width > n || column < 0 || width < 1) {
-    Tcl_SetResult( interp,
-		   "fextract: requesting columns outside matrix",
-		   TCL_STATIC);
+    set_error( interp,
+	"fextract: requesting columns outside matrix"
+		   );
     return TCL_ERROR;
   }
 
@@ -154,9 +159,9 @@ fslice(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 11) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"fslice m n x y z dz x1 x2 y1 y2\"",
-		   TCL_STATIC);
+    set_error ( interp,
+		   "wrong # args: should be \"fslice m n x y z dz x1 x2 y1 y2\"");
+
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
@@ -186,9 +191,8 @@ fslice(ClientData junk, Tcl_Interp *interp,
   /* Count indices */
   int *idx = (int *)malloc(sizeof(int)*m*n);
   if (idx == NULL) {
-    Tcl_SetResult( interp, 
-		   "fslice: could not allocate memory for indices", 
-		   TCL_STATIC );
+    set_error ( interp, 
+		   "fslice: could not allocate memory for indices");
     return TCL_ERROR;
   }
   int nidx = mx_slice_find(n+1,m+1,x,y,x1,y1,x2,y2,m*n,idx);
@@ -220,9 +224,8 @@ fintegrate(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 5) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"fintegrate m n x dim\"",
-		   TCL_STATIC);
+    set_error ( interp,
+		   "wrong # args: should be \"fintegrate m n x dim\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
@@ -262,9 +265,8 @@ ftranspose(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 4) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"ftranspose m n x\"",
-		   TCL_STATIC);
+    set_error( interp,
+		   "wrong # args: should be \"ftranspose m n x\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&m) != TCL_OK 
@@ -301,9 +303,8 @@ fhsv2rgb(ClientData junk, Tcl_Interp *interp,
 
   /* Process args */
   if (argc != 3) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"fhsv2rgb n map\"",
-		   TCL_STATIC);
+    set_error ( interp,
+		   "wrong # args: should be \"fhsv2rgb n map\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&n) != TCL_OK) {
@@ -331,9 +332,8 @@ frebin(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 6) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"frebin mi xi Ii mo xo\"",
-		   TCL_STATIC);
+    set_error( interp,
+		   "wrong # args: should be \"frebin mi xi Ii mo xo\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&mi) != TCL_OK 
@@ -378,9 +378,8 @@ frebin2D(ClientData junk, Tcl_Interp *interp,
 
   /* Interpret args */
   if (argc != 10) {
-    Tcl_SetResult( interp,
-		   "wrong # args: should be \"frebin2D mi ni xi yi Ii mo no xo yo\"",
-		   TCL_STATIC);
+    set_error( interp,
+	   "wrong # args: should be \"frebin2D mi ni xi yi Ii mo no xo yo\"");
     return TCL_ERROR;
   }
   if (Tcl_GetIntFromObj(interp,argv[1],&mi) != TCL_OK 
