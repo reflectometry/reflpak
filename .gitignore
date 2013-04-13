@@ -1,3 +1,10 @@
+Makeconf
+Makeconf.tcltk
+*.dylib
+*.so
 *.o
 *.oct
 *~
+/kit
+/scifun/pkgIndex.tcl
+/Makeconf

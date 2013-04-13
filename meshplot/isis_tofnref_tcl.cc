@@ -22,6 +22,12 @@
 //   monitor_raw,dmonitor_raw,monitor_raw_lambda returns vector [Nmonitor_raw]
 //   
 
+// TODO: this is repeated in mx_tcl.cc
+static void
+set_error(Tcl_Interp *interp, const char*s)
+{
+  Tcl_SetObjResult(interp, Tcl_NewStringObj(s,-1));
+}
 
 static int
 isis_method(ClientData isis_filep, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
@@ -156,7 +162,7 @@ isis_open(ClientData junk, Tcl_Interp *interp, int argc, Tcl_Obj *CONST argv[])
 {
   static int isis_id = 0;
   if (argc != 2) {
-    Tcl_SetResult( interp, "isis: expects filename", TCL_STATIC);
+    set_error( interp, "isis: expects filename");
     return TCL_ERROR;
   }
   const char *filename = Tcl_GetString(argv[1]);
