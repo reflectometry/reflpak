@@ -106,11 +106,9 @@ function [ run ] = run_poisson_avg (run1, run2)
     x = sum(sparse(r,c,x))'./sum(sparse(r,c,1))';
     if use_m, m = sum(sparse(r,c,m))'./sum(sparse(r,c,1))'; endif
     ## poisson statistics for y, dy
-    weight = sum(sparse(r,c,y./dy.^2))';
-    weight(weight == 0) = 1;
+    weight = sum(sparse(r,c,(y+~y)./dy.^2))';
     y = sum(sparse(r,c,(y./dy).^2))' ./ weight;
-    dy = sqrt ( y ./ weight );
-    dy(dy == 0) = 1;
+    dy = sqrt ( (y+~y) ./ weight );
     
     ## ## More complicated version which only averages the clusters.
     ## ## Not debugged.  Doesn't handle empty matrices
