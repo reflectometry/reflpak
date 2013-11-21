@@ -10,6 +10,7 @@ package ifneeded reflred 0.1 [subst {
 	{loadicp.tcl source register_icp}
 	{loadice.tcl source ::icedata::mark}
 	{loaduxd.tcl source register_uxd}
+	#{loadraw.tcl source register_raw}
 	{loadreduced.tcl source register_reduced}
     }
     package require Tk
