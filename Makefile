@@ -38,7 +38,7 @@ fitsrc=mlayer.tcl defaults.tcl tkmlayerrc pkgIndex.tcl \
 	makeconstrain.tcl gmlayer$(LDEXT) gj2$(LDEXT)
 redhelp=reflred.help help.help
 redfig=footprint.gif fpflat.gif fplinear.gif
-redsrc=viewrun.tcl commands.tcl peakint.tcl \
+redsrc=viewrun.tcl commands.tcl peakint.tcl loadraw.tcl \
 	loadicp.tcl loadice.tcl loaduxd.tcl loadreduced.tcl \
 	reduce.tcl psd.tcl choose.tcl NG7monitor.cal tkviewrunrc \
 	footprint.tcl monitor.tcl atten.tcl pkgIndex.tcl abfoot.tcl
