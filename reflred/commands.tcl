@@ -4,7 +4,7 @@ init_cmd {
     register_icp
     register_uxd
     register_reduced
-    tofnref::register
+    register_raw
 }
 set ::title Reflred
 
