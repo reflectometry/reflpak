@@ -32,6 +32,7 @@ TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
 TKTABLE_EXT=Tktable28.dll
 
 # Fortran compiler
+MINGWLIBS=c:/MingGW/lib/gcc/mingw32/4.7.2
 F77=gfortran
 FFLAGS=-O3
 FLIBS=-lgfortran -lm
@@ -41,9 +42,9 @@ FPP=-x f77-cpp-input
 CC=gcc
 CXX=g++
 CFLAGS=-O2 -Wall $(TCL_INCLUDE_SPEC)
-LIBS:=$(TCL_LIB_DIR) $(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC) $(FLIBS)
-LD=$(CC) -pipe -shared
-LD_CXX=$(CXX) -pipe -shared
+LIBS:=$(TCL_LIB_DIR) $(TK_STUB_LIB_SPEC) $(TCL_STUB_LIB_SPEC)
+LD=$(CC) -pipe -shared -static
+LD_CXX=$(CXX) -pipe -shared -static
 LDFLAGS=
 EXE=.exe
 LDEXT=$(TCL_SHLIB_SUFFIX)
