@@ -96,7 +96,8 @@ proc RAWmark {file} {
         # Interpret scan type
         binary scan [string range $rhead 196 199] i scan_type
         binary scan [string range $rhead 176 183] d increment
-        binary scan [string range $rhead 8 63] ddddddd theta two_theta chi phi x y z
+        binary scan [string range $rhead 8 63] \
+	    ddddddd theta two_theta chi phi x y z
 
 	switch $scan_type {
 	    0 { # locked coupled
@@ -158,13 +159,14 @@ proc RAWview {id w} {
         fixed_inc_monochromator fixed_dif_antisli fixed_dif_detsli \
         fixed_dif_sndsoller fixed_dif_thinfilm fixed_dif_betafilter \
         fixed_dif_analyzer anode actual_QUANT_offset alpha_average \
-        alpha_1 alpha_2 beta alpha_21 wave_unit beta_rel_int total_sample_run_time \
+        alpha_1 alpha_2 beta alpha_21 wave_unit beta_rel_int \
+	total_sample_run_time \
         reserved PSDopening no_of_tot_meas_ranges_in_dql reserved_1 \
         further_dql_reading cQuantSequence HWindicator
     binary scan $rec(rawrange) \
         iidddddddda6a2da6a2iffffia8ffa5a3dddia4ddfiffffffiiia4diiifia4da24 \
-        length_of_RAW_RANGE_HEADER no_of_measured_data \
-        theta_start two_theta_start chi_start phi_start x_start y_start z_start \
+        length_of_RAW_RANGE_HEADER no_of_measured_data theta_start \
+	two_theta_start chi_start phi_start x_start y_start z_start \
         divslit_start divslit_code res2 antislit_start antislit_code res3 \
         detector_1 det_HV_1 det_AG_1 det_LL_1 det_UL_1 \
         detector_2 res4 det_LL_2 det_UL_2 detslit_code res5 \
@@ -189,7 +191,8 @@ proc RAWview {id w} {
     }
     set start_range [set $stepper_var($scan_type)]
     set stop_range [expr $start_range+$no_of_measured_data*$increment_1]
-    set scanstr [format "%s from %.4f to %.4f by %.4f" $stepper_name($scan_type) $start_range $stop_range $increment_1]
+    set scanstr [format "%s from %.4f to %.4f by %.4f" \
+        $stepper_name($scan_type) $start_range $stop_range $increment_1]
     if {$scan_type == 0 || $scan_type == 20} {
         append scanstr ", theta = 2theta/2"
     } elseif {$scan_type == 1} {
@@ -201,19 +204,25 @@ proc RAWview {id w} {
         }
         append scanstr ", theta = 2theta/2 $offsetstr"
     }
-    set startstr [format "theta:%.4f  2theta:%.4f  chi:%.4f  phi:%.4f  x:%.4f  y:%.4f  z:%.4f" \
-        $theta_start $two_theta_start $chi_start $phi_start $x_start $y_start $z_start]
+    set startstr [format \
+        "theta:%.4f  2theta:%.4f  chi:%.4f  phi:%.4f  x:%.4f  y:%.4f  z:%.4f" \
+        $theta_start $two_theta_start $chi_start $phi_start \
+	$x_start $y_start $z_start]
     if {$scan_mode == 0} {
         set modestr "continuous"
     } else {
         set modestr "stepped"
     }
-    set countstr [format "%d steps at %.4f sec/step" $no_of_measured_data $step_time]
+    set countstr [format "%d steps at %.4f sec/step" \
+        $no_of_measured_data $step_time]
+    set slitstr [format "%.1f  %.1f  %.1f  %.1f" $fixed_inc_divsli \
+        $fixed_inc_samplesli $fixed_dif_antisli $fixed_dif_detsli]
 
     set head "# [trim $date] [trim $time] [trim $samplename]
 # $modestr scan with $countstr
 # scan $scanstr
 # start $startstr
+# slits $slitstr
 # source [trim $anode] $act_used_lambda A, generator $generator_voltage V / $generator_current mA, det slit [trim $detslit_code] 
 # temperature $temperature K changing by $heating_cooling_rate K/s
 "
@@ -316,6 +325,7 @@ increment_3 $increment_3
 proc RAWload {id} {
     upvar #0 $id rec
 
+    set head $rec(rawhead)
     set rhead $rec(rawrange)
     binary scan [string range $rhead 192 195] f rec(monitor)
     if { $rec(monitor)==0.0 } { set rec(monitor) 1.0 }
@@ -334,6 +344,8 @@ proc RAWload {id} {
     binary scan [string range $rhead 8 63] ddddddd \
 	theta two_theta chi phi x y z
     binary scan $rec(rawdata) f* counts
+    binary scan [string range $head 568 575] ff divslit sampleslit
+    binary scan [string range $head 584 591] ff antislit detectorslit
 
     switch $scan_type {
         0 - 1 {
@@ -367,10 +379,15 @@ proc RAWload {id} {
 	    set rec(xlab) "Height" 
 	}
     }
-    vector create ::${motor}_$id ::counts_$id
+    vector create ::${motor}_$id ::counts_$id \
+        ::slit1_$id ::slit2_$id ::slit3_$id ::slit4_$id
     ::${motor}_$id seq 1 $nrow
     ::${motor}_$id expr "$start + (::${motor}_$id-1)*$increment"
     ::counts_$id set $counts
+    ::slit1_$id expr "::counts_$id*0 + $divslit"
+    ::slit2_$id expr "::counts_$id*0 + $sampleslit"
+    ::slit3_$id expr "::counts_$id*0 + $antislit"
+    ::slit4_$id expr "::counts_$id*0 + $detectorslit"
     # FIXME: fails if data has more than one column
     if { $scan_type == 0 } {
 	vector create ::alpha_$id
