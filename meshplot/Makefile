@@ -1,6 +1,6 @@
 USE_STUBS = 1
 #USE_AGL = 1
-USE_ISIS = 1
+#USE_ISIS = 1
 include ../Makeconf
 
 TCLDEF = -DUSE_TCL
@@ -35,7 +35,7 @@ ifdef USE_ISIS
 endif
 
 
-%.o: %.c; $(CC) $(CFLAGS) $(TCLDEF) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
+%.o: %.c; $(CC) $(CFLAGS) $(TCLDEF) $(GLDEF) $(ZINC) $(NEXUSINC) $(GLINC) -c $< -o $@
 %.o: %.cc; $(CXX) $(CFLAGS) $(TCLDEF) $(GLDEF) $(NEXUSINC) $(GLINC) -c $< -o $@
 
 all: plot$(LDEXT)

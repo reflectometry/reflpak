@@ -7,8 +7,8 @@ if test "x$1" == x -o "x$2" == x ; then
     exit
 fi
 
-UPX=/c/bin/upx
-RESHACK=/c/bin/ResHacker
+UPX=/c/Source/ncnrkit/bin/upx
+RESHACK=/c/Source/ncnrkit/bin/ResHacker
 
 # cp $target $target-orig
 set -x

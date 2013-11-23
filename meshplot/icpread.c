@@ -15,19 +15,17 @@
 # define gzseek fseek
 # define gztell ftell
 # define z_off_t off_t
-#else
-# include <zlib.h>
 #endif /* MISSING_LIBZ */
 #include "icpread.h"
 
 /* Open the file */
-FILE *icp_open(const char name[])
+gzFile icp_open(const char name[])
 {
   return gzopen(name,"rb");
 }
 
 /* close the file */
-void icp_close(FILE *f)
+void icp_close(gzFile f)
 {
   gzclose(f);
 }
@@ -120,7 +118,7 @@ const char *icp_error(int code)
    success, or ICP_READ_ERROR if there was a problem reading the file
    or if the header text area is too small.
  */
-int icp_readheader(FILE *infile, int headersize, char header[], int *pts,
+int icp_readheader(gzFile infile, int headersize, char header[], int *pts,
 		   int *linenum)
 {
   char line[128];
@@ -164,7 +162,7 @@ int icp_readheader(FILE *infile, int headersize, char header[], int *pts,
 }
 
 /* Scan one frame of the file to compute the frame size for each point. */
-int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
+int icp_framesize(gzFile infile, int *rows, int *columns, int *values)
 {
   char line[128], token[20];
   const char *pline;
@@ -223,7 +221,7 @@ int icp_framesize(FILE *infile, int *rows, int *columns, int *values)
   
 
 /* Read the next ICP frame from the file. */
-int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *linenum)
+int icp_readdetector(gzFile infile, int rows, int columns, Counts frame[], int *linenum)
 {
   z_off_t restore_pos;
   int c = 0, r = 0, number = 0, innumber = 0, inframe = 0;
@@ -385,7 +383,7 @@ int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *l
 }
 
 /* Read the next set of ICP columns from the file */
-int icp_readmotors(FILE *infile, int nvector, Real vector[], int *linenum)
+int icp_readmotors(gzFile infile, int nvector, Real vector[], int *linenum)
 {
   char line[128], token[20];
   const char *pline;
@@ -441,7 +439,7 @@ int main(int argc, char *argv[])
   }
 
   /* Open the file */
-  FILE *f = icp_open(argv[1]);
+  gzFile f = icp_open(argv[1]);
   if (f == NULL) {
     perror(argv[1]);
     return 1;

@@ -7,9 +7,10 @@ endif
 VERSION ?= $(shell date +%Y.%m.%d)
 VERSIONTAG ?= R$(shell echo "$(VERSION)" | sed -e's/[^[:alnum:]]//g')
 TAR ?= tar
-RC ?= windres
-NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
-SDXKIT ?= sdx.kit
+#RC ?= windres
+#NCNRKIT ?= $(HOME)/bin/ncnrkit$(EXE)
+#SDXKIT ?= sdx.kit
+#TCLKIT = tclkit$(EXE)
 SNITPATH ?= snit1.0
 OCTAVEAPP ?= Octave-3.4.0.app
 
@@ -100,7 +101,7 @@ ncnrpack$(EXE): kit/copykit$(EXE) ncnrpack.vfs/main.tcl
 kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 		$(snitfiles) $(reflplotfiles) \
 		$(scifunfiles) $(libfiles) $(pakfiles) $(icons) \
-		$(TCLKIT) $(NCNRKIT) sdx.kit main.tcl Makefile vfslib
+		$(TCLKIT) $(NCNRKIT) $(SDXKIT) main.tcl Makefile vfslib
 	./vfslib reflpak
 	@./vfslib reflpak ncnrlib $(libfiles)
 	@./vfslib reflpak scifun $(scifunfiles)
@@ -114,7 +115,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 	echo "set ::app_version {$(ARCH)-$(VERSION)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
-	cd kit && ../$(TCLKIT) ../sdx.kit wrap reflpak$(EXE) -runtime ../$(NCNRKIT)
+	cd kit && $(TCLKIT) $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
 	@touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 reflred/red.ico: $(redicon)

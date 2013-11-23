@@ -13,10 +13,10 @@ ROOT=`pwd`/kit/$APP.vfs
 
 if test $# -eq 0; then
     rm -rf $ROOT
-    install -d $ROOT
+    ./install-sh -d $ROOT
 else
     PACKAGE=$1 ; shift
 
-    install -d $ROOT/lib/$PACKAGE
+    ./install-sh -d $ROOT/lib/$PACKAGE
     cp -p $* $ROOT/lib/$PACKAGE
 fi

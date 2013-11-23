@@ -19,7 +19,7 @@
 #define integrated_width(f) (f->transpose?f->Nx:f->Ny)
 /* We will keep the following fields for the ICP file */
 typedef struct ICP_STRUCT {
-  FILE *file;
+  gzFile file;
   Real *motors, *frames, *integral, *framesum;
   int Nx, Ny, Npts, Nmotors, line;
   int transpose; /* 1 if integrate rows, 0 if integrate columns */

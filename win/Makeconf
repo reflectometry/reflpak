@@ -1,13 +1,21 @@
 ARCH=win
 
-topdir=$(shell pwd -W | sed -e 's,^.:,,')
+#topdir=$(shell pwd -W | sed -e 's,^.:,,')
+topdir=${CURDIR}
 
 # Debugging statements?
 # DEBUG=-DEBUG
 
+# NCNRKIT
+NCNRKIT_HOME = c:/Source/ncnrkit/bin
+NCNRKIT = ${NCNRKIT_HOME}/ncnrpack-win.exe
+SDXKIT = ${NCNRKIT_HOME}/sdx.kit
+TCLKIT = ${NCNRKIT_HOME}/tclkit-8.4.17-win32.upx.exe
+RC = ${NCNRKIT_HOME}/windres.exe
+
 # Things from tclConfig.sh
-#TCL_INCLUDE_SPEC=-Ic:/Tcl/include
-#TCL_LIB_DIR=-L$c:/Tcl/lib
+TCL_INCLUDE_SPEC=-Ic:/Tcl/include
+TCL_LIB_DIR=-Lc:/Source/reflpak/win
 TCL_STUB_LIB_SPEC=-ltclstub84
 TK_STUB_LIB_SPEC=-ltkstub84
 TCL_SHLIB_LD=gcc -pipe -shared
@@ -24,9 +32,9 @@ TKTABLE=$(TCL_PREFIX)/lib/Tktable2.8
 TKTABLE_EXT=Tktable28.dll
 
 # Fortran compiler
-F77=g77
+F77=gfortran
 FFLAGS=-O3
-FLIBS=-lg2c -lm
+FLIBS=-lgfortran -lm
 FPP=-x f77-cpp-input
 
 # C compiler
@@ -39,6 +47,10 @@ LD_CXX=$(CXX) -pipe -shared
 LDFLAGS=
 EXE=.exe
 LDEXT=$(TCL_SHLIB_SUFFIX)
+
+# ZLib
+ZINC = -Ic:/Source/zlib-1.2.8
+ZLIB = c:/Source/zlib-1.2.8/libz.a
 
 # Open GL + Togl
 # You will need to find glut.h and glut32.dll to run the

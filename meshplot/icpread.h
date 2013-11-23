@@ -46,6 +46,11 @@
 #ifndef _ICPREAD_H
 #define _ICPREAD_H
 
+#if defined(MISSING_LIBZ)
+typedef FILE *gzFile;
+#else
+#include <zlib.h>
+#endif
 #ifdef _cplusplus
 # include <cstdio>
 # include <cstdint>
@@ -110,13 +115,13 @@
 
 
 
-EXPORT FILE *icp_open(const char name[]);
-EXPORT void icp_close(FILE *f);
+EXPORT gzFile icp_open(const char name[]);
+EXPORT void icp_close(gzFile f);
 EXPORT const char *icp_error(int code);
-EXPORT int icp_readheader(FILE *infile, int n, char header[], int *pts, int *linenum);
-EXPORT int icp_framesize(FILE *infile, int *rows, int *columns, int *values);
-EXPORT int icp_readmotors(FILE *infile, int n, Real vector[], int *linenum);
-EXPORT int icp_readdetector(FILE *infile, int rows, int columns, Counts frame[], int *linenum);
+EXPORT int icp_readheader(gzFile infile, int n, char header[], int *pts, int *linenum);
+EXPORT int icp_framesize(gzFile infile, int *rows, int *columns, int *values);
+EXPORT int icp_readmotors(gzFile infile, int n, Real vector[], int *linenum);
+EXPORT int icp_readdetector(gzFile infile, int rows, int columns, Counts frame[], int *linenum);
 
 
 #endif /* _ICPREAD_H */
