@@ -257,7 +257,7 @@ proc write_scan { fid scanid } {
     puts $fid "#field $rec(H)"
     puts $fid "#wavelength $rec(L)"
     puts $fid "#$rec(type) $rec(files)"
-    if { $rec(polarization) ne {} } {
+    if { [info exists rec(polarization)] && $rec(polarization) ne {} } {
 	puts $fid "#polarization $rec(polarization)"
     }
     switch $rec(type) {
