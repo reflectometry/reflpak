@@ -90,8 +90,7 @@ test "$ans" != "y" && exit
 
 # Do the local build
 echo; echo "== build html ========================="
-ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make html"
-ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make datadist"
+ssh $htmlmachine "cd $builddir && VERSION='$VERSION' make html datadist"
 echo; echo "== build source ======================="
 # Done by hand for now
 # make srcdist
