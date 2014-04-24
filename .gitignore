@@ -1,6 +1,7 @@
 Makeconf
 Makeconf.tcltk
 *.dylib
+*.dll
 *.so
 *.o
 *.oct
@@ -8,3 +9,7 @@ Makeconf.tcltk
 /kit
 /scifun/pkgIndex.tcl
 /Makeconf
+/release
+/reflpak/*.ico
+/reflred/*.ico
+/tcl/*.ico

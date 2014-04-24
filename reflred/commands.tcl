@@ -4,7 +4,8 @@ init_cmd {
     register_icp
     register_uxd
     register_reduced
-    register_raw
+    register_bruker
+    register_rigaku
 }
 set ::title Reflred
 

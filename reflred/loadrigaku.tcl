@@ -1,7 +1,7 @@
 # See README.load
 
 # note the new extension
-proc register_ras {} {
+proc register_rigaku {} {
     set ::extfn(.ras) RASinfo
     set ::typelabel(height) "Height scan"
     set ::typelabel(tilt) "Tilt scan"
@@ -35,9 +35,9 @@ proc _RASsplitname {name} {
 
 proc RASmark {file} {
     # suck in the file
-    if {[ catch { open $file r } fid ] } { 
+    if {[ catch { open $file r } fid ] } {
 	message "Error: $fid"
-	return 
+	return
     }
     set data [read $fid]
     close $fid
@@ -48,44 +48,44 @@ proc RASmark {file} {
 
     # Data definition
     set state 0
-    foreach col [list x y dy] {
-        vector create ::$col_$id
-        ::$col_$id length 0
+    foreach col [list x counts dcounts] {
+        vector create ::${col}_$id
+        ::${col}_$id length 0
     }
     foreach line [split $data "\n"] {
-	if { [string compare $line "*RAS_HEADER_START"] } {
+	if { [string compare $line "*RAS_HEADER_START"]==0 } {
 	    set state 1
-	} elsif { [string compare $line "*RAS_HEADER_END"] } {
+	} elseif { [string compare $line "*RAS_HEADER_END"]==0 } {
 	    set state 0
-	} elsif { [string compare $line "*RAS_INT_START"] } {
+	} elseif { [string compare $line "*RAS_INT_START"]==0 } {
 	    set state 2
-	} elsif { [string compare $line "*RAS_INT_END"] } {
+	} elseif { [string compare $line "*RAS_INT_END"]==0 } {
 	    set state 0
-	}
-	if { $state == 1 } {
-	    # process *FIELD "japanese value|value"
-	    if { [regexp {^[*]([^ ]*) +"([^|]*[|])?([^"]*)" *} $line _ field japanese value] } {
-		set rec(header,$field) $value
+	} else {
+	    if { $state == 1 } {
+		# process *FIELD "japanese value|value"
+		if { [regexp {^[*]([^ ]*) +"([^|]*[|])?([^"]*)" *} $line _ field japanese value] } {
+		    set rec(header,$field) $value
+		}
+	    } elseif { $state == 2 } {
+		set parts [split $line]
+		::x_$id append [lindex $parts 0]
+		::counts_$id append [expr {round([lindex $parts 1]*[lindex $parts 2])}]
+		::dcounts_$id append [expr {sqrt([lindex $parts 1])*[lindex $parts 2]}]
 	    }
-	} elsif { $state == 2 } {
-	    set parts [split $line]
-	    ::x_$id append [lindex $parts 0]
-	    ::y_$id append [expr {round([lindex $parts[1]]*[lindex $parts[2]])}]
-	    ::dy_$id append [expr {sqrt([lindex $parts[1]])*[lindex $parts[2]]}]
 	}
     }
-
-    foreach field [array names rec -regexp {header,MEAS_COND_AXIS_NAME-[0-9]*} {
+    foreach field [array names rec -regexp {header,MEAS_COND_AXIS_NAME-[0-9]*}] {
 	set idx [lindex [split $field "-"] 1]
         set name $rec(header,MEAS_COND_AXIS_NAME_INTERNAL-$idx)
 
 	# fix values, removing units and evaluating attenuator 1/10000
 	set value $rec(header,MEAS_COND_AXIS_POSITION-$idx)
-	if {[string equal [string range $value end-1 end] "mm"} {
+	if {[string equal [string range $value end-1 end] "mm"]} {
 	    set rec(header,MEAS_COND_AXIS_UNIT-$idx) "mm"
 	    set value [string range $value 0 end-2]
-	} elsif {[string equal $field "Attenuator"]} {
-	    set parts [string split $value "/"]
+	} elseif {[string equal $name "Attenuator"]} {
+	    set parts [split $value "/"]
 	    set value [expr {double([lindex $parts 0])/double([lindex $parts 1])}]
 	}
 	set rec(motor,$name) $value
@@ -115,17 +115,39 @@ proc RASmark {file} {
     set scan $rec(header,MEAS_SCAN_AXIS_X_INTERNAL)
     set min $rec(header,MEAS_SCAN_START)
     set max $rec(header,MEAS_SCAN_STOP)
-    if { ![string equal $rec(motor,$scan,label) {}] {
+    if { ![string equal $rec(motor,$scan,label) {}] } {
         set rec(xlab) $scan
     } else {
         set rec(xlab) $rec(motor,$scan,label)
     }
     if { ![string equal $rec(motor,$scan,unit) {}] } {
-        set rec(xlab) "$rec(xlab) ($rec(more,$can,unit))"
+        set rec(xlab) "$rec(xlab) ($rec(motor,$scan,unit))"
     }
+
+    # ==== Axes ====
+    # TwoTheta
+    # Omega
+    # Chi, Phi    sample rotation?
+    # Z, Rx, Ry   sample translation?
+    # TwoThetaTheta, TwoThetaOmega, TwoThetaChi, TwoThetaChiPhi
+    # Alpha, Beta
+    # ThetaS, ThetaD
+    # Ts, Zs
+    # CBO, CBO-M
+    # Incident{SollerSlit,SlitBox,SlitBox-_Axis,Monochromator,AxdSlit}
+    # CenterSlit, Filter, Attenuator
+    # Receiving{SlitBox[12],Optics,SollerSlit,AxdSlit,SlitBox[12]-_Axis,SlitBox2-Zd}
+    # Counter{Monochromator,Slit}
+    # TwoThetaB, AlphaR, BetaR
+    # IncidentPrimary, HV, PHA
+
     switch $scan {
         TwoThetaTheta { marktype spec $min $max }
+        TwoThetaOmega { marktype spec $min $max }
+        Omega { marktype rock3 $min $max }
         TwoTheta { marktype rock $min $max }
+
+        # Don't know if background is set by omega/twotheta relative initial position or offset
         COUPLED {
             if { 2*$rec(THETA) < $rec(2THETA) } {
                 marktype back $min $max -
@@ -156,18 +178,30 @@ proc RASview {id w} {
 
 proc RASload {id} {
     upvar #0 $id rec
+    set rec(monitor) 1
 
+    set scan $rec(header,MEAS_SCAN_AXIS_X_INTERNAL)
     vector create ::seconds_$id ::slit1_$id ::alpha_$id ::beta_$id
     ::seconds_$id expr "::counts_$id*0 + $rec(monitor)"
     ::slit1_$id expr "::x_$id*0 + $rec(motor,IncidentSlitBox)"
     switch $scan {
+        TwoThetaOmega -
         TwoThetaTheta {
             ::alpha_$id expr "0.5*::x_$id"
             ::beta_$id expr "::x_$id"
         }
+        Omega {
+            ::alpha_$id expr "::x_$id"
+            ::beta_$id expr "0*::x_$id+$rec(motor,TwoTheta)"
+        }
+        TwoTheta {
+            ::alpha_$id expr "0*::x_$id+$rec(motor,Omega)"
+            ::beta_$id expr "::x_$id"
+        }
+        default {
+            puts "scan is $scan"
+        }
     }
-    ::alpha_$id
-    set rec(monitor) 1
 
     if { ![info exists rec(monitor)] || $rec(monitor)==0.0 } {
 	# ignore bad or missing monitor
