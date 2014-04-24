@@ -38,6 +38,12 @@ proc RAWmark {file} {
     set raw [read $fid]
     close $fid
 
+    # Check header
+    if { [string compare [string range $raw 0 3] "RAW1"] != 0 } {
+        # not a bruker RAW file
+        return
+    }
+
     # RAW files can have multiple data sections in the same
     # file.  We explode these on mark.
 
