@@ -1,6 +1,6 @@
 #! /bin/sh
 # \
-exec ncnrkit "$0" "$@"
+exec wish "$0" "$@"
 
 #console show
 set file [info script]
