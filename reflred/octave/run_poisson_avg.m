@@ -59,10 +59,10 @@ function [ run ] = run_poisson_avg (run1, run2)
   ## XXX FIXME XXX what to use for step size when only one run?
   if isempty(run2) || nargin == 1
     run = run1;
-    tol = 10*eps;
+    tol = mtol = 10*eps;
   elseif isempty(run1)
     run = run2;
-    tol = 10*eps;
+    tol = mtol = 10*eps;
   else
     run = run1;
     run.x = [ run1.x ; run2.x ];
@@ -70,6 +70,7 @@ function [ run ] = run_poisson_avg (run1, run2)
     run.dy = [ run1.dy; run2.dy ];
     if isfield(run1,'m') && isfield(run2,'m')
       run.m = [ run1.m ; run2.m ];
+      mtol = run_tol(run1.m,run2.m);
     endif
     tol = run_tol(run1.x,run2.x);
   endif
@@ -89,7 +90,7 @@ function [ run ] = run_poisson_avg (run1, run2)
   ## XXX FIXME XXX clusters are formed when consecutive x-values
   ## are within some tolerance.  Consider the points x-tol, x, x+tol
   ## which are in the same cluster even though (x+tol)-(x-tol) > tol.
-  if use_m, near = diff(x) <= tol & diff(m) <= tol;
+  if use_m, near = (diff(x) <= tol) & (diff(m) <= mtol);
   else near = diff(x) <= tol;
   end
   
