@@ -571,7 +571,7 @@ TOGL_EXTERN int Plot_Init( Tcl_Interp *interp )
   dpi = 100.;
   if (Tcl_Eval(interp,"expr {72.*[tk scaling]}") == TCL_OK) {
     double r;
-    if (Tcl_GetDouble(interp,interp->result,&r) == TCL_OK) {
+    if (Tcl_GetDoubleFromObj(interp,Tcl_GetObjResult(interp),&r) == TCL_OK) {
       dpi = r;
     }
     Tcl_ResetResult(interp);

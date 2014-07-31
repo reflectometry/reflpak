@@ -7,7 +7,7 @@ topdir=${CURDIR}
 # DEBUG=-DEBUG
 
 # NCNRKIT
-NCNRKIT_HOME = c:/Source/ncnrkit/bin
+NCNRKIT_HOME = c:/ncnrkit/bin
 NCNRKIT = ${NCNRKIT_HOME}/ncnrpack-win.exe
 SDXKIT = ${NCNRKIT_HOME}/sdx.kit
 TCLKIT = ${NCNRKIT_HOME}/tclkit-8.4.17-win32.upx.exe
@@ -16,8 +16,8 @@ RC = ${NCNRKIT_HOME}/windres.exe
 # Things from tclConfig.sh
 TCL_INCLUDE_SPEC=-Ic:/Tcl/include
 TCL_LIB_DIR=-Lc:/Source/reflpak/win
-TCL_STUB_LIB_SPEC=-ltclstub84
-TK_STUB_LIB_SPEC=-ltkstub84
+TCL_STUB_LIB_SPEC=-ltclstub86
+TK_STUB_LIB_SPEC=-ltkstub86
 TCL_SHLIB_LD=gcc -pipe -shared
 TCL_SHLIB_SUFFIX=.dll
 WISH=/c$(TCL_PREFIX)/bin/bltwish.exe
@@ -50,8 +50,10 @@ EXE=.exe
 LDEXT=$(TCL_SHLIB_SUFFIX)
 
 # ZLib
-ZINC = -Ic:/Source/zlib-1.2.8
-ZLIB = c:/Source/zlib-1.2.8/libz.a
+#ZINC=-Ic:/Source/zlib-1.2.8
+#ZLIB=c:/Source/zlib-1.2.8/libz.a
+ZINC=
+ZLIB=-lz
 
 # Open GL + Togl
 # You will need to find glut.h and glut32.dll to run the
