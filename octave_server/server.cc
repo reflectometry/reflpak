@@ -18,7 +18,7 @@
 #include <cstdio>
 #include <cctype>
 #include <cstdlib>
-//#include <unistd.h>
+#include <unistd.h>
 //#include <stdint.h>
 #include <cerrno>
 // #include <string.h>
@@ -192,7 +192,7 @@ inline void sigchld_setup(void) { }
 
 #ifdef USE_DAEMONIZE
 
-static RETSIGTYPE
+static void
 sigterm_handler(int /* sig */)
 {
   exit(0);
@@ -526,7 +526,11 @@ send(name,value)\n\
       // Grab the string value from args(1).
       // Can't use args(1).string_value() because that trims trailing \0
       charMatrix m(args(1).char_matrix_value());
-      std::string s(m.row_as_string(0,false,true));
+#ifdef ROW_AS_STRING3
+      std::string s(m.row_as_string(0,false,true)); 
+#else
+      std::string s(m.row_as_string(0,false)); 
+#endif
       STATUS("sending string(" << cmd.c_str() << " len " << s.length() << ")");
       ok = writes(channel,"!!!s",4);               // string message
       t = htonl(8 + cmd.length() + s.length());
