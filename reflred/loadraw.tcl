@@ -1,7 +1,7 @@
 # See README.load
 
 # note the new extension
-proc register_raw {} {
+proc register_bruker {} {
     set ::extfn(.raw) RAWinfo
     set ::typelabel(height) "Height scan"
     set ::typelabel(phi) "Sample rock"
@@ -38,6 +38,12 @@ proc RAWmark {file} {
     set raw [read $fid]
     close $fid
 
+    # Check header
+    if { [string compare [string range $raw 0 3] "RAW1"] != 0 } {
+        # not a bruker RAW file
+        return
+    }
+
     # RAW files can have multiple data sections in the same
     # file.  We explode these on mark.
 
@@ -46,6 +52,7 @@ proc RAWmark {file} {
     set run [file rootname [file tail $file]]
     set date [clock scan "[trim [string range $raw 16 25]] [trim [string range $raw 26 35]]"]
     set head [string range $raw 0 711]
+    binary scan [string range $raw 616 623] d wavelength
 
     # Split the remainder into data sections
     binary scan [string range $raw 12 17] i ranges
@@ -67,7 +74,6 @@ proc RAWmark {file} {
         set offset [expr {$data_offset+$nrow*$row_length}]
         set rdata [string range $raw $data_offset [expr {$offset-1}]]
         incr section
-        binary scan [string range $rhead 240 247] d wavelength
 
 	# Create separate data records for each section
 	if { $ranges > 1 } {
@@ -129,8 +135,13 @@ proc RAWmark {file} {
                 marktype rock $two_theta [expr $two_theta+$increment*$nrow]
 	    }
 	    3 { # rocking curve
-		set rec(rockbar) [expr $two_theta/2.]
-		marktype rock $theta [expr $theta+$increment*$nrow]
+	        # Rather than using a rocking curve with Qx offet, pretend that
+		# we are doing a phi scan, and set ranges appropriately
+		#set rec(rockbar) [expr $two_theta/2.]
+		#marktype rock $theta [expr $theta+$increment*$nrow]
+		#set rec(rockbar) $phi
+	        marktype phi [expr $phi-($two_theta/2.-$theta)] \
+		    [expr $phi-($two_theta/2.-$theta)+$increment*$nrow]
             }
             4 { # chi scan
 		marktype chi $chi [expr $chi+$increment*$nrow]
@@ -180,7 +191,7 @@ proc RAWview {id w} {
 
     # Compose header summary
     array set stepper_name { 
-        0 2theta 1 2theta 2 2theta 3 theta 4 chi
+        0 2theta 1 2theta 2 2theta 3 phi 4 chi
         5 phi 6 x 7 y 8 z 9 aux1 10 aux2 11 aux3 12 psi 13 hkl
         14 recspace 20 2theta 129 PSD-fixed 130 PSD-fast
     }
@@ -189,7 +200,11 @@ proc RAWview {id w} {
         3 theta_start 4 chi_start 5 phi_start 6 x_start 7 y_start
         8 z_start 9 aux1_start 10 aux2_start 11 aux3_start
     }
-    set start_range [set $stepper_var($scan_type)]
+    if {$scan_type == 3} {
+        set start_range [expr $phi_start - ($two_theta_start/2.-$theta_start)]
+    } else {
+        set start_range [set $stepper_var($scan_type)]
+    }
     set stop_range [expr $start_range+$no_of_measured_data*$increment_1]
     set scanstr [format "%s from %.4f to %.4f by %.4f" \
         $stepper_name($scan_type) $start_range $stop_range $increment_1]
@@ -203,6 +218,8 @@ proc RAWview {id w} {
             set offsetstr [format "+ %.4f" $offset]
         }
         append scanstr ", theta = 2theta/2 $offsetstr"
+    } elseif {$scan_type == 3} {
+        append scanstr " using theta/2theta"
     }
     set startstr [format \
         "theta:%.4f  2theta:%.4f  chi:%.4f  phi:%.4f  x:%.4f  y:%.4f  z:%.4f" \
@@ -223,7 +240,7 @@ proc RAWview {id w} {
 # scan $scanstr
 # start $startstr
 # slits $slitstr
-# source [trim $anode] $act_used_lambda A, generator $generator_voltage V / $generator_current mA, det slit [trim $detslit_code] 
+# source [trim $anode] $alpha_average A, generator $generator_voltage V / $generator_current mA, det slit [trim $detslit_code] 
 # temperature $temperature K changing by $heating_cooling_rate K/s
 "
 
@@ -348,34 +365,41 @@ proc RAWload {id} {
     binary scan [string range $head 584 591] ff antislit detectorslit
 
     switch $scan_type {
-        0 - 1 {
-            set motor beta
-            set start $two_theta
-            set rec(xlab) "Qz ($::symbol(invangstrom))"
-        }
+	0 - 1 {
+	    set motor beta
+	    set start $two_theta
+	    set rec(xlab) "Qz ($::symbol(invangstrom))"
+	}
 	2 {
 	    set motor beta
 	    set start $two_theta
-            set rec(xlab) "Qx ($::symbol(invangstrom))"
+	    set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
 	3 { 
-	    set motor alpha
-            set start $theta
-	    set rec(xlab) "Qx ($::symbol(invangstrom))"
+	    # Use effective phi for x-axis rather than Qx so we can
+	    # overplot phi curves
+	    set motor phi
+	    set start [expr $phi-($two_theta/2.-$theta)]
+	    set rec(xlab) "phi (degrees)"
+
+	    # Uncomment if using real rocking curve
+	    #set motor alpha
+	    #set start $theta
+	    #set rec(xlab) "Qx ($::symbol(invangstrom))"
 	}
 	4 { 
 	    set motor sample_tilt
 	    set start $chi
-	    set rec(xlab) "Sample tilt (degrees)" 
+	    set rec(xlab) "chi (degrees)"
 	}
 	5 {
 	    set motor sample_angle
 	    set start $phi
-	    set rec(xlab) "Sample angle (degrees)" 
+	    set rec(xlab) "phi (degrees)"
 	}
 	8 { 
 	    set motor height
-            set start $z
+	    set start $z
 	    set rec(xlab) "Height" 
 	}
     }
@@ -406,10 +430,12 @@ proc RAWload {id} {
 	AB_to_QxQz $id
 	::Qx_$id dup ::x_$id
     } elseif { $scan_type == 3 } {
-        vector create ::beta_$id
-        ::beta_$id expr "0*::alpha_$id + $two_theta"
-	AB_to_QxQz $id
-	::Qx_$id dup ::x_$id
+        ::phi_$id dup ::x_$id
+	# Uncomment for Qx plot rather than effective phi
+        #vector create ::beta_$id
+        #::beta_$id expr "0*::alpha_$id + $two_theta"
+	#AB_to_QxQz $id
+	#::Qx_$id dup ::x_$id
     } else {
 	::${motor}_$id dup ::x_$id
     }

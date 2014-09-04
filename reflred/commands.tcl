@@ -4,7 +4,8 @@ init_cmd {
     register_icp
     register_uxd
     register_reduced
-    register_raw
+    register_bruker
+    register_rigaku
 }
 set ::title Reflred
 
@@ -552,7 +553,8 @@ proc run_matches { base_rec target_rec } {
     }
     # XXX FIXME XXX put slit comparison code back in? Yes.
 
-    if { $base(T) != $this(T) } {
+    # Allow temperature differences of 0.1 degree be called the same temperature
+    if { abs($base(T) - $this(T)) > 5.0 } {
 	return "different temperature: $base(T) != $this(T)"
     }
     if { $base(H) != $this(H) } {

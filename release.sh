@@ -1,5 +1,13 @@
 #!/bin/sh
 
+cat <<EOF
+linux/mac/windows release of reflpak is broken.  The build machines
+no longer exists, and builds fail on recent mac versions.  For now
+use "make dist" on windows and copy the result release/reflpak*.exe
+to the webster
+EOF
+exit
+
 # Usage: ./release.sh
 #
 # Build an official release of reflpak, tagged with the current date.
@@ -37,7 +45,7 @@ BUILD="$osx $linux"
 # and tclsh.
 htmlmachine=h123043.ncnr.nist.gov
 
-# Each machine has already been set up with a build directory 
+# Each machine has already been set up with a build directory
 # in ~/cvs/reflfit and the appropriate Makeconf.
 builddir="~/Source/reflpak"
 
@@ -46,7 +54,7 @@ builddir="~/Source/reflpak"
 WEBDIR=webster.ncnr.nist.gov:software/release
 WEBCP=scp
 
-# The following directory will contain $arch/reflpak$VERSION and 
+# The following directory will contain $arch/reflpak$VERSION and
 # a copy of the latest in $arch/reflpak
 BINDIR="//charlotte/public/Reflpak"
 ## MSYS cp to shared is broken for versions before 1.0.11

@@ -19,7 +19,7 @@ VERSION = 12
 #
 ROOT    	= .
 # Tcl version to compile against.
-TCL_VERSION	= 84
+TCL_VERSION	= 86
 TCL     	= c:/Tcl
 TCLSH		= $(TCL)/bin/tclsh$(TCL_VERSION)
 BINDIR		= $(PROJECT)$(VERSION)

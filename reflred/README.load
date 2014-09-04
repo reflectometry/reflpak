@@ -36,3 +36,5 @@ reflred.help.
 
 Load needs to create a certain set of vectors.  These are
 described on the "data record" page of reflred.help.
+
+Be sure to add the new loader to Makefile, reflred/pkgIndex.tcl and command.tcl

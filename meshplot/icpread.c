@@ -18,6 +18,8 @@
 #endif /* MISSING_LIBZ */
 #include "icpread.h"
 
+#define MAX_LINE 1024
+
 /* Open the file */
 gzFile icp_open(const char name[])
 {
@@ -121,7 +123,7 @@ const char *icp_error(int code)
 int icp_readheader(gzFile infile, int headersize, char header[], int *pts,
 		   int *linenum)
 {
-  char line[128];
+  char line[MAX_LINE];
   int offset,len,seen_motor_line;
 
   /* Return to the start of the file */
@@ -164,7 +166,7 @@ int icp_readheader(gzFile infile, int headersize, char header[], int *pts,
 /* Scan one frame of the file to compute the frame size for each point. */
 int icp_framesize(gzFile infile, int *rows, int *columns, int *values)
 {
-  char line[128], token[20];
+  char line[MAX_LINE], token[MAX_LINE];
   const char *pline;
   int ch, ncomma=0, nsemicolon=0, nvalues=0;
   z_off_t restore_pos;
@@ -385,7 +387,7 @@ int icp_readdetector(gzFile infile, int rows, int columns, Counts frame[], int *
 /* Read the next set of ICP columns from the file */
 int icp_readmotors(gzFile infile, int nvector, Real vector[], int *linenum)
 {
-  char line[128], token[20];
+  char line[MAX_LINE], token[MAX_LINE];
   const char *pline;
   int nvalues = 0;
 
@@ -415,12 +417,12 @@ int icp_readmotors(gzFile infile, int nvector, Real vector[], int *linenum)
     if (!*token || *token == '\n') break;
     if (nvalues >= nvector) return ICP_VECTOR_ERROR;
     vector[nvalues++] = atof(token);
+    // printf("linenum:%d token %d:%s value:%g\n", *linenum, nvalues, token,  atof(token));
   }
   if (nvalues < nvector) return ICP_VECTOR_ERROR;
 
   return ICP_GOOD;
 }
-
 
 
 #ifdef TEST
