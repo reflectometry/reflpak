@@ -26,7 +26,7 @@ function h_out = fitslits(r)
   %# model is supported
   if any([h.A.p(1), h.B.p(1), h.C.p(1), h.D.p(1)])
     %# z = minimize('slitmin', list((h.lo+h.hi)/2, h), 'maxev', 1000);
-    z = fminbnd('slitmin', h.lo, h.hi, [], h);
+    z = fminbnd(@(z)slitmin(z,h), h.lo, h.hi);
     %# if quadlinear is supported for any models, use it for all
     [prA, qlA] = testquadslit(r.A,h.A,z);
     [prB, qlB] = testquadslit(r.B,h.B,z);
