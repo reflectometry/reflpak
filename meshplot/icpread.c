@@ -209,7 +209,7 @@ int icp_framesize(gzFile infile, int *rows, int *columns, int *values)
   /* Count the number of tokens on the line */
   // printf("line=%s\n",line);
   pline = line;
-  while (line) {
+  while (pline) {
     pline = scan_token(pline, sizeof(token), token);
     if (!*token || *token == '\n') break;
     nvalues++;
