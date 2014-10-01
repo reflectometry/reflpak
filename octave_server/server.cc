@@ -18,8 +18,6 @@
 #include <cstdio>
 #include <cctype>
 #include <cstdlib>
-#include <unistd.h>
-//#include <stdint.h>
 #include <cerrno>
 // #include <string.h>
 #include <sys/types.h>
@@ -47,6 +45,14 @@
 # define closesocket close
 #endif
 
+#if defined(_MSC_VER)
+# undef min
+# undef max
+# define snprintf _snprintf
+#else
+# include <unistd.h>
+//# include <stdint.h>
+#endif
 
 #include <octave/oct.h>
 #include <octave/parse.h>
