@@ -18,7 +18,7 @@
 #endif /* MISSING_LIBZ */
 #include "icpread.h"
 
-#define MAX_LINE 1024
+#define MAX_LINE 8192
 
 /* Open the file */
 gzFile icp_open(const char name[])
@@ -207,12 +207,13 @@ int icp_framesize(gzFile infile, int *rows, int *columns, int *values)
 
 
   /* Count the number of tokens on the line */
-  // printf("line=%s\n",line);
+  //printf("line=%s\n",line);
   pline = line;
   while (pline) {
     pline = scan_token(pline, sizeof(token), token);
     if (!*token || *token == '\n') break;
     nvalues++;
+    //printf("values=%s\n",token);
   }
   *values = nvalues;
   
