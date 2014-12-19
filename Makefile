@@ -115,7 +115,7 @@ kit/reflpak: $(fitfiles) $(redfiles) $(redoctavefiles) $(winlinkfiles) \
 	echo "set ::app_version {$(ARCH)-$(VERSION)}" \
 		> kit/reflpak.vfs/main.tcl
 	cat main.tcl >> kit/reflpak.vfs/main.tcl
-	cd kit && ../$(TCLKIT) ../$(SDXKIT) wrap reflpak$(EXE) -runtime ../$(NCNRKIT)
+	cd kit && $(TCLKIT) $(SDXKIT) wrap reflpak$(EXE) -runtime $(NCNRKIT)
 	@touch kit/reflpak ;# needed to trigger resource binding on reflpak.exe
 
 reflred/red.ico: $(redicon)

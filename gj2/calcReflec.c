@@ -49,7 +49,6 @@ void calcReflec(double qtemp[], void *y, int npnts, int intens)
 {
    register int j;
    register double qccorr, mucorr;
-   double time;
 
    /* Make sure qtemp is positive */
 /* Not necessary and causes problems with mancon4 at low Q */
