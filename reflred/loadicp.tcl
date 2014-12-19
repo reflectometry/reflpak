@@ -341,7 +341,7 @@ proc icp_load {id} {
     # Use icp extension to open the file.
     set rec(fid) [icp $rec(file)]
     if {[$rec(fid) Nmotors] != $rec(Ncolumns)} {
-	message "ICP column headers inconsitent with data"
+	message "ICP column headers inconsistent with data"
 	$rec(fid) close
 	return 0
     }
