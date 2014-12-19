@@ -556,7 +556,8 @@ proc motor_column { id motor instrument_name standard_name} {
     }
 }
 
-proc seconds_column { id } {
+# Deprecated since NICE allows high precision reporting of counting time.
+proc _old_seconds_column { id } {
     upvar \#0 $id rec
 
     # Convert MIN column to time in seconds if available.
@@ -575,11 +576,30 @@ proc seconds_column { id } {
 
     if { $rec(base) != "TIME" } {
 	# assume no uncertainty if counting against time.  If counting
-	# against monitor, the uncertainty is +/- a half second uniformly
-	# distributed, which can be approximated by a gaussian of width
-	# 1/sqrt(12)
+	# against monitor, the uncertainty is +/- 0.5 seconds uniformly
+	# distributed (not 0.3 # seconds, which is 1/200 of a minute, since
+	# the above code rounds to the nearest second).  A uniform distribution
+	# can be  approximated by a gaussian of width (b-a)/sqrt(12)
 	vector create ::dseconds_$id
 	::dseconds_$id expr "::seconds_$id*0 + 1./sqrt(12.)"
+    }
+}
+
+proc seconds_column { id } {
+    upvar \#0 $id rec
+
+    # Convert MIN column to time in seconds if available.
+    # Time measured in seconds but recorded in minutes to 5 decimal places.
+    vector create ::seconds_$id
+    if { [vector_exists ::min_$id] } {
+	::seconds_$id expr "::min_$id*60"
+    } elseif { [vector_exists ::MIN_$id] } {
+	::seconds_$id expr "::MIN_$id*60"
+    } elseif { $rec(base) == "TIME" } {
+	::seconds_$id expr "0*::counts_$id + $rec(mon)*$rec(prf)"
+    } else {
+	# No time information
+	catch { vector destroy ::seconds_$id }
     }
 }
 
@@ -949,7 +969,9 @@ proc NG7load {id} {
     QxQz_to_AB $id
 
     # Build time vector from header specification
-    if { [vector_exists ::Qz_$id] } {
+    if { [vector_exists ::MIN_$id] } {
+	seconds_column $id
+    } elseif { [vector_exists ::Qz_$id] } {
 	vector create ::seconds_${id}
 	::seconds_${id} expr "$rec(prf)*($rec(mon)+$rec(Mon1)*abs(::Qz_$id)^$rec(Exp))"
     }
