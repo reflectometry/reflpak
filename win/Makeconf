@@ -52,10 +52,10 @@ LDEXT=$(TCL_SHLIB_SUFFIX)
 # ZLib
 # For windows, download zlib-1.2.8.  Compile with:
 #    mingw32-make -f win32/Makefile.gcc
-ZINC=-Ic:/Source/zlib-1.2.8
-ZLIB=c:/Source/zlib-1.2.8/libz.a
-#ZINC=
-#ZLIB=-lz
+#ZINC=-Ic:/Source/zlib-1.2.8
+#ZLIB=c:/Source/zlib-1.2.8/libz.a
+ZINC=-DMISSING_LIBZ
+ZLIB=
 
 # Open GL + Togl
 # You will need to find glut.h and glut32.dll to run the
