@@ -109,7 +109,7 @@ function [ run ] = run_poisson_avg (run1, run2)
     ## 'averages' singletons y with relative error 0 < err < 10*eps.
 
     ## use uncertainty weighted sum for the location of the center
-    x = sum(sparse(r,c,x*dy.^-2))'./sum(sparse(r,c,dy.^-2))';
+    x = sum(sparse(r,c,x.*dy.^-2))'./sum(sparse(r,c,dy.^-2))';
     if use_m, m = sum(sparse(r,c,m))'./sum(sparse(r,c,1))'; endif
     ## poisson statistics for y, dy
     weight = sum(sparse(r,c,(y+~y)./dy.^2))';

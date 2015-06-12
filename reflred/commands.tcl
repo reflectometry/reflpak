@@ -850,7 +850,7 @@ proc load_run {id} {
     # sync block which allowed another thread to enter was waiting
     # on a separate variable.
     if [info exists rec(loading)] {
-	messsage "shouldn't call load_run if already loading"
+	message "shouldn't call load_run if already loading"
     }
 
     # check if already loaded (using reference counts)
