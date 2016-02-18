@@ -145,6 +145,31 @@ proc exclude_saturated {id rate} {
     }
 }
 
+# detector dead time correction
+proc detector_dead_time_correction {id tau} {
+    upvar \#0 $id rec
+    if {[vector_exists ::seconds_$id] && [vector_exists ::counts_$id]} {
+	    dcounts_column $id
+	    set factor [vector create \#auto]
+	    $factor expr "1e6/(1e6 - $tau*::counts_$id/::seconds_$id)"
+	    ::counts_$id expr "::counts_$id*$factor"
+	    ::dcounts_$id expr "::dcounts_$id*$factor"
+	vector destroy $factor
+    }
+}
+
+# monitor dead time correction
+proc monitor_dead_time_correction {id tau} {
+    upvar \#0 $id rec
+    if {[vector_exists ::seconds_$id] && [vector_exists ::monitor_$id]} {
+	    set factor [vector create \#auto]
+	    $factor expr "1e6/(1e6 - $tau*::monitor_$id/::seconds_$id)"
+	    ::monitor_$id expr "::monitor_$id*$factor"
+	    ::dmonitor_$id expr "::dmonitor_$id*$factor"
+	vector destroy $factor
+    }
+}
+
 monitor_init
 
 # ======================================================
@@ -889,10 +914,8 @@ proc load_run {id} {
 
     # norm vectors
     vector create ::y_$id ::dy_$id
-    if { ![vector_exists ::dcounts_$id] } {
-	vector create ::dcounts_$id
-	::dcounts_$id expr "sqrt(::counts_$id) + (::counts_$id == 0)"
-    }
+
+    dcounts_column $id
     if { [vector_exists ::monitor_$id] } {
 	set rec(norm) "monitor"
     } else {
@@ -904,6 +927,17 @@ proc load_run {id} {
 
     # let the loader know if load was successful.
     return $rec(loaded)
+}
+
+# HELP developer
+# Usage: dcounts_column id
+#
+# Create a dcounts column from counts if one does not already exist
+proc dcounts_column {id} {
+    if { ![vector_exists ::dcounts_$id] } {
+	vector create ::dcounts_$id
+	::dcounts_$id expr "sqrt(::counts_$id) + (::counts_$id == 0)"
+    }
 }
 
 

@@ -11,7 +11,9 @@ array set ::inst {
   ng7,distance     2000.
 
   ng1,wavelength  4.75
-  ng1,saturation   15000
+  ng1,detector_tau 8.737
+  ng1,monitor_tau  8.737
+  ng1,saturation   65000
   ng1,psdsaturation 8000
   ng1,minbin         1
   ng1,maxbin       256
@@ -19,7 +21,9 @@ array set ::inst {
   ng1,distance     36*25.4
 
   cg1,wavelength   5.006
-  cg1,saturation   15000
+  cg1,detector_tau 8.737
+  cg1,monitor_tau  8.737
+  cg1,saturation   65000
   cg1,psdsaturation 8000
   cg1,minbin         1
   cg1,maxbin       608
@@ -652,6 +656,8 @@ proc QscanLoad {id} {
 	exclude_saturated $id $::inst($inst,psdsaturation)
     } else {
 	exclude_saturated $id $::inst($inst,saturation)
+	detector_dead_time_correction $id $::inst($inst,detector_tau)
+	monitor_dead_time_correction $id $::inst($inst,monitor_tau)
     }
 
     switch $rec(type) {
@@ -739,6 +745,8 @@ proc NG1load {id} {
 	exclude_saturated $id $::inst($inst,psdsaturation)
     } else {
 	exclude_saturated $id $::inst($inst,saturation)
+	detector_dead_time_correction $id $::inst($inst,detector_tau)
+	monitor_dead_time_correction $id $::inst($inst,monitor_tau)
     }
 
     # FIXME: rec(type) no longer contains psd

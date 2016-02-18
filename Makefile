@@ -149,7 +149,7 @@ Makeconf.tcltk:
 	$(error Use ./tclConfig2Makeconf to build Makeconf.tcltk)
 
 $(SUBDIRS):
-	cd $@ && $(MAKE)
+	cd $@ && "$(MAKE)"
 
 ChangeLog:
 	svn2cl
